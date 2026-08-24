@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check-all:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm run check:arch
+      - run: npm run check:policy
+      - run: npm run check:rls
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # db:test needs a live Postgres — `supabase start` runs the full local
+      # stack via the Docker daemon the ubuntu-latest runner provides.
+      # NOT verified from the sandbox that authored this workflow (no
+      # Docker daemon there) — first real CI run is the actual test of this
+      # job, per CLAUDE.md → Verificatie / Werkstraat.
+      - run: supabase start
+      - run: npm run db:test
+      - run: supabase stop

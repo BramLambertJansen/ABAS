@@ -1,0 +1,201 @@
+# Architecture — ABAS
+
+Living document — decisions land here first (see `CLAUDE.md` → Werkstraat).
+`CLAUDE.md` stays the short, gate-complementing summary; this is where the
+detail behind it lives.
+
+## Bronmateriaal
+
+The current design source is a Claude Design click-prototype (`dc-runtime`
+templating, not portable code) exported into this repo:
+
+- `README.md` — handoff notes from the design tool.
+- `project/Bar App.dc.html` — the bar-facing app: Verkoop (sales), Dienst
+  (shift), Leden (members), Assortiment (products), plus screens for roles
+  and features not yet in scope here (see "Wat het prototype deed maar hier
+  nog niet is besloten" below).
+- `project/Lid App.dc.html` — the member-facing portal.
+- `chats/*.md` (43 files) — the design conversations; useful for *why*, not
+  binding on *what we build*. Index by topic:
+  - Multi-person shifts / "wie geeft uit" at checkout: `chat18.md`, `chat19.md`
+  - Permission model iteration (bardienst/barmanager/beheerder/boekhouder,
+    PIN step-up): `chat21.md`, `chat25.md`, `chat26.md`, `chat35.md`, `chat42.md`
+  - Activity types tied to a shift: `chat36.md`–`chat38.md`
+  - Report builder / bookkeeper exports: `chat39.md`, `chat41.md`
+  - Overall bar-vs-beheer flow rationale: `chat19.md`–`chat21.md`, `chat24.md`, `chat25.md`
+
+Per `CLAUDE.md`: the prototype governs the *first* build of a screen's UX: once
+built, the in-app design system is truth and departing from the prototype is
+normal evolution, not a defect.
+
+## Shells (settled, from CLAUDE.md)
+
+One app, two shells:
+
+- `shells/bar` — tablet/desktop only, no phone fallback.
+- `shells/portal` — phone-first, usable on desktop too.
+
+`features/` components are shell-agnostic: they read `useShell()` →
+`{ density, overlay, columns }` and never branch on device directly
+(`isMobile`/`matchMedia`/`userAgent` are banned by `check:policy`).
+
+**Built (2026-08-24, initial scaffold)**:
+- Next.js 15 (App Router) + TypeScript + Tailwind CSS. shadcn/ui not added
+  yet — nothing has needed a dialog/dropdown primitive so far; add it when
+  the first real screen does rather than pre-installing unused components.
+- Repo layout, as built: `src/shells/{bar,portal}/` hold each shell's real
+  capability values + placeholder home screen; `src/app/(bar)/` and
+  `src/app/portal/` are thin Next.js routing wrappers only (a `layout.tsx`
+  that mounts `ShellProvider` + a `page.tsx` that re-exports the shell's
+  component) — this is what makes `shells/bar` and `shells/portal` literal,
+  isolated folders `check:arch` can actually enforce, not just a metaphor.
+  `src/features/`, `src/components/`, `src/hooks/queries/` exist and are
+  empty (each has a README explaining its rule) until the first spec builds
+  into them. `src/lib/shell/` holds `useShell()`; `src/lib/supabase/` holds
+  the only two files allowed to import the Supabase SDK.
+- `supabase/migrations/0001_init.sql` implements the schema below in full:
+  every table from "Money & attribution", RLS enabled + `authenticated`
+  granted `select`-only via policy, money tables additionally `REVOKE`d,
+  and the `start_shift`/`add_shift_member`/`remove_shift_member`/
+  `place_order`/`top_up` RPCs. `supabase/seed.sql` has demo data (PIN `1234`
+  for every seeded bar/beheer member). `supabase/tests/` has pgTAP coverage
+  for the money RPCs' happy paths and negative cases (insufficient balance,
+  `served_by` off-roster, direct-write REVOKE).
+- `scripts/check-{arch,policy,rls}.mjs` are real (regex-based, not a full
+  AST — see each file's own header for the tradeoff) first-pass
+  implementations of the three static gates, wired into `npm run check:all`
+  and `.github/workflows/ci.yml`.
+
+**Verified vs. not**: `npm install`, `typecheck`, `build`, `lint`,
+`check:arch`, `check:policy`, `check:rls` all actually ran green in the
+environment that built this scaffold. `db:test` (pgTAP via
+`supabase test db`) did **not** — no Docker daemon was available there, so
+the SQL migrations and tests are carefully written but not yet executed
+against a real Postgres. That's the first thing to run for real (`supabase
+start && npm run db:test`) before trusting the schema.
+
+**Known rough edges in the v1 gate scripts** (fix opportunistically, not
+urgent):
+- `check:rls`'s "table mentioned in a test" check is a literal string match
+  — `top_up` (the RPC) doesn't lexically contain `top_ups` (the table) as a
+  test-file mention would need, so that table's coverage is real
+  (`top_up.test.sql`, `rls_write_protection.test.sql`) but only found by the
+  script because `rls_write_protection.test.sql` happens to spell the table
+  name literally. Fragile; a real AST/SQL-parse pass would be sturdier.
+- `check:policy`'s device-sniffing regex scans stripped comments too
+  crudely to be bulletproof against a string literal containing e.g.
+  `"matchMedia"` — unlikely in practice, not hardened against.
+
+**Open**:
+- Exact shape of `useShell()`'s contract beyond the three named fields
+  (`density`, `overlay`, `columns`) — what `overlay` and `columns` mean
+  concretely for a real component is still to be pinned down by the first
+  screen that needs it.
+
+## Money & attribution (settled, from CLAUDE.md)
+
+- All balance-affecting writes go through `SECURITY DEFINER` RPCs —
+  `place_order(lines, member_id | null)` and `top_up(member_id, amount,
+  method)` — which compute the amount server-side, check balance (member
+  balance + the admin-configured negative limit), and write the transaction
+  in one statement. The client never sends a computed total.
+- Money tables are `REVOKE`d from `authenticated` — no direct table access is
+  *possible*, not just discouraged.
+- `served_by` is chosen by the operator from the active shift's roster
+  (`bezetting`) at checkout time — a plain select, not a PIN. The RPC still
+  validates that the given `served_by` member_id is actually on that shift's
+  roster and rejects anything else, but does not verify that the selecting
+  person is physically the one who made the choice. Deliberate trade-off:
+  stops attribution to someone not on shift, doesn't stop someone on shift
+  claiming a colleague's sale. See "Dienst & bezetting" below.
+- `order_lines.unit_cents` freezes price at order time; later price changes
+  don't retroactively change historical order totals.
+- Negative balance is allowed up to a systemwide limit, itself stored as an
+  application setting a `beheerder` manages (not per-member). A limit of €0 is
+  a valid setting and behaves as "never negative" — but that's a chosen
+  value, not a hardcoded rule. Separately, a €10 "low balance" warning
+  threshold is fixed/systemwide (not a beheerder setting).
+
+**Settled (2026-08-24)**:
+- **Single organization.** ABAS is for Aurora only — no `org_id`, no
+  multi-tenant scoping. RLS policies are written against a single club's
+  data. (Revisit as a real architecture change, with an ADR, if ABAS is ever
+  meant to serve more than one vereniging — don't creep towards multi-tenant
+  incidentally.)
+- **Shared bar-tablet session mechanism**: a dedicated Supabase Auth account
+  per physical tablet, provisioned once by the vereniging (Supabase
+  Studio/CLI). The app signs in as that device account and stays signed in;
+  RLS grants that account the ability to call `place_order`/`top_up` with any
+  valid staff PIN. Individual attribution still only ever comes from the PIN
+  checked inside the RPC — the device account identifies "a legitimate bar
+  tablet", never a specific person.
+
+**Still open**:
+- **PIN storage/hashing**: assuming PINs are hashed (not plaintext) in a
+  members-adjacent table, checked inside the `SECURITY DEFINER` RPC via
+  `crypt()`/`pgcrypto` or similar. Not yet written down as a decision.
+- **Device account provisioning flow**: who creates the per-tablet Supabase
+  Auth account and how (manual via Studio for the single Aurora tablet today;
+  needs a real flow if a second tablet is ever added). Fine to leave manual
+  for now given single-tenant, single-club scope.
+
+## Dienst & bezetting (settled, 2026-08-24)
+
+Revives the prototype's "crew"/"wie werkt er mee" concept (`chat18.md`,
+`chat19.md`), simplified: no per-order PIN, no "wie geeft uit" hard-block
+(see open item below on whether the select is required or defaults).
+
+- Starting a shift (`dienst`) requires the starting member's own PIN — this
+  is the one real authentication event per shift.
+- That member then builds the shift's roster (`bezetting`): other members
+  added from the member list. Adding someone to the roster does **not**
+  require their PIN or any confirmation from them.
+- At checkout, the operator picks who rang up the sale from the roster.
+  `place_order`/`top_up` accept a `served_by` parameter and the RPC checks it
+  against the shift's roster server-side (`REVOKE`d table, only the RPC can
+  read/write shift-roster membership) — an id not on the roster is rejected.
+- This is explicitly *not* proof of identity, just a constrained self-report.
+  Anyone in the roster can attribute a sale to any other roster member.
+  Accepted trade-off — see `CLAUDE.md` → Architectuurbeslissingen.
+
+**Settled (2026-08-24)**:
+- The `served_by` select is **required whenever the roster has 2+ people**
+  (blocks checkout until chosen, mirrors the prototype's `serverMissing()`
+  gate) and **auto-attributed to the sole member when the roster is just the
+  shift-starter**, no select shown.
+- The roster **can change mid-shift** — members can be added to or removed
+  from the active shift's `bezetting` at any point, not just at shift start.
+
+## Roles (settled, from CLAUDE.md)
+
+Exactly three: `lid`, `bardienst`, `beheerder`. `beheerder` is a superset of
+`bardienst` (no separate admin app/shell — beheerder works inside
+`shells/bar`). This is a deliberate simplification vs. the prototype, which
+grew to five roles (`barmanager`, `boekhouder` also existed there) — those are
+**not** carried forward unless a future feature request reintroduces them.
+
+## Wat het prototype deed maar hier nog niet is besloten
+
+Listed for reference only — none of this is scoped in or out yet. Don't build
+any of it without a `docs/features/<naam>.md` spec:
+
+- Activity types linked to a shift ("Training" / "Wedstrijddag" / …).
+- A dedicated audit-log screen (`Logboek`) — the ledger/transaction table
+  itself will exist regardless (it's the money trail), just not a filterable
+  UI for it yet.
+- Balance corrections and order-reversal flows.
+- A report builder / CSV-Excel-PDF export (`Rapportages`, `boekhouder` role).
+- Alternate login methods for the bar shell beyond PIN (prototype explored
+  password + magic-link fallbacks) — `CLAUDE.md`'s Auth section only commits
+  to PIN for bar/beheer and email (magic link/password) for the portal.
+- Product/member admin screens (`Leden`, `Assortiment` CRUD) — implied
+  necessary since `beheerder` manages prijzen/ledenbeheer per `CLAUDE.md`, but
+  not yet specced.
+
+## Design reference
+
+Visual tokens (color, radii, type) aren't restated here — read
+`project/Bar App.dc.html` directly when building a screen (it's inline
+`style="..."` per element, easy to grep for the section you need). Key
+constants worth knowing up front: accent `#ee5a24`, warm background `#faf7f3`,
+Manrope typeface, 44–52px tap targets (bar tablet, used with busy/wet hands).
