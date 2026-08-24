@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<helmet>
+<style>
+@keyframes abasPop{from{opacity:0;transform:translateY(6px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+</style>
+</helmet>
+<div style="position:relative;width:100%;font-family:Manrope,-apple-system,BlinkMacSystemFont,sans-serif">
+<div style="{{ triggerStyle }}" onClick="{{ onToggle }}">
+<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left">{{ selectedLabel }}</span>
+<span style="{{ caretStyle }}">▾</span>
+</div>
+<sc-if value="{{ open }}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;inset:0;z-index:20" onClick="{{ onClose }}"></div>
+<div style="position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:21;background:#fff;border:1px solid #ede7df;border-radius:16px;box-shadow:0 16px 40px rgba(27,30,35,.14);padding:6px;display:flex;flex-direction:column;gap:2px;transform-origin:top;animation:abasPop .15s ease-out;max-height:280px;overflow:auto">
+<sc-for list="{{ items }}" as="o" hint-placeholder-count="4">
+<div style="{{ o.rowStyle }}" style-hover="{{ o.hoverStyle }}" onClick="{{ o.onClick }}">
+<span style="flex:1;white-space:nowrap;text-align:left">{{ o.name }}</span>
+<sc-if value="{{ o.selected }}" hint-placeholder-val="{{ false }}"><span style="color:#ee5a24;font-weight:800;flex:none">✓</span></sc-if>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:280,&quot;height&quot;:52},&quot;options&quot;:{&quot;editor&quot;:null,&quot;default&quot;:[{&quot;id&quot;:&quot;a&quot;,&quot;name&quot;:&quot;Optie A&quot;},{&quot;id&quot;:&quot;b&quot;,&quot;name&quot;:&quot;Optie B&quot;}],&quot;tsType&quot;:&quot;{id:string,name:string}[]&quot;},&quot;value&quot;:{&quot;editor&quot;:null,&quot;default&quot;:&quot;a&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;onChange&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(id: string) =&gt; void&quot;},&quot;placeholder&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Kies&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  state = { open: false };
+  renderVals() {
+    const options = this.props.options || [];
+    const value = this.props.value;
+    const selected = options.find(o => o.id === value);
+    const open = this.state.open;
+    return {
+      selectedLabel: selected ? selected.name : (this.props.placeholder || 'Kies'),
+      open,
+      onToggle: () => this.setState(s => ({ open: !s.open })),
+      onClose: () => this.setState({ open: false }),
+      triggerStyle: 'height:46px;display:flex;align-items:center;gap:8px;border:1px solid #ede7df;border-radius:12px;padding:0 14px;font-size:13.5px;font-family:inherit;font-weight:700;color:#1b1e23;cursor:pointer;background:#fff;box-sizing:border-box;transition:border-color .12s;' + (open ? 'border-color:#ee5a24' : ''),
+      caretStyle: 'font-size:11px;color:#aca69e;flex:none;transition:transform .15s;' + (open ? 'transform:rotate(180deg)' : ''),
+      items: options.map(o => ({
+        name: o.name,
+        selected: o.id === value,
+        rowStyle: 'display:flex;align-items:center;gap:8px;padding:11px 12px;border-radius:11px;font-size:13.5px;font-weight:700;cursor:pointer;' + (o.id === value ? 'color:#ee5a24;background:#fff8f4' : 'color:#1b1e23'),
+        hoverStyle: o.id === value ? 'background:#fff8f4' : 'background:#faf7f3',
+        onClick: () => { this.setState({ open: false }); if (this.props.onChange) this.props.onChange(o.id); }
+      }))
+    };
+  }
+}
+</script>
+</body>
+</html>
