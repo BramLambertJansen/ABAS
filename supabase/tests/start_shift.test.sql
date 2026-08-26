@@ -2,8 +2,7 @@
 -- authentication event per shift (CLAUDE.md → Auth), so every rejection
 -- path gets its own case, not just the happy path. Run with
 -- `npm run db:test` (= `supabase test db`, needs `supabase start` /
--- Docker locally). NOT executed in this environment — no Docker daemon
--- available here, see the scaffolding summary for what's verified vs. not.
+-- Docker locally).
 --
 -- PIN storage/hashing itself (pgcrypto/crypt(), 4 digits, no lockout in
 -- MVP) is settled — docs/ARCHITECTURE.md "Money & attribution" → PIN
