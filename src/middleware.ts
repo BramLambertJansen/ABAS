@@ -29,7 +29,7 @@ import { NextResponse, type NextRequest } from "next/server";
  * (see e.g. useOpenShift) for exactly that case.
  */
 export async function middleware(request: NextRequest) {
-  const response = NextResponse.next({ request });
+  let response = NextResponse.next({ request });
 
   try {
     const supabase = createServerClient(
@@ -40,9 +40,21 @@ export async function middleware(request: NextRequest) {
           getAll() {
             return request.cookies.getAll();
           },
+          // Cookies set here must land on both `request` (so *this* same
+          // request's downstream Server Components — which read via
+          // next/headers' cookies(), see server.ts — see the session
+          // immediately) and `response` (so the browser gets it for the
+          // next request). Setting only the response, as an earlier
+          // version of this file did, means a fresh sign-in wouldn't take
+          // effect until a second page load. Standard @supabase/ssr
+          // middleware pattern, not something specific to this app.
           setAll(
             cookiesToSet: { name: string; value: string; options?: CookieOptions }[]
           ) {
+            for (const { name, value } of cookiesToSet) {
+              request.cookies.set(name, value);
+            }
+            response = NextResponse.next({ request });
             for (const { name, value, options } of cookiesToSet) {
               response.cookies.set(name, value, options ?? {});
             }
@@ -63,14 +75,26 @@ export async function middleware(request: NextRequest) {
       const email = process.env.SUPABASE_DEVICE_EMAIL;
       const password = process.env.SUPABASE_DEVICE_PASSWORD;
       if (email && password) {
-        await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (error) {
+          // signInWithPassword() resolves with `error` for a rejected
+          // login (wrong/disabled credentials) — it doesn't throw, so
+          // the catch below never sees this. Without checking it
+          // explicitly, a wrong device password failed silently: no log,
+          // no session, every subsequent request just retried forever
+          // with no visible sign anything was wrong.
+          console.error("middleware: device sign-in rejected:", error.message);
+        }
       }
     }
   } catch (err) {
-    // Missing/invalid Supabase config, network failure, wrong device
-    // credentials — none of these should ever crash a page load. Log for
-    // whoever's debugging, fall through to the unauthenticated response;
-    // the affected screen's own error state takes it from there.
+    // Missing/invalid Supabase config, network failure — none of these
+    // should ever crash a page load. Log for whoever's debugging, fall
+    // through to the unauthenticated response; the affected screen's own
+    // error state takes it from there.
     console.error("middleware: device sign-in failed:", err);
   }
 
