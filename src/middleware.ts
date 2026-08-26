@@ -144,16 +144,28 @@ function designPreviewGate(request: NextRequest): NextResponse {
 
   return new NextResponse("Authentication required", {
     status: 401,
-    headers: { "WWW-Authenticate": 'Basic realm="ABAS design preview"' },
+    headers: { "WWW-Authenticate": 'Basic realm="ABAS design preview", charset="UTF-8"' },
   });
 }
 
 function readBasicAuthPassword(authHeader: string | null): string | null {
-  if (!authHeader?.startsWith("Basic ")) return null;
+  if (!authHeader) return null;
+  const spaceIndex = authHeader.indexOf(" ");
+  if (spaceIndex === -1) return null;
+  // HTTP auth-scheme tokens are case-insensitive (RFC 7235) — a
+  // standards-compliant client may send "basic" or "BASIC".
+  if (authHeader.slice(0, spaceIndex).toLowerCase() !== "basic") return null;
+
   try {
-    // atob, not Buffer — middleware runs on the Edge runtime, which has no
-    // Node `Buffer` global.
-    const decoded = atob(authHeader.slice("Basic ".length));
+    // atob() decodes base64 to a "binary string" — one JS char per byte,
+    // Latin-1-style — but browsers encode Basic credentials as UTF-8 bytes
+    // first. Reading atob()'s output directly would mangle any non-ASCII
+    // character in the password, so re-decode those bytes as UTF-8 instead.
+    // (atob, not Buffer: middleware runs on the Edge runtime, which has no
+    // Node `Buffer` global.)
+    const binary = atob(authHeader.slice(spaceIndex + 1));
+    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+    const decoded = new TextDecoder().decode(bytes);
     const separator = decoded.indexOf(":");
     return separator === -1 ? decoded : decoded.slice(separator + 1);
   } catch {
