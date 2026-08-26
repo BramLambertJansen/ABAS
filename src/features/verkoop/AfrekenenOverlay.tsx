@@ -167,7 +167,7 @@ export function AfrekenenOverlay({
                 onClick={() => setServedBy(option.id)}
                 className={`min-h-[40px] rounded-xl border px-3 text-xs font-bold transition-colors ${
                   servedBy === option.id
-                    ? "border-accent bg-accent text-white"
+                    ? "border-accent bg-accent-active text-white"
                     : "border-border bg-white text-ink hover:border-accent"
                 }`}
               >
@@ -190,7 +190,7 @@ export function AfrekenenOverlay({
           type="button"
           disabled={confirmDisabled}
           onClick={handleConfirm}
-          className="flex h-[50px] flex-1 items-center justify-center rounded-2xl bg-accent text-sm font-bold text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex h-[50px] flex-1 items-center justify-center rounded-2xl bg-accent-active text-sm font-bold text-white transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
         >
           {pending ? "bezig…" : "ja, afrekenen"}
         </button>

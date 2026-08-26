@@ -38,7 +38,7 @@ export function DienstTabs({ shift }: { shift: OpenShift }) {
           onClick={() => setTab("verkoop")}
           className={`flex min-h-[44px] items-center rounded-2xl px-4 text-sm font-bold transition-colors ${
             tab === "verkoop"
-              ? "bg-accent text-white"
+              ? "bg-accent-active text-white"
               : "text-muted hover:bg-canvas hover:text-ink"
           }`}
         >
@@ -53,7 +53,7 @@ export function DienstTabs({ shift }: { shift: OpenShift }) {
           onClick={() => setTab("dienst")}
           className={`flex min-h-[44px] items-center rounded-2xl px-4 text-sm font-bold transition-colors ${
             tab === "dienst"
-              ? "bg-accent text-white"
+              ? "bg-accent-active text-white"
               : "text-muted hover:bg-canvas hover:text-ink"
           }`}
         >

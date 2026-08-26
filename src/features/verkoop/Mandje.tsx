@@ -269,7 +269,7 @@ export function Mandje({
         type="button"
         disabled={checkoutDisabled}
         onClick={onOpenCheckout}
-        className="flex min-h-[52px] flex-none items-center justify-center rounded-2xl bg-accent text-sm font-extrabold text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex min-h-[52px] flex-none items-center justify-center rounded-2xl bg-accent-active text-sm font-extrabold text-white transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
       >
         Tik afrekenen
       </button>

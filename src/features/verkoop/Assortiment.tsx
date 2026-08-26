@@ -81,7 +81,7 @@ export function Assortiment({
           onClick={() => setCategory(ALL_CATEGORIES)}
           className={`min-h-[36px] rounded-full border px-3 text-xs font-bold transition-colors ${
             category === ALL_CATEGORIES
-              ? "border-accent bg-accent text-white"
+              ? "border-accent bg-accent-active text-white"
               : "border-border bg-white text-muted hover:border-accent hover:text-accent"
           }`}
         >
@@ -95,7 +95,7 @@ export function Assortiment({
             onClick={() => setCategory(cat)}
             className={`min-h-[36px] rounded-full border px-3 text-xs font-bold transition-colors ${
               category === cat
-                ? "border-accent bg-accent text-white"
+                ? "border-accent bg-accent-active text-white"
                 : "border-border bg-white text-muted hover:border-accent hover:text-accent"
             }`}
           >
@@ -135,7 +135,7 @@ export function Assortiment({
                 {qty > 0 && (
                   <span
                     aria-hidden="true"
-                    className="absolute -right-2 -top-2 flex h-6 min-w-[24px] items-center justify-center rounded-full bg-accent px-1.5 text-xs font-extrabold text-white shadow"
+                    className="absolute -right-2 -top-2 flex h-6 min-w-[24px] items-center justify-center rounded-full bg-accent-active px-1.5 text-xs font-extrabold text-white shadow"
                   >
                     {qty}
                   </span>
