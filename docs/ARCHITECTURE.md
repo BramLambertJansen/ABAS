@@ -290,11 +290,29 @@ instead of an assumption.
   a lockout later if it turns out to be needed, not preemptively.
 - Negative-test coverage: `supabase/tests/start_shift.test.sql`.
 
+**Local/CI device account (settled, 2026-08-26)**: `supabase/seed.sql` now
+inserts a fixed `auth.users`/`auth.identities` row (`device@aurora.local`,
+local-only password) purely so `supabase start` in CI/local dev has an
+account to sign in as — without it, `src/middleware.ts` never gets a
+session, every RLS-protected read comes back empty, and any e2e flow past
+the login screen (`e2e/a11y.spec.ts`'s bezetting-overlay/verkoop scans)
+times out waiting for data that can never load. Root-caused after a real
+CI run (32998590441, off #38) failed on exactly this — not an a11y
+regression. `.github/workflows/ci.yml` exports matching
+`SUPABASE_DEVICE_EMAIL`/`SUPABASE_DEVICE_PASSWORD`. Production is
+unaffected: those two env vars stay real secrets there, naming Aurora's
+actual provisioned account, never this seeded one (`seed.sql` only runs on
+local `supabase start`/`db reset`, never against a remote/production
+project — same guarantee the existing member/product demo data already
+relies on).
+
 **Still open**:
-- **Device account provisioning flow**: who creates the per-tablet Supabase
-  Auth account and how (manual via Studio for the single Aurora tablet today;
-  needs a real flow if a second tablet is ever added). Fine to leave manual
-  for now given single-tenant, single-club scope.
+- **Device account provisioning flow (production)**: who creates the
+  per-tablet Supabase Auth account and how (manual via Studio for the
+  single Aurora tablet today; needs a real flow if a second tablet is ever
+  added). Fine to leave manual for now given single-tenant, single-club
+  scope — unrelated to the local/CI seeding above, which only ever targets
+  the local stack.
 
 ## Dienst & bezetting (settled, 2026-08-24)
 

@@ -53,16 +53,13 @@ for (const { name, path } of routes) {
  * against a real environment, not executed here — do not read this test's
  * presence as proof the overlay has actually been scanned yet.
  *
- * Also worth flagging (not something for Tester to silently fix): as
- * configured today, .github/workflows/ci.yml runs `npm run check:a11y`
- * *before* `supabase start`/seeding the database, and never wires
- * NEXT_PUBLIC_SUPABASE_URL/KEY into the build at all. Under that ordering
- * this test will fail every time in CI (staff picker never renders), not
- * because the overlay is inaccessible but because there's no backend for
- * it to load data from yet. Making this test actually pass in CI needs a
- * pipeline change (seed + env wiring ahead of check:a11y) that's outside
- * writing/running tests — flagging for Developer/Reviewer rather than
- * reordering CI myself.
+ * `.github/workflows/ci.yml` runs `supabase start`/seeds/wires the
+ * Supabase env vars ahead of `build`/`check:a11y` (fixed 2026-08-26,
+ * unrelated ordering issue this comment used to flag). A real CI run after
+ * that fix still timed out here — root cause was `src/middleware.ts` never
+ * having a device account to sign in as, so RLS rejected every read before
+ * the staff picker could render at all. `supabase/seed.sql` now provisions
+ * that account too; see docs/ARCHITECTURE.md → "Local/CI device account".
  */
 test("bar shell (/) bezetting-overlay has no WCAG2A/AA violations", async ({
   page,
