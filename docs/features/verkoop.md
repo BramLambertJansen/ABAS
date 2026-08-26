@@ -8,9 +8,8 @@ het verkoopscherm, #8, niet hier" en "een schermbrede header-chip... volgt
 vanzelf zodra #8 een tweede bar-scherm toevoegt" (`docs/features/bezetting-
 beheren.md` → Expliciet buiten scope). Dit is dat tweede bar-scherm.
 
-**Bevat een open vraag aan Bram** (contant/pin-verkoop zonder lid) — zie
-onderaan. De rest van deze spec is niet van dat antwoord afhankelijk en kan
-los gebouwd worden.
+**Contant/pin-verkoop zonder lid is bewust buiten scope** — zie "Besloten"
+onderaan. Deze spec dekt uitsluitend lid-gebonden verkoop.
 
 ## Doel
 
@@ -257,8 +256,8 @@ Inhoud (uit het ontwerp, regel 983–1032, "Afrekenen bij {lid}"):
 ## Expliciet buiten scope
 
 - **Contant/pin-verkoop zonder lid** ("guestMode"/"Pin afrekenen" in het
-  ontwerp) — zie de open vraag hieronder. Niet gebouwd in deze versie van de
-  spec.
+  ontwerp) — zie "Besloten" hieronder. Niet gebouwd in deze versie van de
+  spec; apart ticket, [#39](https://github.com/BramLambertJansen/ABAS/issues/39).
 - **Assortiment-/Ledenbeheer (CRUD)**: nieuw product/lid aanmaken, prijzen
   wijzigen, archiveren. Staat al genoemd in `docs/ARCHITECTURE.md` → "Wat
   het prototype deed maar hier nog niet is besloten" als niet-specced. Dit
@@ -301,53 +300,20 @@ productassortiment kan een grid zijn (zoals `columns` al bij de
 staff-picker doet), maar de exacte lay-out is implementatiedetail, geen
 architectuurkeuze die deze spec vastlegt.
 
-## Open vraag voor Bram
+## Besloten: contant/pin-verkoop zonder lid (2026-08-26)
 
-**Hoort contant/pin-verkoop zonder lid (het ontwerp se "Pin afrekenen" /
-`guestMode`) bij issue #8, of is dit een apart ticket?**
+Bram heeft gekozen: **apart ticket, later** —
+[#39](https://github.com/BramLambertJansen/ABAS/issues/39). Deze spec
+(member-only, volledig hierboven gespecificeerd) is daarmee compleet en niet
+van dat vervolgticket afhankelijk.
 
-Bevindingen, zodat de keuze met volledige context gemaakt kan worden:
-
-- Het **ontwerp** (`designs/Bar App.dc.html`) bouwt dit uitgebreid uit als
-  onderdeel van hetzelfde verkoopscherm: een betaalwijze-toggle
-  ("rekening"/"pin") bovenin het mandje-paneel (regel 230–234, 3156), een
-  eigen bevestigingsdialoog "Pin afrekenen" met tekst "Losse verkoop zonder
-  lid. Reken af met de pinautomaat — staat in je dienstoverzicht." (regel
-  1034–1039), een hint "Geen lid nodig — reken af met pin." (regel 274–276),
-  en eigen omzet-boekhouding die "verkoop" (saldo) en "pin" (kaart) samen
-  optelt voor het dienstoverzicht (regel 2003, 2624–2625, 2684).
-- Het **schema** (`0001_init.sql`) is er al expliciet op voorbereid:
-  `orders.member_id` is nullable met het commentaar "null = guest/pin sale,
-  no balance touched (see place_order below)" (regel 82), en `place_order`
-  zelf slaat de saldo-check simpelweg over wanneer `p_member_id is null`
-  (regel 270–281) — geen RPC-wijziging nodig om dit te bouwen.
-- Het **issue #8 zelf** (titel, doel, alle 6 acceptatiecriteria) noemt dit
-  nergens — elk criterium veronderstelt "gekozen lid". **CLAUDE.md → Domein**
-  noemt voor opwaarderen expliciet "alleen contant, door bardienst"
-  (een bewuste, uitgeschreven regel), maar heeft geen equivalente regel voor
-  een kaartbetaling-zonder-lid-verkoop — dat concept komt in CLAUDE.md
-  helemaal niet voor.
-
-Twee kanten die tegen elkaar afwegen: het schema is er zichtbaar al op
-voorbereid en het ontwerp toont het als één samenhangend scherm (een latere
-toevoeging zou dus een deel van dit scherm — de betaalwijze-toggle, de
-mandje-paneel-vertakking tussen "lid" en "geen lid" — moeten heropenen).
-Tegelijk is dit een reëel product-besluit dat nergens in CLAUDE.md/
-`docs/ARCHITECTURE.md` staat vastgelegd (raakt ook nog niet-besloten
-functionaliteit: dienstoverzicht/omzet-rapportage, #12), en het issue zelf
-vraagt er niet om. Ik bouw daarom geen aanname in de spec en leg 'm voor:
-
-1. **Nu meebouwen in #8** — dan breidt deze spec uit met de betaalwijze-
-   toggle, de "Pin afrekenen"-bevestiging en een tweede `place_order`-pad
-   met `p_member_id = null`, vóór Developer begint.
-2. **Apart ticket, later** — deze spec (member-only) is dan compleet en kan
-   los gebouwd worden; een vervolgticket voegt de kaart-zonder-lid-verkoop
-   toe zodra dienstoverzicht/omzet-rapportage (#12 e.v.) ook aan de beurt
-   is, zodat de omzet-boekhouding in één keer goed staat.
-3. **Niet in MVP** — bewust laten vervallen (Aurora rekent kaartbetalingen
-   buiten ABAS om af, bv. los kassasysteem) — dan verdwijnt dit ook uit
-   toekomstige specs, geen "nog te doen"-post.
-
-Zonder antwoord bouwt Developer optie 2 se scope (member-only, zoals hierboven
-volledig gespecificeerd) — niet omdat dat de aanname is, maar omdat het de
-enige lezing is die alle 6 acceptatiecriteria van #8 zonder gok dekt.
+Bevindingen die tot de vraag leidden (voor context, geen actie meer nodig):
+het **ontwerp** (`designs/Bar App.dc.html`) bouwt "Pin afrekenen" uitgebreid
+uit als onderdeel van hetzelfde verkoopscherm (betaalwijze-toggle, eigen
+bevestigingsdialoog, gecombineerde omzet-boekhouding), en het **schema**
+(`0001_init.sql`) is er al op voorbereid (`orders.member_id` nullable,
+`place_order` slaat de saldo-check over bij `p_member_id is null`) — maar
+issue #8 zelf vroeg er in geen van zijn acceptatiecriteria om, en dit raakt
+nog niet-besloten scope (dienstoverzicht/omzetrapportage, #12). #39 pakt dit
+op zodra #8 staat, idealiter samen met #12 zodat de omzet-boekhouding in één
+keer goed staat.
