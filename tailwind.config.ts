@@ -20,7 +20,12 @@ const config: Config = {
           subtle: "#f4efe8",
         },
         muted: {
-          DEFAULT: "#8c867f",
+          // Prototype's exact value (#8c867f) is 3.37:1 on `canvas` at
+          // 14px/normal — fails WCAG AA (needs 4.5:1), caught by the
+          // check:a11y gate (e2e/a11y.spec.ts). Darkened just enough to
+          // clear it (4.79:1); same hue, normal design-system evolution
+          // per CLAUDE.md → Designbestanden, not a defect.
+          DEFAULT: "#736d66",
           light: "#aca69e",
         },
         rail: "#16181c",

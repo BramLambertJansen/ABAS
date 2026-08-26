@@ -23,11 +23,8 @@ dit; CI draait het opnieuw. Bypassen is geen normale werkwijze.
 | `check:arch` | shells geïsoleerd, features shell-onwetend, Supabase-client privé |
 | `check:policy` | geen queries buiten de datalaag, geen client-side geld, geen device-sniffing, geen ongevalideerde attributie (`served_by` moet serverside tegen de actieve bezetting gecontroleerd worden) |
 | `check:rls` | elke tabel RLS, elke policy een negatieve test, geldtabellen REVOKED |
+| `check:a11y` | WCAG-AA (axe-core, elk shell-entrypoint) + `eslint-plugin-jsx-a11y`, `lint` faalt op warnings |
 | `db:test` | de negatieve tests zelf, tegen een echte database |
-
-Een automatische WCAG-AA-gate (axe-core / eslint-plugin-jsx-a11y in CI) bestaat
-nog niet en is de eerste taak van de Architect-agent bij de eerste echte
-sessie — tot die er is, is toegankelijkheid een reviewplicht, geen script.
 
 ## Domein
 
