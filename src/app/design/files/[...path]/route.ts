@@ -3,20 +3,18 @@ import path from "node:path";
 import { NextResponse } from "next/server";
 
 /**
- * Live file server for the design bundle (see src/app/design/page.tsx).
- * Reads straight from disk on every request — no caching, no build-time
- * copy — so the /design route always shows whatever is currently checked
- * out in project/, chats/, README.md. That's the "live, not static" part:
- * drop a fresh Claude Design export in and it shows up on refresh, no
- * rebuild needed.
+ * Live file server for /designs/ (see src/app/design/page.tsx). Reads
+ * straight from disk on every request — no caching, no build-time copy —
+ * so the /design route always shows whatever is currently checked out in
+ * /designs/. That's the "live, not static" part: drop a fresh Claude
+ * Design export in and it shows up on refresh, no rebuild needed.
  *
- * Only these three repo paths are reachable, and only to reproduce the
- * asset layout the prototype's own relative imports expect (Bar
- * App.dc.html does `<script src="./support.js">`, so support.js has to be
- * a sibling under files/project/ too, not hoisted elsewhere).
+ * Only /designs/ is reachable, and everything under it — the prototype's
+ * own relative imports (`Bar App.dc.html` does `<script src="./support.js">`)
+ * need support.js as a sibling, not hoisted elsewhere, so the whole
+ * directory has to stay servable as one tree.
  */
-const ALLOWED_ROOTS = ["project", "chats"];
-const ALLOWED_SINGLE_FILES = ["README.md"];
+const ALLOWED_ROOT = "designs";
 
 const CONTENT_TYPES: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -44,14 +42,10 @@ export async function GET(
 ) {
   const segments = (await params).path ?? [];
   const repoRoot = process.cwd();
-  const requested = path.join(repoRoot, ...segments);
-  const resolved = path.resolve(requested);
+  const allowedDir = path.join(repoRoot, ALLOWED_ROOT);
+  const resolved = path.resolve(repoRoot, ...segments);
 
-  const isAllowed =
-    ALLOWED_ROOTS.some(
-      (dir) => resolved === path.join(repoRoot, dir) || resolved.startsWith(path.join(repoRoot, dir) + path.sep),
-    ) || ALLOWED_SINGLE_FILES.some((file) => resolved === path.join(repoRoot, file));
-
+  const isAllowed = resolved === allowedDir || resolved.startsWith(allowedDir + path.sep);
   if (!isAllowed) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
   }

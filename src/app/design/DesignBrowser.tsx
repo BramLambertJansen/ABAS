@@ -4,7 +4,7 @@ import { useState } from "react";
 
 /**
  * Client-side switcher for the live design preview. The iframe always
- * points at /design/files/project/<name>, which re-reads the file from
+ * points at /design/files/designs/<name>, which re-reads the file from
  * disk on every load (see files/[...path]/route.ts) — switching the
  * <select> or refreshing the page never shows a stale, build-time copy.
  */
@@ -42,19 +42,19 @@ export function DesignBrowser({
 
         {designFiles.length === 0 ? (
           <p className="text-sm text-muted">
-            Geen bestanden gevonden in <code>project/</code>.
+            Geen bestanden gevonden in <code>designs/</code>.
           </p>
         ) : (
           <>
             <iframe
               key={active}
-              src={`/design/files/project/${encodeURIComponent(active)}`}
+              src={`/design/files/designs/${encodeURIComponent(active)}`}
               title={active}
               className="h-[80vh] w-full rounded-card border border-border bg-white"
             />
             <a
               className="text-sm text-accent underline"
-              href={`/design/files/project/${encodeURIComponent(active)}`}
+              href={`/design/files/designs/${encodeURIComponent(active)}`}
               target="_blank"
               rel="noreferrer"
             >
@@ -79,7 +79,7 @@ export function DesignBrowser({
               <li key={file}>
                 <a
                   className="text-accent underline"
-                  href={`/design/files/chats/${encodeURIComponent(file)}`}
+                  href={`/design/files/designs/chats/${encodeURIComponent(file)}`}
                   target="_blank"
                   rel="noreferrer"
                 >

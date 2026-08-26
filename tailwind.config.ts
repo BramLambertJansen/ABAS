@@ -1,6 +1,6 @@
 import type { Config } from "tailwindcss";
 
-// Tokens read directly off project/Bar App.dc.html (inline styles) — see
+// Tokens read directly off designs/Bar App.dc.html (inline styles) — see
 // docs/ARCHITECTURE.md "Design reference". The prototype governs the first
 // build of a screen; after that this file is the source of truth.
 const config: Config = {

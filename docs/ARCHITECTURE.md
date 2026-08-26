@@ -7,16 +7,20 @@ detail behind it lives.
 ## Bronmateriaal
 
 The current design source is a Claude Design click-prototype (`dc-runtime`
-templating, not portable code) exported into this repo:
+templating, not portable code), exported into this repo as one self-contained
+top-level directory: **`/designs/`** (moved here 2026-08-26 from a generic
+`project/` + root-level `README.md`/`chats/` split, precisely so a `find` or
+a directory listing lands on it without prior context — this *is* the "where
+do I look for the design" answer for any agent working in this repo).
 
-- `README.md` — handoff notes from the design tool.
-- `project/Bar App.dc.html` — the bar-facing app: Verkoop (sales), Dienst
+- `designs/README.md` — handoff notes from the design tool.
+- `designs/Bar App.dc.html` — the bar-facing app: Verkoop (sales), Dienst
   (shift), Leden (members), Assortiment (products), plus screens for roles
   and features not yet in scope here (see "Wat het prototype deed maar hier
   nog niet is besloten" below).
-- `project/Lid App.dc.html` — the member-facing portal.
-- `chats/*.md` (43 files) — the design conversations; useful for *why*, not
-  binding on *what we build*. Index by topic:
+- `designs/Lid App.dc.html` — the member-facing portal.
+- `designs/chats/*.md` (43 files) — the design conversations; useful for
+  *why*, not binding on *what we build*. Index by topic:
   - Multi-person shifts / "wie geeft uit" at checkout: `chat18.md`, `chat19.md`
   - Permission model iteration (bardienst/barmanager/beheerder/boekhouder,
     PIN step-up): `chat21.md`, `chat25.md`, `chat26.md`, `chat35.md`, `chat42.md`
@@ -24,22 +28,24 @@ templating, not portable code) exported into this repo:
   - Report builder / bookkeeper exports: `chat39.md`, `chat41.md`
   - Overall bar-vs-beheer flow rationale: `chat19.md`–`chat21.md`, `chat24.md`, `chat25.md`
 
-**Findable in the running app, live (2026-08-26)**: `/design`
-(`src/app/design/`) renders the bundle above from inside ABAS itself instead
-of leaving it to be found by digging through the repo tree. It's read
-straight off disk on every request — `src/app/design/files/[...path]/route.ts`
-is a `force-dynamic` route handler that streams `project/`, `chats/`, and
-`README.md` live (allowlisted to those three paths, resolved-path-must-stay-
-inside-root guarded) — so a fresh Claude Design export dropped into
-`project/` shows up on refresh, no rebuild, no copy to keep in sync. The
-`project/`-relative asset paths the prototype itself uses (`./support.js`,
+**Also findable in the running app, live**: `/design` (`src/app/design/`)
+renders `/designs/` from inside ABAS itself, for looking at it visually
+rather than reading HTML. It's read straight off disk on every request —
+`src/app/design/files/[...path]/route.ts` is a `force-dynamic` route handler
+that streams anything under `/designs/` live (allowlisted to that one
+directory, resolved-path-must-stay-inside-root guarded) — so a fresh Claude
+Design export dropped in shows up on refresh, no rebuild, no copy to keep in
+sync. The prototype's own relative asset imports (`./support.js`,
 `./image-slot.js`) resolve correctly because the route mirrors the repo's
-own directory layout (`/design/files/project/<name>` is a sibling of
-`/design/files/project/support.js`), not because anything was rewritten.
+own directory layout (`/design/files/designs/<name>` is a sibling of
+`/design/files/designs/support.js`), not because anything was rewritten.
 Deliberately outside `src/shells/` and `src/features/` — this is tooling for
 building the app, not a shell or a feature, so it's exempt from `check:arch`'s
 shell-isolation rules and from `e2e/a11y.spec.ts`'s route list (it renders a
-third-party prototype file, not a screen we control the markup of).
+third-party prototype file, not a screen we control the markup of). The repo
+tree (`/designs/`) is the primary way to find this, and works with no app
+running at all — the `/design` route is a secondary, visual convenience on
+top of the same files.
 
 **Open**: `/design` ships with no auth gate in every environment, including a
 production deploy — acceptable for now since the bundle is already in the
@@ -308,7 +314,7 @@ any of it without a `docs/features/<naam>.md` spec:
 ## Design reference
 
 Visual tokens (color, radii, type) aren't restated here — read
-`project/Bar App.dc.html` directly when building a screen (it's inline
+`designs/Bar App.dc.html` directly when building a screen (it's inline
 `style="..."` per element, easy to grep for the section you need). Key
 constants worth knowing up front: accent `#ee5a24`, warm background `#faf7f3`,
 Manrope typeface, 44–52px tap targets (bar tablet, used with busy/wet hands).

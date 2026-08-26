@@ -101,13 +101,13 @@ Wireframes in `/designs/`, alleen de nieuwste versie. Ze bepalen de eerste
 bouw van een scherm. Daarna is het in-app design system de waarheid; afwijking
 van de wireframe is normale evolutie, geen defect.
 
-Huidige versie (nog niet verplaatst naar `/designs/`): de Claude Design-export
-in `project/` (`Bar App.dc.html`, `Lid App.dc.html`), met `README.md` en
-`chats/` als toelichting op de keuzes erachter. Dat is een klik-prototype
-(dc-runtime), geen productiecode — het bepaalt UX en visueel ontwerp, niet de
-technische structuur.
+Huidige versie: de Claude Design-export in `/designs/` (`Bar App.dc.html`,
+`Lid App.dc.html`), met `designs/README.md` en `designs/chats/` als
+toelichting op de keuzes erachter. Dat is een klik-prototype (dc-runtime),
+geen productiecode — het bepaalt UX en visueel ontwerp, niet de technische
+structuur.
 
-In de app zelf te bekijken op `/design` (live van schijf, geen kopie) —
+Ook in de app zelf te bekijken op `/design` (live van schijf, geen kopie) —
 zie `docs/ARCHITECTURE.md` → Bronmateriaal.
 
 ## Werkstraat
