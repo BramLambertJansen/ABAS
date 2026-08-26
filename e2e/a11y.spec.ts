@@ -64,6 +64,15 @@ for (const { name, path } of routes) {
 test("bar shell (/) bezetting-overlay has no WCAG2A/AA violations", async ({
   page,
 }) => {
+  // TEMPORARY diagnostic instrumentation (2026-08-26) — remove once the
+  // staff-picker timeout below is root-caused. Client-side hook errors
+  // (useBarStaff/useOpenShift, both "use client") land in the browser
+  // console, which the [WebServer] log prefix never captures (that's only
+  // the Next.js server process's own stdout/stderr) — surfacing them here
+  // so a CI run actually shows *why* the staff button never appears.
+  page.on("console", (msg) => console.log(`[browser:${msg.type()}]`, msg.text()));
+  page.on("pageerror", (err) => console.log("[browser:pageerror]", err.message));
+
   await page.goto("/");
 
   const staffButton = page.getByRole("button", { name: /Tom Willems/i });
