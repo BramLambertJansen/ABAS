@@ -132,11 +132,19 @@ urgent):
   crudely to be bulletproof against a string literal containing e.g.
   `"matchMedia"` — unlikely in practice, not hardened against.
 
+**`useShell().columns` (settled, 2026-08-26)**: first real use is the staff
+picker on the dienst-starten screen (issue #6) — a CSS grid with
+`gridTemplateColumns: repeat(shell.columns, 1fr)`, so `columns` means
+literally that: how many equal-width tracks a list/grid component should
+lay out, not a breakpoint or a max-item-count. `barCapabilities.columns = 4`
+(`src/shells/bar/capabilities.ts`) was already set before this, this just
+confirms what a real component does with the number.
+
 **Open**:
-- Exact shape of `useShell()`'s contract beyond the three named fields
-  (`density`, `overlay`, `columns`) — what `overlay` and `columns` mean
-  concretely for a real component is still to be pinned down by the first
-  screen that needs it.
+- `overlay` (`"modal" | "sheet"`) still has no real usage — dienst-starten
+  didn't need a secondary view. Pinned down by the first screen that does
+  (a likely candidate: bezetting-beheer, issue #7, if it's a modal/sheet
+  over the main screen rather than a route).
 
 ## Money & attribution (settled, from CLAUDE.md)
 
