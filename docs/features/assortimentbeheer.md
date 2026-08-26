@@ -7,11 +7,26 @@ aangepast (`src/middleware.ts`, `supabase/seed.sql`, `supabase/config.toml`,
 `.github/workflows/ci.yml`, `e2e/a11y.spec.ts`,
 `src/hooks/queries/useOpenShift.ts`).
 
-Deze spec introduceert één nieuwe architectuurbeslissing — zie
-**[ADR 0001](../adr/0001-beheerder-only-writes-require-actor-pin-per-rpc.md)**
-— over hoe een schrijfactie die alleen een `beheerder` mag uitvoeren zich op
-het gedeelde bar-tablet laat afdwingen zonder per-operator sessie. Lees die
-ADR eerst; deze spec past het toe, herhaalt de motivatie niet.
+Deze spec volgt
+**[ADR 0002](../adr/0002-beheeracties-vereisen-eigen-e-mail-sessie.md)** —
+hoe een schrijfactie die alleen een `beheerder` mag uitvoeren zich laat
+afdwingen: een eigen, losse e-mail-sessie (magic link/wachtwoord), niet de
+gedeelde tablet-sessie en niet een PIN-per-actie. Lees die ADR eerst; deze
+spec past het toe, herhaalt de motivatie niet. **ADR 0002 vervangt ADR
+0001** (PIN-per-actie tegen de gedeelde sessie) — een eerdere versie van
+deze spec volgde nog 0001; alle verwijzingen hieronder zijn bijgewerkt.
+
+**Let op — een echte openstaande vraag voor Bram, nog niet beantwoord:**
+ADR 0002's mechanisme steunt op `members.auth_user_id` (koppeling
+lid-record ↔ Supabase Auth-account) en een e-mail-inlogflow (magic
+link/wachtwoord-formulier, callback-route) — geen van beide bestaat vandaag
+in de code. `docs/ARCHITECTURE.md` → "Lid-accounts" plant die koppeling
+onder issue #24; de inlogflow zelf is issue #15. Deze spec beschrijft het
+scherm alsof die twee al bestaan, maar **legt niet zelf vast of #14 die
+twee nu meebouwt (minimale koppeling + minimaal inlogformulier, hier) of of
+#14 wacht tot #15/#24 eerst landen** — dat is precies het soort losse keuze
+die niet stilzwijgend ingevuld wordt. Zie de Architect-rapportage bij deze
+wijziging voor de vraag zoals aan Bram voorgelegd.
 
 ## Doel
 
@@ -31,34 +46,45 @@ shell-agnostic in `src/features/assortimentbeheer/`, naast (niet in)
 `src/features/dienst-starten/` en `src/features/bezetting-beheren/` — zelfde
 reden als die twee: eigen issue, eigen spec, eigen featuremap.
 
-**Navigatie-ingang (nieuw, want er is nog geen tabbladen-shell)**: er bestaat
-vandaag maar één bereikbaar bar-scherm na het starten van een dienst —
-`DienstActief` (`src/features/bezetting-beheren/DienstActief.tsx`), met
-daarop al de "Bezetting wijzigen"-knop. Dit scherm krijgt er een tweede,
-gelijkwaardige knop bij: **"Assortiment beheren"** (zelfde opmaak/tapdoel
-≥44px als "Bezetting wijzigen"), die navigeert naar een nieuwe route
-`/assortiment` (nieuwe thin wrapper `src/app/(bar)/assortiment/page.tsx`,
-zelfde patroon als `src/app/(bar)/page.tsx`: `layout.tsx` mount
-`ShellProvider`, `page.tsx` re-exporteert het feature-component). Dat scherm
-krijgt een simpele "← terug"-link naar `/` (dienst-actief). Dit is bewust een
-volledige route, geen overlay — het ontwerp toont Assortiment zelf ook als
-een volwaardig scherm (tab), niet als modal (`designs/Bar App.dc.html`, regel
-403–411), in tegenstelling tot de kleinere "nieuw product"/"product
-beheren"-dialogen daarbinnen, die wél overlays zijn (zie Schermflow).
-**Dit is expliciet een tijdelijk, minimaal koppelpunt** — net zoals
-`docs/features/bezetting-beheren.md` al vaststelde dat een schermbrede
-navigatie/tab-chip pas zinvol is "zodra #8 een tweede bar-scherm toevoegt";
-met deze spec zijn er dan twee (verkoop volgt nog in #8), dus een echte
-tabbalk blijft nog steeds een aparte beslissing voor wanneer er meer van
-dit soort schermen zijn — niet hier vooruit bouwen.
+**Navigatie-ingang (herzien door ADR 0002 — niet langer een knop op
+`DienstActief`)**: een eerdere versie van deze spec hing "Assortiment
+beheren" op als knop naast "Bezetting wijzigen" op `DienstActief`
+(`src/features/bezetting-beheren/DienstActief.tsx`), omdat actor-verificatie
+toen een PIN-invoer binnen dezelfde gedeelde sessie was — een lichte overlay
+volstond. Dat past niet meer: ADR 0002's mechanisme *vervangt* de gedeelde
+device-sessie tijdelijk door een eigen, ingelogde beheerder-sessie
+(`supabase.auth.signInWithOtp()`/`signInWithPassword()`, zie ADR 0002 →
+Beslissing), dus de ingang moet een echte in-/uitlogstap zijn, geen
+overlay-detail binnen een dienst-scherm.
 
-Gevolg van "alleen bereikbaar via `DienstActief`": Assortimentbeheer is
-vandaag alleen te openen tijdens een open dienst, ook al heeft het
-conceptueel niets met een dienst te maken (producten beheren kan net zo goed
-vóór een dienst begint). Geaccepteerd voor nu, om dezelfde reden als hierboven
-— er is geen ander navigeerbaar bar-scherm om dit aan op te hangen. Geen
-architectuurbeslissing, gewoon een gevolg van scope: verandert vanzelf zodra
-een echte navigatiestructuur gebouwd wordt.
+Nieuwe, eigen route `/beheer` (thin wrapper
+`src/app/(bar)/beheer/page.tsx`/`layout.tsx`, zelfde patroon als
+`src/app/(bar)/page.tsx`), **bereikbaar vanaf de bar-shell root, niet alleen
+tijdens een open dienst** — dat is een bewuste wijziging t.o.v. de vorige
+versie van deze spec: nu de ingang zelf al een aparte inlogstap is (in
+plaats van "een knop op het dienst-scherm"), is er geen reden meer om 'm
+kunstmatig aan een open dienst te koppelen; assortimentbeheer heeft
+conceptueel niets met een dienst te maken. `/beheer` toont eerst een
+inlogformulier (e-mail + magic link of wachtwoord — zelfde formulier-vorm
+als issue #15 voor de portal bouwt, zie "Let op" hierboven voor de vraag of
+dit hier meegebouwd of hergebruikt wordt) als er geen actieve
+beheerder-sessie is; na een succesvolle login toont het de productenlijst
+(zie Schermflow) plus een zichtbare "Ingelogd als [naam] — uitloggen"-status
+(uitloggen = `supabase.auth.signOut()`, per ADR 0002 stap 3 — dit herstelt
+de gedeelde device-sessie niet meteen zelf, dat doet `src/middleware.ts`'s
+bestaande `if (!session)`-stap vanzelf bij de eerstvolgende bar-shell-request
+na het uitloggen). Een "← terug naar bardienst"-link is aanwezig maar
+logt **niet** automatisch uit — terugnavigeren zonder uitloggen laat de
+beheerder-sessie actief staan tot de expliciete uitlog-tik, precies zoals
+ADR 0002 vaststelt (geen impliciete sessiewissel).
+
+Dit blijft, net als de vorige versie, **een tijdelijk, minimaal
+koppelpunt** — geen tabbalk, geen navigatiestructuur; zie
+`docs/features/bezetting-beheren.md`'s zelfde constatering voor
+`DienstActief`. Verschil met de vorige versie: het koppelpunt is nu een
+eigen route met een eigen inlogstap, niet een knop binnen een bestaand
+scherm — een rechtstreeks gevolg van ADR 0002, geen aparte
+navigatiebeslissing.
 
 ## Datamodel
 
@@ -68,9 +94,14 @@ Geen wijziging aan de kolommen van `products` — die staan al precies goed in
 null default false`. Deze spec voegt geen `created_by`/`updated_by`-kolom
 toe en bouwt geen wijzigingslogboek — dat hoort bij de nog niet besloten
 `Logboek`-feature (`docs/ARCHITECTURE.md` → "Wat het prototype deed maar hier
-nog niet is besloten"). De PIN-check in de RPC's hieronder dient uitsluitend
-om de schrijfactie te autoriseren (ADR 0001), niet om een auditspoor vast te
-leggen.
+nog niet is besloten"). De actor-check in de RPC's hieronder (ADR 0002) dient
+uitsluitend om de schrijfactie te autoriseren, niet om een auditspoor vast
+te leggen.
+
+**Wél een afhankelijkheid op `members`**: ADR 0002's mechanisme steunt op
+`members.auth_user_id` — die kolom bestaat nog niet in `0001_init.sql`/
+latere migraties, alleen gepland (`docs/ARCHITECTURE.md` → "Lid-accounts",
+issue #24). Zie "Let op" bovenaan deze spec.
 
 **Interpretatie van ticket-tekst "naam, prijs, evt. categorie"**: het schema
 maakt `category` al `not null` sinds `0001_init.sql` (vóór dit ticket). Deze
@@ -103,38 +134,56 @@ Nieuwe migratie, opeenvolgend genummerd na `0003_remove_shift_member_requires_op
 (dus `0004_...`), per het bestaande patroon in dit repo — niet
 `0001_init.sql` zelf aanpassen.
 
-Alle drie volgen ADR 0001: `p_actor_member_id uuid, p_actor_pin text` als
-eerste twee parameters, dezelfde controlevolgorde
-(`actor_not_found` → `no_admin_role` → `invalid_pin`), vóór de eigenlijke
-schrijfactie, in dezelfde `SECURITY DEFINER`-functie (geen aparte
-"ontgrendel"-RPC).
+Alle drie volgen ADR 0002: **geen** `p_actor_member_id`/`p_actor_pin`-
+parameters meer (dat was ADR 0001, vervangen). In plaats daarvan verifieert
+elke RPC de aanroeper aan het begin van dezelfde `SECURITY DEFINER`-functie
+via de sessie zelf:
 
-- **`create_product(p_actor_member_id uuid, p_actor_pin text, p_name text,
-  p_category text, p_price_cents integer) returns products`** — nieuw.
-  Na de actor-check: `p_name` (getrimd) niet leeg → anders `invalid_name`;
-  `p_category` (getrimd) niet leeg → anders `invalid_category`;
-  `p_price_cents` niet null en `> 0` → anders `invalid_price` (dezelfde
-  soort voorvalidatie als `place_order`'s `invalid_qty`-check, zodat de UI
-  een nette Nederlandse boodschap kan tonen in plaats van een rauwe
-  check-constraint-foutmelding). Insert, `archived` default `false`,
-  retourneert de nieuwe rij.
-- **`update_product_price(p_actor_member_id uuid, p_actor_pin text,
-  p_product_id uuid, p_price_cents integer) returns products`** — nieuw.
-  Na de actor-check: product bestaat → anders `product_not_found` (geen eis
-  dat het product niet gearchiveerd is — een gearchiveerd product blijft
-  prijs-bewerkbaar, zie Randgevallen); `p_price_cents` niet null en `> 0` →
-  anders `invalid_price`. Update alleen `products.price_cents` — raakt nooit
-  `order_lines`/`orders`, dus bevroren `unit_cents` van bestaande
-  bestellingen blijven exact zoals ze waren (dit is het mechanisme achter
-  acceptatiecriterium 2, hieronder verder uitgewerkt onder Randgevallen).
-- **`set_product_archived(p_actor_member_id uuid, p_actor_pin text,
-  p_product_id uuid, p_archived boolean) returns products`** — nieuw. Client
-  stuurt de gewenste eindstaat expliciet (niet "toggle") — zelfde stijl als
-  `place_order`'s expliciete `p_lines` in plaats van impliciete
-  server-berekening. Na de actor-check: product bestaat → anders
-  `product_not_found`. Idempotent: alsnog `p_archived = true` sturen voor een
-  al gearchiveerd product slaagt gewoon (geen foutmelding), zelfde
-  verdraagzaamheid als `add_shift_member`'s `on conflict do nothing`.
+```sql
+select id, role into v_actor
+from members
+where auth_user_id = auth.uid() and not archived;
+
+if v_actor.id is null then
+  raise exception 'actor_not_found';
+end if;
+if v_actor.role <> 'beheerder' then
+  raise exception 'no_admin_role';
+end if;
+```
+
+— dezelfde twee foutcodes als ADR 0001 kende (`actor_not_found`,
+`no_admin_role`), maar geen `invalid_pin` meer: die controle bestaat niet
+meer, Supabase Auth heeft de identiteit al geverifieerd bij het inloggen op
+`/beheer` (zie Betrokken shell). Pas ná deze check voert de RPC de
+eigenlijke schrijfactie uit, in dezelfde functie/hetzelfde statement — geen
+aparte "ontgrendel"-RPC, zelfde vorm als ADR 0001 al vastlegde.
+
+- **`create_product(p_name text, p_category text, p_price_cents integer)
+  returns products`** — nieuw. Na de actor-check: `p_name` (getrimd) niet
+  leeg → anders `invalid_name`; `p_category` (getrimd) niet leeg → anders
+  `invalid_category`; `p_price_cents` niet null en `> 0` → anders
+  `invalid_price` (dezelfde soort voorvalidatie als `place_order`'s
+  `invalid_qty`-check, zodat de UI een nette Nederlandse boodschap kan tonen
+  in plaats van een rauwe check-constraint-foutmelding). Insert, `archived`
+  default `false`, retourneert de nieuwe rij.
+- **`update_product_price(p_product_id uuid, p_price_cents integer) returns
+  products`** — nieuw. Na de actor-check: product bestaat → anders
+  `product_not_found` (geen eis dat het product niet gearchiveerd is — een
+  gearchiveerd product blijft prijs-bewerkbaar, zie Randgevallen);
+  `p_price_cents` niet null en `> 0` → anders `invalid_price`. Update alleen
+  `products.price_cents` — raakt nooit `order_lines`/`orders`, dus bevroren
+  `unit_cents` van bestaande bestellingen blijven exact zoals ze waren (dit
+  is het mechanisme achter acceptatiecriterium 2, hieronder verder
+  uitgewerkt onder Randgevallen).
+- **`set_product_archived(p_product_id uuid, p_archived boolean) returns
+  products`** — nieuw. Client stuurt de gewenste eindstaat expliciet (niet
+  "toggle") — zelfde stijl als `place_order`'s expliciete `p_lines` in
+  plaats van impliciete server-berekening. Na de actor-check: product
+  bestaat → anders `product_not_found`. Idempotent: alsnog `p_archived =
+  true` sturen voor een al gearchiveerd product slaagt gewoon (geen
+  foutmelding), zelfde verdraagzaamheid als `add_shift_member`'s `on
+  conflict do nothing`.
 - `grant execute on function create_product, update_product_price,
   set_product_archived to authenticated;` — zelfde grant-regel als de
   bestaande RPC's onderaan `0001_init.sql`.
@@ -145,8 +194,19 @@ schrijfactie, in dezelfde `SECURITY DEFINER`-functie (geen aparte
 
 ## Schermflow
 
-1. **Binnenkomst** (`/assortiment`, alleen bereikbaar via de nieuwe knop op
-   `DienstActief`, zie Betrokken shell): productenlijst, gesorteerd op
+0. **Inloggen** (`/beheer`, zie Betrokken shell): geen actieve
+   beheerder-sessie → inlogformulier (e-mail + magic link of wachtwoord,
+   zelfde twee mechanismen als CLAUDE.md → Auth voor de portal noemt).
+   Succesvolle login vervangt de gedeelde device-sessie in de tablet-browser
+   door de beheerder-sessie (ADR 0002 → Beslissing, stap 1) en toont
+   vervolgens de productenlijst (stap 1 hieronder) plus een permanent
+   zichtbare "Ingelogd als [naam] — uitloggen"-indicator. Mislukte login
+   (onbekend e-mailadres, verkeerd wachtwoord, verlopen/ongeldige magic
+   link) → Nederlandse foutmelding via `role="alert"`, formulier blijft
+   staan. Exacte formulier-UI (velden, foutmeldingen, magic-link-vs-
+   wachtwoord-keuze) is aan de Developer/aan wat #15 daarvoor bouwt — zie
+   "Let op" bovenaan deze spec voor de vraag of dat hier of in #15 gebeurt.
+1. **Productenlijst** (na een actieve beheerder-sessie): gesorteerd op
    categorie dan naam (nieuwe leeshook `useProducts()` in
    `src/hooks/queries/`, ordering server-side via `.order()`, zelfde stijl
    als `useBarStaff()`). Elke rij toont naam, categorie, huidige prijs; een
@@ -158,79 +218,76 @@ schrijfactie, in dezelfde `SECURITY DEFINER`-functie (geen aparte
    regel 410) → opent de `Overlay`-primitive (`src/components/Overlay.tsx`,
    hergebruikt ongewijzigd — geen nieuwe overlay-component nodig, dit is
    precies waar `useShell().overlay` al voor gebouwd is). Titel: **"Nieuw
-   product"**. Inhoud, in twee stappen binnen dezelfde overlay (geen twee
-   losse overlays na elkaar — zie toelichting onder ADR 0001 → Gevolgen):
-   - **Stap A — gegevens**: naam (tekstveld), categorie (zes keuzechips,
-     exact de zes uit het ontwerp — Bier, Fris, Wijn, Snacks, Sterke drank,
-     Warm, regel 1472 — geen vrij tekstveld voor categorie in deze eerste
-     bouw, zie Datamodel voor waarom dat geen schema-beperking is), prijs
-     (tekstveld, `€`-prefix zoals het ontwerp). "Toevoegen"-knop pas actief
-     als naam niet leeg, een categorie gekozen, en prijs een geldig bedrag
-     `> €0,00` is (client-side validatie is UX, geen vervanging van de
-     RPC-validatie — de RPC valideert hetzelfde hierboven, ongeacht wat de
-     client toestond).
-   - **Stap B — wie bevestigt dit?** (nieuw, per ADR 0001): na "Toevoegen"
-     schuift de overlay-inhoud (geen nieuwe overlay, dezelfde) naar een
-     naamkeuze + PIN-pad, exact het `StaffPicker` + `PinPad`-paar uit
-     `src/features/dienst-starten/` hergebruikt — met één verschil: de
-     kandidatenlijst komt uit een **nieuwe** leeshook `useBeheerders()`
-     (`src/hooks/queries/`, zelfde vorm als `useBarStaff()` maar
-     `.eq("role", "beheerder")` in plaats van `.in("role", [...])`) — een
-     losse hook, geen wijziging van `useBarStaff()` zelf, want die wordt al
-     gebruikt waar zowel `bardienst` als `beheerder` moeten kunnen kiezen
-     (dienst starten, bezetting beheren); die twee gebruiksplekken mogen niet
-     ineens tot alleen-beheerders inperken. Na de 4e PIN-cijfer: RPC-call
-     `create_product`. Succes → overlay sluit, lijst ververst (refetch van
-     `useProducts()`), toast/bevestiging **"[Naam] toegevoegd"** (stijl vrij
-     aan Developer, geen bestaand toast-patroon in deze codebase om aan te
-     sluiten — dit is de eerste feature die er een nodig heeft).
-     Mislukt (elke foutcode) → Nederlandse foutmelding in de overlay via
-     `role="alert"`, terug naar het PIN-pad met lege invoer (zelfde gedrag
-     als `DienstStarten`'s `pressDigit`), gegevens uit stap A blijven
-     bewaard (niet opnieuw hoeven intypen na een foute PIN).
+   product"**. Inhoud: **één stap**, geen naamkeuze/PIN-pad meer (dat was
+   ADR 0001's stap B — vervallen, want de aanroeper is al geïdentificeerd
+   door de actieve `/beheer`-sessie, zie ADR 0002). Naam (tekstveld),
+   categorie (zes keuzechips, exact de zes uit het ontwerp — Bier, Fris,
+   Wijn, Snacks, Sterke drank, Warm, regel 1472 — geen vrij tekstveld voor
+   categorie in deze eerste bouw, zie Datamodel voor waarom dat geen
+   schema-beperking is), prijs (tekstveld, `€`-prefix zoals het ontwerp).
+   "Toevoegen"-knop pas actief als naam niet leeg, een categorie gekozen, en
+   prijs een geldig bedrag `> €0,00` is (client-side validatie is UX, geen
+   vervanging van de RPC-validatie — de RPC valideert hetzelfde hierboven,
+   ongeacht wat de client toestond). Tik op "Toevoegen" → direct de
+   RPC-call `create_product` (geen tussenstap meer). Succes → overlay
+   sluit, lijst ververst (refetch van `useProducts()`), toast/bevestiging
+   **"[Naam] toegevoegd"** (stijl vrij aan Developer, geen bestaand
+   toast-patroon in deze codebase om aan te sluiten — dit is de eerste
+   feature die er een nodig heeft). Mislukt (elke foutcode) → Nederlandse
+   foutmelding in de overlay via `role="alert"`, formulier blijft open met
+   de ingevulde gegevens bewaard.
 3. **Tik op een productrij** → opent dezelfde soort overlay, titel **"Product
    beheren"**, twee acties (matcht het ontwerp, regel 1236–1271, min de
    naam/categorie-bewerking die het ontwerp zelf ook niet aanbiedt hier):
    - **Prijs wijzigen**: huidige prijs getoond, nieuw bedrag invoerbaar,
      "Opslaan"-knop pas actief bij een geldig bedrag `> €0,00` dat afwijkt
-     van de huidige prijs. Tik op "Opslaan" → zelfde stap-B-patroon als
-     hierboven (naamkeuze + PIN via `useBeheerders()`/`StaffPicker`/
-     `PinPad`), dan `update_product_price`.
+     van de huidige prijs. Tik op "Opslaan" → direct `update_product_price`
+     (geen naamkeuze/PIN-stap, zelfde reden als hierboven).
    - **Uit assortiment halen / terug in assortiment** (tekst wisselt op
      basis van huidige `archived`-staat, zelfde als het ontwerp regel 2619):
-     tik → direct door naar stap B (geen los formulier, er is niets in te
-     vullen), dan `set_product_archived` met de expliciete tegenovergestelde
-     boolean.
+     tik → direct `set_product_archived` met de expliciete tegenovergestelde
+     boolean (geen bevestigingsstap nodig — de sessie zelf is al de
+     bevestiging, zie Rolzichtbaarheid).
    - Beide acties delen dezelfde overlay-instantie maar zijn onafhankelijke
-     schrijfacties — prijs wijzigen én archiveren in één bezoek aan deze
-     overlay betekent twee keer door stap B (twee keer PIN), niet één
-     gecombineerde aanroep. Consistent met ADR 0001: elke schrijfactie
-     verifieert opnieuw.
+     schrijfacties — elk een eigen RPC-call, geen gecombineerde aanroep.
 4. **Sluiten** (knop, Escape, backdrop-tik — zelfde a11y-eisen als
    `Overlay.tsx` al afdwingt) → terug naar de productenlijst, die de actuele
    staat toont (refetch van `useProducts()` bij elke succesvolle mutatie,
    niet pas bij het sluiten van de overlay).
+5. **Uitloggen** (indicator uit stap 0) → `supabase.auth.signOut()`, terug
+   naar het inlogformulier van stap 0. `src/middleware.ts`'s bestaande
+   `if (!session)`-stap herstelt de gedeelde device-sessie vanzelf bij de
+   eerstvolgende bar-shell-request — geen aparte "terug naar bardienst"-
+   handeling nodig buiten uitloggen zelf.
 
 ## Rolzichtbaarheid
 
-De **productenlijst zelf** (lezen) is zichtbaar voor iedereen die de
-gedeelde bar-tablet-sessie gebruikt tijdens een open dienst — zelfde model
-als `dienst-starten`/`bezetting-beheren`: er is geen manier om op dit scherm
-zelf te filteren op rol (geen per-operator sessie, zie ADR 0001 → Context),
-en de bestaande `products_select`-policy staat dit al toe aan iedere
-`authenticated` sessie (nodig voor het toekomstige verkoopscherm, #8, dat
-dezelfde tabel leest). De knoppen "+ nieuw product" en elke productrij zijn
-dus ook voor iedereen zichtbaar/tikbaar — dat is geen gat: acceptatiecriterium
-"alleen beheerder-rol" wordt niet op het scherm afgedwongen maar in de RPC
-(`no_admin_role`), exact zoals `start_shift` de bardienst/beheerder-eis ook
-niet op het scherm afdwingt maar in de RPC, en zoals CLAUDE.md het zelf
-beschrijft: attributie/autorisatie hoort serverside gecontroleerd te worden,
-nooit client-side vertrouwd.
+**Alleen bereikbaar met een actieve beheerder-sessie**, niet meer "zichtbaar
+voor iedereen op de gedeelde sessie, afgedwongen in de RPC" zoals ADR 0001's
+versie van deze spec beschreef. `/beheer` toont zonder sessie alleen het
+inlogformulier (stap 0); de productenlijst en beide overlays zijn pas
+zichtbaar ná een succesvolle e-mail-login. Autorisatie zit dus op twee
+lagen, niet meer op één: het inlogformulier zelf laat elk e-mailadres met
+een geldig account inloggen (er is geen rol-check bij het inloggen zelf —
+zie hieronder), en de RPC's controleren daarna alsnog `no_admin_role` — dus
+een lid met een eigen portal-account maar zonder `beheerder`-rol kan wél
+inloggen op `/beheer` (er is geen reden om dat tegen te houden op
+sessie-niveau) maar krijgt op elke schrijfactie `no_admin_role` terug,
+exact zoals een `bardienst`-medewerker dat eerder op het PIN-pad kreeg.
+Dat is bewust gedrag, geen gat: net als bij `start_shift` wordt de
+rol-eis niet op het scherm afgedwongen maar in de RPC, en zoals CLAUDE.md
+het zelf beschrijft — attributie/autorisatie hoort serverside gecontroleerd
+te worden, nooit client-side vertrouwd. Overwogen om dit strenger te maken
+(alleen een `beheerder`-e-mailadres mag `/beheer` sowieso in) — niet gedaan
+in deze spec: dat zou een aparte pre-login rolcheck vereisen die nergens
+anders in dit patroon voorkomt, en de RPC-laag dekt het acceptatiecriterium
+al volledig. Heroverwegen als dit in de praktijk verwarrend blijkt (een
+lid dat inlogt en alleen foutmeldingen ziet).
 
-Praktisch gevolg: een `bardienst`-medewerker kan de hele flow doorlopen tot
-en met het PIN-pad, en krijgt daar een `no_admin_role`-foutmelding als diegene
-zichzelf kiest (of een correcte PIN van een niet-beheerder invoert). Dat is
-bedoeld gedrag, geen bug.
+De **productenlijst zelf** (lezen), eenmaal ingelogd, is ongewijzigd: de
+bestaande `products_select`-policy staat dit toe aan iedere `authenticated`
+sessie (nodig voor het toekomstige verkoopscherm, #8, dat dezelfde tabel
+leest) — dit was al zo onder ADR 0001 en verandert niet door ADR 0002.
 
 ## Randgevallen
 
@@ -252,14 +309,23 @@ bedoeld gedrag, geen bug.
   gearchiveerd/aangepast door iemand anders) → `product_not_found`
   (update/archiveren) — Nederlandse foutmelding, overlay blijft open, lijst
   ververst zodat de rij verdwijnt/actualiseert.
-- **Verkeerde PIN, of PIN van een niet-beheerder** → `invalid_pin` resp.
-  `no_admin_role`, zelfde soort Nederlandse boodschap-mapping als
-  `dienst-starten.md` → Randgevallen ("onjuiste pincode" voor `invalid_pin`;
-  voor `no_admin_role` een eigen boodschap, bv. "dit account kan het
-  assortiment niet beheren — vraag een beheerder", exacte bewoording aan
-  Developer). Geen apart pad voor `pin_hash is null` (lid heeft nog nooit een
-  PIN gehad) — valt onder `invalid_pin`, zelfde lek-vermijdende reden als
-  `dienst-starten.md`.
+- **Ingelogd, maar geen beheerder** (lid met eigen portal-account, rol
+  `lid`/`bardienst`) → elke schrijfactie faalt met `no_admin_role`,
+  Nederlandse boodschap in de overlay via `role="alert"` (bv. "dit account
+  kan het assortiment niet beheren — vraag een beheerder", exacte
+  bewoording aan Developer). Zie Rolzichtbaarheid voor waarom dit pas in de
+  RPC gecontroleerd wordt, niet al bij het inloggen.
+- **Ingelogd account bestaat niet (meer) als `members`-rij, of is
+  gearchiveerd** (`auth_user_id` matcht geen actieve rij — zou niet moeten
+  voorkomen bij een consistente `members`/`auth.users`-koppeling, maar de
+  RPC controleert het toch expliciet) → `actor_not_found`, zelfde
+  Nederlandse-boodschap-aanpak als hierboven.
+- **Verkeerde inloggegevens op `/beheer` zelf** (onbekend e-mailadres,
+  verkeerd wachtwoord, verlopen/ongeldige magic link) → dit is geen
+  RPC-foutcode meer maar een Supabase Auth-foutrespons op het inlogformulier
+  zelf (stap 0), Nederlandse foutmelding, formulier blijft staan. Exacte
+  boodschap-mapping is aan wat #15's inlogformulier daarvoor kiest (zie
+  "Let op" bovenaan deze spec) — geen nieuw patroon om hier te bedenken.
 - **Dubbele/gelijktijdige prijswijziging** (twee tikken kort na elkaar) —
   expliciet buiten scope, zelfde soort afweging als issue #29 voor
   `start_shift` en bezetting-beherens eigen "race-condition-bescherming"
@@ -289,10 +355,19 @@ bedoeld gedrag, geen bug.
   scope, zie `docs/ARCHITECTURE.md` → "Wat het prototype deed maar hier nog
   niet is besloten".
 - **Tijdgebonden "beheermodus"-ontgrendeling** (het ontwerp's `adminUntil`,
-  10 minuten) — expliciet verworpen voor deze RPC-laag, zie ADR 0001.
+  10 minuten) — nog steeds niet gebouwd, nu om een andere reden dan eerst:
+  ADR 0001 verwierp het als tijdelijke ontgrendeling bovenop een PIN-per-actie;
+  ADR 0002 maakt de vraag grotendeels overbodig — de sessie zelf is al het
+  "ontgrendelde venster", zolang de beheerder niet uitlogt.
 - **Een echte tabbalk/navigatiestructuur voor `shells/bar`** — de nieuwe
-  "Assortiment beheren"-knop op `DienstActief` is een tijdelijk koppelpunt,
-  geen voorschot op een navigatie-architectuur; zie Betrokken shell.
+  `/beheer`-route (zie Betrokken shell) is een tijdelijk koppelpunt, geen
+  voorschot op een navigatie-architectuur.
+- **De e-mail-inlogflow zelf (herbruikbaar formulier, magic-link-
+  callback-route, provisioning van beheerder-accounts)** — mogelijk al
+  gebouwd door #15/#24 tegen de tijd dat dit ticket gebouwd wordt, mogelijk
+  niet; zie "Let op" bovenaan deze spec. Deze spec beschrijft het contract
+  (`/beheer` toont een inlogformulier, na login is `auth.uid()` bruikbaar),
+  niet de implementatie van het formulier/de callback zelf.
 - **Voorraad/beschikbaarheid buiten archiveren** (het ontwerp's
   `prodStockFilter`) — geen acceptatiecriterium in #14, niet gebouwd.
 - **Race-condition-bescherming bij gelijktijdige schrijfacties** — zie

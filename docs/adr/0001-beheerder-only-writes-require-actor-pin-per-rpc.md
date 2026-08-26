@@ -1,7 +1,15 @@
 # 0001 — Beheerder-only RPC-writes verifiëren de aanroeper opnieuw, per call
 
-Status: geaccepteerd (Architect-beslissing binnen bestaande patronen, ter
-bevestiging aan Bram samengevat in `docs/features/assortimentbeheer.md` →
+Status: **vervangen door [ADR 0002](0002-beheeracties-vereisen-eigen-e-mail-sessie.md)**
+(2026-08-26). Bram heeft de aanname waarop dit ADR rustte — geen
+per-operator sessie, dus verifieer per RPC-call met een PIN — zelf
+gecorrigeerd: een beheerder-identiteit is niet gedeeld en krijgt een eigen
+e-mail-sessie, los van de gedeelde tablet-sessie. Het patroon hieronder
+(`p_actor_member_id`/`p_actor_pin` per RPC) is niet meer het geldende
+mechanisme voor beheerder-only writes; dit document blijft staan als de
+eerdere afweging, niet als geldende instructie. Oorspronkelijke status:
+geaccepteerd (Architect-beslissing binnen bestaande patronen, ter bevestiging
+aan Bram samengevat in `docs/features/assortimentbeheer.md` →
 "Let op — een echte openstaande architectuurvraag").
 
 ## Context

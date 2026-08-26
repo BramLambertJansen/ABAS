@@ -226,7 +226,38 @@ above.
   RLS grants that account the ability to call `place_order`/`top_up` with any
   valid staff PIN. Individual attribution still only ever comes from the PIN
   checked inside the RPC — the device account identifies "a legitimate bar
-  tablet", never a specific person.
+  tablet", never a specific person. **This covers bardienst work only** —
+  see "Beheer-sessie (settled, 2026-08-26)" below for why beheer-only writes
+  (assortiment, later ledenbeheer) don't use this shared identity.
+
+**Beheer-sessie (settled, 2026-08-26)**: ADR
+[0002](adr/0002-beheeracties-vereisen-eigen-e-mail-sessie.md) — Bram
+corrected the assumption behind the shared device-session model above: a
+`beheerder` identity is not shared. The bar-tablet device session (above)
+stays as-is for ordinary bardienst work (dienst starten, bezetting, plaatsen
+van bestellingen) — but a beheerder-only write (issue #14 Assortimentbeheer,
+later ledenbeheer) requires the beheerder to sign in with their own e-mail
+(magic link/wachtwoord, same mechanism as portal-login) on a dedicated route
+within `shells/bar` (e.g. `/beheer`). Because this repo's session storage
+(`@supabase/ssr`, cookie-based) holds exactly one active session per browser,
+that login **replaces** the shared device session in the tablet's browser
+until an explicit sign-out — not a second, concurrently-active session.
+Signing out lets `src/middleware.ts`'s existing `if (!session)` step
+re-establish the device session on the next bar-shell request, unchanged.
+Beheerder-only RPCs (`create_product`, `update_product_price`,
+`set_product_archived`, …) verify the caller via `auth.uid()` →
+`members.auth_user_id` → role `beheerder`, replacing the
+`p_actor_member_id`/`p_actor_pin`-per-call pattern ADR 0001 introduced (ADR
+0001 is superseded, kept for the earlier reasoning). Resolves issue #22
+("alternate bar-shell login methods") — this *is* that alternate login,
+scoped to beheer actions.
+
+**Open, blocking issue #14's actual build**: this mechanism depends on
+`members.auth_user_id` (planned in "Lid-accounts" below, issue #24) and an
+e-mail login flow (issue #15) — neither exists in the codebase yet as of
+this writing. Whether #14 builds a minimal slice of that itself or waits for
+#15/#24 to land first is an open sequencing question for Bram, not decided
+by ADR 0002; see `docs/features/assortimentbeheer.md` → "Let op".
 
 **Device sign-in mechanism (settled, 2026-08-26)**: found missing during
 review of [#30](https://github.com/BramLambertJansen/ABAS/pull/30) — the
@@ -403,6 +434,14 @@ zonder dat er ooit een e-mailadres of portal-account bij hoort.
 
 Implementatie-acceptatiecriteria: zie GitHub issue #24.
 
+**Ook de basis onder beheer-sessies (2026-08-26)**: dezelfde
+`auth_user_id`-koppeling is wat ADR
+[0002](adr/0002-beheeracties-vereisen-eigen-e-mail-sessie.md) gebruikt om een
+ingelogde beheerder-sessie terug te herleiden naar een `members`-rij met rol
+`beheerder` — zie "Beheer-sessie" onder Money & attribution. Dit maakt #14
+(Assortimentbeheer) inhoudelijk afhankelijk van deze koppeling, niet alleen
+van de portal.
+
 ## Wat het prototype deed maar hier nog niet is besloten
 
 Listed for reference only — none of this is scoped in or out yet. Don't build
@@ -414,12 +453,10 @@ any of it without a `docs/features/<naam>.md` spec:
   UI for it yet.
 - Balance corrections and order-reversal flows.
 - A report builder / CSV-Excel-PDF export (`Rapportages`, `boekhouder` role).
-- Alternate login methods for the bar shell beyond PIN (prototype explored
-  password + magic-link fallbacks) — `CLAUDE.md`'s Auth section only commits
-  to PIN for bar/beheer and email (magic link/password) for the portal.
 - Product/member admin screens (`Leden`, `Assortiment` CRUD) — implied
   necessary since `beheerder` manages prijzen/ledenbeheer per `CLAUDE.md`, but
-  not yet specced.
+  not yet specced (Assortimentbeheer, #14, is specced —
+  `docs/features/assortimentbeheer.md` — not yet built).
 
 ## Design reference
 

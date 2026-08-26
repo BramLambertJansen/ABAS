@@ -91,9 +91,13 @@ geen service-worker caching — dat is bewust uitgesteld, geen vergeten scope.
 ## Auth
 
 Portal-leden loggen in met e-mail: magic link of wachtwoord, beide actief.
-Bardienst/beheerder werken op het tablet met één gedeelde Supabase-sessie; wie
-een dienst start doet dat met de eigen PIN (zie Architectuurbeslissingen voor
-bezetting en attributie).
+Bardienst werkt op het tablet met één gedeelde Supabase-sessie; wie een
+dienst start doet dat met de eigen PIN (zie Architectuurbeslissingen voor
+bezetting en attributie). Beheeracties (assortiment, later ledenbeheer)
+gebeuren **niet** op die gedeelde sessie: een beheerder logt daarvoor apart
+in met het eigen e-mailadres (zelfde mechanisme als de portal), wat de
+gedeelde sessie op dat tablet tijdelijk vervangt tot uitloggen — zie ADR
+0002 (`docs/adr/`).
 
 ## Designbestanden
 
