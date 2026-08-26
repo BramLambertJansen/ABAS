@@ -39,8 +39,21 @@ for (const { name, path } of routes) {
  * (whichever finishes last "wins" as the shift the other test's page
  * observes, independent of which test's assertions expect it).
  * `ensureShiftStarted()` below also tolerates a shift that's already open
- * from an earlier test in the block, so this suite doesn't additionally
- * assume a specific run order beyond "not interleaved with itself".
+ * from an earlier test in the block, or one left running by a previous
+ * failed attempt on the *same* commit (Playwright retries in CI reuse the
+ * same local Postgres, only the browser context is fresh) — so this suite
+ * doesn't additionally assume a specific run order beyond "not interleaved
+ * with itself".
+ *
+ * Needs a live Supabase instance reachable at build/run time
+ * (NEXT_PUBLIC_SUPABASE_URL/NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+ * SUPABASE_DEVICE_EMAIL/PASSWORD) seeded with supabase/seed.sql — see
+ * docs/ARCHITECTURE.md → "Local/CI device account" for how CI provisions
+ * that. Confirmed actually passing in real CI as of PR #40 (merged
+ * 2026-08-26), which also fixed two pre-existing bugs (`useOpenShift`'s
+ * PGRST201 embed ambiguity, a WCAG-AA contrast gap in the `accent` design
+ * token) that this test was the first thing in the repo to ever reach far
+ * enough to surface.
  */
 test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
   /** Starts a shift as the demo "Tom Willems" bardienst account (PIN 1234,
@@ -82,34 +95,6 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
    * wijzigen" button. The routes above only scan static/error-state pages —
    * this drives the app into a real open-dialog state before scanning so the
    * modal itself is under the WCAG-AA gate, not just its trigger.
-   *
-   * Requires a live Supabase instance reachable at build/run time
-   * (NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) seeded
-   * with supabase/seed.sql. Without that seeded data, useBarStaff()/
-   * useOpenShift() resolve to an error state (see
-   * src/hooks/queries/useBarStaff.ts, useOpenShift.ts) and the staff picker —
-   * therefore the whole path down to the overlay — never renders, so this
-   * test cannot complete.
-   *
-   * NOT RUN from this sandbox: no live Supabase project/local stack was
-   * reachable here (same known limitation as db:test, see
-   * docs/ARCHITECTURE.md → "Verified vs. not"). Written to run correctly
-   * against a real environment, not executed here — do not read this test's
-   * presence as proof the overlay has actually been scanned yet.
-   *
-   * Also worth flagging (not something for Tester to silently fix): as
-   * configured today, .github/workflows/ci.yml runs `npm run check:a11y`
-   * *before* `supabase start`/seeding the database, and never wires
-   * NEXT_PUBLIC_SUPABASE_URL/KEY into the build at all. Under that ordering
-   * this test will fail every time in CI (staff picker never renders), not
-   * because the overlay is inaccessible but because there's no backend for
-   * it to load data from yet. Making this test actually pass in CI needs a
-   * pipeline change (seed + env wiring ahead of check:a11y) that's outside
-   * writing/running tests — flagging for Developer/Reviewer rather than
-   * reordering CI myself. Per the launching session's brief, this is being
-   * fixed separately in #40 (branch claude/fix-device-account-seed), not
-   * yet merged — once it lands, this test (and the one below) should
-   * actually be able to load data in CI for the first time.
    */
   test("bar shell (/) bezetting-overlay has no WCAG2A/AA violations", async ({
     page,
@@ -164,10 +149,6 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
    * markup conventions, but not scanned in this specific 2+ state — that
    * would need seeding a second bar/beheer member into the bezetting first,
    * which no current fixture/test in this suite does.
-   *
-   * Same "requires a live seeded Supabase instance, NOT RUN from this
-   * sandbox" caveats as the bezetting-overlay test above apply here too —
-   * see that test's docblock, not repeated verbatim.
    */
   test("bar shell (/) afrekenbevestiging has no WCAG2A/AA violations", async ({
     page,

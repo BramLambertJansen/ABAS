@@ -1,0 +1,14 @@
+-- 0001_init.sql's REVOKE statement omitted `app_settings` — an oversight,
+-- not a decision: `app_settings` holds `negative_limit_cents`/
+-- `low_balance_threshold_cents`, money-adjacent settings a beheerder
+-- manages (docs/ARCHITECTURE.md → "Money & attribution"), with no RPC yet
+-- to write them (issue #11, not built) and only a SELECT policy defined —
+-- exactly the "geldtabellen REVOKED" pattern CLAUDE.md → Verificatie
+-- requires, same as `members`/`orders`/`order_lines`/`top_ups`/`shifts`/
+-- `shift_members` in 0001. `supabase/tests/rls_write_protection.test.sql`
+-- already asserted this (its own header comment: "Confirms the REVOKE in
+-- migration 0001 actually holds") — first caught by a real `db:test` run
+-- against real Postgres (docs/ARCHITECTURE.md → "Local/CI device
+-- account"), the second time this repo's db:test has ever actually run to
+-- completion (the first was issue #2/#31's three-bug fix).
+revoke insert, update, delete on app_settings from authenticated;
