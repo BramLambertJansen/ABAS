@@ -176,6 +176,31 @@ urgent):
   checked inside the RPC — the device account identifies "a legitimate bar
   tablet", never a specific person.
 
+**Device sign-in mechanism (settled, 2026-08-26)**: found missing during
+review of [#30](https://github.com/BramLambertJansen/ABAS/pull/30) — the
+paragraph above described the intent, but nothing actually signed the app in
+as that account, so every bar-shell read was rejected by RLS regardless of
+whether the PIN/RPC logic was correct. Decided (issue
+[#32](https://github.com/BramLambertJansen/ABAS/issues/32)): server-side,
+not client-side.
+- `src/middleware.ts` — on a bar-shell request with no valid session yet,
+  signs in as the device account via `supabase.auth.signInWithPassword()`
+  server-side, using cookies (`@supabase/ssr`) to persist the session. The
+  browser's Supabase client (`src/lib/supabase/client.ts`) shares that same
+  cookie-based session, so no hook in `src/hooks/queries/` needed to
+  change.
+- Credentials live in server-only env vars (`SUPABASE_DEVICE_EMAIL`,
+  `SUPABASE_DEVICE_PASSWORD`, no `NEXT_PUBLIC_` prefix) — never compiled
+  into the client bundle. Rejected alternative: signing in client-side with
+  `NEXT_PUBLIC_*` credentials — simpler, but ships the device password to
+  every browser that loads the page instead of keeping it server-only.
+- `shells/portal` is excluded by the middleware's route matcher — members
+  authenticate themselves there, no device account involved.
+- `scripts/check-arch.mjs` has a narrow, named exception for
+  `src/middleware.ts` on the "only `src/lib/supabase/` imports the SDK"
+  rule — middleware's cookie API is request/response-based, distinct from
+  `server.ts`'s `next/headers`-based one, so it can't reuse that helper.
+
 **PIN storage/hashing (settled, 2026-08-26)**: confirmed by Bram (issue
 [#3](https://github.com/BramLambertJansen/ABAS/issues/3)) — the assumption
 below was already what `0001_init.sql` implemented, this makes it a decision

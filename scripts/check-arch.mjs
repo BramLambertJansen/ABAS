@@ -32,12 +32,16 @@ for (const file of files) {
       problems.push(`${file}: imports "${spec}" — features/ must stay shell-agnostic (use useShell(), not a shell's internals)`);
     }
 
-    // 3. Supabase client stays private to src/lib/supabase/.
+    // 3. Supabase client stays private to src/lib/supabase/ — with one
+    //    narrow exception: src/middleware.ts (device-login bootstrap,
+    //    issue #32) has its own request/response cookie API that
+    //    server.ts's next/headers-based helper can't be reused for.
     if (
       /^@supabase\/(supabase-js|ssr)$/.test(spec) &&
-      !file.startsWith("src/lib/supabase/")
+      !file.startsWith("src/lib/supabase/") &&
+      file !== "src/middleware.ts"
     ) {
-      problems.push(`${file}: imports "${spec}" directly — only src/lib/supabase/{client,server}.ts may do this`);
+      problems.push(`${file}: imports "${spec}" directly — only src/lib/supabase/{client,server}.ts (or src/middleware.ts) may do this`);
     }
   }
 }
