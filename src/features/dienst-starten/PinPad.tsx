@@ -67,8 +67,9 @@ export function PinPad({
 
       <button
         type="button"
+        disabled={pending}
         onClick={onBack}
-        className="text-xs font-semibold text-rail-muted hover:text-white"
+        className="text-xs font-semibold text-rail-muted hover:text-white disabled:opacity-50"
       >
         ← andere bardienst
       </button>
