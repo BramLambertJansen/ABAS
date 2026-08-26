@@ -7,7 +7,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(7);
+select plan(8);
 
 set local role authenticated;
 
@@ -69,6 +69,19 @@ select throws_ok(
   '42501',
   'permission denied for table shift_members',
   'insert on shift_members is blocked for authenticated'
+);
+
+-- Specifically relevant to #7 (docs/features/bezetting-beheren.md): the
+-- one real RPC change there is remove_shift_member's shift_not_open guard
+-- (migration 0003), which runs before a `delete from shift_members`
+-- executed as security definer. This REVOKE is what stops a client from
+-- doing that delete directly and skipping the guard entirely — insert
+-- coverage above doesn't exercise that path, so it needs its own case.
+select throws_ok(
+  $$ delete from shift_members where shift_id = gen_random_uuid() and member_id = gen_random_uuid() $$,
+  '42501',
+  'permission denied for table shift_members',
+  'delete on shift_members is blocked for authenticated'
 );
 
 select * from finish();
