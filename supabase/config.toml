@@ -20,8 +20,21 @@ enabled = true
 site_url = "http://127.0.0.1:3000"
 additional_redirect_urls = ["https://127.0.0.1:3000"]
 jwt_expiry = 3600
-enable_signup = false
+# `true` here only because of a known GoTrue quirk (supabase/auth#330,
+# still open as of 2026-08-26): `enable_signup = false` doesn't just block
+# *new* signups, it disables the entire email provider, including
+# signInWithPassword for already-existing users — which is exactly what
+# supabase/seed.sql's device-account insert and (once #15 ships)
+# shells/portal's password login both need. This file governs the local
+# `supabase start` stack only (`project_id` above is a local Docker Compose
+# name, not a linked remote project — nothing here runs `supabase config
+# push`), so it has no bearing on the real hosted project's signup policy.
+# **Flag for #15 (portal-login)**: if the hosted project's own dashboard
+# setting ever mirrors `false` here, password login will silently break
+# for existing members too, not just signups — worth confirming against
+# a real project before relying on password login in production.
+enable_signup = true
 
 [auth.email]
-enable_signup = false
+enable_signup = true
 enable_confirmations = false

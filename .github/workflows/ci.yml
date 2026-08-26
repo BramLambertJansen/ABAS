@@ -47,12 +47,22 @@ jobs:
       # field names `API_URL`/`PUBLISHABLE_KEY`, see `supabase status --help`
       # → `-o`), read with `jq` (preinstalled on the ubuntu-latest runner
       # image) rather than scraped from the human-readable pretty table.
+      #
+      # SUPABASE_DEVICE_EMAIL/PASSWORD (src/middleware.ts) match the
+      # local-only device account supabase/seed.sql now provisions —
+      # without a matching sign-in, every RLS-protected read middleware
+      # gates comes back empty and e2e/a11y.spec.ts's interactive flows
+      # (staff picker onward) can never render far enough to scan. Root
+      # cause of run 32998590441's bezetting-overlay timeout, not an a11y
+      # regression — see supabase/seed.sql's comment on the device insert.
       - name: Export local Supabase env vars
         run: |
           status=$(supabase status -o json)
           {
             echo "NEXT_PUBLIC_SUPABASE_URL=$(echo "$status" | jq -r '.API_URL')"
             echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$(echo "$status" | jq -r '.PUBLISHABLE_KEY')"
+            echo "SUPABASE_DEVICE_EMAIL=device@aurora.local"
+            echo "SUPABASE_DEVICE_PASSWORD=local-device-dev-only"
           } >> "$GITHUB_ENV"
 
       - run: npm run build

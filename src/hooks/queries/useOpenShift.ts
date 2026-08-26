@@ -28,9 +28,15 @@ export function useOpenShift(): State & { refetch: () => void } {
     setState({ status: "loading" });
     try {
       const supabase = createClient();
+      // `members!started_by(...)` disambiguates the embed: PostgREST sees
+      // two paths from `shifts` to `members` (the direct `started_by` FK,
+      // and an indirect one via `shift_members`) and refuses an unqualified
+      // `members(...)` embed (PGRST201) — first surfaced by a real CI run
+      // (docs/ARCHITECTURE.md → "Local/CI device account"), never caught
+      // before because RLS/auth failures always masked it earlier.
       const { data, error } = await supabase
         .from("shifts")
-        .select("id, started_at, members(name)")
+        .select("id, started_at, members!started_by(name)")
         .is("ended_at", null)
         .order("started_at", { ascending: false })
         .limit(1)

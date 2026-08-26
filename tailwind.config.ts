@@ -8,6 +8,17 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // DEFAULT (#ee5a24) is 5.19:1 for dark text (text-rail, e.g. the
+        // "beheerder" role badge) but only 3.42:1 for white/light bold text
+        // at small sizes (e.g. a "Klaar" button or an icon-sized checkmark)
+        // — fails WCAG AA there (needs 4.5:1). One background shade can't
+        // satisfy both a dark-text and a white-text use at once, so: keep
+        // DEFAULT for dark-text-on-accent (unchanged, already compliant),
+        // and use `active` (4.83:1) instead of DEFAULT for any white/light
+        // bold text under ~18px — see BezettingOverlay.tsx for the pattern.
+        // Caught by check:a11y once a real CI run could finally reach a
+        // rendered button for the first time (docs/ARCHITECTURE.md →
+        // "Local/CI device account").
         accent: {
           DEFAULT: "#ee5a24",
           hover: "#d94d1a",

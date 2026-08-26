@@ -53,33 +53,44 @@ for (const { name, path } of routes) {
  * against a real environment, not executed here — do not read this test's
  * presence as proof the overlay has actually been scanned yet.
  *
- * Also worth flagging (not something for Tester to silently fix): as
- * configured today, .github/workflows/ci.yml runs `npm run check:a11y`
- * *before* `supabase start`/seeding the database, and never wires
- * NEXT_PUBLIC_SUPABASE_URL/KEY into the build at all. Under that ordering
- * this test will fail every time in CI (staff picker never renders), not
- * because the overlay is inaccessible but because there's no backend for
- * it to load data from yet. Making this test actually pass in CI needs a
- * pipeline change (seed + env wiring ahead of check:a11y) that's outside
- * writing/running tests — flagging for Developer/Reviewer rather than
- * reordering CI myself.
+ * `.github/workflows/ci.yml` runs `supabase start`/seeds/wires the
+ * Supabase env vars ahead of `build`/`check:a11y` (fixed 2026-08-26,
+ * unrelated ordering issue this comment used to flag). Two more
+ * pre-existing bugs surfaced once a real CI run could finally reach this
+ * far for the first time (see docs/ARCHITECTURE.md → "Local/CI device
+ * account" and the `useOpenShift` PGRST201 fix in
+ * src/hooks/queries/useOpenShift.ts) — this test itself was never the
+ * problem, it just needed a working backend to prove that.
  */
 test("bar shell (/) bezetting-overlay has no WCAG2A/AA violations", async ({
   page,
 }) => {
   await page.goto("/");
 
+  const alreadyActive = page.getByRole("heading", { name: "Dienst actief" });
   const staffButton = page.getByRole("button", { name: /Tom Willems/i });
-  await staffButton.waitFor({ state: "visible", timeout: 15_000 });
-  await staffButton.click();
 
-  for (const digit of ["1", "2", "3", "4"]) {
-    await page.getByRole("button", { name: `Cijfer ${digit}` }).click();
+  // Playwright retries a failing test in CI (playwright.config.ts) with a
+  // fresh browser context but the *same* local Postgres underneath — if an
+  // earlier attempt got far enough to start a shift before failing on
+  // something else (e.g. the color-contrast bug this test caught on
+  // 2026-08-26), the retry lands straight on "Dienst actief", not the
+  // login screen. Race both landing states instead of assuming which one
+  // shows first.
+  await Promise.race([
+    alreadyActive.waitFor({ state: "visible", timeout: 15_000 }),
+    staffButton.waitFor({ state: "visible", timeout: 15_000 }),
+  ]);
+
+  if (await staffButton.isVisible()) {
+    await staffButton.click();
+
+    for (const digit of ["1", "2", "3", "4"]) {
+      await page.getByRole("button", { name: `Cijfer ${digit}` }).click();
+    }
+
+    await alreadyActive.waitFor({ state: "visible", timeout: 15_000 });
   }
-
-  await page
-    .getByRole("heading", { name: "Dienst actief" })
-    .waitFor({ state: "visible", timeout: 15_000 });
 
   await page.getByRole("button", { name: "Bezetting wijzigen" }).click();
 
