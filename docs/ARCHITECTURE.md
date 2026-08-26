@@ -174,6 +174,36 @@ Exactly three: `lid`, `bardienst`, `beheerder`. `beheerder` is a superset of
 grew to five roles (`barmanager`, `boekhouder` also existed there) — those are
 **not** carried forward unless a future feature request reintroduces them.
 
+## Lid-accounts (settled, 2026-08-25)
+
+Een `lid`-record (naam, saldo, …) bestaat onafhankelijk van een Supabase
+Auth-account — bardienst kan een lid aanmaken en laten bestellen/opwaarderen
+zonder dat er ooit een e-mailadres of portal-account bij hoort.
+
+- Een e-mailadres bij een lid is optioneel. Het invullen en opslaan van een
+  (nieuw) e-mailadres is de trigger om via
+  `supabase.auth.admin.inviteUserByEmail()` (server-side, secret key) een
+  magic-link-invite te versturen waarmee het lid zelf een portal-account
+  activeert. Dit gebeurt server-side vanuit `src/lib/supabase/server.ts` (of
+  een route handler die dat bestand gebruikt) — nooit met de client-side
+  sleutel, per de bestaande regel dat alleen die twee bestanden de Supabase
+  SDK mogen importeren.
+- Dit gebeurt automatisch **alleen** de allereerste keer dat een lid een
+  e-mailadres krijgt. Wijzigt het e-mailadres van een lid dat al een account
+  heeft, dan gebeurt er verder niets automatisch — geen nieuwe invite, geen
+  wijziging aan het gekoppelde auth-account. Bewust simpel gehouden voor MVP.
+- Een beheerder kan vanuit Ledenbeheer altijd handmatig een invite (opnieuw)
+  laten versturen — voor een lid dat de eerste mail miste, én voor
+  bestaande/geseede leden die nog nooit een invite kregen. Er is geen
+  automatische bulk-uitnodiging met terugwerkende kracht nodig: die leden
+  mogen later alsnog een link krijgen, pas op het moment dat de beheerder dat
+  triggert.
+- Koppeling `members`-rij ↔ `auth.users`-rij via een nullable veld (bv.
+  `members.auth_user_id`) — nullable omdat een lid zonder e-mail nooit een
+  account krijgt.
+
+Implementatie-acceptatiecriteria: zie GitHub issue #24.
+
 ## Wat het prototype deed maar hier nog niet is besloten
 
 Listed for reference only — none of this is scoped in or out yet. Don't build
