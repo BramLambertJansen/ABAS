@@ -20,6 +20,41 @@ jobs:
 
       - run: npm run lint
       - run: npm run typecheck
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # `build`/`check:a11y` need a live Supabase instance now too, not just
+      # `db:test` — e2e/a11y.spec.ts (docs/features/bezetting-beheren.md, #7)
+      # starts a real shift against supabase/seed.sql's demo bar account
+      # before scanning the bezetting-overlay. `supabase start` runs the full
+      # local stack via the Docker daemon the ubuntu-latest runner provides,
+      # and seeds supabase/seed.sql automatically (config.toml has no
+      # `[db.seed]` override, so the CLI default — enabled, `./seed.sql` —
+      # applies). So this now runs before `build`, not only before `db:test`.
+      # NOT verified from the sandbox that authored this workflow (no
+      # Docker daemon there) — first real CI run is the actual test of this
+      # job, per CLAUDE.md → Verificatie / Werkstraat.
+      - run: supabase start
+
+      # `build` and `check:a11y` (Playwright's `webServer`, see
+      # playwright.config.ts) both run `next build`/`next start`, which reads
+      # NEXT_PUBLIC_SUPABASE_URL/NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY at build
+      # time (src/lib/supabase/client.ts) — the same two vars .env.example
+      # documents as coming from `supabase start`'s local stack. `supabase
+      # status -o json` is the CLI's own structured status output (stable
+      # field names `API_URL`/`PUBLISHABLE_KEY`, see `supabase status --help`
+      # → `-o`), read with `jq` (preinstalled on the ubuntu-latest runner
+      # image) rather than scraped from the human-readable pretty table.
+      - name: Export local Supabase env vars
+        run: |
+          status=$(supabase status -o json)
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=$(echo "$status" | jq -r '.API_URL')"
+            echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$(echo "$status" | jq -r '.PUBLISHABLE_KEY')"
+          } >> "$GITHUB_ENV"
+
       - run: npm run build
       - run: npm run check:arch
       - run: npm run check:policy
@@ -28,15 +63,5 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run check:a11y
 
-      - uses: supabase/setup-cli@v1
-        with:
-          version: latest
-
-      # db:test needs a live Postgres — `supabase start` runs the full local
-      # stack via the Docker daemon the ubuntu-latest runner provides.
-      # NOT verified from the sandbox that authored this workflow (no
-      # Docker daemon there) — first real CI run is the actual test of this
-      # job, per CLAUDE.md → Verificatie / Werkstraat.
-      - run: supabase start
       - run: npm run db:test
       - run: supabase stop

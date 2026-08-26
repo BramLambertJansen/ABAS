@@ -2,21 +2,7 @@
 
 import { useShell } from "@/lib/shell/ShellProvider";
 import type { BarStaffMember } from "@/hooks/queries/useBarStaff";
-
-const ROLE_LABELS: Record<BarStaffMember["role"], string> = {
-  bardienst: "bardienst",
-  beheerder: "beheerder",
-};
-
-function initials(name: string): string {
-  return name
-    .trim()
-    .split(/\s+/)
-    .map((part) => part[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-}
+import { initials, ROLE_LABELS, NO_BAR_STAFF_MESSAGE } from "@/lib/staff";
 
 export function StaffPicker({
   staff,
@@ -31,8 +17,7 @@ export function StaffPicker({
     <div className="flex w-full max-w-[500px] flex-col items-center gap-5">
       {staff.length === 0 ? (
         <p className="text-center text-sm font-semibold text-rail-muted">
-          Geen bardienst-/beheerdersaccounts gevonden. Vraag een bestuurslid
-          om je de rol bardienst of beheerder te geven.
+          {NO_BAR_STAFF_MESSAGE}
         </p>
       ) : (
         <div

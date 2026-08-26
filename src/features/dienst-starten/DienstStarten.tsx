@@ -6,7 +6,7 @@ import { useBarStaff, type BarStaffMember } from "@/hooks/queries/useBarStaff";
 import { useStartShift } from "@/hooks/queries/useStartShift";
 import { StaffPicker } from "./StaffPicker";
 import { PinPad, PIN_LENGTH } from "./PinPad";
-import { ShiftActivePlaceholder } from "./ShiftActivePlaceholder";
+import { DienstActief } from "@/features/bezetting-beheren/DienstActief";
 import type { StartShiftErrorCode } from "@/hooks/queries/useStartShift";
 
 /** "invalid_pin" also covers a bar-role member who never had a PIN set
@@ -31,9 +31,11 @@ function pinErrorMessage(code: StartShiftErrorCode): string {
 
 /**
  * Bar-shell entry screen — start a shift with your own PIN, or (if one's
- * already running on this shared tablet session) see that it's active.
- * See docs/features/dienst-starten.md for the full spec, including what's
- * deliberately not built here yet (bezetting, verkoop, afsluiten).
+ * already running on this shared tablet session) see that it's active via
+ * DienstActief (src/features/bezetting-beheren/), which also owns bezetting
+ * beheren (#7). See docs/features/dienst-starten.md for the start-shift
+ * spec and docs/features/bezetting-beheren.md for what's deliberately not
+ * built here yet (verkoop, afsluiten).
  */
 export function DienstStarten() {
   const openShift = useOpenShift();
@@ -112,7 +114,7 @@ export function DienstStarten() {
       )}
 
       {openShift.status === "ready" && openShift.shift && (
-        <ShiftActivePlaceholder shift={openShift.shift} />
+        <DienstActief shift={openShift.shift} />
       )}
 
       {openShift.status === "ready" && !openShift.shift && (
