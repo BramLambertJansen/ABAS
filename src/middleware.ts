@@ -2,6 +2,11 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 /**
+ * Two unrelated jobs share this one file because Next.js only runs a single
+ * middleware per project: the /design auth gate (see designPreviewGate
+ * below) short-circuits first for that one route tree, everything else
+ * falls through to the bar-tablet device login below.
+ *
  * Shared bar-tablet device login (issue #32). `shells/bar`'s RLS policies
  * only grant `authenticated` — without a session, every read this shell's
  * hooks (src/hooks/queries/) make is rejected, no matter how correct the
@@ -29,6 +34,10 @@ import { NextResponse, type NextRequest } from "next/server";
  * (see e.g. useOpenShift) for exactly that case.
  */
 export async function middleware(request: NextRequest) {
+  if (request.nextUrl.pathname.startsWith("/design")) {
+    return designPreviewGate(request);
+  }
+
   let response = NextResponse.next({ request });
 
   try {
@@ -99,6 +108,57 @@ export async function middleware(request: NextRequest) {
   }
 
   return response;
+}
+
+/**
+ * Auth gate for /design (docs/ARCHITECTURE.md → Bronmateriaal, "Open" — this
+ * closes it). Not tied to Supabase/member auth: /design is a build-tool
+ * preview of the design bundle, not a member- or beheerder-facing feature,
+ * and no beheerder-role check exists yet anywhere else in the app to hang
+ * this off — inventing one just to gate a prototype viewer would be
+ * backwards. A single shared HTTP Basic Auth password is the smallest thing
+ * that actually closes the hole, matching what the route protects: a design
+ * mockup, not money or member data.
+ *
+ * `next dev` stays ungated — this exists for agents and Bram to look at
+ * while building, and requiring a password there would just be friction
+ * against its own purpose. Only a production build (`next build && next
+ * start`, i.e. every real deploy including Vercel preview/production)
+ * enforces it, and if DESIGN_PREVIEW_PASSWORD isn't set there, the route
+ * 404s rather than silently staying open.
+ */
+function designPreviewGate(request: NextRequest): NextResponse {
+  if (process.env.NODE_ENV !== "production") {
+    return NextResponse.next();
+  }
+
+  const password = process.env.DESIGN_PREVIEW_PASSWORD;
+  if (!password) {
+    return NextResponse.json({ error: "not found" }, { status: 404 });
+  }
+
+  const suppliedPassword = readBasicAuthPassword(request.headers.get("authorization"));
+  if (suppliedPassword === password) {
+    return NextResponse.next();
+  }
+
+  return new NextResponse("Authentication required", {
+    status: 401,
+    headers: { "WWW-Authenticate": 'Basic realm="ABAS design preview"' },
+  });
+}
+
+function readBasicAuthPassword(authHeader: string | null): string | null {
+  if (!authHeader?.startsWith("Basic ")) return null;
+  try {
+    // atob, not Buffer — middleware runs on the Edge runtime, which has no
+    // Node `Buffer` global.
+    const decoded = atob(authHeader.slice("Basic ".length));
+    const separator = decoded.indexOf(":");
+    return separator === -1 ? decoded : decoded.slice(separator + 1);
+  } catch {
+    return null;
+  }
 }
 
 export const config = {

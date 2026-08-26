@@ -47,10 +47,16 @@ tree (`/designs/`) is the primary way to find this, and works with no app
 running at all — the `/design` route is a secondary, visual convenience on
 top of the same files.
 
-**Open**: `/design` ships with no auth gate in every environment, including a
-production deploy — acceptable for now since the bundle is already in the
-repo, but an explicit call to make before this is public, not an assumption
-to leave standing.
+**Auth-gated in production (2026-08-26)**: `/design` is now behind a single
+shared HTTP Basic Auth password (`DESIGN_PREVIEW_PASSWORD`), enforced in
+`src/middleware.ts`'s `designPreviewGate` — but only for a production build
+(`next build && next start`, i.e. every real deploy including Vercel);
+`next dev` stays ungated on purpose, since this route exists for agents and
+Bram to use while building. If `DESIGN_PREVIEW_PASSWORD` isn't set in a
+production environment, `/design` 404s instead of being left open. Not tied
+to Supabase/member auth: this is a build-tool preview, not a member- or
+beheerder-facing feature, and no beheerder-role check exists yet elsewhere
+in the app to hang this off.
 
 Per `CLAUDE.md`: the prototype governs the *first* build of a screen's UX: once
 built, the in-app design system is truth and departing from the prototype is
@@ -236,6 +242,10 @@ not client-side.
   `src/middleware.ts` on the "only `src/lib/supabase/` imports the SDK"
   rule — middleware's cookie API is request/response-based, distinct from
   `server.ts`'s `next/headers`-based one, so it can't reuse that helper.
+- `src/middleware.ts` also carries `/design`'s unrelated auth gate
+  (`designPreviewGate`) — Next.js only runs one middleware per project, so
+  it short-circuits there first and falls through to device sign-in for
+  everything else. See Bronmateriaal above for what that gate does.
 
 **Accepted risk: device sign-in has no tablet-trust check (2026-08-26)**:
 found during review of [#33](https://github.com/BramLambertJansen/ABAS/pull/33)
