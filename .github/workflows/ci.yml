@@ -25,6 +25,9 @@ jobs:
       - run: npm run check:policy
       - run: npm run check:rls
 
+      - run: npx playwright install --with-deps chromium
+      - run: npm run check:a11y
+
       - uses: supabase/setup-cli@v1
         with:
           version: latest

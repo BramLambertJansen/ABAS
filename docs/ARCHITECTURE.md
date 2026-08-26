@@ -66,9 +66,40 @@ One app, two shells:
   implementations of the three static gates, wired into `npm run check:all`
   and `.github/workflows/ci.yml`.
 
+**WCAG-AA-gate (settled, 2026-08-26)**: `check:a11y` (`playwright test`) runs
+`e2e/a11y.spec.ts` — an `@axe-core/playwright` scan (`wcag2a` + `wcag2aa`
+tags) against every shell's entry route (`/`, `/portal`), asserting zero
+violations. Wired into `npm run check:all` (after `check:rls`, before
+`db:test`) and `.github/workflows/ci.yml` (which runs
+`npx playwright install --with-deps chromium` first — CI has no browser
+pre-installed). `eslint.config.mjs` also extends `plugin:jsx-a11y/recommended`
+(on top of the smaller warn-only subset `eslint-config-next` already ships),
+and `npm run lint` now fails on any warning (`next lint --max-warnings=0`),
+not just errors — that's what turns jsx-a11y findings into a real gate
+instead of an ignorable warning. This is the gate CLAUDE.md flagged as
+missing ("de eerste taak van de Architect-agent bij de eerste echte
+sessie" — see issue
+[#1](https://github.com/BramLambertJansen/ABAS/issues/1)); CLAUDE.md's
+Verificatie table has been updated accordingly and the "doesn't exist yet"
+paragraph removed, per its own "wat een gate kan afdwingen staat hier niet"
+rule.
+- Running this gate against the as-built scaffold caught a real finding, not
+  a hypothetical one: `muted.DEFAULT` (`tailwind.config.ts`), taken verbatim
+  from the prototype's inline styles, was 3.37:1 on `canvas` at 14px/normal —
+  below the 4.5:1 WCAG AA needs. Darkened to `#736d66` (4.79:1, same hue).
+  Expect more of these once real screens exist; this gate is what's supposed
+  to catch them going forward instead of relying on review.
+- `playwright.config.ts` picks up a sandbox's pre-installed Chromium via a
+  `PLAYWRIGHT_BROWSERS_PATH`-relative `chromium` symlink when present (some
+  sandboxes have no outbound access to fetch Playwright's own pinned
+  version); falls through to Playwright's default resolution otherwise
+  (i.e. in CI, after the explicit `playwright install` step).
+
 **Verified vs. not**: `npm install`, `typecheck`, `build`, `lint`,
-`check:arch`, `check:policy`, `check:rls` all actually ran green in the
-environment that built this scaffold. `db:test` (pgTAP via
+`check:arch`, `check:policy`, `check:rls`, `check:a11y` all actually ran
+green in the environment that built this scaffold (`check:a11y` was verified
+against the pre-installed sandbox Chromium described above, not yet against
+a from-scratch `playwright install` in real CI). `db:test` (pgTAP via
 `supabase test db`) did **not** — no Docker daemon was available there, so
 the SQL migrations and tests are carefully written but not yet executed
 against a real Postgres. That's the first thing to run for real (`supabase
