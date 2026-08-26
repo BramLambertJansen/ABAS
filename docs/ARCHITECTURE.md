@@ -306,6 +306,20 @@ local `supabase start`/`db reset`, never against a remote/production
 project — same guarantee the existing member/product demo data already
 relies on).
 
+Getting the device sign-in to actually succeed also required flipping
+`supabase/config.toml`'s `[auth]`/`[auth.email]` `enable_signup` from
+`false` to `true` — a known GoTrue quirk (`supabase/auth#330`, still open):
+`enable_signup = false` doesn't just block *new* signups, it disables the
+email provider's login path too (`signInWithPassword` failed with "Email
+logins are disabled" even for this pre-existing, directly-inserted
+account). `config.toml` only governs the local `supabase start` stack
+(nothing in this repo runs `supabase config push` against the hosted
+project), so this has no effect on production's real signup policy.
+**Flag for #15 (portal-login)**: if the hosted project's dashboard ever
+sets its own signup toggle to closed, password login may silently break
+for existing members too by the same GoTrue behavior — worth confirming
+against the real project before shipping password login there.
+
 **Still open**:
 - **Device account provisioning flow (production)**: who creates the
   per-tablet Supabase Auth account and how (manual via Studio for the
