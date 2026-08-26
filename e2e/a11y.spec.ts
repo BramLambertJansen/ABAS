@@ -67,23 +67,31 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
   async function ensureShiftStarted(page: Page) {
     await page.goto("/");
 
-    const alreadyOpen = await page
-      .getByRole("tab", { name: "Verkoop" })
-      .isVisible({ timeout: 2_000 })
-      .catch(() => false);
-    if (alreadyOpen) return;
-
+    const verkoopTab = page.getByRole("tab", { name: "Verkoop" });
     const staffButton = page.getByRole("button", { name: /Tom Willems/i });
-    await staffButton.waitFor({ state: "visible", timeout: 15_000 });
-    await staffButton.click();
 
-    for (const digit of ["1", "2", "3", "4"]) {
-      await page.getByRole("button", { name: `Cijfer ${digit}` }).click();
+    // A short isVisible()-with-timeout pre-check here was racy in CI: on a
+    // slower/cold navigation, hydration can take longer than a couple of
+    // seconds, so a too-short check would give up and wrongly assume no
+    // shift is open — then wait 15s for a staff button that, with a shift
+    // actually already open, never renders (PR #41, run 33012912605). Race
+    // both landing states with the full timeout instead of pre-guessing
+    // which one shows first — same pattern as the bezetting-overlay test's
+    // own retry-vs-fresh-login race (PR #40).
+    await Promise.race([
+      verkoopTab.waitFor({ state: "visible", timeout: 15_000 }),
+      staffButton.waitFor({ state: "visible", timeout: 15_000 }),
+    ]);
+
+    if (await staffButton.isVisible()) {
+      await staffButton.click();
+
+      for (const digit of ["1", "2", "3", "4"]) {
+        await page.getByRole("button", { name: `Cijfer ${digit}` }).click();
+      }
+
+      await verkoopTab.waitFor({ state: "visible", timeout: 15_000 });
     }
-
-    await page
-      .getByRole("tab", { name: "Verkoop" })
-      .waitFor({ state: "visible", timeout: 15_000 });
   }
 
   /**
