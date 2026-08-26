@@ -39,6 +39,21 @@ One app, two shells:
 `{ density, overlay, columns }` and never branch on device directly
 (`isMobile`/`matchMedia`/`userAgent` are banned by `check:policy`).
 
+**`shells/bar` is a PWA (settled, 2026-08-26)**: `public/manifest.webmanifest`
++ `public/icons/` (generated via `node scripts/generate-pwa-icons.mjs`, using
+`sharp` — already a transitive `next` dependency, no new one added) +
+`public/apple-touch-icon.png`, linked only from `src/app/(bar)/layout.tsx`'s
+`metadata`/`viewport` exports — not the root layout — so `shells/portal`
+(a sibling route segment, not a child of `(bar)`) never gets the manifest
+link or theme-color meta. Verified in the built HTML: `/` renders the
+`<link rel="manifest">` / `<meta name="theme-color">` / apple-touch-icon
+tags, `/portal` and `/_not-found` don't. No service worker, no offline
+caching — deliberately out of scope per CLAUDE.md. Icons: two purposes
+(`any` — rounded badge matching the in-app logo; `maskable` — edge-to-edge
+fill with content in the 80% safe zone) at 192/512, plus a 180×180
+apple-touch-icon (iOS ignores manifest icons for "Add to Home Screen").
+See issue [#4](https://github.com/BramLambertJansen/ABAS/issues/4).
+
 **Built (2026-08-24, initial scaffold)**:
 - Next.js 15 (App Router) + TypeScript + Tailwind CSS. shadcn/ui not added
   yet — nothing has needed a dialog/dropdown primitive so far; add it when
