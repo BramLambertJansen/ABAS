@@ -55,37 +55,42 @@ for (const { name, path } of routes) {
  *
  * `.github/workflows/ci.yml` runs `supabase start`/seeds/wires the
  * Supabase env vars ahead of `build`/`check:a11y` (fixed 2026-08-26,
- * unrelated ordering issue this comment used to flag). A real CI run after
- * that fix still timed out here — root cause was `src/middleware.ts` never
- * having a device account to sign in as, so RLS rejected every read before
- * the staff picker could render at all. `supabase/seed.sql` now provisions
- * that account too; see docs/ARCHITECTURE.md → "Local/CI device account".
+ * unrelated ordering issue this comment used to flag). Two more
+ * pre-existing bugs surfaced once a real CI run could finally reach this
+ * far for the first time (see docs/ARCHITECTURE.md → "Local/CI device
+ * account" and the `useOpenShift` PGRST201 fix in
+ * src/hooks/queries/useOpenShift.ts) — this test itself was never the
+ * problem, it just needed a working backend to prove that.
  */
 test("bar shell (/) bezetting-overlay has no WCAG2A/AA violations", async ({
   page,
 }) => {
-  // TEMPORARY diagnostic instrumentation (2026-08-26) — remove once the
-  // staff-picker timeout below is root-caused. Client-side hook errors
-  // (useBarStaff/useOpenShift, both "use client") land in the browser
-  // console, which the [WebServer] log prefix never captures (that's only
-  // the Next.js server process's own stdout/stderr) — surfacing them here
-  // so a CI run actually shows *why* the staff button never appears.
-  page.on("console", (msg) => console.log(`[browser:${msg.type()}]`, msg.text()));
-  page.on("pageerror", (err) => console.log("[browser:pageerror]", err.message));
-
   await page.goto("/");
 
+  const alreadyActive = page.getByRole("heading", { name: "Dienst actief" });
   const staffButton = page.getByRole("button", { name: /Tom Willems/i });
-  await staffButton.waitFor({ state: "visible", timeout: 15_000 });
-  await staffButton.click();
 
-  for (const digit of ["1", "2", "3", "4"]) {
-    await page.getByRole("button", { name: `Cijfer ${digit}` }).click();
+  // Playwright retries a failing test in CI (playwright.config.ts) with a
+  // fresh browser context but the *same* local Postgres underneath — if an
+  // earlier attempt got far enough to start a shift before failing on
+  // something else (e.g. the color-contrast bug this test caught on
+  // 2026-08-26), the retry lands straight on "Dienst actief", not the
+  // login screen. Race both landing states instead of assuming which one
+  // shows first.
+  await Promise.race([
+    alreadyActive.waitFor({ state: "visible", timeout: 15_000 }),
+    staffButton.waitFor({ state: "visible", timeout: 15_000 }),
+  ]);
+
+  if (await staffButton.isVisible()) {
+    await staffButton.click();
+
+    for (const digit of ["1", "2", "3", "4"]) {
+      await page.getByRole("button", { name: `Cijfer ${digit}` }).click();
+    }
+
+    await alreadyActive.waitFor({ state: "visible", timeout: 15_000 });
   }
-
-  await page
-    .getByRole("heading", { name: "Dienst actief" })
-    .waitFor({ state: "visible", timeout: 15_000 });
 
   await page.getByRole("button", { name: "Bezetting wijzigen" }).click();
 

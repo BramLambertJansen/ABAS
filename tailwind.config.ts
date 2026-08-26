@@ -8,10 +8,19 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Prototype's exact DEFAULT (#ee5a24) is 3.42:1 for white text at
+        // 14px/bold (e.g. BezettingOverlay's "Klaar" button) — fails WCAG
+        // AA (needs 4.5:1), caught by the check:a11y gate once a real CI
+        // run could finally reach this button (docs/ARCHITECTURE.md →
+        // "Local/CI device account"). Same fix pattern as `muted` below:
+        // darken, same hue, until compliant — normal design-system
+        // evolution per CLAUDE.md → Designbestanden, not a defect. Old
+        // `active` (#c9451a, 4.83:1) becomes the new DEFAULT; hover/active
+        // shift darker in step to keep the same lightest→darkest ordering.
         accent: {
-          DEFAULT: "#ee5a24",
-          hover: "#d94d1a",
-          active: "#c9451a",
+          DEFAULT: "#c9451a",
+          hover: "#b23d17",
+          active: "#a03a15",
         },
         ink: "#1b1e23",
         canvas: "#faf7f3",
