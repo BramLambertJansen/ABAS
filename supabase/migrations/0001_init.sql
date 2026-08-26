@@ -27,8 +27,8 @@ create table members (
   role member_role not null default 'lid',
   -- null for a 'lid' who has never been given bar/beheer access. Hashed
   -- with pgcrypto's crypt()/gen_salt('bf') — never stored or compared in
-  -- plaintext. See docs/ARCHITECTURE.md "Money & attribution" → Still open
-  -- (PIN storage) — this is the assumed implementation, not yet reviewed.
+  -- plaintext, 4 digits. Settled 2026-08-26, see docs/ARCHITECTURE.md
+  -- "Money & attribution" → PIN storage/hashing (issue #3).
   pin_hash text,
   balance_cents integer not null default 0,
   archived boolean not null default false,

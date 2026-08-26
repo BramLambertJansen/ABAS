@@ -176,10 +176,25 @@ urgent):
   checked inside the RPC — the device account identifies "a legitimate bar
   tablet", never a specific person.
 
+**PIN storage/hashing (settled, 2026-08-26)**: confirmed by Bram (issue
+[#3](https://github.com/BramLambertJansen/ABAS/issues/3)) — the assumption
+below was already what `0001_init.sql` implemented, this makes it a decision
+instead of an assumption.
+- PINs are hashed via `pgcrypto`'s `crypt()`/`gen_salt('bf')` in
+  `members.pin_hash`, never stored or compared in plaintext. `start_shift`
+  checks `crypt(p_pin, pin_hash) = pin_hash` server-side inside the
+  `SECURITY DEFINER` RPC — the client only ever sends the entered PIN.
+- Format: 4 digits, matching the prototype's numpad demo (`DEMO_PIN =
+  '1234'`). Enforced by the numpad UI (issue #6) restricting entry to 4
+  digits, not by a schema constraint on `pin_hash` — the column stores a
+  hash, not the PIN itself, so there's nothing shaped like "4 digits" left
+  to constrain there. A wrong-length attempt just fails `crypt()` comparison
+  like any other wrong PIN.
+- No lockout/rate-limit in MVP. Every attempt is checked independently; add
+  a lockout later if it turns out to be needed, not preemptively.
+- Negative-test coverage: `supabase/tests/start_shift.test.sql`.
+
 **Still open**:
-- **PIN storage/hashing**: assuming PINs are hashed (not plaintext) in a
-  members-adjacent table, checked inside the `SECURITY DEFINER` RPC via
-  `crypt()`/`pgcrypto` or similar. Not yet written down as a decision.
 - **Device account provisioning flow**: who creates the per-tablet Supabase
   Auth account and how (manual via Studio for the single Aurora tablet today;
   needs a real flow if a second tablet is ever added). Fine to leave manual
