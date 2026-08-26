@@ -1,5 +1,5 @@
--- Negative-test coverage for top_up. Same disclosure as place_order.test.sql:
--- not executed in this environment (no Docker daemon here).
+-- Negative-test coverage for top_up. Run with `npm run db:test`
+-- (= `supabase test db`, needs `supabase start` / Docker locally).
 
 create extension if not exists pgtap with schema extensions;
 

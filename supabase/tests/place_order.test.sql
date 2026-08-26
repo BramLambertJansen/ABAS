@@ -2,8 +2,7 @@
 -- every identified way it must refuse (insufficient balance beyond the
 -- negative limit, served_by not on the active shift's roster). Run with
 -- `npm run db:test` (= `supabase test db`, needs `supabase start` / Docker
--- locally). NOT executed in this environment — no Docker daemon available
--- here, see the scaffolding summary for what's verified vs. not.
+-- locally).
 
 create extension if not exists pgtap with schema extensions;
 
@@ -11,6 +10,14 @@ begin;
 select plan(5);
 
 -- ── Fixtures ──────────────────────────────────────────────────────────
+-- Pin the negative limit explicitly rather than relying on the migration's
+-- default (0) — supabase/seed.sql overrides it to 1500 for local dev, and
+-- this test's "exceeds the limit" case silently stopped being true under
+-- that value (order stayed within -1500) until CI's first real run against
+-- Postgres caught it (issue #2). Self-contained now: this test doesn't
+-- care what seed.sql does elsewhere.
+update app_settings set negative_limit_cents = 0;
+
 insert into products (id, name, category, price_cents) values
   ('00000000-0000-0000-0000-000000000001', 'Test Pils', 'Bier', 250);
 
