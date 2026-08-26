@@ -6,48 +6,23 @@ en vervangt/breidt uit wat daar bewust als plaatsvervanger is neergezet:
 `src/features/dienst-starten/ShiftActivePlaceholder.tsx` noemt dit ticket met
 naam in zijn eigen commentaar als de spec die hem vervangt.
 
-## Openstaande vragen voor Bram
+## Besloten: zelf-verwijdering (2026-08-26)
 
-Niet gegokt — onderstaande is nodig voor de Developer kan beginnen aan het
-deel dat dit raakt. De rest van deze spec is al wel volledig, zodat bouwen
-aan de niet-geraakte delen niet hoeft te wachten.
+Bram heeft gekozen: **optie B — geen restrictie**. De dienst-starter (en
+iedereen anders) kan zichzelf uit de bezetting verwijderen, ook tot een lege
+bezetting — precies wat `add_shift_member`/`remove_shift_member` vandaag al
+toestaan, zonder extra check. Geen starter-lock in de UI (geen `locked`-gedrag
+zoals het ontwerp dat toont), geen minimum-bezetting-check in de RPC's. De
+enige RPC-wijziging die deze spec vraagt is de `shift_not_open`-fix op
+`remove_shift_member` verderop — ongewijzigd door dit besluit, want die fix
+gaat over *wanneer* je mag verwijderen (dienst moet open zijn), niet over
+*wie* je mag verwijderen.
 
-**Mag de dienst-starter zichzelf uit de bezetting verwijderen — eventueel tot
-een lege bezetting?**
-
-- Het ontwerp (`designs/Bar App.dc.html`, regel ~2698:
-  `const locked = m.id === s.selectedStaffId`) blokkeert dit in de UI: de rij
-  van de starter toont "vast" / "ingelogd met pincode" en is niet aantikbaar.
-  Maar dat is prototype-gedrag, niet vastgelegd in CLAUDE.md,
-  `docs/ARCHITECTURE.md` of issue #7 zelf — en de databaselaag dwingt niets
-  af: `shift_members` heeft geen minimumgrens, en noch `add_shift_member` noch
-  `remove_shift_member` controleert of de starter of de laatste bezetter
-  wordt verwijderd.
-- Als een dienst zonder ingrijpen een lege bezetting kan krijgen, falen
-  `place_order`/`top_up` daarna voor iedereen op `served_by_not_on_shift`
-  totdat er weer iemand wordt toegevoegd — geen dataverlies, wel een
-  doodlopend tablet tot iemand het oplost.
-- Opties:
-  - **A — UI-restrictie, geen RPC-wijziging.** Bouw het prototype-gedrag na:
-    de starter (of: wie de laatste overgebleven bezetter is) kan niet via
-    deze schermen zichzelf verwijderen. `remove_shift_member` zelf blijft
-    ongewijzigd t.o.v. wat verderop in deze spec al gevraagd wordt (alleen de
-    `shift_not_open`-fix).
-  - **B — geen restrictie.** Precies wat de RPC's vandaag al toestaan: iedereen
-    kan iedereen verwijderen, inclusief de starter, inclusief tot een lege
-    bezetting.
-  - **C — serverside afdwingen.** `remove_shift_member` krijgt, bovenop de
-    `shift_not_open`-fix, een extra check die een lege bezetting of het
-    verwijderen van `shifts.started_by` blokkeert. Een zwaardere wijziging
-    aan een bestaande RPC dan de rest van deze spec vraagt — wel nog steeds
-    geen nieuwe RPC, dus vermoedelijk geen ADR, maar de keuze moet vaststaan
-    voor Developer de migratie schrijft.
-- Totdat dit besloten is: het schermflow-gedeelte hieronder specificeert de
-  toggle-lijst zonder starter-lock (optie B-vormig, want dat is wat de RPC's
-  vandaag toestaan) en de Randgevallen-sectie beschrijft hoe het scherm zich
-  moet gedragen als de bezetting leeg raakt — zodat bouwen niet vastloopt,
-  maar Developer moet optie A/C alsnog inbouwen zodra Bram kiest, vóór de
-  Reviewer dit mergt.
+Gevolg dat bewust geaccepteerd is: als de bezetting leeg raakt, falen
+`place_order`/`top_up` daarna voor iedereen op `served_by_not_on_shift` totdat
+er weer iemand wordt toegevoegd — geen dataverlies, wel een doodlopend tablet
+tot iemand zichzelf of een ander weer toevoegt. Zie Randgevallen → "Lege
+bezetting" voor het vereiste schermgedrag in die staat.
 
 ## Doel
 
@@ -152,8 +127,8 @@ zoals ze in `0001_init.sql` staan.
    - Wie al in de bezetting zit: visueel gemarkeerd (bijv. vinkje/gevulde
      rand, zoals het ontwerp's `on ? '✓' : '+'`). Tik op een rij **buiten**
      de bezetting → `add_shift_member`. Tik op een rij **in** de bezetting →
-     `remove_shift_member` (met uitzondering van wat openstaande vraag 1
-     hierboven mogelijk nog vastlegt over de starter-rij).
+     `remove_shift_member` — zonder uitzondering voor de starter-rij (zie
+     "Besloten: zelf-verwijdering" hierboven).
    - Geen aparte bevestiging of PIN per tik — dit dekt letterlijk het eerste
      acceptatiecriterium ("geen PIN/bevestiging van dat lid nodig") en volgt
      het ontwerp, dat ook geen confirm-stap heeft op deze toggle.
@@ -194,13 +169,11 @@ mechanism").
   `remove_shift_member`-dekking in `supabase/tests/`, alleen indirecte
   fixtures in `start_shift.test.sql`/`place_order.test.sql`/
   `top_up.test.sql`).
-- **Lege bezetting** (welke route daar ook toe leidt — zie openstaande vraag
-  1) → het scherm mag niet crashen: bezetting-sectie toont een lege staat
-  (bijv. "Nog niemand" i.p.v. een avatarstapel) en de "Bezetting
-  wijzigen"-knop blijft werken zodat er weer iemand toegevoegd kan worden.
-  Dit geldt ongeacht welke optie (A/B/C) uiteindelijk gekozen wordt voor
-  zelf-verwijdering — zelfs met een restrictie kan dit teamlid gerelateerd
-  aan een edge case (bv. handmatige data) alsnog leeg zijn.
+- **Lege bezetting** (bijv. de starter verwijdert zichzelf als laatste
+  overgeblevene — toegestaan, zie "Besloten: zelf-verwijdering" hierboven) →
+  het scherm mag niet crashen: bezetting-sectie toont een lege staat (bijv.
+  "Nog niemand" i.p.v. een avatarstapel) en de "Bezetting wijzigen"-knop
+  blijft werken zodat er weer iemand toegevoegd kan worden.
 - **Lid wiens rol/archief-status wijzigt terwijl het al in de bezetting
   zit** (bv. een beheerder verandert iemand terug naar `lid`, of archiveert
   ze, tijdens een lopende dienst) → blijft zichtbaar in de bezetting-lijst
@@ -257,9 +230,9 @@ mechanism").
   dienst-concept in de portal en dus geen consument vandaag; zie
   useShell()-contract hieronder.
 - **RPC-laag afdwingen van een minimale bezetting / de starter beschermen
-  tegen verwijdering** — afhankelijk van het antwoord op openstaande vraag 1;
-  totdat Bram kiest wordt hier niets extra's aan `remove_shift_member`
-  toegevoegd bovenop de `shift_not_open`-fix.
+  tegen verwijdering** — bewust niet gebouwd, zie "Besloten:
+  zelf-verwijdering" hierboven (optie B). `remove_shift_member` krijgt niets
+  extra's bovenop de `shift_not_open`-fix.
 
 ## `useShell()`-contract
 
