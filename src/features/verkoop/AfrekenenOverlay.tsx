@@ -103,7 +103,7 @@ export function AfrekenenOverlay({
       description="Het bedrag gaat van het saldo af en de kassa staat daarna klaar voor de volgende."
       onClose={onClose}
     >
-      <p className="min-h-[1.25rem] text-sm font-bold text-danger" role="alert">
+      <p className="min-h-[1.25rem] text-sm font-bold text-rail-error" role="alert">
         {submitErrorCode ? placeOrderErrorMessage(submitErrorCode) : ""}
       </p>
 
@@ -118,23 +118,23 @@ export function AfrekenenOverlay({
         {lines.map((line) => (
           <li
             key={line.productId}
-            className="flex justify-between text-sm font-semibold text-muted"
+            className="flex justify-between text-sm font-semibold text-rail-muted"
           >
             <span>
               {line.qty}× {line.name}
             </span>
-            <span className="font-bold text-ink">
+            <span className="font-bold text-white">
               {formatCents(line.lineTotalCents)}
             </span>
           </li>
         ))}
       </ul>
 
-      <div className="h-px bg-border-subtle" />
+      <div className="h-px bg-rail-border" />
 
       <div className="flex items-baseline justify-between">
-        <span className="text-sm font-extrabold text-ink">Totaal</span>
-        <span className="text-xl font-extrabold text-ink">
+        <span className="text-sm font-extrabold text-white">Totaal</span>
+        <span className="text-xl font-extrabold text-white">
           {formatCents(subtotalCents)}
         </span>
       </div>
@@ -182,7 +182,7 @@ export function AfrekenenOverlay({
         <button
           type="button"
           onClick={onClose}
-          className="flex h-[50px] flex-1 items-center justify-center rounded-2xl border border-border text-sm font-bold text-ink transition-colors hover:border-ink"
+          className="flex h-[50px] flex-1 items-center justify-center rounded-2xl border border-rail-border bg-rail text-sm font-bold text-white transition-colors hover:border-accent"
         >
           annuleren
         </button>
