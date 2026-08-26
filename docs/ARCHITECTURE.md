@@ -24,6 +24,28 @@ templating, not portable code) exported into this repo:
   - Report builder / bookkeeper exports: `chat39.md`, `chat41.md`
   - Overall bar-vs-beheer flow rationale: `chat19.md`–`chat21.md`, `chat24.md`, `chat25.md`
 
+**Findable in the running app, live (2026-08-26)**: `/design`
+(`src/app/design/`) renders the bundle above from inside ABAS itself instead
+of leaving it to be found by digging through the repo tree. It's read
+straight off disk on every request — `src/app/design/files/[...path]/route.ts`
+is a `force-dynamic` route handler that streams `project/`, `chats/`, and
+`README.md` live (allowlisted to those three paths, resolved-path-must-stay-
+inside-root guarded) — so a fresh Claude Design export dropped into
+`project/` shows up on refresh, no rebuild, no copy to keep in sync. The
+`project/`-relative asset paths the prototype itself uses (`./support.js`,
+`./image-slot.js`) resolve correctly because the route mirrors the repo's
+own directory layout (`/design/files/project/<name>` is a sibling of
+`/design/files/project/support.js`), not because anything was rewritten.
+Deliberately outside `src/shells/` and `src/features/` — this is tooling for
+building the app, not a shell or a feature, so it's exempt from `check:arch`'s
+shell-isolation rules and from `e2e/a11y.spec.ts`'s route list (it renders a
+third-party prototype file, not a screen we control the markup of).
+
+**Open**: `/design` ships with no auth gate in every environment, including a
+production deploy — acceptable for now since the bundle is already in the
+repo, but an explicit call to make before this is public, not an assumption
+to leave standing.
+
 Per `CLAUDE.md`: the prototype governs the *first* build of a screen's UX: once
 built, the in-app design system is truth and departing from the prototype is
 normal evolution, not a defect.

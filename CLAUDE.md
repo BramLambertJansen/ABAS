@@ -107,6 +107,9 @@ in `project/` (`Bar App.dc.html`, `Lid App.dc.html`), met `README.md` en
 (dc-runtime), geen productiecode — het bepaalt UX en visueel ontwerp, niet de
 technische structuur.
 
+In de app zelf te bekijken op `/design` (live van schijf, geen kopie) —
+zie `docs/ARCHITECTURE.md` → Bronmateriaal.
+
 ## Werkstraat
 
 Vijf rollen, elk een system prompt in `.claude/agents/`: Architect →
