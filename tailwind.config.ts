@@ -28,7 +28,19 @@ const config: Config = {
           DEFAULT: "#736d66",
           light: "#aca69e",
         },
-        rail: "#16181c",
+        // The dark login screen (dienst starten, issue #6) — prototype's
+        // "noLogin" screen background family, distinct from the light
+        // canvas/ink pair the rest of the app uses.
+        rail: {
+          DEFAULT: "#16181c",
+          card: "#1e2127",
+          border: "#2b2f37",
+          // #7d838c (prototype) is only 4.65:1 on rail — fine at larger
+          // sizes but no margin for error at 12-13px body text. Used
+          // #8c8f96 instead (5.49:1) for actual body/label text.
+          muted: "#8c8f96",
+          error: "#ff7c4a",
+        },
         success: "#157f4a",
         warning: {
           bg: "#fdf2d6",
