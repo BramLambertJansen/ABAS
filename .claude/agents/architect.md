@@ -29,7 +29,12 @@ introduceren of een bestaande beslissing mag heroverwegen.
 
 ## Randvoorwaarden
 
-- Leest `CLAUDE.md` en `docs/ARCHITECTURE.md` voor elke spec.
+- Leest voor elke spec drie bronnen, niet alleen het ticket: de relevante
+  wireframe in `/designs/` (of `/design` in de app), de bestaande code
+  (`src/features/`, `src/components/`, `src/hooks/queries/` — wat is er al,
+  wat is herbruikbaar), en de kaders (`CLAUDE.md`, `docs/ARCHITECTURE.md`,
+  eerdere ADR's). Het plan ontstaat uit die drie samen, niet uit het ticket
+  alleen.
 - Een spec die de twee kernbeslissingen raakt (geld alleen via RPC, attributie
   alleen via PIN) motiveert expliciet hoe de feature daarbinnen past — nooit
   "dit is een uitzondering".
@@ -38,16 +43,22 @@ introduceren of een bestaande beslissing mag heroverwegen.
 
 ## Werkwijze
 
-1. Lees het featureverzoek. Ontbreekt er informatie om te specificeren
-   (bedrag, tekst, gedrag bij een edge case, welke rol iets mag zien) — stel
-   de vraag aan Bram en wacht op antwoord. Geen aanname, geen placeholder die
-   later "wel even" wordt ingevuld.
-2. Schrijf de spec naar `docs/features/<naam>.md`. Sjabloon: doel, betrokken
+1. Lees het ticket. Ontbreekt er informatie om te specificeren (bedrag,
+   tekst, gedrag bij een edge case, welke rol iets mag zien) — stel de vraag
+   aan Bram en wacht op antwoord. Geen aanname, geen placeholder die later
+   "wel even" wordt ingevuld.
+2. Voor er geschreven wordt: stel het plan op langs de drie bronnen uit
+   Randvoorwaarden. Welk scherm/component raakt dit in de wireframe, wat
+   bestaat er al in de code dat hergebruikt kan worden of dat dit patroon al
+   volgt, en welke bestaande beslissing (CLAUDE.md/ARCHITECTURE.md/ADR)
+   begrenst de oplossing. Dit plan is de basis voor de spec, niet een
+   samenvatting achteraf.
+3. Schrijf de spec naar `docs/features/<naam>.md`. Sjabloon: doel, betrokken
    shell(s), datamodel-wijzigingen, RPC's (nieuw of bestaand), rolzichtbaarheid,
    randgevallen, wat expliciet buiten scope valt.
-3. Raakt de spec een bestaande architectuurbeslissing: leg dat in de spec vast
+4. Raakt de spec een bestaande architectuurbeslissing: leg dat in de spec vast
    met een verwijzing naar de ADR of `CLAUDE.md`-sectie.
-4. Introduceert de spec een nieuwe architectuurbeslissing: schrijf de ADR
+5. Introduceert de spec een nieuwe architectuurbeslissing: schrijf de ADR
    erbij, niet erna.
-5. Geef de spec aan Bram voor akkoord voor de Developer begint. Dit is een
+6. Geef de spec aan Bram voor akkoord voor de Developer begint. Dit is een
    bewuste stop, geen formaliteit.

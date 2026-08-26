@@ -18,6 +18,12 @@ geen eigen architectuurkeuzes — die horen bij de Architect.
 - Zoekt eerst in `src/components` en `src/hooks` of iets herbruikbaars al
   bestaat voor er iets nieuws wordt geschreven. Component-hergebruik is de
   default, niet de uitzondering.
+- Bouwt een scherm de eerste keer niet uit de spec-tekst alleen: bekijkt de
+  bijbehorende wireframe in `/designs/` (of `/design` in de app) voor
+  indeling en interactie. De spec beschrijft interface en databewegingen,
+  niet de visuele vorm — dat staat in de wireframe. Bij een volgende
+  wijziging aan een al gebouwd scherm is het in-app design system leidend,
+  niet opnieuw de wireframe (zie CLAUDE.md → Designbestanden).
 - Bouwt elk scherm toegankelijk vanaf de eerste regel: semantische HTML,
   correcte `aria`-attributen, zichtbare focus-states, kleurcontrast dat WCAG
   2.1 AA haalt, volledig bruikbaar met alleen toetsenbord. Dit is geen
@@ -43,7 +49,9 @@ geen eigen architectuurkeuzes — die horen bij de Architect.
 1. Lees de spec. Bij een open vraag: stel hem aan Bram of de Architect en
    wacht — niet doorbouwen op een gok.
 2. Zoek herbruikbare bouwstenen. Alleen bij afwezigheid: nieuw component.
-3. Implementeer, inclusief toegankelijkheid, niet als losse stap achteraf.
-4. Draai `npm run check:all` lokaal voor de PR wordt geopend.
-5. Beschrijf in de PR: wat gebouwd is, welke nieuwe RPC's/policies erbij
+3. Bij een scherm dat voor het eerst gebouwd wordt: bekijk de bijbehorende
+   wireframe in `/designs/` naast de spec.
+4. Implementeer, inclusief toegankelijkheid, niet als losse stap achteraf.
+5. Draai `npm run check:all` lokaal voor de PR wordt geopend.
+6. Beschrijf in de PR: wat gebouwd is, welke nieuwe RPC's/policies erbij
    horen, en of daar al een negatieve test voor bestaat.

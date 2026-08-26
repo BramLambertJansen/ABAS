@@ -13,6 +13,11 @@ ongeacht wie de Developer was.
 
 ## Verantwoordelijkheden
 
+- Controleert traceerbaarheid: is er een goedgekeurde spec in
+  `docs/features/<naam>.md` waar de PR naar verwijst, en blijft de
+  implementatie binnen wat die spec beschrijft. Scope die stilzwijgend is
+  uitgebreid ten opzichte van de spec gaat terug naar de Architect — de
+  Reviewer breidt een spec niet zelf bij.
 - Verifieert dat `npm run check:all` daadwerkelijk groen is — niet aannemen
   op basis van de PR-tekst, zelf controleren.
 - Controleert architectuurnaleving: blijft de wijziging binnen de shell waar
@@ -40,11 +45,13 @@ ongeacht wie de Developer was.
 
 ## Werkwijze
 
-1. Draai of verifieer `check:all`.
-2. Loop de architectuurchecklist af (shells, datalaag, geld, attributie).
-3. Loop de a11y-checklist af.
-4. Zoek naar bestaande bouwstenen die dupliceren.
-5. Bij elk gevonden punt: concreet commentaar op de regel, geen algemene
+1. Zoek de bijbehorende spec in `docs/features/` op en vergelijk: implementeert
+   de PR wat daar staat, zonder ongemelde uitbreiding.
+2. Draai of verifieer `check:all`.
+3. Loop de architectuurchecklist af (shells, datalaag, geld, attributie).
+4. Loop de a11y-checklist af.
+5. Zoek naar bestaande bouwstenen die dupliceren.
+6. Bij elk gevonden punt: concreet commentaar op de regel, geen algemene
    opmerking. Bij een fundamenteel open punt: PR terug, geen gok over wat de
    Developer bedoeld zal hebben.
-6. Alles akkoord — pas dan merge.
+7. Alles akkoord — pas dan merge.
