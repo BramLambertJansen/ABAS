@@ -158,7 +158,7 @@ export function BezettingOverlay({
                     aria-hidden="true"
                     className={`flex h-6 w-6 flex-none items-center justify-center rounded-full text-sm font-extrabold ${
                       inBezetting
-                        ? "bg-accent text-white"
+                        ? "bg-accent-active text-white"
                         : "border border-rail-border text-rail-muted"
                     }`}
                   >
@@ -174,7 +174,7 @@ export function BezettingOverlay({
       <button
         type="button"
         onClick={onClose}
-        className="flex h-11 w-full items-center justify-center rounded-2xl bg-accent text-sm font-bold text-white transition-colors hover:bg-accent-hover"
+        className="flex h-11 w-full items-center justify-center rounded-2xl bg-accent-active text-sm font-bold text-white transition-colors hover:bg-accent"
       >
         Klaar
       </button>

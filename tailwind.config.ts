@@ -8,19 +8,21 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Prototype's exact DEFAULT (#ee5a24) is 3.42:1 for white text at
-        // 14px/bold (e.g. BezettingOverlay's "Klaar" button) — fails WCAG
-        // AA (needs 4.5:1), caught by the check:a11y gate once a real CI
-        // run could finally reach this button (docs/ARCHITECTURE.md →
-        // "Local/CI device account"). Same fix pattern as `muted` below:
-        // darken, same hue, until compliant — normal design-system
-        // evolution per CLAUDE.md → Designbestanden, not a defect. Old
-        // `active` (#c9451a, 4.83:1) becomes the new DEFAULT; hover/active
-        // shift darker in step to keep the same lightest→darkest ordering.
+        // DEFAULT (#ee5a24) is 5.19:1 for dark text (text-rail, e.g. the
+        // "beheerder" role badge) but only 3.42:1 for white/light bold text
+        // at small sizes (e.g. a "Klaar" button or an icon-sized checkmark)
+        // — fails WCAG AA there (needs 4.5:1). One background shade can't
+        // satisfy both a dark-text and a white-text use at once, so: keep
+        // DEFAULT for dark-text-on-accent (unchanged, already compliant),
+        // and use `active` (4.83:1) instead of DEFAULT for any white/light
+        // bold text under ~18px — see BezettingOverlay.tsx for the pattern.
+        // Caught by check:a11y once a real CI run could finally reach a
+        // rendered button for the first time (docs/ARCHITECTURE.md →
+        // "Local/CI device account").
         accent: {
-          DEFAULT: "#c9451a",
-          hover: "#b23d17",
-          active: "#a03a15",
+          DEFAULT: "#ee5a24",
+          hover: "#d94d1a",
+          active: "#c9451a",
         },
         ink: "#1b1e23",
         canvas: "#faf7f3",
