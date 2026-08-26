@@ -1,8 +1,17 @@
 # 0002 — Beheeracties gebeuren in een eigen e-mail-sessie, niet via de gedeelde tablet-sessie
 
-Status: geaccepteerd (Bram, vastgesteld — zie
-`docs/features/assortimentbeheer.md` → "Let op — een echte openstaande
-vraag" voor het overgebleven scope-vraagstuk dat hierdoor ontstaat).
+Status: geaccepteerd (Bram, vastgesteld). **Aangevuld door
+[ADR 0003](0003-auth-methode-per-lid-en-vaste-modus-bar-beheer.md)** — het
+mechanisme hieronder (eigen e-mail-sessie, vervangt de gedeelde
+device-sessie, `auth.uid()`-check in de RPC) blijft ongewijzigd geldend;
+ADR 0003 verbreedt alleen de *reden*: e-mail-login is geen beheer-specifiek
+mechanisme maar één van twee methodes die een lid zelf kiest (PIN of
+e-mail/wachtwoord), hier toegepast op het geval waarin het gekozen doel
+"beheer" is. Lees ADR 0003 voor die bredere context; dit document blijft de
+geldende beschrijving van het sessie-mechanisme zelf. Het overgebleven
+scope-vraagstuk dat hieronder nog als open stond
+("Genuine open vraag — niet hier beslist") is inmiddels beslist — zie ADR
+0003 → scope-splitsing en `docs/features/assortimentbeheer.md`.
 **Vervangt [ADR 0001](0001-beheerder-only-writes-require-actor-pin-per-rpc.md)**
 — dat ADR blijft leesbaar als de eerdere afweging, maar het patroon
 ("`p_actor_member_id`/`p_actor_pin` per RPC-call") is niet meer het geldende
@@ -98,16 +107,19 @@ mechanisme dat aan de eis voldoet; heroverwegen als in de praktijk blijkt dat
 bardienst-werk en beheerwerk op hetzelfde tablet vaak door elkaar lopen
 (tegelijk nodig, niet na elkaar).
 
-## Genuine open vraag — niet hier beslist
+## Eerder genoteerde open vraag — inmiddels beslist (zie ADR 0003)
 
-Dit ADR legt het mechanisme vast, niet de bouwvolgorde. `members.auth_user_id`
-bestaat nog niet in `0001_init.sql`/latere migraties — het is tot nu toe
+Dit ADR legde het mechanisme vast, niet de bouwvolgorde. `members.auth_user_id`
+bestaat nog niet in `0001_init.sql`/latere migraties — het was tot nu toe
 alleen een plan in `docs/ARCHITECTURE.md` → "Lid-accounts", gekoppeld aan
 issue #24, en de bijbehorende e-mail-inlogflow zelf (magic
 link/wachtwoord-formulier, callback-route) is issue #15, ook nog niet
 gebouwd. Of Assortimentbeheer (#14) nu zelf een minimale versie van die
-koppeling + inlogflow bouwt, of wacht tot #15/#24 landen, is aan Bram — zie
-`docs/features/assortimentbeheer.md` → "Let op — een echte openstaande vraag".
+koppeling + inlogflow bouwt, of wacht tot #15/#24 landen, stond hier open —
+**beslist: #14 bouwt het zelf, minimaal** (zie
+[ADR 0003](0003-auth-methode-per-lid-en-vaste-modus-bar-beheer.md) →
+scope-splitsing en `docs/features/assortimentbeheer.md`), niet de volledige
+portal-inlogflow van #15 en niet de self-service-uitnodigingsflow van #24.
 
 ## Gevolgen
 
@@ -123,8 +135,11 @@ koppeling + inlogflow bouwt, of wacht tot #15/#24 landen, is aan Bram — zie
   bijgewerkt zodat het niet meer suggereert dat beheeracties op de gedeelde
   tablet-sessie draaien.
 - Lost issue #22 ("Alternatieve inlogmethoden bar-shell naast PIN")
-  inhoudelijk op: er komt een echte e-mail-login voor beheeracties op
-  `shells/bar`, geen aparte noodingang-vraag meer nodig.
+  **gedeeltelijk** op: er komt een echte e-mail-login op `shells/bar`, maar
+  alleen voor beheeracties — #22 gaat letterlijk over de bar-shell zelf
+  (de PIN-flow uit #6), die dit ADR niet aanraakt. **Zie ADR 0003** voor de
+  correctie: #22's volledige scope wordt pas gedekt door het daar
+  aangekondigde nieuwe issue.
 - Maakt #14 (Assortimentbeheer, en later ledenbeheer) inhoudelijk afhankelijk
   van #24 (`members.auth_user_id`) en #15 (e-mail-inlogmechanisme) — tenzij
   Bram kiest voor de "bouw het minimaal binnen #14"-route, zie hierboven.

@@ -248,16 +248,23 @@ Beheerder-only RPCs (`create_product`, `update_product_price`,
 `set_product_archived`, …) verify the caller via `auth.uid()` →
 `members.auth_user_id` → role `beheerder`, replacing the
 `p_actor_member_id`/`p_actor_pin`-per-call pattern ADR 0001 introduced (ADR
-0001 is superseded, kept for the earlier reasoning). Resolves issue #22
-("alternate bar-shell login methods") — this *is* that alternate login,
-scoped to beheer actions.
+0001 is superseded, kept for the earlier reasoning). Partially addresses
+issue #22 ("alternate bar-shell login methods") — this is an alternate
+login, but scoped to beheer actions only; #22 itself is about the bar-shell
+PIN flow (#6), which this doesn't touch. See "Auth-methode & modus" below
+(ADR 0003) for the corrected scope.
 
-**Open, blocking issue #14's actual build**: this mechanism depends on
-`members.auth_user_id` (planned in "Lid-accounts" below, issue #24) and an
-e-mail login flow (issue #15) — neither exists in the codebase yet as of
-this writing. Whether #14 builds a minimal slice of that itself or waits for
-#15/#24 to land first is an open sequencing question for Bram, not decided
-by ADR 0002; see `docs/features/assortimentbeheer.md` → "Let op".
+**Settled (2026-08-26)**: this mechanism depends on `members.auth_user_id`
+(planned in "Lid-accounts" below, issue #24) and an e-mail login flow
+(issue #15) — neither exists in the codebase yet as of this writing.
+Whether #14 builds a minimal slice of that itself or waits for #15/#24 to
+land first was an open sequencing question — **decided: #14 builds it
+itself, minimally** (just the `/beheer` login form + the `auth_user_id`
+column + manual provisioning of beheerder Supabase Auth accounts, same
+manual pattern as the device account below), not the full portal login flow
+(#15) or the self-service invite flow (#24 → "Lid-accounts" below). See ADR
+[0003](adr/0003-auth-methode-per-lid-en-vaste-modus-bar-beheer.md) and
+`docs/features/assortimentbeheer.md`.
 
 **Device sign-in mechanism (settled, 2026-08-26)**: found missing during
 review of [#30](https://github.com/BramLambertJansen/ABAS/pull/30) — the
@@ -369,6 +376,35 @@ against the real project before shipping password login there.
   scope — unrelated to the local/CI seeding above, which only ever targets
   the local stack.
 
+## Auth-methode & modus (bar vs. beheer) (settled, 2026-08-26)
+
+ADR [0003](adr/0003-auth-methode-per-lid-en-vaste-modus-bar-beheer.md)
+generalizes the "beheer-sessie" mechanism above: e-mail/wachtwoord login
+isn't a beheer-specific concept, it's one of two methods (PIN or
+e-mail/wachtwoord) a `bardienst`/`beheerder` member picks for their own
+account — either/or, per member, never both, no system-wide setting, no
+fixed method↔mode coupling. After signing in, whichever method was used,
+the signed-in person picks a **mode: bar or beheer** — modes are separate
+instances, not something you switch inside one session; changing mode means
+signing out and back in (a generalization of the single-session-per-browser
+replace-not-coexist mechanism above, not a new mechanism).
+
+Bar-modus itself, however signed into, stays exactly what already exists:
+`start_shift`/`add_shift_member`/`remove_shift_member` (issues #6/#7) and
+`served_by`-attribution at checkout are unchanged. **Only the beheer side of
+this is actually built today**: `/beheer`'s e-mail login (issue #14). PIN
+via the shared device session (issue #6/#32/#33) remains the only built way
+into bar-modus — a per-member auth-method setting and bar-modus reachable
+via e-mail/wachtwoord are explicitly deferred to a new, not-yet-numbered
+issue (see ADR 0003 → scope-splitsing), so as not to re-open #6/#32's
+already-merged behavior inside #14.
+
+This also revises `docs/features/dienst-starten.md` → "Expliciet buiten
+scope"'s claim that the prototype's bar/beheer modus-keuze "vervalt" — that
+held under the assumption (since corrected by ADR 0002) that there'd never
+be a separate beheer session. The mode concept is real again at the
+architecture level; #6's screens themselves are unaffected, see ADR 0003.
+
 ## Dienst & bezetting (settled, 2026-08-24)
 
 Revives the prototype's "crew"/"wie werkt er mee" concept (`chat18.md`,
@@ -441,6 +477,15 @@ ingelogde beheerder-sessie terug te herleiden naar een `members`-rij met rol
 `beheerder` — zie "Beheer-sessie" onder Money & attribution. Dit maakt #14
 (Assortimentbeheer) inhoudelijk afhankelijk van deze koppeling, niet alleen
 van de portal.
+
+**Provisioning voor #14 (settled, 2026-08-26)**: #14 bouwt geen
+self-service-uitnodigingsflow (die hierboven beschreven `inviteUserByEmail`-stap
+hoort bij ledenbeheer, niet gebouwd) en geen portal-inlogflow (#15). Een
+beheerder-account voor `/beheer` wordt daarom, net als het
+device-account hierboven, **handmatig geprovisioned** (Supabase
+Studio/CLI: een Auth-account aanmaken, `members.auth_user_id` handmatig
+koppelen) tot #15/#24 landen. Zelfde soort "prima handmatig voor nu,
+single-tenant, single-club"-afweging als bij het device-account.
 
 ## Wat het prototype deed maar hier nog niet is besloten
 

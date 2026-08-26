@@ -8,25 +8,31 @@ aangepast (`src/middleware.ts`, `supabase/seed.sql`, `supabase/config.toml`,
 `src/hooks/queries/useOpenShift.ts`).
 
 Deze spec volgt
-**[ADR 0002](../adr/0002-beheeracties-vereisen-eigen-e-mail-sessie.md)** —
-hoe een schrijfactie die alleen een `beheerder` mag uitvoeren zich laat
-afdwingen: een eigen, losse e-mail-sessie (magic link/wachtwoord), niet de
-gedeelde tablet-sessie en niet een PIN-per-actie. Lees die ADR eerst; deze
-spec past het toe, herhaalt de motivatie niet. **ADR 0002 vervangt ADR
+**[ADR 0002](../adr/0002-beheeracties-vereisen-eigen-e-mail-sessie.md)**
+(hoe een schrijfactie die alleen een `beheerder` mag uitvoeren zich laat
+afdwingen: een eigen, losse e-mail-sessie, niet de gedeelde tablet-sessie en
+niet een PIN-per-actie) **en**
+**[ADR 0003](../adr/0003-auth-methode-per-lid-en-vaste-modus-bar-beheer.md)**
+(dat e-mail-login geen beheer-specifiek mechanisme is maar één van twee
+methodes die een lid zelf kiest — hier toegepast op het enige doel dat
+e-mail-login vandaag daadwerkelijk bereikt: beheer). Lees beide ADR's eerst;
+deze spec past ze toe, herhaalt de motivatie niet. **ADR 0002 vervangt ADR
 0001** (PIN-per-actie tegen de gedeelde sessie) — een eerdere versie van
 deze spec volgde nog 0001; alle verwijzingen hieronder zijn bijgewerkt.
 
-**Let op — een echte openstaande vraag voor Bram, nog niet beantwoord:**
-ADR 0002's mechanisme steunt op `members.auth_user_id` (koppeling
-lid-record ↔ Supabase Auth-account) en een e-mail-inlogflow (magic
+**Voorheen een openstaande vraag, nu beslist (ADR 0003):** ADR 0002's
+mechanisme steunt op `members.auth_user_id` (koppeling lid-record ↔
+Supabase Auth-account) en een e-mail-inlogflow (magic
 link/wachtwoord-formulier, callback-route) — geen van beide bestaat vandaag
-in de code. `docs/ARCHITECTURE.md` → "Lid-accounts" plant die koppeling
-onder issue #24; de inlogflow zelf is issue #15. Deze spec beschrijft het
-scherm alsof die twee al bestaan, maar **legt niet zelf vast of #14 die
-twee nu meebouwt (minimale koppeling + minimaal inlogformulier, hier) of of
-#14 wacht tot #15/#24 eerst landen** — dat is precies het soort losse keuze
-die niet stilzwijgend ingevuld wordt. Zie de Architect-rapportage bij deze
-wijziging voor de vraag zoals aan Bram voorgelegd.
+in de code. `docs/ARCHITECTURE.md` → "Lid-accounts" plant een
+self-service-uitnodigingsflow onder issue #24; de volledige portal-inlogflow
+is issue #15. **#14 bouwt hier zelf een minimale slice van**, niet #15/#24's
+volledige versie: een eigen inlogformulier (magic link of wachtwoord — zie
+Schermflow) en de `auth_user_id`-kolom, maar geen self-service-uitnodiging
+en geen portal-registratiestroom. Beheerder-accounts worden tot #15/#24
+**handmatig geprovisioned** (Supabase Studio/CLI — zelfde patroon als het
+bestaande device-account, `docs/ARCHITECTURE.md` → "Provisioning voor
+#14"), niet via een in-app uitnodigingsknop.
 
 ## Doel
 
@@ -66,8 +72,8 @@ plaats van "een knop op het dienst-scherm"), is er geen reden meer om 'm
 kunstmatig aan een open dienst te koppelen; assortimentbeheer heeft
 conceptueel niets met een dienst te maken. `/beheer` toont eerst een
 inlogformulier (e-mail + magic link of wachtwoord — zelfde formulier-vorm
-als issue #15 voor de portal bouwt, zie "Let op" hierboven voor de vraag of
-dit hier meegebouwd of hergebruikt wordt) als er geen actieve
+als issue #15 voor de portal bouwt, hier zelf gebouwd, minimaal — zie de
+inleiding hierboven) als er geen actieve
 beheerder-sessie is; na een succesvolle login toont het de productenlijst
 (zie Schermflow) plus een zichtbare "Ingelogd als [naam] — uitloggen"-status
 (uitloggen = `supabase.auth.signOut()`, per ADR 0002 stap 3 — dit herstelt
@@ -100,8 +106,9 @@ te leggen.
 
 **Wél een afhankelijkheid op `members`**: ADR 0002's mechanisme steunt op
 `members.auth_user_id` — die kolom bestaat nog niet in `0001_init.sql`/
-latere migraties, alleen gepland (`docs/ARCHITECTURE.md` → "Lid-accounts",
-issue #24). Zie "Let op" bovenaan deze spec.
+latere migraties. Deze spec voegt 'm zelf toe (minimale slice, zie de
+inleiding hierboven); het bredere ledenbeheer-gebruik ervan
+(zelf-registratie-invite) blijft gepland onder issue #24.
 
 **Interpretatie van ticket-tekst "naam, prijs, evt. categorie"**: het schema
 maakt `category` al `not null` sinds `0001_init.sql` (vóór dit ticket). Deze
@@ -132,7 +139,12 @@ intrekken.
 
 Nieuwe migratie, opeenvolgend genummerd na `0003_remove_shift_member_requires_open_shift.sql`
 (dus `0004_...`), per het bestaande patroon in dit repo — niet
-`0001_init.sql` zelf aanpassen.
+`0001_init.sql` zelf aanpassen. Deze migratie voegt ook
+`members.auth_user_id uuid references auth.users(id)` toe, nullable (zie
+`docs/ARCHITECTURE.md` → "Lid-accounts": nullable omdat een lid zonder
+e-mail nooit een account krijgt) — dit is de kolom die ADR 0002/0003's
+mechanisme nodig heeft en die tot nu toe alleen gepland stond onder issue
+#24; #14 bouwt 'm hier zelf, minimaal (zie de inleiding bovenaan deze spec).
 
 Alle drie volgen ADR 0002: **geen** `p_actor_member_id`/`p_actor_pin`-
 parameters meer (dat was ADR 0001, vervangen). In plaats daarvan verifieert
@@ -199,13 +211,19 @@ aparte "ontgrendel"-RPC, zelfde vorm als ADR 0001 al vastlegde.
    zelfde twee mechanismen als CLAUDE.md → Auth voor de portal noemt).
    Succesvolle login vervangt de gedeelde device-sessie in de tablet-browser
    door de beheerder-sessie (ADR 0002 → Beslissing, stap 1) en toont
-   vervolgens de productenlijst (stap 1 hieronder) plus een permanent
-   zichtbare "Ingelogd als [naam] — uitloggen"-indicator. Mislukte login
-   (onbekend e-mailadres, verkeerd wachtwoord, verlopen/ongeldige magic
-   link) → Nederlandse foutmelding via `role="alert"`, formulier blijft
-   staan. Exacte formulier-UI (velden, foutmeldingen, magic-link-vs-
-   wachtwoord-keuze) is aan de Developer/aan wat #15 daarvoor bouwt — zie
-   "Let op" bovenaan deze spec voor de vraag of dat hier of in #15 gebeurt.
+   vervolgens **direct** de productenlijst (stap 1 hieronder) plus een
+   permanent zichtbare "Ingelogd als [naam] — uitloggen"-indicator — **geen**
+   tussenliggend "bar of beheer"-keuzescherm, ook al stelt ADR 0003 een
+   modus-keuze vast als algemeen principe: er bestaat vandaag geen
+   bar-bestemming om via deze inlogroute naartoe te routeren (zie ADR 0003 →
+   scope-splitsing, "Geen zichtbare 'bar'-knop in #14's inlogflow"), dus is
+   er nog niets om tussen te kiezen. Dit is bewust geen definitieve
+   schermvorm — een later issue voegt hier een echte "bar"-optie toe zodra
+   die bestaat, geen herontwerp van deze stap. Mislukte login (onbekend
+   e-mailadres, verkeerd wachtwoord, verlopen/ongeldige magic link) →
+   Nederlandse foutmelding via `role="alert"`, formulier blijft staan. Exacte
+   formulier-UI (velden, foutmeldingen, magic-link-vs-wachtwoord-keuze) is
+   aan de Developer.
 1. **Productenlijst** (na een actieve beheerder-sessie): gesorteerd op
    categorie dan naam (nieuwe leeshook `useProducts()` in
    `src/hooks/queries/`, ordering server-side via `.order()`, zelfde stijl
@@ -324,8 +342,9 @@ leest) — dit was al zo onder ADR 0001 en verandert niet door ADR 0002.
   verkeerd wachtwoord, verlopen/ongeldige magic link) → dit is geen
   RPC-foutcode meer maar een Supabase Auth-foutrespons op het inlogformulier
   zelf (stap 0), Nederlandse foutmelding, formulier blijft staan. Exacte
-  boodschap-mapping is aan wat #15's inlogformulier daarvoor kiest (zie
-  "Let op" bovenaan deze spec) — geen nieuw patroon om hier te bedenken.
+  boodschap-mapping is aan de Developer — dit formulier is hier zelf
+  gebouwd, minimaal (zie de inleiding bovenaan deze spec), geen bestaand
+  patroon om op aan te sluiten.
 - **Dubbele/gelijktijdige prijswijziging** (twee tikken kort na elkaar) —
   expliciet buiten scope, zelfde soort afweging als issue #29 voor
   `start_shift` en bezetting-beherens eigen "race-condition-bescherming"
@@ -362,12 +381,18 @@ leest) — dit was al zo onder ADR 0001 en verandert niet door ADR 0002.
 - **Een echte tabbalk/navigatiestructuur voor `shells/bar`** — de nieuwe
   `/beheer`-route (zie Betrokken shell) is een tijdelijk koppelpunt, geen
   voorschot op een navigatie-architectuur.
-- **De e-mail-inlogflow zelf (herbruikbaar formulier, magic-link-
-  callback-route, provisioning van beheerder-accounts)** — mogelijk al
-  gebouwd door #15/#24 tegen de tijd dat dit ticket gebouwd wordt, mogelijk
-  niet; zie "Let op" bovenaan deze spec. Deze spec beschrijft het contract
-  (`/beheer` toont een inlogformulier, na login is `auth.uid()` bruikbaar),
-  niet de implementatie van het formulier/de callback zelf.
+- **Een herbruikbaar, gedeeld inlogformulier-component voor #15's
+  portal-login, en #24's self-service-uitnodigingsflow** (`inviteUserByEmail`
+  vanuit ledenbeheer) — #14 bouwt zijn eigen, minimale `/beheer`-formulier
+  (zie inleiding bovenaan deze spec en `docs/ARCHITECTURE.md` →
+  "Provisioning voor #14"); of #15 dat later hergebruikt/refactort is aan de
+  Developer die #15 oppakt, geen eis hier.
+- **Auth-methode-instelling per lid (PIN of e-mail/wachtwoord kiezen) en
+  bar-modus bereikbaar via e-mail/wachtwoord-login** — expliciet niet in
+  #14; dit raakt de al gemergede PIN-flow (#6) en het device-sign-in-
+  mechanisme (#32/#33), en krijgt een eigen issue + eigen spec. Zie ADR
+  [0003](../adr/0003-auth-methode-per-lid-en-vaste-modus-bar-beheer.md) →
+  scope-splitsing.
 - **Voorraad/beschikbaarheid buiten archiveren** (het ontwerp's
   `prodStockFilter`) — geen acceptatiecriterium in #14, niet gebouwd.
 - **Race-condition-bescherming bij gelijktijdige schrijfacties** — zie
