@@ -56,6 +56,17 @@ export function AfrekenenOverlay({
   const pending = placeOrderMutation.status === "pending";
   const confirmDisabled = insufficientFunds || !effectiveServedBy || pending;
 
+  // Escape/backdrop-click/"annuleren" mogen niet sluiten terwijl
+  // place_order onderweg is: Overlay.tsx unmount't dan deze component (dus
+  // ook usePlaceOrder()'s mutation-state) terwijl de RPC nog loopt — de
+  // operator kon daarna zonder waarschuwing dezelfde bestelling opnieuw
+  // openen en indienen vóórdat de eerste aanroep klaar was (dubbele
+  // bestelling, dubbele saldo-afschrijving). Reviewbot op PR #41.
+  function handleClose() {
+    if (pending) return;
+    onClose();
+  }
+
   async function handleConfirm() {
     if (!effectiveServedBy || pending) return;
 
@@ -101,7 +112,7 @@ export function AfrekenenOverlay({
     <Overlay
       title={`Afrekenen bij ${member.name}`}
       description="Het bedrag gaat van het saldo af en de kassa staat daarna klaar voor de volgende."
-      onClose={onClose}
+      onClose={handleClose}
     >
       <p className="min-h-[1.25rem] text-sm font-bold text-rail-error" role="alert">
         {submitErrorCode ? placeOrderErrorMessage(submitErrorCode) : ""}
@@ -181,8 +192,9 @@ export function AfrekenenOverlay({
       <div className="mt-0.5 flex gap-2.5">
         <button
           type="button"
-          onClick={onClose}
-          className="flex h-[50px] flex-1 items-center justify-center rounded-2xl border border-rail-border bg-rail text-sm font-bold text-white transition-colors hover:border-accent"
+          disabled={pending}
+          onClick={handleClose}
+          className="flex h-[50px] flex-1 items-center justify-center rounded-2xl border border-rail-border bg-rail text-sm font-bold text-white transition-colors hover:border-accent disabled:cursor-not-allowed disabled:opacity-50"
         >
           annuleren
         </button>

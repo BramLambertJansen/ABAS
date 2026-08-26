@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { OpenShift } from "@/hooks/queries/useOpenShift";
 import { useProducts } from "@/hooks/queries/useProducts";
-import { useMembers } from "@/hooks/queries/useMembers";
+import { useMembers, type MemberOption } from "@/hooks/queries/useMembers";
 import { useAppSettings } from "@/hooks/queries/useAppSettings";
 import { useShiftMembers } from "@/hooks/queries/useShiftMembers";
 import { formatCents } from "@/lib/money";
@@ -30,6 +30,23 @@ export function VerkoopScherm({ shift }: { shift: OpenShift }) {
 
   const [cartLines, setCartLines] = useState<CartLine[]>([]);
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
+  // Losstaand van selectedMemberId gehouden zodat clearMember() ("wissel")
+  // het niet wist — chooseMember()'s keep-logica moet weten wie er vóór het
+  // wisselen gekozen was, ook nadat selectedMemberId alweer null is (Reviewbot
+  // op PR #41: clearMember() leegde het mandje altijd al vóórdat chooseMember
+  // kon vergelijken, dus "opnieuw hetzelfde lid kiezen" kon het mandje nooit
+  // intact laten zoals de spec voorschrijft — zie Schermflow §2).
+  const [lastMemberId, setLastMemberId] = useState<string | null>(null);
+  // Snapshot van het gekozen lid, i.p.v. elke render live uit memberList
+  // afgeleid: useMembers().refetch() (na insufficient_balance/succes) zet
+  // members.status eerst terug naar "loading" en leegt de array — een live
+  // afleiding zou selectedMember dan even null maken en de open
+  // afrekenbevestiging middenin de flow laten unmounten (checkoutOpen &&
+  // selectedMember in de render hieronder). De snapshot blijft staan tot
+  // een verse "ready"-lijst het bijgewerkte saldo levert, en wordt alleen
+  // op een echte clear (wissel/succes/member_not_found) leeggemaakt.
+  const [selectedMemberSnapshot, setSelectedMemberSnapshot] =
+    useState<MemberOption | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [memberNotice, setMemberNotice] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -44,41 +61,88 @@ export function VerkoopScherm({ shift }: { shift: OpenShift }) {
     () => (products.status === "ready" ? products.products : []),
     [products]
   );
-  const productById = useMemo(() => {
-    const map = new Map<string, (typeof productList)[number]>();
-    for (const product of productList) map.set(product.id, product);
-    return map;
+
+  // Alleen-aanvullende cache (nooit verwijderend) van productnaam/-prijs per
+  // id, apart van de live productList. Nodig omdat cartDisplayLines anders
+  // rechtstreeks van de live lijst afhing: na een refetch (bv. na
+  // product_not_available, dat het gearchiveerde product uit productList
+  // filtert) toonde elke bestaande mandjeregel voor dat product ineens
+  // "onbekend product" à €0 i.p.v. de laatst bekende naam/prijs waarmee de
+  // operator de regel nog kan beoordelen/verwijderen (Reviewbot op PR #41).
+  // State i.p.v. een ref: zo blijft cartDisplayLines' useMemo hieronder een
+  // gewone, eerlijke dependency houden i.p.v. via een ref-mutatie stiekem
+  // mee te veranderen.
+  const [productInfoCache, setProductInfoCache] = useState<
+    Map<string, { name: string; priceCents: number }>
+  >(new Map());
+  useEffect(() => {
+    setProductInfoCache((prev) => {
+      let changed = false;
+      const next = new Map(prev);
+      for (const product of productList) {
+        const existing = next.get(product.id);
+        if (
+          !existing ||
+          existing.name !== product.name ||
+          existing.priceCents !== product.priceCents
+        ) {
+          next.set(product.id, {
+            name: product.name,
+            priceCents: product.priceCents,
+          });
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
   }, [productList]);
 
   const cartDisplayLines = useMemo(
     () =>
       cartLines.map((line) => {
-        const product = productById.get(line.productId);
-        const unitPriceCents = product?.priceCents ?? 0;
+        const cached = productInfoCache.get(line.productId);
+        const unitPriceCents = cached?.priceCents ?? 0;
         return {
           productId: line.productId,
           qty: line.qty,
-          name: product?.name ?? "onbekend product",
+          name: cached?.name ?? "onbekend product",
           unitPriceCents,
           lineTotalCents: unitPriceCents * line.qty,
         };
       }),
-    [cartLines, productById]
+    [cartLines, productInfoCache]
   );
 
   const subtotalCents = cartDisplayLines.reduce((sum, l) => sum + l.lineTotalCents, 0);
 
   const memberList = members.status === "ready" ? members.members : [];
-  const selectedMember = selectedMemberId
-    ? (memberList.find((m) => m.id === selectedMemberId) ?? null)
-    : null;
+  const selectedMember = selectedMemberSnapshot;
 
-  const negativeLimitCents =
-    appSettings.status === "ready" ? appSettings.settings.negativeLimitCents : 0;
-  const lowBalanceThresholdCents =
-    appSettings.status === "ready" ? appSettings.settings.lowBalanceThresholdCents : 0;
+  // Ververst de snapshot zodra een verse "ready"-ledenlijst het gekozen lid
+  // bevat (bv. na een insufficient_balance-refetch) — nooit wanneer members
+  // aan het (her)laden is of een andere status heeft, precies om het
+  // hierboven beschreven unmount-probleem te voorkomen.
+  useEffect(() => {
+    if (!selectedMemberId || members.status !== "ready") return;
+    const fresh = members.members.find((m) => m.id === selectedMemberId);
+    if (fresh) setSelectedMemberSnapshot(fresh);
+  }, [selectedMemberId, members]);
 
+  const settingsReady = appSettings.status === "ready";
+  const negativeLimitCents = settingsReady
+    ? appSettings.settings.negativeLimitCents
+    : 0;
+  const lowBalanceThresholdCents = settingsReady
+    ? appSettings.settings.lowBalanceThresholdCents
+    : 0;
+
+  // Zolang de instellingen (nog) niet geladen zijn, is negativeLimitCents=0
+  // hierboven een placeholder, geen echte waarde — insufficientFunds daarop
+  // baseren zou leden met een geldig, groter negatieflimiet ten onrechte
+  // blokkeren (Reviewbot op PR #41). checkoutDisabled hieronder blokkeert
+  // los daarvan al zolang settingsReady niet waar is.
   const insufficientFunds =
+    settingsReady &&
     selectedMember !== null &&
     subtotalCents > selectedMember.balanceCents + negativeLimitCents;
   const shortfallCents = selectedMember
@@ -87,12 +151,20 @@ export function VerkoopScherm({ shift }: { shift: OpenShift }) {
 
   const crewList = crew.status === "ready" ? crew.members : [];
   const rosterEmpty = crew.status === "ready" && crewList.length === 0;
+  // Blokkeert ook zolang de bezetting nog laadt of een foutmelding heeft —
+  // rosterEmpty alleen dekte de "ready, maar leeg"-staat, niet "nog niet
+  // bekend welke bezetting er is", wat een afrekenbevestiging zonder enige
+  // crew (en dus zonder picker of auto-toewijzing) had kunnen openen
+  // (Reviewbot op PR #41).
+  const rosterUnavailable = crew.status !== "ready";
 
   const checkoutDisabled =
     selectedMember === null ||
     cartLines.length === 0 ||
     insufficientFunds ||
-    rosterEmpty;
+    rosterEmpty ||
+    rosterUnavailable ||
+    !settingsReady;
 
   function addOne(productId: string) {
     setCartLines((prev) => applyDelta(prev, productId, 1));
@@ -112,17 +184,25 @@ export function VerkoopScherm({ shift }: { shift: OpenShift }) {
     // zolang er nog geen lid gekozen was, of hetzelfde lid opnieuw gekozen
     // wordt. Elk ander lid → leeg mandje (voorkomt per ongeluk afrekenen
     // bij de verkeerde persoon). Zie docs/features/verkoop.md → Schermflow
-    // §2.
-    if (!(selectedMemberId === null || selectedMemberId === id)) {
+    // §2. Vergelijkt tegen lastMemberId, niet selectedMemberId — die laatste
+    // is na "wissel" alweer null, lastMemberId overleeft dat bewust (zie
+    // hierboven).
+    if (!(lastMemberId === null || lastMemberId === id)) {
       setCartLines([]);
     }
     setSelectedMemberId(id);
+    setSelectedMemberSnapshot(memberList.find((m) => m.id === id) ?? null);
+    setLastMemberId(id);
     setMemberNotice(null);
   }
 
   function clearMember() {
+    // Wist bewust alleen de "wie is gekozen"-staat, niet het mandje en niet
+    // lastMemberId — anders kan chooseMember() hierboven nooit meer
+    // detecteren dat hetzelfde lid opnieuw gekozen wordt (zie de keep-logica
+    // hierboven en Reviewbot op PR #41).
     setSelectedMemberId(null);
-    setCartLines([]);
+    setSelectedMemberSnapshot(null);
     setMemberNotice(null);
   }
 
@@ -134,6 +214,8 @@ export function VerkoopScherm({ shift }: { shift: OpenShift }) {
   function handleCheckoutSuccess(totalCents: number) {
     setCartLines([]);
     setSelectedMemberId(null);
+    setSelectedMemberSnapshot(null);
+    setLastMemberId(null);
     setCheckoutOpen(false);
     setToast(`Afgerekend — ${formatCents(totalCents)}.`);
     members.refetch();
@@ -141,6 +223,8 @@ export function VerkoopScherm({ shift }: { shift: OpenShift }) {
 
   function handleMemberNotFound() {
     setSelectedMemberId(null);
+    setSelectedMemberSnapshot(null);
+    setLastMemberId(null);
     setCheckoutOpen(false);
     setMemberNotice(placeOrderErrorMessage("member_not_found"));
   }

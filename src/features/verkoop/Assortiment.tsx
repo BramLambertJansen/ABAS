@@ -34,11 +34,19 @@ export function Assortiment({
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string | null>(ALL_CATEGORIES);
 
+  // Trimt en sluit lege categorieën uit — het schema staat `category` als
+  // vrije, niet-lege-maar-wel-blanco-toegestane tekst toe; zonder deze
+  // filter kon een leeg/whitespace-only-categorie een chip zonder
+  // betekenisvolle naam/accessible name opleveren (Reviewbot op PR #41).
   const categories = useMemo(
     () =>
-      Array.from(new Set(products.map((p) => p.category))).sort((a, b) =>
-        a.localeCompare(b, "nl")
-      ),
+      Array.from(
+        new Set(
+          products
+            .map((p) => p.category.trim())
+            .filter((c) => c.length > 0)
+        )
+      ).sort((a, b) => a.localeCompare(b, "nl")),
     [products]
   );
 

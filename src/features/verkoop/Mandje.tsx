@@ -89,6 +89,8 @@ export function Mandje({
                 }`}
               >
                 saldo {formatCents(selectedMember.balanceCents)}
+                {selectedMember.balanceCents < lowBalanceThresholdCents &&
+                  " — laag saldo"}
               </p>
             </div>
             <button
@@ -144,12 +146,18 @@ export function Mandje({
                       {member.name}
                     </span>
                     <span
-                      className={`flex-none text-xs font-extrabold ${
+                      className={`flex flex-none items-center gap-1 text-xs font-extrabold ${
                         member.balanceCents < lowBalanceThresholdCents
                           ? "text-danger"
                           : "text-muted"
                       }`}
                     >
+                      {member.balanceCents < lowBalanceThresholdCents && (
+                        <>
+                          <span aria-hidden="true">⚠</span>
+                          <span className="sr-only">laag saldo,</span>
+                        </>
+                      )}
                       {formatCents(member.balanceCents)}
                     </span>
                   </button>
