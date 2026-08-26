@@ -6,7 +6,7 @@ import { useBarStaff, type BarStaffMember } from "@/hooks/queries/useBarStaff";
 import { useStartShift } from "@/hooks/queries/useStartShift";
 import { StaffPicker } from "./StaffPicker";
 import { PinPad, PIN_LENGTH } from "./PinPad";
-import { DienstActief } from "@/features/bezetting-beheren/DienstActief";
+import { DienstTabs } from "@/features/verkoop/DienstTabs";
 import type { StartShiftErrorCode } from "@/hooks/queries/useStartShift";
 
 /** "invalid_pin" also covers a bar-role member who never had a PIN set
@@ -31,11 +31,12 @@ function pinErrorMessage(code: StartShiftErrorCode): string {
 
 /**
  * Bar-shell entry screen — start a shift with your own PIN, or (if one's
- * already running on this shared tablet session) see that it's active via
- * DienstActief (src/features/bezetting-beheren/), which also owns bezetting
- * beheren (#7). See docs/features/dienst-starten.md for the start-shift
- * spec and docs/features/bezetting-beheren.md for what's deliberately not
- * built here yet (verkoop, afsluiten).
+ * already running on this shared tablet session) hand off to DienstTabs
+ * (src/features/verkoop/), which owns the Verkoop/Dienst navigation added
+ * by #8 — Verkoop (default) plus the existing DienstActief/bezetting-
+ * beheren content (#7) under the Dienst tab. See
+ * docs/features/dienst-starten.md for the start-shift spec and
+ * docs/features/verkoop.md for the navigation this hands off to.
  */
 export function DienstStarten() {
   const openShift = useOpenShift();
@@ -90,6 +91,13 @@ export function DienstStarten() {
     setPin((p) => p.slice(0, -1));
   }
 
+  // An open shift hands off to the Verkoop/Dienst tab navigation entirely
+  // — its own full-page layout (light canvas, per docs/features/verkoop.md
+  // → Navigatie), not another branch inside this dark PIN-entry screen.
+  if (openShift.status === "ready" && openShift.shift) {
+    return <DienstTabs shift={openShift.shift} />;
+  }
+
   return (
     <main className="flex min-h-screen w-full flex-col items-center justify-center gap-8 bg-rail px-6 py-10 font-sans text-white">
       <div className="flex flex-col items-center gap-2 text-center">
@@ -111,10 +119,6 @@ export function DienstStarten() {
         <p className="max-w-xs text-center text-sm font-semibold text-rail-error" role="alert">
           {openShift.message}
         </p>
-      )}
-
-      {openShift.status === "ready" && openShift.shift && (
-        <DienstActief shift={openShift.shift} />
       )}
 
       {openShift.status === "ready" && !openShift.shift && (

@@ -77,6 +77,11 @@ test("bar shell (/) bezetting-overlay has no WCAG2A/AA violations", async ({
     await page.getByRole("button", { name: `Cijfer ${digit}` }).click();
   }
 
+  // Since #8 (docs/features/verkoop.md → Navigatie), a started/open shift
+  // lands on the Verkoop tab by default — DienstActief now lives under the
+  // Dienst tab, not shown directly.
+  await page.getByRole("tab", { name: "Dienst" }).click();
+
   await page
     .getByRole("heading", { name: "Dienst actief" })
     .waitFor({ state: "visible", timeout: 15_000 });
