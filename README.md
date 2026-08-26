@@ -1,25 +1,32 @@
-# CODING AGENTS: READ THIS FIRST
+# ABAS — Aurora Bar Automatiserings Systeem
 
-This is a **handoff bundle** from Claude Design (claude.ai/design).
+Bar-app voor muziekvereniging Aurora (Driebergen-Rijsenburg): saldobeheer,
+bestellingen en bardienstbeheer voor leden, bardienst en beheerder. Eén
+Next.js-app, twee shells — `shells/bar` (tablet/desktop, bardienst en
+beheerder) en `shells/portal` (telefoon-first, leden).
 
-A user mocked up designs in HTML/CSS/JS using an AI design tool, then exported this bundle so a coding agent can implement the designs for real.
+## Beginpunten
 
-## What you should do — IMPORTANT
+- **`CLAUDE.md`** — de regels: domeinmodel, architectuurbeslissingen (geld
+  alleen via RPC, attributie via bezetting), gates die elke commit moet
+  doorstaan.
+- **`docs/ARCHITECTURE.md`** — het levende document erachter: wat er gebouwd
+  is, wat nog open staat, waarom.
+- **`docs/features/`** — goedgekeurde featurespecs (nog leeg — er is nog geen
+  feature gebouwd op het scaffold).
+- **`/designs/`** — de Claude Design-export (klik-prototype, geen
+  productiecode) die de eerste bouw van een scherm bepaalt. Ook live te
+  bekijken in de draaiende app op `/design`. Zie `designs/README.md` en
+  `docs/ARCHITECTURE.md` → Bronmateriaal.
 
-**Read the chat transcripts first.** There are 43 chat transcript(s) in `chats/`. The transcripts show the full back-and-forth between the user and the design assistant — they tell you **what the user actually wants** and **where they landed** after iterating. Don't skip them. The final HTML files are the output, but the chat is where the intent lives.
+## Development
 
-**Read `project/Bar App.dc.html` in full.** The user had this file open when they triggered the handoff, so it's almost certainly the primary design they want built. Read it top to bottom — don't skim. Then **follow its imports**: open every file it pulls in (shared components, CSS, scripts) so you understand how the pieces fit together before you start implementing.
+```bash
+npm install
+cp .env.example .env.local   # vul in, of gebruik `supabase start`'s output
+npm run dev
+```
 
-**If anything is ambiguous, ask the user to confirm before you start implementing.** It's much cheaper to clarify scope up front than to build the wrong thing.
-
-## About the design files
-
-The design medium is **HTML/CSS/JS** — these are prototypes, not production code. Your job is to **recreate them pixel-perfectly** in whatever technology makes sense for the target codebase (React, Vue, native, whatever fits). Match the visual output; don't copy the prototype's internal structure unless it happens to fit.
-
-**Don't render these files in a browser or take screenshots unless the user asks you to.** Everything you need — dimensions, colors, layout rules — is spelled out in the source. Read the HTML and CSS directly; a screenshot won't tell you anything they don't.
-
-## Bundle contents
-
-- `README.md` — this file
-- `chats/` — conversation transcripts (read these!)
-- `project/` — the `ABAS HI-FI` project files (HTML prototypes, assets, components)
+`npm run check:all` moet groen zijn voor elke commit (lint, typecheck, build,
+architectuur-/policy-/RLS-gates, a11y, db-tests) — zie `CLAUDE.md` →
+Verificatie voor wat elke gate bewaakt.

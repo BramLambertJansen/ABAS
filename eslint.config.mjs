@@ -22,8 +22,7 @@ const eslintConfig = [
       "node_modules/**",
       ".next/**",
       "supabase/.temp/**",
-      "chats/**",
-      "project/**",
+      "designs/**",
     ],
   },
 ];
