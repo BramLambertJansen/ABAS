@@ -80,13 +80,28 @@ export async function middleware(request: NextRequest) {
       data: { session },
     } = await supabase.auth.getSession();
 
+    // TEMPORARY diagnostic (2026-08-26) — remove once the CI staff-picker
+    // timeout is root-caused. Unconditional, not just the error path, so a
+    // CI run shows exactly which branch executes.
+    console.log("middleware: device-login state:", {
+      hadSession: !!session,
+      hasEmailEnv: !!process.env.SUPABASE_DEVICE_EMAIL,
+      hasPasswordEnv: !!process.env.SUPABASE_DEVICE_PASSWORD,
+    });
+
     if (!session) {
       const email = process.env.SUPABASE_DEVICE_EMAIL;
       const password = process.env.SUPABASE_DEVICE_PASSWORD;
       if (email && password) {
-        const { error } = await supabase.auth.signInWithPassword({
+        const { data: signInData, error } = await supabase.auth.signInWithPassword({
           email,
           password,
+        });
+        console.log("middleware: signInWithPassword result:", {
+          hasUser: !!signInData?.user,
+          userId: signInData?.user?.id,
+          hasSession: !!signInData?.session,
+          errorMessage: error?.message,
         });
         if (error) {
           // signInWithPassword() resolves with `error` for a rejected
