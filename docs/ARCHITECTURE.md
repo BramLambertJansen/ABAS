@@ -174,11 +174,21 @@ lay out, not a breakpoint or a max-item-count. `barCapabilities.columns = 4`
 (`src/shells/bar/capabilities.ts`) was already set before this, this just
 confirms what a real component does with the number.
 
-**Open**:
-- `overlay` (`"modal" | "sheet"`) still has no real usage — dienst-starten
-  didn't need a secondary view. Pinned down by the first screen that does
-  (a likely candidate: bezetting-beheer, issue #7, if it's a modal/sheet
-  over the main screen rather than a route).
+**`useShell().overlay` (settled, 2026-08-26)**: first real consumer is
+bezetting-beheer (issue #7) — `src/components/Overlay.tsx`, the first
+component in what had been an empty `src/components/`, renders a centered
+modal-with-backdrop for `overlay === "modal"` (the only value `shells/bar`
+has ever set, `barCapabilities.overlay`) and falls through to the same
+markup for `"sheet"` rather than building an untested second branch — no
+`shells/portal` consumer exists yet to build or verify a real bottom sheet
+against. Required regardless of variant: `role="dialog"`, `aria-modal`,
+labelled by title, focus-trap, focus in/out on mount/unmount, Escape and
+backdrop-click both close. Reused as-is (no new decision) by issue #8's
+sale-checkout confirmation — see `docs/features/verkoop.md`. `density`
+(`"comfortable" | "compact"`) still has no real consumer as of #8 either;
+leave that one open until a screen actually needs to branch on it, same
+"don't build ahead of a second real case" reasoning as the `"sheet"` branch
+above.
 
 ## Money & attribution (settled, from CLAUDE.md)
 
