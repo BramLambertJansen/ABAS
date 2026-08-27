@@ -11,6 +11,7 @@ import AxeBuilder from "@axe-core/playwright";
 const routes = [
   { name: "bar shell", path: "/" },
   { name: "portal shell", path: "/portal" },
+  { name: "beheer login", path: "/beheer" },
 ];
 
 for (const { name, path } of routes) {

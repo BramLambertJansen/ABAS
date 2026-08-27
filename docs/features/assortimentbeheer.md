@@ -7,27 +7,10 @@ aangepast (`src/middleware.ts`, `supabase/seed.sql`, `supabase/config.toml`,
 `.github/workflows/ci.yml`, `e2e/a11y.spec.ts`,
 `src/hooks/queries/useOpenShift.ts`).
 
-**Status (27-08-2026): merge-gate-review niet akkoord.** Drie openstaande
-punten voor de Developer voordat deze branch opnieuw ter review gaat — geen
-van de drie is hier al opgelost, dit is een doorgeefopdracht, geen
-architectuurvraag op zichzelf voor de eerste twee:
-
-1. **`useProducts()`/`useAlleProducten()`-contract** — architectuurbeslissing,
-   zie "Contract met #8's `useProducts()`" en "`formatCents()`/`money.ts`"
-   hieronder. Volg die twee secties letterlijk.
-2. **`useBeheerSession.ts` onderscheidt geen gedeelde device-sessie van een
-   echte beheerder-sessie** — accepteert vandaag elke sessie met een `user`,
-   ook de automatisch ingelogde device-account-sessie die de bar-shell al
-   gebruikt. Moet specifiek een sessie via `members.auth_user_id` +
-   `role = 'beheerder'` vereisen (zelfde check als de RPC's hierboven al
-   doen, zie RPC's-sectie), niet "is er een `user`". Reviewer-bevinding,
-   los op vóór de volgende review.
-3. **Migratienummer + rebase**: `0004_assortimentbeheer.sql` hernummeren naar
-   `0005_...` — `main`'s `0004_revoke_app_settings_writes.sql` bezet `0004`
-   al. Deze branch moet daarnaast gerebaset worden op de huidige `main`
-   (`33ff622`, PR #41 — verkoopscherm #8, waar punt 1 hierboven vandaan
-   komt). Doe de rebase eerst, dan pas punt 1/2, zodat er niet twee keer
-   tegen dezelfde conflicten gewerkt wordt.
+**Status (27-08-2026): gebouwd, klaar voor merge-gate-review.** De drie punten
+uit de vorige review (het `useProducts()`/`useAlleProducten()`-contract,
+`useBeheerSession.ts`'s onderscheid tussen gedeelde device-sessie en echte
+beheerder-sessie, en het migratienummer/rebase) zijn opgelost.
 
 Deze spec volgt
 **[ADR 0002](../adr/0002-beheeracties-vereisen-eigen-e-mail-sessie.md)**
@@ -159,9 +142,10 @@ intrekken.
 
 ## RPC's
 
-Nieuwe migratie, opeenvolgend genummerd na `0003_remove_shift_member_requires_open_shift.sql`
-(dus `0004_...`), per het bestaande patroon in dit repo — niet
-`0001_init.sql` zelf aanpassen. Deze migratie voegt ook
+Nieuwe migratie, opeenvolgend genummerd na de laatste bestaande migratie
+(`0005_assortimentbeheer.sql`, want `0004` was inmiddels bezet door
+`0004_revoke_app_settings_writes.sql` op `main`), per het bestaande patroon in
+dit repo — niet `0001_init.sql` zelf aanpassen. Deze migratie voegt ook
 `members.auth_user_id uuid references auth.users(id)` toe, nullable (zie
 `docs/ARCHITECTURE.md` → "Lid-accounts": nullable omdat een lid zonder
 e-mail nooit een account krijgt) — dit is de kolom die ADR 0002/0003's

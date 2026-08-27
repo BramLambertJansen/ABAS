@@ -487,6 +487,13 @@ Studio/CLI: een Auth-account aanmaken, `members.auth_user_id` handmatig
 koppelen) tot #15/#24 landen. Zelfde soort "prima handmatig voor nu,
 single-tenant, single-club"-afweging als bij het device-account.
 
+**Assortimentbeheer (settled, 2026-08-27)**: #14 is gebouwd — producten
+aanmaken/bewerken en prijzen wijzigen via `/beheer`
+(`docs/features/assortimentbeheer.md`, `src/features/assortimentbeheer/`),
+achter de hierboven beschreven beheer-sessie. Prijswijzigingen raken historie
+niet: `order_lines.unit_cents` bevriest de prijs op bestelmoment (`CLAUDE.md`).
+Momenteel in merge-gate-review, nog niet op `main`.
+
 ## Wat het prototype deed maar hier nog niet is besloten
 
 Listed for reference only — none of this is scoped in or out yet. Don't build
@@ -498,10 +505,10 @@ any of it without a `docs/features/<naam>.md` spec:
   UI for it yet.
 - Balance corrections and order-reversal flows.
 - A report builder / CSV-Excel-PDF export (`Rapportages`, `boekhouder` role).
-- Product/member admin screens (`Leden`, `Assortiment` CRUD) — implied
-  necessary since `beheerder` manages prijzen/ledenbeheer per `CLAUDE.md`, but
-  not yet specced (Assortimentbeheer, #14, is specced —
-  `docs/features/assortimentbeheer.md` — not yet built).
+- `Leden` admin screen (member CRUD) — implied necessary since `beheerder`
+  manages ledenbeheer per `CLAUDE.md`, but not yet specced. (`Assortiment`
+  CRUD, the other half of this original bullet, is settled and built — see
+  "Assortimentbeheer (settled, 2026-08-27)" below.)
 
 ## Design reference
 
