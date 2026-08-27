@@ -1,6 +1,9 @@
 # 0002 — Beheeracties gebeuren in een eigen e-mail-sessie, niet via de gedeelde tablet-sessie
 
-Status: geaccepteerd (Bram, vastgesteld). **Aangevuld door
+Status: **geïmplementeerd** (issue #14, PR #45, gemerged 2026-08-27 —
+`create_product`/`update_product_price`/`set_product_archived` en
+`/beheer` op `main`, zie `docs/features/assortimentbeheer.md`). Oorspronkelijk
+geaccepteerd (Bram, vastgesteld). **Aangevuld door
 [ADR 0003](0003-auth-methode-per-lid-en-vaste-modus-bar-beheer.md)** — het
 mechanisme hieronder (eigen e-mail-sessie, vervangt de gedeelde
 device-sessie, `auth.uid()`-check in de RPC) blijft ongewijzigd geldend;
@@ -79,8 +82,10 @@ dit ADR over gaat.
 toekomstige beheerder-only schrijf-RPC) doen, binnen dezelfde
 `SECURITY DEFINER`-functie:
 
-1. `select id, role into v_actor from members where auth_user_id = auth.uid()
-   and not archived` → geen rij: `actor_not_found`.
+1. `select * into v_actor from members where auth_user_id = auth.uid() and
+   not archived` → geen rij: `actor_not_found`. (`v_actor` is een volledig
+   row-typed `members`-variabele — zie "Post-implementatie fix" hieronder
+   voor waarom dit `select *` moet zijn, niet een subset van kolommen.)
 2. `v_actor.role = 'beheerder'` → anders `no_admin_role`.
 
 Geen PIN-parameter meer: Supabase Auth heeft de identiteit al geverifieerd op
@@ -120,6 +125,26 @@ koppeling + inlogflow bouwt, of wacht tot #15/#24 landen, stond hier open —
 [ADR 0003](0003-auth-methode-per-lid-en-vaste-modus-bar-beheer.md) →
 scope-splitsing en `docs/features/assortimentbeheer.md`), niet de volledige
 portal-inlogflow van #15 en niet de self-service-uitnodigingsflow van #24.
+
+## Post-implementatie fix (2026-08-27, commit `7d5d311`)
+
+Geen inhoudelijke wijziging van de beslissing hierboven — een bug in de
+eerste implementatie ervan, gevonden ná de laatste Reviewer-goedkeuring
+maar vóór de merge, bevestigd door een echte `db:test`-run. Alle drie de
+RPC's deden aanvankelijk `select id, role into v_actor` in plaats van
+`select * into v_actor` (`v_actor` is `declare v_actor members;` — een
+volledig row-typed variabele). Dat liet `v_actor.role` op `null` staan voor
+een matchende rij, waardoor `v_actor.role <> 'beheerder'` naar `null`
+evalueerde in plaats van naar `true` en de rolcheck nooit blokkeerde: elke
+bardienst-medewerker met een gekoppelde `auth_user_id` kwam ongemerkt door
+de check heen — precies het scenario dat dit ADR moest voorkomen. Gefixt
+door consequent `select *` te gebruiken. **Neem dit patroon over voor elke
+toekomstige beheerder-only RPC die dit ADR volgt**: bij een row-typed
+PL/pgSQL-doelvariabele is `select *`, niet een subset van kolommen, het
+vereiste patroon — een gedeeltelijke `select ... into` op zo'n variabele
+faalt niet luid, hij laat de niet-genoemde velden stilletjes `null`. Zie ook
+`supabase/migrations/0005_assortimentbeheer.sql` (toelichting bovenaan) en
+`docs/features/assortimentbeheer.md` → RPC's.
 
 ## Gevolgen
 

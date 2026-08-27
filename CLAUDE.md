@@ -4,9 +4,8 @@ Aurora Bar Automatiserings Systeem, voor muziekvereniging Aurora
 (Driebergen-Rijsenburg). Eén app, twee shells: `shells/bar` en `shells/portal`.
 
 Stack: Next.js (App Router) + TypeScript + Tailwind, Supabase. Zie
-`docs/ARCHITECTURE.md` voor de layout en `docs/features/` voor specs — dat
-laatste is nog leeg, er is nog geen goedgekeurde feature gebouwd op het
-scaffold.
+`docs/ARCHITECTURE.md` voor de layout en `docs/features/` voor specs van
+gebouwde features.
 
 **Regel over regels:** wat een gate kan afdwingen staat hier niet. Dit document
 bevat alleen wat een script niet kan controleren. Groeit het voorbij ~100
@@ -58,9 +57,8 @@ zelf inloggen. Zie Architectuurbeslissingen voor hoe attributie daaruit werkt.
 **Geld beweegt alleen via RPC.** `place_order` en `top_up` bepalen bedrag,
 controleren saldo (inclusief de ingestelde negatieflimiet) en schrijven de
 transactie in één statement. De client stuurt alleen product-ids, aantallen of
-een bedrag mee — nooit een berekend totaal. Geldtabellen hebben `REVOKE` op
-`authenticated`: niet alleen ongewenst om eromheen te schrijven, maar
-onmogelijk.
+een bedrag mee — nooit een berekend totaal (het `REVOKE` op geldtabellen dat
+dit ook technisch afdwingt staat onder Verificatie → `check:rls`).
 
 **`served_by` komt uit de bezetting, niet uit een PIN.** Eén bardienst-tablet,
 één Supabase-sessie, wisselende medewerkers. De client stuurt welk lid uit de
@@ -82,8 +80,8 @@ stijlkeuze.
 `shells/bar` (tablet/desktop — nooit telefoon, geen fallback, geen
 ondersteuning) en `shells/portal` (telefoon-first, ook bruikbaar op desktop).
 Schermen in `features/` weten niet in welke shell ze draaien; ze lezen
-capabilities via `useShell()` — `density`, `overlay`, `columns`. Nooit
-`isMobile`.
+capabilities via `useShell()` — `density`, `overlay`, `columns` (device-
+sniffing als alternatief is een `check:policy`-fout, zie Verificatie).
 
 `shells/bar` is installable als PWA (manifest + icons). Geen offline-eisen,
 geen service-worker caching — dat is bewust uitgesteld, geen vergeten scope.

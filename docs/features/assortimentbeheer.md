@@ -7,10 +7,10 @@ aangepast (`src/middleware.ts`, `supabase/seed.sql`, `supabase/config.toml`,
 `.github/workflows/ci.yml`, `e2e/a11y.spec.ts`,
 `src/hooks/queries/useOpenShift.ts`).
 
-**Status (27-08-2026): gebouwd, klaar voor merge-gate-review.** De drie punten
-uit de vorige review (het `useProducts()`/`useAlleProducten()`-contract,
-`useBeheerSession.ts`'s onderscheid tussen gedeelde device-sessie en echte
-beheerder-sessie, en het migratienummer/rebase) zijn opgelost.
+**Gebouwd en gemerged** ([issue #14](https://github.com/BramLambertJansen/ABAS/issues/14),
+[PR #45](https://github.com/BramLambertJansen/ABAS/pull/45), 2026-08-27,
+merge-commit `efccd83`). De rest van dit document beschrijft wat er
+daadwerkelijk op `main` staat.
 
 Deze spec volgt
 **[ADR 0002](../adr/0002-beheeracties-vereisen-eigen-e-mail-sessie.md)**
@@ -158,7 +158,7 @@ elke RPC de aanroeper aan het begin van dezelfde `SECURITY DEFINER`-functie
 via de sessie zelf:
 
 ```sql
-select id, role into v_actor
+select * into v_actor
 from members
 where auth_user_id = auth.uid() and not archived;
 
@@ -176,6 +176,23 @@ meer, Supabase Auth heeft de identiteit al geverifieerd bij het inloggen op
 `/beheer` (zie Betrokken shell). Pas ná deze check voert de RPC de
 eigenlijke schrijfactie uit, in dezelfde functie/hetzelfde statement — geen
 aparte "ontgrendel"-RPC, zelfde vorm als ADR 0001 al vastlegde.
+
+**Post-implementatie fix (commit `7d5d311`, ná de laatste Reviewer-
+goedkeuring maar vóór de merge, bevestigd door een echte `db:test`-run):**
+`v_actor` is een volledig row-typed `members`-variabele
+(`declare v_actor members;`). De eerste versie van alle drie RPC's deed
+`select id, role into v_actor` — dat vult alleen de `id`- en `role`-*velden*
+van de kolommen niet aan een row-typed doelvariabele op de manier die
+PL/pgSQL hier vereist; het effect was dat `v_actor.role` op `null` bleef
+staan, waardoor `v_actor.role <> 'beheerder'` naar `null` evalueerde in
+plaats van naar `true` en de `if`-check nooit blokkeerde. Elke
+bardienst-medewerker met een gekoppelde `auth_user_id` kwam zo ongemerkt
+door de rolcheck heen — precies wat ADR 0002/0003 moesten voorkomen. Het
+codeblok hierboven toont de gefixte vorm (`select * into v_actor`, de rij
+in zijn geheel); dat is het vereiste patroon voor een row-typed PL/pgSQL-
+variabele in dit repo, niet een subset van kolommen — zie ook de
+toelichting bovenaan `0005_assortimentbeheer.sql` en ADR 0002's
+"post-implementatie fix"-notitie.
 
 - **`create_product(p_name text, p_category text, p_price_cents integer)
   returns products`** — nieuw. Na de actor-check: `p_name` (getrimd) niet
@@ -425,12 +442,19 @@ leest) — dit was al zo onder ADR 0001 en verandert niet door ADR 0002.
   loze lijst.
 - **Kan productenlijst niet laden** (netwerkfout) → vaste Nederlandse
   foutmelding, zelfde patroon als `useOpenShift`/`useBarStaff`, geen crash.
-- **A11y van de overlay(s)**: zelfde openstaande punt als
-  `docs/features/bezetting-beheren.md` → Randgevallen al noteerde voor de
-  bezetting-overlay — `e2e/a11y.spec.ts` scant vandaag geen geopende
-  overlay-staat. Als Tester dat voor #7 al oplost (uitbreiden van de scan
-  naar een geopende-overlaystaat), hoort deze feature's overlay(s) in
-  dezelfde uitbreiding mee te lopen in plaats van een tweede losse oplossing.
+- **A11y van `/beheer` zelf: gedekt.** Een Reviewer-bevinding tijdens de
+  merge-gate-fase voegde `/beheer` toe aan `e2e/a11y.spec.ts`'s
+  route-lijst (het inlogformulier van Schermflow stap 0 wordt dus, net als
+  de bar- en portal-shell-root, bij elke `check:all`-run gescand) — geen
+  open punt meer.
+- **A11y van de overlay(s) ("Nieuw product"/"Product beheren"): nog open.**
+  Zelfde openstaande punt als `docs/features/bezetting-beheren.md` →
+  Randgevallen al noteerde voor de bezetting-overlay — `e2e/a11y.spec.ts`
+  scant vandaag wel de statische `/beheer`-route (zie hierboven) maar geen
+  geopende overlay-staat, hier noch bij #7. Als Tester dat voor #7 al
+  oplost (uitbreiden van de scan naar een geopende-overlaystaat), hoort
+  deze feature's overlay(s) in dezelfde uitbreiding mee te lopen in plaats
+  van een tweede losse oplossing.
 
 ## Expliciet buiten scope
 

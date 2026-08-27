@@ -1,6 +1,12 @@
 # 0003 — Auth-methode is een per-lid either/or-keuze; modus (bar/beheer) is vast, niet wisselbaar binnen een sessie
 
-Status: geaccepteerd (Bram, vastgesteld). **Vult [ADR 0002](0002-beheeracties-vereisen-eigen-e-mail-sessie.md)
+Status: **geïmplementeerd** voor het deel dat #14 bouwde (issue #14, PR #45,
+gemerged 2026-08-27 — `/beheer`'s inlogflow en de scope-splitsing hieronder,
+zie `docs/features/assortimentbeheer.md`); de auth-methode-instelling per
+lid en een bar-modus bereikbaar via e-mail/wachtwoord blijven, zoals dit ADR
+zelf al vaststelt (zie scope-splitsing), een apart, nog niet gebouwd issue —
+dat is geen open punt van dit ADR maar de bewust afgesproken scope-grens
+zelf. Oorspronkelijk geaccepteerd (Bram, vastgesteld). **Vult [ADR 0002](0002-beheeracties-vereisen-eigen-e-mail-sessie.md)
 aan**, vervangt 'm niet: het sessie-mechanisme dat ADR 0002 beschrijft
 (één actieve Supabase Auth-sessie per browser, een nieuwe login *vervangt*
 de vorige, geen twee gelijktijdige sessies) blijft exact zoals het daar
