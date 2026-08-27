@@ -7,6 +7,28 @@ aangepast (`src/middleware.ts`, `supabase/seed.sql`, `supabase/config.toml`,
 `.github/workflows/ci.yml`, `e2e/a11y.spec.ts`,
 `src/hooks/queries/useOpenShift.ts`).
 
+**Status (27-08-2026): merge-gate-review niet akkoord.** Drie openstaande
+punten voor de Developer voordat deze branch opnieuw ter review gaat — geen
+van de drie is hier al opgelost, dit is een doorgeefopdracht, geen
+architectuurvraag op zichzelf voor de eerste twee:
+
+1. **`useProducts()`/`useAlleProducten()`-contract** — architectuurbeslissing,
+   zie "Contract met #8's `useProducts()`" en "`formatCents()`/`money.ts`"
+   hieronder. Volg die twee secties letterlijk.
+2. **`useBeheerSession.ts` onderscheidt geen gedeelde device-sessie van een
+   echte beheerder-sessie** — accepteert vandaag elke sessie met een `user`,
+   ook de automatisch ingelogde device-account-sessie die de bar-shell al
+   gebruikt. Moet specifiek een sessie via `members.auth_user_id` +
+   `role = 'beheerder'` vereisen (zelfde check als de RPC's hierboven al
+   doen, zie RPC's-sectie), niet "is er een `user`". Reviewer-bevinding,
+   los op vóór de volgende review.
+3. **Migratienummer + rebase**: `0004_assortimentbeheer.sql` hernummeren naar
+   `0005_...` — `main`'s `0004_revoke_app_settings_writes.sql` bezet `0004`
+   al. Deze branch moet daarnaast gerebaset worden op de huidige `main`
+   (`33ff622`, PR #41 — verkoopscherm #8, waar punt 1 hierboven vandaan
+   komt). Doe de rebase eerst, dan pas punt 1/2, zodat er niet twee keer
+   tegen dezelfde conflicten gewerkt wordt.
+
 Deze spec volgt
 **[ADR 0002](../adr/0002-beheeracties-vereisen-eigen-e-mail-sessie.md)**
 (hoe een schrijfactie die alleen een `beheerder` mag uitvoeren zich laat
@@ -204,6 +226,69 @@ aparte "ontgrendel"-RPC, zelfde vorm als ADR 0001 al vastlegde.
   `products_select`-policy, `authenticated` mag alles lezen, single-tenant)
   en hoort dus in `src/hooks/queries/`, niet in een RPC.
 
+## Contract met #8's `useProducts()` (leeshook, niet een RPC)
+
+Deze spec veronderstelde bij het schrijven nog dat `useProducts()` in
+`src/hooks/queries/` een nieuwe naam was. Inmiddels bestaat 'm al, gebouwd
+voor het verkoopscherm (#8, gemerged op `main`): niet-gearchiveerde
+`products`, alfabetisch op naam, `Product`-type zonder `archived`-veld —
+precies goed voor een verkoopscherm, dat een gearchiveerd product nooit mag
+tonen. Assortimentbeheer heeft het tegenovergestelde nodig: juist wél elk
+product, archived of niet (Schermflow stap 1 hierboven — anders is een
+gearchiveerd product niet terug te vinden om het weer actief te zetten), en
+gesorteerd op categorie-dan-naam, niet alfabetisch. Twee echt verschillende
+leesbehoeften op dezelfde tabel, niet een klein verschil dat met een
+parameter is te overbruggen zonder de een of de ander te verrassen.
+
+**Beslissing: eigen hook, `useProducts()` blijft ongewijzigd.**
+Assortimentbeheer krijgt een eigen bestand, `src/hooks/queries/useAlleProducten.ts`,
+met een eigen hook `useAlleProducten(): State & { refetch: () => void }` en
+een eigen type `AssortimentProduct` (`id`, `name`, `category`, `priceCents`,
+`archived`) — bewust niet `Product` genoemd, zelfde reden als `useMembers()`
+zijn rij-type `MemberOption` noemt in plaats van `Member`: het signaleert dat
+dit een specifieke projectie is voor één leesdoel, geen centraal domeintype.
+`useProducts()` (#8, verkoop) en zijn `Product`-type blijven exact zoals ze op
+`main` staan — geen wijziging, geen optionele parameter erbij.
+
+Overwogen en verworpen: `useProducts({ includeArchived?: boolean })` als één
+hook voor beide behoeftes. Verworpen omdat dat patroon nergens anders in
+`src/hooks/queries/` voorkomt — elke bestaande hook (`useProducts`,
+`useMembers`, `useBarStaff`) is smal, ongeparametriseerd, en documenteert zijn
+eigen filter/sortering in het javadoc-commentaar in plaats van dat aan de
+aanroeper over te laten. Een hook die "producten" heet maar op een impliciete
+boolean tussen "verkoopbaar" en "alles inclusief archief" wisselt is
+verrassender dan twee hooks die ieder hun eigen naam waarmaken — en zou #8's
+al gemergede, geteste hook moeten aanraken voor een behoefte die #8 zelf niet
+heeft.
+
+**Voor de Developer die dit implementeert**: dit is een botsing tussen deze
+branch (#14, commit `63df6cd`, eigen `useProducts()` die #8's versie
+overschreef) en `main` (#8, PR #41). Los op door `src/hooks/queries/useProducts.ts`
+terug te brengen naar exact `main`'s versie (`git show origin/main:src/hooks/queries/useProducts.ts`)
+en de huidige, bredere implementatie te verplaatsen naar het nieuwe bestand
+`useAlleProducten.ts` onder de nieuwe namen hierboven. Werk de drie
+aanroepers in `src/features/assortimentbeheer/` (`ProductenLijst.tsx`,
+`NieuwProductOverlay.tsx`, `ProductBeherenOverlay.tsx`) bij naar
+`useAlleProducten`/`AssortimentProduct`. Geen wijziging nodig aan
+`useCreateProduct.ts`/`useUpdateProductPrice.ts`/`useSetProductArchived.ts` —
+die roepen RPC's aan, niet `useProducts()`.
+
+## `formatCents()`/`money.ts` — additief, geen herziening
+
+Zelfde soort botsing, kleiner: deze branch overschreef `src/lib/money.ts`
+(ook #8) met een eigen `formatCents()`-implementatie. Vergeleken (`git show
+origin/main:src/lib/money.ts` tegen de versie op deze branch): functioneel
+identiek — zelfde `Intl.NumberFormat("nl-NL", { style: "currency", currency:
+"EUR" })`, zelfde output. Enige verschil is dat `main`'s versie de
+`Intl.NumberFormat`-instantie één keer aanmaakt op moduleniveau (`formatter`)
+en deze branch 'm bij elke aanroep opnieuw instantieert — geen functioneel
+voordeel, wel een kleine onnodige overhead. Geen reden om `formatCents()` te
+wijzigen. **Beslissing**: houd `main`'s `formatCents()` (met de
+module-level `formatter`) exact zoals die is, voeg deze branch's
+`parseEuroToCents()` (nieuw, nodig voor de prijsvelden in Schermflow stap 2/3
+hierboven) er additief aan toe in hetzelfde bestand. Dit is puur samenvoegen,
+geen architectuurbeslissing — geen aparte ADR nodig.
+
 ## Schermflow
 
 0. **Inloggen** (`/beheer`, zie Betrokken shell): geen actieve
@@ -225,9 +310,11 @@ aparte "ontgrendel"-RPC, zelfde vorm als ADR 0001 al vastlegde.
    formulier-UI (velden, foutmeldingen, magic-link-vs-wachtwoord-keuze) is
    aan de Developer.
 1. **Productenlijst** (na een actieve beheerder-sessie): gesorteerd op
-   categorie dan naam (nieuwe leeshook `useProducts()` in
+   categorie dan naam (leeshook `useAlleProducten()` in
    `src/hooks/queries/`, ordering server-side via `.order()`, zelfde stijl
-   als `useBarStaff()`). Elke rij toont naam, categorie, huidige prijs; een
+   als `useBarStaff()` — zie "Contract met #8's `useProducts()`" hieronder
+   voor waarom dit een eigen hook is, niet een uitbreiding van #8's
+   bestaande `useProducts()`). Elke rij toont naam, categorie, huidige prijs; een
    gearchiveerd product blijft in de lijst maar visueel gedempt (zelfde
    soort onderscheid als het ontwerp's `archived`-status,
    `designs/Bar App.dc.html` regel 2618–2620), niet weggefilterd — anders is
@@ -248,7 +335,7 @@ aparte "ontgrendel"-RPC, zelfde vorm als ADR 0001 al vastlegde.
    vervanging van de RPC-validatie — de RPC valideert hetzelfde hierboven,
    ongeacht wat de client toestond). Tik op "Toevoegen" → direct de
    RPC-call `create_product` (geen tussenstap meer). Succes → overlay
-   sluit, lijst ververst (refetch van `useProducts()`), toast/bevestiging
+   sluit, lijst ververst (refetch van `useAlleProducten()`), toast/bevestiging
    **"[Naam] toegevoegd"** (stijl vrij aan Developer, geen bestaand
    toast-patroon in deze codebase om aan te sluiten — dit is de eerste
    feature die er een nodig heeft). Mislukt (elke foutcode) → Nederlandse
@@ -270,7 +357,7 @@ aparte "ontgrendel"-RPC, zelfde vorm als ADR 0001 al vastlegde.
      schrijfacties — elk een eigen RPC-call, geen gecombineerde aanroep.
 4. **Sluiten** (knop, Escape, backdrop-tik — zelfde a11y-eisen als
    `Overlay.tsx` al afdwingt) → terug naar de productenlijst, die de actuele
-   staat toont (refetch van `useProducts()` bij elke succesvolle mutatie,
+   staat toont (refetch van `useAlleProducten()` bij elke succesvolle mutatie,
    niet pas bij het sluiten van de overlay).
 5. **Uitloggen** (indicator uit stap 0) → `supabase.auth.signOut()`, terug
    naar het inlogformulier van stap 0. `src/middleware.ts`'s bestaande
