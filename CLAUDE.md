@@ -91,9 +91,17 @@ geen service-worker caching — dat is bewust uitgesteld, geen vergeten scope.
 ## Auth
 
 Portal-leden loggen in met e-mail: magic link of wachtwoord, beide actief.
-Bardienst/beheerder werken op het tablet met één gedeelde Supabase-sessie; wie
-een dienst start doet dat met de eigen PIN (zie Architectuurbeslissingen voor
-bezetting en attributie).
+Voor bardienst/beheerder is de inlogmethode een **per-lid either/or-keuze**
+(PIN, of e-mail/wachtwoord — nooit allebei, geen systeembrede regel), en
+volgt daarna een **modus-keuze: bar of beheer, niet beide tegelijk**. Modi
+zijn losse sessies — overstappen vereist uitloggen, geen wisselknop (ADR
+0003, `docs/adr/`). Vandaag is PIN via de gedeelde tablet-sessie nog de
+enige gebouwde weg náár bar-modus (bezetting/attributie: zie
+Architectuurbeslissingen); e-mail/wachtwoord richting bar-modus is nog niet
+gebouwd. Beheeracties (assortiment, later ledenbeheer) gebeuren **nooit** op
+de gedeelde sessie: een beheerder logt apart in met het eigen e-mailadres,
+wat de gedeelde sessie op dat tablet tijdelijk vervangt tot uitloggen — zie
+ADR 0002/0003 (`docs/adr/`).
 
 ## Designbestanden
 

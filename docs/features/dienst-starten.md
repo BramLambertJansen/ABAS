@@ -94,9 +94,17 @@ door de stafkeuze-lijst al te filteren op die rollen.
   - **PIN vergeten / alternatieve inlogmethoden** (e-mail+wachtwoord,
   magic-link-noodingang) — het ontwerp heeft dit, maar het is expliciet een
   aparte "Beslissing nodig"-ticket (#22), nog niet besloten.
-- Modus-keuze "Bardienst draaien" vs. "Beheer" uit het ontwerp — vervalt: in
-  dit rebuild is `beheerder` een superset van `bardienst` die binnen
-  dezelfde bar-shell werkt, geen apart adminscherm (CLAUDE.md → Domein).
+- Modus-keuze "Bardienst draaien" vs. "Beheer" uit het ontwerp — vervalt
+  *voor dit scherm*: `beheerder` blijft een superset van `bardienst` die
+  binnen dezelfde bar-shell werkt, geen apart adminscherm (CLAUDE.md →
+  Domein), en deze PIN-flow krijgt geen keuzescherm. **Amendement
+  (2026-08-26, ADR [0003](../adr/0003-auth-methode-per-lid-en-vaste-modus-bar-beheer.md)):**
+  de uitspraak hierboven klopte binnen de aanname van dat moment (geen
+  aparte beheer-sessie bestond nog); die aanname is sindsdien gecorrigeerd
+  (ADR 0002) en het bredere modus-concept (bar/beheer, per sessie vast, niet
+  wisselbaar) is teruggekomen op architectuurniveau — alleen bereikt via een
+  aparte e-mail-inlogroute (`/beheer`, issue #14), niet via deze PIN-flow.
+  Dit scherm zelf is niet herbouwd en blijft ongewijzigd.
 - "Vorige dienst afgesloten door X"-banner uit het ontwerp — geen ticket
   hiervoor, hoort eerder bij #12.
 - Lockout/rate-limit na foute pogingen — settled als "geen scope voor MVP"
