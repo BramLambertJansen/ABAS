@@ -35,6 +35,15 @@ revoke insert, update, delete on products from authenticated;
 -- role = 'beheerder', per ADR 0002. Same two error codes ADR 0001 already
 -- used (actor_not_found, no_admin_role) — no invalid_pin anymore, Supabase
 -- Auth already verified the identity at /beheer's login step.
+--
+-- Actor lookup below is `select * into v_actor` (v_actor is `members`,
+-- a full-row-typed variable), not `select id, role into v_actor` — the
+-- latter left v_actor.role unset (null) for a matching row, so
+-- `v_actor.role <> 'beheerder'` evaluated to null, not true, and the IF
+-- never fired: any bardienst caller with a linked auth_user_id passed the
+-- role check silently. Caught by a real db:test run (assortimentbeheer.test.sql,
+-- "rejects a caller whose role is bardienst" — tests 2/9/20), not visible
+-- from check:rls or reading the code casually.
 
 create or replace function create_product(
   p_name text,
@@ -52,7 +61,7 @@ declare
   v_category text;
   v_product products;
 begin
-  select id, role into v_actor
+  select * into v_actor
   from members
   where auth_user_id = auth.uid() and not archived;
 
@@ -98,7 +107,7 @@ declare
   v_actor members;
   v_product products;
 begin
-  select id, role into v_actor
+  select * into v_actor
   from members
   where auth_user_id = auth.uid() and not archived;
 
@@ -143,7 +152,7 @@ declare
   v_actor members;
   v_product products;
 begin
-  select id, role into v_actor
+  select * into v_actor
   from members
   where auth_user_id = auth.uid() and not archived;
 
