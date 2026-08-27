@@ -23,8 +23,14 @@ function errorMessage(code: BeheerLoginErrorCode): string {
  * hier bewust geen bestaand formulier-patroon om op aan te sluiten — dit is
  * de eerste e-mail-inlogflow in deze codebase (PIN via StaffPicker/PinPad
  * is een ander mechanisme, zie src/features/dienst-starten/).
+ *
+ * `deniedMessage` is optioneel en komt van `useBeheerSession.ts`: er ís een
+ * sessie (bv. de gedeelde device-sessie), maar die herleidt niet naar een
+ * actieve beheerder — zelfde soort boodschap als de RPC's `no_admin_role`/
+ * `actor_not_found` teruggeven, hier vóór het inloggen al zichtbaar in
+ * plaats van pas na een mislukte schrijfactie.
  */
-export function BeheerLogin() {
+export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
   const login = useBeheerLogin();
   const [method, setMethod] = useState<"magic_link" | "password">("magic_link");
   const [email, setEmail] = useState("");
@@ -55,6 +61,15 @@ export function BeheerLogin() {
         </span>
         <h1 className="text-xl font-extrabold tracking-tight">Beheer</h1>
       </div>
+
+      {deniedMessage && !magicLinkSent && (
+        <p
+          role="alert"
+          className="w-full max-w-sm rounded-2xl border border-border bg-white px-4 py-3 text-center text-sm font-bold text-danger"
+        >
+          {deniedMessage}
+        </p>
+      )}
 
       {magicLinkSent ? (
         <div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-2xl border border-border bg-white p-6 text-center">

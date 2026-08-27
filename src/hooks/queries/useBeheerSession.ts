@@ -4,27 +4,32 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 /**
- * Tracks whether `/beheer`'s own e-mail-login session is active — ADR 0002's
- * mechanism: `/beheer` replaces the shared bar-tablet device session with a
- * beheerder's own Supabase Auth session (magic link/wachtwoord, see
- * useBeheerLogin.ts). This hook only reports *session* state (is anyone
- * logged in via e-mail, and what's their name) — it does NOT decide who's
- * allowed to write. That's the RPC's job (`no_admin_role`/`actor_not_found`,
- * see useCreateProduct.ts etc.) per docs/features/assortimentbeheer.md →
- * Rolzichtbaarheid: anyone with an account can log in and see the list, only
- * a `beheerder` can actually write.
+ * Tracks whether `/beheer` has an actual *beheerder* session, not merely
+ * "any Supabase Auth session" — `src/middleware.ts` auto-signs the shared
+ * bar-tablet device account in on almost every request (including `/beheer`)
+ * whenever there's no session yet, so `supabase.auth.getSession()` returning
+ * a `user` does NOT by itself mean a beheerder logged in via
+ * `BeheerLogin.tsx` (ADR 0002's mechanism: `/beheer`'s own e-mail-login
+ * *replaces* that shared session — "no session" and "the device session" are
+ * different cases, see docs/features/assortimentbeheer.md → Rolzichtbaarheid
+ * and ADR 0002). A session only counts as "signed-in" here once it resolves,
+ * via `auth_user_id`, to an active `members` row with `role = 'beheerder'` —
+ * exactly the same check the RPC's run themselves
+ * (`actor_not_found`/`no_admin_role`, see useCreateProduct.ts etc.). No
+ * fallback to the session's e-mail as a display name when that lookup
+ * doesn't match: a device-session or a non-beheerder member's e-mail-session
+ * is reported as "denied", not "signed-in".
  *
- * "loading" while the initial getSession() round-trip is in flight,
- * "signed-out" when there's no session at all (→ show BeheerLogin),
- * "signed-in" once a session exists — `name` falls back to the session's
- * e-mail if no `members` row references this auth account (see
- * docs/features/assortimentbeheer.md → Randgevallen "ingelogd account
- * bestaat niet (meer) als members-rij" — the RPC still rejects any write
- * with actor_not_found in that case, this hook just can't show a real name).
+ * "loading" while the initial getSession() round-trip (or the follow-up
+ * members lookup) is in flight, "signed-out" when there's no session at
+ * all, "denied" when there IS a session but it doesn't resolve to an active
+ * beheerder (→ `BeheerLogin.tsx` shows a Nederlandse foutmelding + the login
+ * form), "signed-in" only once a real beheerder session is confirmed.
  */
 export type BeheerSessionState =
   | { status: "loading" }
   | { status: "signed-out" }
+  | { status: "denied"; message: string }
   | { status: "signed-in"; email: string; name: string };
 
 export function useBeheerSession(): BeheerSessionState & {
@@ -51,22 +56,45 @@ export function useBeheerSession(): BeheerSessionState & {
         try {
           const { data, error } = await supabase
             .from("members")
-            .select("name")
+            .select("name, role")
             .eq("auth_user_id", userId)
+            .eq("archived", false)
             .maybeSingle();
           if (cancelled) return;
           if (error) throw error;
-          setState({
-            status: "signed-in",
-            email,
-            name: (data?.name as string | undefined) ?? email,
-          });
+          if (!data) {
+            // Same case as the RPC's own `actor_not_found` — no active
+            // `members` row references this auth account at all. Covers
+            // both the shared device account (never linked to a member)
+            // and a stale/deleted link.
+            setState({
+              status: "denied",
+              message:
+                "Dit account is niet gekoppeld aan een lid — vraag een beheerder.",
+            });
+            return;
+          }
+          if (data.role !== "beheerder") {
+            // Same case as the RPC's own `no_admin_role` — a real, linked
+            // member, just not one with beheerder-rechten.
+            setState({
+              status: "denied",
+              message:
+                "Dit account kan het assortiment niet beheren — vraag een beheerder.",
+            });
+            return;
+          }
+          setState({ status: "signed-in", email, name: data.name as string });
         } catch (err) {
-          // Name lookup failing shouldn't block showing the signed-in state
-          // itself — fall back to the e-mail address, log for debugging.
-          console.error("useBeheerSession (name lookup):", err);
+          // Can't confirm a beheerder-koppeling — fail closed (never
+          // "signed-in" without a confirmed match), log for debugging.
+          console.error("useBeheerSession (role lookup):", err);
           if (!cancelled) {
-            setState({ status: "signed-in", email, name: email });
+            setState({
+              status: "denied",
+              message:
+                "Kon niet controleren of dit account mag beheren — probeer opnieuw in te loggen.",
+            });
           }
         }
       }
