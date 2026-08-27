@@ -190,6 +190,26 @@ leave that one open until a screen actually needs to branch on it, same
 "don't build ahead of a second real case" reasoning as the `"sheet"` branch
 above.
 
+**First multi-screen bar navigation (settled, 2026-08-26)**: issue #8 is the
+first time `shells/bar` needed more than one screen behind an open shift.
+`src/features/verkoop/DienstTabs.tsx` renders a simple `role="tablist"` tab
+bar (Verkoop, default/active; Dienst, the existing #7 `DienstActief`
+content) — deliberately not the prototype's dark icon-rail chrome, per
+`docs/features/verkoop.md` → Navigatie ("the spec fixes that navigation
+exists, not the pixels"). `DienstStarten.tsx` hands off to `DienstTabs`
+entirely once a shift is open, rather than branching inside its own dark
+PIN-entry layout. Each tab's content is mounted/unmounted as the active tab
+changes (not hidden via CSS) — same lifecycle-based approach as
+`Overlay.tsx` — so returning to a tab always re-fetches fresh data instead of
+showing a stale snapshot. Accepted trade-off of that choice: the Verkoop
+tab's in-progress cart/selected-member state is lost on switching away and
+back, since it lives in `VerkoopScherm`'s local state, not lifted above
+`DienstTabs`. Flagged during PR #41 review and deliberately not fixed there
+(would mean lifting checkout state above the tab boundary, a real design
+choice, not a quick fix) — tracked as
+[issue #43](https://github.com/BramLambertJansen/ABAS/issues/43) for a
+future decision on whether/how to persist it.
+
 ## Money & attribution (settled, from CLAUDE.md)
 
 - All balance-affecting writes go through `SECURITY DEFINER` RPCs —
@@ -428,3 +448,20 @@ Visual tokens (color, radii, type) aren't restated here — read
 `style="..."` per element, easy to grep for the section you need). Key
 constants worth knowing up front: accent `#ee5a24`, warm background `#faf7f3`,
 Manrope typeface, 44–52px tap targets (bar tablet, used with busy/wet hands).
+
+**`accent` vs. `accent-active` (settled, 2026-08-26)**: `accent.DEFAULT`
+(`#ee5a24`, the prototype's literal accent color) only clears WCAG AA
+contrast for dark text/icons on an accent background (5.19:1) — bold white
+text under ~18px on that same background is 3.42:1, below the 4.5:1 AA
+minimum. One background shade can't satisfy both, so `tailwind.config.ts`
+keeps `accent.DEFAULT` for dark-text-on-accent uses (e.g. the "beheerder"
+role badge) and adds `accent.active` (`#c9451a`, 4.83:1) for any bold
+white/light text on an accent-filled control (buttons, active tab/chip
+state, selection badges). Found during #7 (`BezettingOverlay.tsx`'s "Klaar"
+button, the first real `check:a11y` run against a rendered button) and
+applied to every `bg-accent` + white-text spot #8 added
+(`DienstTabs.tsx`, `Assortiment.tsx`, `Mandje.tsx`, `AfrekenenOverlay.tsx`) —
+see the comment on the `accent` token in `tailwind.config.ts` for the exact
+contrast numbers. **Any future screen putting bold white/light text on an
+accent-filled background should reach for `bg-accent-active`, not
+`bg-accent`**, to stay green on `check:a11y` without rediscovering this.

@@ -317,3 +317,56 @@ issue #8 zelf vroeg er in geen van zijn acceptatiecriteria om, en dit raakt
 nog niet-besloten scope (dienstoverzicht/omzetrapportage, #12). #39 pakt dit
 op zodra #8 staat, idealiter samen met #12 zodat de omzet-boekhouding in één
 keer goed staat.
+
+## Gebouwd (2026-08-26): status na PR #41
+
+Gemerged via PR #41 (en de losstaande CI-fix-PR #40 ervoor). Deze spec klopt
+op alle inhoudelijke punten (RPC-gebruik, schermflow, randgevallen-tabel,
+scope-afbakening) zoals gebouwd — geen van de hierboven vastgelegde
+acceptatiecriteria is losgelaten. Wel zijn er tijdens de Codex-reviewronde op
+PR #41 vier state-patronen toegevoegd die deze spec niet voorzag, omdat ze pas
+zichtbaar werden bij het combineren van React-state met live refetches — voor
+een toekomstige spec die eenzelfde soort "gekozen item + achtergrond-refetch"
+combinatie bouwt, zijn dit de patronen om naar te kijken:
+
+- **`selectedMemberSnapshot`** (`VerkoopScherm.tsx`) — het gekozen lid wordt
+  niet live afgeleid uit `useMembers()`'s array, maar in een losse snapshot
+  bijgehouden. Reden: `useMembers().refetch()` (na `insufficient_balance` of
+  een geslaagde afrekening) zet `members.status` eerst terug naar `"loading"`
+  en leegt de array — een live afleiding zou het gekozen lid dan even `null`
+  maken en de open afrekenbevestiging (die op een niet-`null` lid rendert)
+  middenin de flow laten unmounten. De snapshot wordt pas ververst zodra een
+  verse `"ready"`-lijst het lid opnieuw bevat, en alleen expliciet leeggemaakt
+  bij een echte clear (wissel/succes/`member_not_found`).
+- **`lastMemberId`**, los van `selectedMemberId` — nodig zodat `clearMember()`
+  ("wissel") de vergelijkingsbasis voor de keep-mandje-logica (§2: opnieuw
+  hetzelfde lid kiezen laat het mandje intact) niet zelf wegneemt.
+  `selectedMemberId` wordt bij "wissel" `null`; `lastMemberId` overleeft dat
+  bewust.
+- **`productInfoCache`** (`VerkoopScherm.tsx`) — een alleen-aanvullende cache
+  van productnaam/-prijs per id, los van de live productlijst. Zonder dit
+  toonde een bestaande mandjeregel na een productrefetch (bv. na
+  `product_not_available`, dat het gearchiveerde product uit de lijst
+  filtert) ineens "onbekend product" à €0 in plaats van de laatst bekende
+  naam/prijs — de spec-tekst bij die foutcode ("mandje blijft ongewijzigd")
+  klopte dus niet zonder deze cache.
+- **`rosterUnavailable`** naast `rosterEmpty` — de afrekenbevestiging/knop
+  blokkeert niet alleen als de bezetting `"ready"` en leeg is, maar ook zolang
+  de bezetting nog laadt of een foutstatus heeft. Zonder dit kon de
+  afrekenbevestiging heel even opengaan zonder enige bekende bezetting (dus
+  zonder picker én zonder automatische toewijzing).
+
+Twee kleinere, niet-architecturale correcties op wat er letterlijk staat:
+- De laag-saldo-markering in §2 ("visueel gemarkeerd, kleur") is in de bouw
+  nooit kleur-only: de ledenkaart krijgt een tekstsuffix (" — laag saldo") en
+  de zoekresultatenlijst een zichtbaar ⚠-icoon + sr-only-tekst naast de
+  kleur — nodig om niet puur op kleur te leunen (WCAG AA, `check:a11y`).
+  Geen gedragswijziging t.o.v. de spec-intentie, wel een concretere
+  invulling dan "kleur" alleen.
+- `AfrekenenOverlay.tsx` gebruikte in een tussentijdse versie per ongeluk het
+  lichte canvas-thema in de donkere `Overlay`-context (nagenoeg onleesbare
+  tekst); hersteld naar het gevestigde donkere-thema-patroon vóór merge. Geen
+  spec-afwijking, gemeld voor de volledigheid van de PR-geschiedenis.
+
+Zie `docs/ARCHITECTURE.md` → "Shells" voor de bijgewerkte navigatie- en
+design-token-notities die uit dit ticket volgen.
