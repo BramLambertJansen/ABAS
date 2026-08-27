@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { Product } from "./useProducts";
+import type { AssortimentProduct } from "./useAlleProducten";
 
-/** Error codes `create_product` (0004_assortimentbeheer.sql) actually
+/** Error codes `create_product` (0005_assortimentbeheer.sql) actually
  *  raises. Anything else (network failure, unexpected server error) falls
  *  through to "unknown". Same pattern as useStartShift.ts →
  *  StartShiftErrorCode. */
@@ -41,7 +41,7 @@ export function useCreateProduct() {
     name: string,
     category: string,
     priceCents: number
-  ): Promise<Product | null> {
+  ): Promise<AssortimentProduct | null> {
     setState({ status: "pending" });
     try {
       const supabase = createClient();

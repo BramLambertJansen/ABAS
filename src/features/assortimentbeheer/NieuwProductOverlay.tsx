@@ -6,7 +6,7 @@ import {
   useCreateProduct,
   type CreateProductErrorCode,
 } from "@/hooks/queries/useCreateProduct";
-import type { Product } from "@/hooks/queries/useProducts";
+import type { AssortimentProduct } from "@/hooks/queries/useAlleProducten";
 import { parseEuroToCents } from "@/lib/money";
 import { PRODUCT_CATEGORIES } from "./categories";
 
@@ -38,7 +38,7 @@ export function NieuwProductOverlay({
   onCreated,
 }: {
   onClose: () => void;
-  onCreated: (product: Product) => void;
+  onCreated: (product: AssortimentProduct) => void;
 }) {
   const createProduct = useCreateProduct();
   const [name, setName] = useState("");

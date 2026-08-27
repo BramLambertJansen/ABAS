@@ -15,8 +15,10 @@
 --      actor-check (no more p_actor_member_id/p_actor_pin, that was ADR
 --      0001, superseded).
 --
--- New, sequentially-numbered migration after 0003 — 0001_init.sql itself
--- is never edited, same pattern as 0002/0003.
+-- New, sequentially-numbered migration — 0004 on `main` is already
+-- `0004_revoke_app_settings_writes.sql` (unrelated, merged after this
+-- branch started), so this is 0005. 0001_init.sql itself is never edited,
+-- same pattern as 0002/0003/0004.
 
 alter table members add column auth_user_id uuid unique references auth.users(id);
 

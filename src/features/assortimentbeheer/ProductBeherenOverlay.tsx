@@ -10,7 +10,7 @@ import {
   useSetProductArchived,
   type SetProductArchivedErrorCode,
 } from "@/hooks/queries/useSetProductArchived";
-import type { Product } from "@/hooks/queries/useProducts";
+import type { AssortimentProduct } from "@/hooks/queries/useAlleProducten";
 import { formatCents, parseEuroToCents } from "@/lib/money";
 
 function priceErrorMessage(code: UpdateProductPriceErrorCode): string {
@@ -52,7 +52,7 @@ export function ProductBeherenOverlay({
   onClose,
   onChanged,
 }: {
-  product: Product;
+  product: AssortimentProduct;
   onClose: () => void;
   onChanged: () => void;
 }) {

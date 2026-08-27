@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useProducts, type Product } from "@/hooks/queries/useProducts";
+import {
+  useAlleProducten,
+  type AssortimentProduct,
+} from "@/hooks/queries/useAlleProducten";
 import { formatCents } from "@/lib/money";
 import { NieuwProductOverlay } from "./NieuwProductOverlay";
 import { ProductBeherenOverlay } from "./ProductBeherenOverlay";
@@ -21,9 +24,9 @@ export function ProductenLijst({
   name: string;
   onSignOut: () => void;
 }) {
-  const products = useProducts();
+  const products = useAlleProducten();
   const [overlay, setOverlay] = useState<
-    { kind: "new" } | { kind: "manage"; product: Product } | null
+    { kind: "new" } | { kind: "manage"; product: AssortimentProduct } | null
   >(null);
   const [toast, setToast] = useState<string | null>(null);
 

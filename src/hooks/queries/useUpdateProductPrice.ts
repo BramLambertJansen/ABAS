@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { Product } from "./useProducts";
+import type { AssortimentProduct } from "./useAlleProducten";
 
-/** Error codes `update_product_price` (0004_assortimentbeheer.sql) actually
+/** Error codes `update_product_price` (0005_assortimentbeheer.sql) actually
  *  raises. Anything else falls through to "unknown". No requirement that
  *  the product isn't archived — see docs/features/assortimentbeheer.md →
  *  Randgevallen "Gearchiveerd product, prijs wijzigen". */
@@ -38,7 +38,7 @@ export function useUpdateProductPrice() {
   async function updateProductPrice(
     productId: string,
     priceCents: number
-  ): Promise<Product | null> {
+  ): Promise<AssortimentProduct | null> {
     setState({ status: "pending" });
     try {
       const supabase = createClient();

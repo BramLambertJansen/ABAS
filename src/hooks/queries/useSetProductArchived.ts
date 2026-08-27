@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import type { Product } from "./useProducts";
+import type { AssortimentProduct } from "./useAlleProducten";
 
-/** Error codes `set_product_archived` (0004_assortimentbeheer.sql) actually
+/** Error codes `set_product_archived` (0005_assortimentbeheer.sql) actually
  *  raises. Anything else falls through to "unknown". */
 export type SetProductArchivedErrorCode =
   | "product_not_found"
@@ -37,7 +37,7 @@ export function useSetProductArchived() {
   async function setProductArchived(
     productId: string,
     archived: boolean
-  ): Promise<Product | null> {
+  ): Promise<AssortimentProduct | null> {
     setState({ status: "pending" });
     try {
       const supabase = createClient();
