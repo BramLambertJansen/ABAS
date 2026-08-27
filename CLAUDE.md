@@ -4,8 +4,9 @@ Aurora Bar Automatiserings Systeem, voor muziekvereniging Aurora
 (Driebergen-Rijsenburg). Eén app, twee shells: `shells/bar` en `shells/portal`.
 
 Stack: Next.js (App Router) + TypeScript + Tailwind, Supabase. Zie
-`docs/ARCHITECTURE.md` voor de layout en `docs/features/` voor specs van
-gebouwde features.
+`docs/ARCHITECTURE.md` voor de layout en `docs/features/` voor goedgekeurde
+feature-specs — geschreven en door Bram goedgekeurd vóór de Developer bouwt,
+zie Werkstraat hieronder, niet achteraf opgestelde documentatie.
 
 **Regel over regels:** wat een gate kan afdwingen staat hier niet. Dit document
 bevat alleen wat een script niet kan controleren. Groeit het voorbij ~100
