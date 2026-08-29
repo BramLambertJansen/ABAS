@@ -28,6 +28,92 @@ for (const { name, path } of routes) {
 }
 
 /**
+ * docs/features/negatieve-saldolimiet.md (#11) → Randgevallen → "A11y":
+ * the routes loop above only scans `/beheer`'s signed-out inlogformulier —
+ * the signed-in state (tabbalk + both tabbladen) was never in this file's
+ * scenario list, a gap the spec explicitly calls out for the Tester to
+ * close. Signs in as the seeded beheerder e-mail/wachtwoord account (Femke
+ * Bos, `supabase/seed.sql`) via `BeheerLogin.tsx`'s real wachtwoord-pad —
+ * her PIN (also seeded, 1234) is a *different* mechanism entirely
+ * (bar-modus dienst-starten, never used for the beheer-sessie, ADR
+ * 0002/0003), so it cannot substitute here. `supabase/seed.sql` had no
+ * beheerder auth.users/auth.identities row before this (no prior /beheer
+ * e2e scenario needed one) — added there as a minimal extension of the
+ * exact same local-dev-only direct-insert pattern already used for the
+ * shared bar-tablet device account.
+ *
+ * Two separate tests (one per tab) rather than two `analyze()` calls in a
+ * single test — same one-scan-per-test shape as every other scenario in
+ * this file — sharing the sign-in step via `loginAsBeheerder()`. Both are
+ * independent of the "one open shift" shared-state concern the stateful
+ * block below documents (no shift/order/top_up touched here), so they are
+ * not grouped into that `describe.serial`.
+ */
+async function loginAsBeheerder(page: Page) {
+  await page.goto("/beheer");
+
+  // The "Wachtwoord"-optie's radio input is visually-hidden (`sr-only`),
+  // but its wrapping <label> is a normal, visible click target (implicit
+  // label association, no htmlFor) — click that instead of the input
+  // itself so this stays a real, actionable click rather than a
+  // visibility-check bypass.
+  await page.locator('label:has(input[value="password"])').click();
+
+  // CSS-type locators, not getByLabel("Wachtwoord") — the "Wachtwoord"-
+  // wachtwoordveld and the "Wachtwoord"-inlogmethode-radio share the exact
+  // same accessible name, which getByLabel can't disambiguate on its own.
+  await page.locator('input[type="email"]').fill("femke.bos@aurora.local");
+  await page
+    .locator('input[type="password"]')
+    .fill("local-beheerder-dev-only");
+
+  await page.getByRole("button", { name: "Inloggen" }).click();
+
+  await page
+    .getByRole("tablist", { name: "Beheer-navigatie" })
+    .waitFor({ state: "visible", timeout: 15_000 });
+}
+
+test.describe("beheer ingelogde staat (a11y)", () => {
+  test("beheer (/beheer) Assortiment-tab (ingelogd) has no WCAG2A/AA violations", async ({
+    page,
+  }) => {
+    await loginAsBeheerder(page);
+
+    // Assortiment is the default tab after login (BeheerTabs.tsx), already
+    // active here — nothing to click.
+    await page
+      .getByRole("heading", { name: "Assortiment" })
+      .waitFor({ state: "visible", timeout: 15_000 });
+
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+
+    expect(results.violations, JSON.stringify(results.violations, null, 2))
+      .toEqual([]);
+  });
+
+  test("beheer (/beheer) Instellingen-tab (ingelogd) has no WCAG2A/AA violations", async ({
+    page,
+  }) => {
+    await loginAsBeheerder(page);
+
+    await page.getByRole("tab", { name: "Instellingen" }).click();
+    await page
+      .getByRole("heading", { name: "Negatief saldo toestaan" })
+      .waitFor({ state: "visible", timeout: 15_000 });
+
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+
+    expect(results.violations, JSON.stringify(results.violations, null, 2))
+      .toEqual([]);
+  });
+});
+
+/**
  * Both scenarios below need a shift already open on the shared bar-tablet
  * session before they can reach their target screen — there is exactly one
  * "current open shift" (docs/ARCHITECTURE.md → "Shared bar-tablet session

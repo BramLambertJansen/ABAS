@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   useAlleProducten,
@@ -13,17 +12,15 @@ import { ProductBeherenOverlay } from "./ProductBeherenOverlay";
 const TOAST_DURATION_MS = 3500;
 
 /**
- * Productenlijst — het scherm dat `/beheer` toont zodra er een actieve
- * beheerder-sessie is (zie Assortimentbeheer.tsx). Zie
- * docs/features/assortimentbeheer.md → Schermflow stap 1 t/m 5.
+ * Productenlijst — de Assortiment-tab in `BeheerTabs.tsx`, zodra er een
+ * actieve beheerder-sessie is (zie Assortimentbeheer.tsx). Zie
+ * docs/features/assortimentbeheer.md → Schermflow stap 1 t/m 5. Geen eigen
+ * `<main>`/sessie-header meer sinds #11
+ * (docs/features/negatieve-saldolimiet.md) — de "Ingelogd als…"-indicator
+ * en de "← terug naar bardienst"-link staan nu in `BeheerTabs.tsx`, boven
+ * de tabbalk (ze horen bij de sessie, niet bij dit ene tabblad).
  */
-export function ProductenLijst({
-  name,
-  onSignOut,
-}: {
-  name: string;
-  onSignOut: () => void;
-}) {
+export function ProductenLijst() {
   const products = useAlleProducten();
   const [overlay, setOverlay] = useState<
     { kind: "new" } | { kind: "manage"; product: AssortimentProduct } | null
@@ -41,27 +38,7 @@ export function ProductenLijst({
   }
 
   return (
-    <main className="flex min-h-screen w-full flex-col gap-5 bg-canvas px-6 py-6 font-sans text-ink">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <Link href="/" className="text-xs font-semibold text-muted hover:text-ink">
-            ← terug naar bardienst
-          </Link>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-semibold text-muted">
-            Ingelogd als {name}
-          </span>
-          <button
-            type="button"
-            onClick={onSignOut}
-            className="flex h-9 items-center justify-center rounded-control border border-border bg-white px-3 text-xs font-bold text-ink transition-colors hover:border-accent"
-          >
-            Uitloggen
-          </button>
-        </div>
-      </header>
-
+    <>
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-xl font-extrabold tracking-tight">Assortiment</h1>
         <button
@@ -159,6 +136,6 @@ export function ProductenLijst({
           }}
         />
       )}
-    </main>
+    </>
   );
 }
