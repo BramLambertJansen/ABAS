@@ -31,6 +31,8 @@ export function Mandje({
   rosterEmptyMessage,
   checkoutDisabled,
   onOpenCheckout,
+  topupDisabled,
+  onOpenTopup,
 }: {
   members: MemberOption[];
   membersStatus: "loading" | "error" | "ready";
@@ -51,6 +53,8 @@ export function Mandje({
   rosterEmptyMessage: string;
   checkoutDisabled: boolean;
   onOpenCheckout: () => void;
+  topupDisabled: boolean;
+  onOpenTopup: () => void;
 }) {
   const [memberQuery, setMemberQuery] = useState("");
 
@@ -101,6 +105,14 @@ export function Mandje({
               wissel
             </button>
           </div>
+          <button
+            type="button"
+            disabled={topupDisabled}
+            onClick={onOpenTopup}
+            className="min-h-[40px] rounded-xl border border-border text-xs font-bold text-ink transition-colors hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            saldo opwaarderen
+          </button>
         </div>
       ) : (
         <div className="relative flex-none">
@@ -259,12 +271,20 @@ export function Mandje({
       </div>
 
       {insufficientFunds && (
-        <p
-          className="flex-none rounded-xl bg-warning-bg px-3 py-2 text-xs font-bold text-warning-fg"
+        <div
+          className="flex flex-none items-center gap-2.5 rounded-xl bg-warning-bg px-3 py-2 text-xs font-bold text-warning-fg"
           role="alert"
         >
-          {insufficientBalanceMessage(shortfallCents)}
-        </p>
+          <span className="flex-1">{insufficientBalanceMessage(shortfallCents)}</span>
+          <button
+            type="button"
+            disabled={topupDisabled}
+            onClick={onOpenTopup}
+            className="flex-none rounded-lg bg-warning-fg px-2.5 py-1.5 text-[11px] font-extrabold text-warning-bg transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            opwaarderen
+          </button>
+        </div>
       )}
 
       {rosterEmpty && (

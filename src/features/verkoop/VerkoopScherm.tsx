@@ -10,6 +10,7 @@ import { formatCents } from "@/lib/money";
 import { Assortiment } from "./Assortiment";
 import { Mandje } from "./Mandje";
 import { AfrekenenOverlay } from "./AfrekenenOverlay";
+import { OpwaarderenOverlay } from "@/features/opwaarderen/OpwaarderenOverlay";
 import { applyDelta, removeLine, type CartLine } from "./cart";
 import { EMPTY_ROSTER_MESSAGE, placeOrderErrorMessage } from "./messages";
 
@@ -48,6 +49,7 @@ export function VerkoopScherm({ shift }: { shift: OpenShift }) {
   const [selectedMemberSnapshot, setSelectedMemberSnapshot] =
     useState<MemberOption | null>(null);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
+  const [topupOpen, setTopupOpen] = useState(false);
   const [memberNotice, setMemberNotice] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -166,6 +168,12 @@ export function VerkoopScherm({ shift }: { shift: OpenShift }) {
     rosterUnavailable ||
     !settingsReady;
 
+  // Opwaarderen heeft geen mandje/saldo-guard nodig (in tegenstelling tot
+  // checkoutDisabled) — alleen dezelfde bezettings-eis: zonder een bekende,
+  // niet-lege bezetting is er niemand om als served_by toe te wijzen (zie
+  // docs/features/opwaarderen.md → Randgevallen, "Bezetting = 0").
+  const topupDisabled = rosterEmpty || rosterUnavailable;
+
   function addOne(productId: string) {
     setCartLines((prev) => applyDelta(prev, productId, 1));
   }
@@ -221,11 +229,27 @@ export function VerkoopScherm({ shift }: { shift: OpenShift }) {
     members.refetch();
   }
 
+  function openTopup() {
+    if (selectedMember === null || topupDisabled) return;
+    setTopupOpen(true);
+  }
+
+  // Opwaarderen wijzigt geen mandje-state (in tegenstelling tot
+  // handleCheckoutSuccess) — het gekozen lid en het mandje blijven intact,
+  // alleen het saldo is bijgewerkt server-side. Zie
+  // docs/features/opwaarderen.md → Schermflow §2.
+  function handleTopupSuccess(amountCents: number) {
+    setTopupOpen(false);
+    setToast(`Opgewaardeerd — ${formatCents(amountCents)}.`);
+    members.refetch();
+  }
+
   function handleMemberNotFound() {
     setSelectedMemberId(null);
     setSelectedMemberSnapshot(null);
     setLastMemberId(null);
     setCheckoutOpen(false);
+    setTopupOpen(false);
     setMemberNotice(placeOrderErrorMessage("member_not_found"));
   }
 
@@ -266,6 +290,8 @@ export function VerkoopScherm({ shift }: { shift: OpenShift }) {
           rosterEmptyMessage={EMPTY_ROSTER_MESSAGE}
           checkoutDisabled={checkoutDisabled}
           onOpenCheckout={openCheckout}
+          topupDisabled={topupDisabled}
+          onOpenTopup={openTopup}
         />
       </div>
 
@@ -294,6 +320,20 @@ export function VerkoopScherm({ shift }: { shift: OpenShift }) {
           onMemberNotFound={handleMemberNotFound}
           onRefetchMembers={members.refetch}
           onRefetchProducts={products.refetch}
+          onRefetchShiftMembers={crew.refetch}
+        />
+      )}
+
+      {topupOpen && selectedMember && (
+        <OpwaarderenOverlay
+          shiftId={shift.id}
+          member={selectedMember}
+          crew={crewList}
+          lowBalanceThresholdCents={lowBalanceThresholdCents}
+          onClose={() => setTopupOpen(false)}
+          onSuccess={handleTopupSuccess}
+          onMemberNotFound={handleMemberNotFound}
+          onRefetchMembers={members.refetch}
           onRefetchShiftMembers={crew.refetch}
         />
       )}
