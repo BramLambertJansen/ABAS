@@ -8,6 +8,11 @@ Werkt samen met [#8](https://github.com/BramLambertJansen/ABAS/issues/8)
 [0002](../adr/0002-beheeracties-vereisen-eigen-e-mail-sessie.md)/
 [0003](../adr/0003-auth-methode-per-lid-en-vaste-modus-bar-beheer.md)).
 
+**Gebouwd en gemerged** ([issue #11](https://github.com/BramLambertJansen/ABAS/issues/11),
+[PR #50](https://github.com/BramLambertJansen/ABAS/pull/50), 2026-08-29,
+merge-commit `40f3a37`). De rest van dit document beschrijft wat er
+daadwerkelijk op `main` staat.
+
 ## Status van de acceptatiecriteria (voor je verder leest)
 
 Net als bij [#9](laag-saldo-signalering.md) is een deel van dit ticket al

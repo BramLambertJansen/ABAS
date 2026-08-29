@@ -524,6 +524,26 @@ gegeneraliseerd. Client stuurt een hardcoded `p_method = "cash"` — geen
 check-constraint op `top_ups.method` (Bram, 2026-08-29): pas toevoegen
 zodra #23 (online opwaarderen) een tweede methode introduceert.
 
+**Negatieve-saldolimiet (gebouwd en gemerged, #11, PR #50, 2026-08-29)**: een
+instellingenscherm voor de systeembrede negatieflimiet
+(`app_settings.negative_limit_cents`), die `place_order` al sinds
+`0001_init.sql` las en handhaafde maar tot dit ticket nergens instelbaar was
+(`docs/features/negatieve-saldolimiet.md`). Levert `/beheer`'s eerste echte
+navigatiestructuur: `BeheerTabs.tsx` (`src/features/assortimentbeheer/`)
+rendert een tabbalk (Assortiment | Instellingen) met hetzelfde
+`role="tablist"`-/mount-per-tab-patroon als `DienstTabs.tsx` (zie "First
+multi-screen bar navigation" hierboven) — het eerste moment waarop `/beheer`
+zelf twee schermen achter één sessie krijgt; `Assortimentbeheer.tsx` rendert
+`BeheerTabs` in plaats van rechtstreeks `ProductenLijst`, en de "Ingelogd
+als…"-indicator/"terug naar bardienst"-link verhuisden naar de gedeelde
+chrome boven de tabbalk. `NegatieveLimietInstellingen.tsx` roept de nieuwe
+`update_negative_limit`-RPC aan
+(`supabase/migrations/0006_negatieve_saldolimiet.sql`), zelfde
+ADR-0002-actorcheck-vorm als `create_product`/`update_product_price`/
+`set_product_archived` (`auth.uid()` → `members.auth_user_id` → rol
+`beheerder`), beheerder-only, geen schemawijziging — de kolom bestond en werd
+al gehandhaafd, alleen het schrijfpad ontbrak.
+
 ## Wat het prototype deed maar hier nog niet is besloten
 
 Listed for reference only — none of this is scoped in or out yet. Don't build
