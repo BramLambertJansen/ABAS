@@ -186,7 +186,7 @@ In `DienstActief.tsx` ("Dienst"-tab), direct onder de bestaande
 `border-rail-border`/`hover:border-accent`). Tik → opent
 `DienstAfsluitenOverlay` (nieuw, `src/features/dienst-afsluiten/`).
 
-### 2. Overzicht (overlay, `Overlay.tsx` — vierde consument)
+### 2. Overzicht (overlay, nieuwe `Overlay.tsx`-consument)
 
 Titel: **"Dienst afsluiten"**. Toelichting: **"Gestart door {shift.
 startedByName} om {starttijd} — een overzicht van deze dienst voordat je
@@ -328,9 +328,11 @@ hooks, voor consistentie, ook al is de union hier triviaal klein.
 
 ## `useShell()`-contract
 
-Geen nieuwe invulling. `DienstAfsluitenOverlay` is de vierde consument van
-`Overlay.tsx` (na bezetting-beheren, verkoop se afrekenbevestiging, en
-opwaarderen) en gebruikt dezelfde, al bestaande `"modal"`-tak — nog steeds
+Geen nieuwe invulling. `DienstAfsluitenOverlay` is een nieuwe consument van
+`Overlay.tsx` (naast bezetting-beheren, verkoop se afrekenbevestiging,
+opwaarderen en assortimentbeheer se twee productoverlays — Reviewer-check
+tegen #12 corrigeerde hier een verkeerde telling in een eerdere versie van
+dit document) en gebruikt dezelfde, al bestaande `"modal"`-tak — nog steeds
 geen `shells/portal`-consument om de `"sheet"`-tak tegen te bouwen.
 `density`/`columns` worden hier niet nieuw ingevuld: het overzicht is een
 verticale lijst kaarten, geen grid.
