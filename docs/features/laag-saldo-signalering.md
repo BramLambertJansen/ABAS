@@ -1,12 +1,6 @@
 # Laag-saldo signalering (€10-drempel)
 
-**Status: afgesloten zonder resterende bouwscope (2026-08-29).** AC #1 en #2
-waren al gedekt door #8 vóórdat deze spec geschreven werd; AC #3 (het
-proactieve overzicht) is door Bram expliciet geskipt — zie "Besloten: AC #3
-wordt niet gebouwd" hieronder. Geen Developer/Tester/Reviewer-stap nodig voor
-dit ticket. Deze spec blijft als document staan (de opgebouwde afweging over
-waar zo'n overzicht ooit zou landen is niet weggegooid), maar #9 zelf is
-gesloten. Zie [issue #9](https://github.com/BramLambertJansen/ABAS/issues/9).
+Spec voor [issue #9](https://github.com/BramLambertJansen/ABAS/issues/9).
 Volgt op [#8](https://github.com/BramLambertJansen/ABAS/issues/8) (verkoopscherm,
 `docs/features/verkoop.md`, gebouwd en gemerged) — dat scherm bouwde de
 passieve saldo-markering in de ledenzoeker/ledenkaart al, met de
@@ -15,6 +9,14 @@ CLAUDE.md → Domein, hier alleen als passieve kleurcode... een proactieve
 waarschuwingsflow/'aandacht'-lijst is #9, niet dit ticket" (`docs/features/
 verkoop.md` → Schermflow §2). Dit is dat vervolgticket: alleen het
 proactieve overzicht, niet de per-lid-markering — die bestaat al.
+
+**Status: afgesloten zonder resterende bouwscope (2026-08-29).** AC #1 en #2
+waren al gedekt door #8 vóórdat deze spec geschreven werd; AC #3 (het
+proactieve overzicht) is door Bram expliciet geskipt — zie "Besloten: AC #3
+wordt niet gebouwd" hieronder. Geen Developer/Tester/Reviewer-stap nodig voor
+dit ticket. Deze spec blijft als document staan (de opgebouwde afweging over
+waar zo'n overzicht ooit zou landen is niet weggegooid), maar #9 zelf is
+gesloten.
 
 ## Status van de drie acceptatiecriteria (voor je verder leest)
 
@@ -125,6 +127,16 @@ scherm) — dit is dus geen aparte keuze, maar een rechtstreeks gevolg van hoe
 `shells/bar` vandaag is opgebouwd.
 
 </details>
+
+---
+
+**Archief vanaf hier.** Alles van "## Doel" tot en met "## `useShell()`-
+contract" hieronder is het volledige ontwerp dat de Architect voor AC #3
+uitwerkte, bewaard exact zoals het was op het moment van de skip-beslissing
+hierboven. Het beschrijft **geen** bestaande of geplande bouw — het is
+referentiemateriaal voor het geval iemand dit ooit alsnog oppakt, niet een
+actieve spec. Zie de statusregel bovenaan dit document en [issue #9](https://github.com/BramLambertJansen/ABAS/issues/9)
+voor de afsluiting.
 
 ## Doel
 
