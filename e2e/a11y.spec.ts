@@ -193,4 +193,83 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
     expect(results.violations, JSON.stringify(results.violations, null, 2))
       .toEqual([]);
   });
+
+  /**
+   * docs/features/opwaarderen.md (#10) → Randgevallen → "A11y van de
+   * opwaardeer-overlay": this screen's own new interactive overlay (the
+   * opwaardeer-overlay, OpwaarderenOverlay.tsx — the third real consumer of
+   * src/components/Overlay.tsx). Picks a member and taps "saldo
+   * opwaarderen" on the member card to open it before scanning — same
+   * shape as the afrekenbevestiging test above.
+   *
+   * Picker coverage: same known gap as the afrekenbevestiging test — the
+   * demo account used here starts a shift alone, so the bezetting stays at
+   * 1 for this suite and this test exercises the auto-toewijzing path (no
+   * "Wie geeft uit?"-picker), not the 2+ picker-visible path. Noted
+   * explicitly per tester.md rather than silently assumed covered.
+   */
+  test("bar shell (/) opwaardeerscherm has no WCAG2A/AA violations", async ({
+    page,
+  }) => {
+    await ensureShiftStarted(page);
+    // Verkoop is already the active/default tab.
+
+    await page.getByLabel("Zoek lid op naam").fill("Anna");
+    const memberOption = page.getByRole("button", { name: /Anna de Vries/i });
+    await memberOption.waitFor({ state: "visible", timeout: 15_000 });
+    await memberOption.click();
+
+    const topupButton = page.getByRole("button", { name: "saldo opwaarderen" });
+    await expect(topupButton).toBeEnabled();
+    await topupButton.click();
+
+    const dialog = page.getByRole("dialog", { name: /^Saldo opwaarderen bij/ });
+    await dialog.waitFor({ state: "visible" });
+
+    // Same focus-on-open contract as every Overlay.tsx consumer (see
+    // docs/features/bezetting-beheren.md → useShell()-contract).
+    await expect(dialog).toBeFocused();
+
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+
+    expect(results.violations, JSON.stringify(results.violations, null, 2))
+      .toEqual([]);
+  });
+
+  /**
+   * docs/features/opwaarderen.md (#10) → Schermflow §1: the second trigger
+   * into the same overlay, from the onvoldoende-saldo-banner rather than
+   * the member card. Builds a cart that exceeds the member's balance
+   * (negative_limit_cents is 0 in supabase/seed.sql, so any purchase
+   * beyond the raw balance already triggers it) and confirms the banner's
+   * "opwaarderen" button opens the same dialog.
+   */
+  test("onvoldoende-saldo-banner opens the same opwaardeeroverlay", async ({
+    page,
+  }) => {
+    await ensureShiftStarted(page);
+
+    await page.getByLabel("Zoek lid op naam").fill("Anna");
+    const memberOption = page.getByRole("button", { name: /Anna de Vries/i });
+    await memberOption.waitFor({ state: "visible", timeout: 15_000 });
+    await memberOption.click();
+
+    // Tap the same product repeatedly until the onvoldoende-saldo-banner
+    // shows — cheaper than reading Anna's exact seeded balance/price here.
+    const product = page.getByRole("button", { name: /^Pils,/ });
+    await product.waitFor({ state: "visible", timeout: 15_000 });
+    const banner = page.getByText(/Onvoldoende saldo/);
+    for (let i = 0; i < 50 && !(await banner.isVisible()); i++) {
+      await product.click();
+    }
+    await banner.waitFor({ state: "visible", timeout: 15_000 });
+
+    await page.getByRole("button", { name: "opwaarderen" }).click();
+
+    const dialog = page.getByRole("dialog", { name: /^Saldo opwaarderen bij/ });
+    await dialog.waitFor({ state: "visible" });
+    await expect(dialog).toBeFocused();
+  });
 });

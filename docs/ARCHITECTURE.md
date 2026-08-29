@@ -514,6 +514,16 @@ op `main` — producten aanmaken/bewerken en prijzen wijzigen via `/beheer`
 beschreven beheer-sessie. Prijswijzigingen raken historie niet:
 `order_lines.unit_cents` bevriest de prijs op bestelmoment (`CLAUDE.md`).
 
+**Saldo opwaarderen (gebouwd, #10, 2026-08-29)**: contant opwaarderen vanuit
+het verkoopscherm (`docs/features/opwaarderen.md`,
+`src/features/opwaarderen/`), derde consument van `Overlay.tsx`. Geen
+migratie nodig — de `top_up`-RPC/`top_ups`-tabel/RLS bestonden al sinds
+0001_init.sql, dit was overwegend een client-ticket. Zelfde served_by/
+bezetting-patroon als #8 (`place_order`), 1-op-1 gekopieerd i.p.v.
+gegeneraliseerd. Client stuurt een hardcoded `p_method = "cash"` — geen
+check-constraint op `top_ups.method` (Bram, 2026-08-29): pas toevoegen
+zodra #23 (online opwaarderen) een tweede methode introduceert.
+
 ## Wat het prototype deed maar hier nog niet is besloten
 
 Listed for reference only — none of this is scoped in or out yet. Don't build
