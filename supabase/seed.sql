@@ -56,6 +56,48 @@ insert into members (name, role, pin_hash, balance_cents, archived) values
   ('Anna de Vries', 'lid',       null,                          1240, false),
   ('Piet Bakker',   'lid',       null,                          -840, false);
 
+-- Beheerder e-mail/wachtwoord account for Femke Bos, so
+-- e2e/a11y.spec.ts's beheer-login scenario (#11,
+-- docs/features/negatieve-saldolimiet.md → Randgevallen "A11y") can sign
+-- in via BeheerLogin.tsx's real wachtwoord-flow instead of only her PIN
+-- (PIN is a *different* mechanism — bar-modus dienst-starten — never used
+-- for the beheer-sessie, ADR 0002/0003). No prior /beheer e2e scenario
+-- needed this, which is why Femke Bos had no linked auth_user_id/wachtwoord
+-- until now. Same local-dev-only direct auth.users/auth.identities insert
+-- as the shared device account above, still never seeded into a real
+-- deployment.
+insert into auth.users (
+  instance_id, id, aud, role, email, encrypted_password,
+  email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
+  created_at, updated_at,
+  confirmation_token, email_change, email_change_token_new, recovery_token
+) values (
+  '00000000-0000-0000-0000-000000000000',
+  gen_random_uuid(),
+  'authenticated',
+  'authenticated',
+  'femke.bos@aurora.local',
+  crypt('local-beheerder-dev-only', gen_salt('bf')),
+  now(),
+  '{"provider":"email","providers":["email"]}',
+  '{}',
+  now(), now(),
+  '', '', '', ''
+);
+
+insert into auth.identities (
+  id, user_id, provider_id, identity_data, provider,
+  last_sign_in_at, created_at, updated_at
+)
+select gen_random_uuid(), id, id::text,
+  format('{"sub":"%s","email":"%s"}', id::text, email)::jsonb,
+  'email', now(), now(), now()
+from auth.users where email = 'femke.bos@aurora.local';
+
+update members set auth_user_id = (
+  select id from auth.users where email = 'femke.bos@aurora.local'
+) where name = 'Femke Bos';
+
 insert into products (name, category, price_cents) values
   ('Pils',   'Bier', 250),
   ('Radler', 'Bier', 250),
