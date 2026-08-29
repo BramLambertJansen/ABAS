@@ -1,16 +1,19 @@
 # Assortimentbeheer (producten en prijzen)
 
 Spec voor [issue #14](https://github.com/BramLambertJansen/ABAS/issues/14).
-Onafhankelijk van ledenbeheer, kan parallel — raakt geen van de bestanden die
-op dit moment door de lopende bezetting/dienst/auth/CI-sessie worden
-aangepast (`src/middleware.ts`, `supabase/seed.sql`, `supabase/config.toml`,
-`.github/workflows/ci.yml`, `e2e/a11y.spec.ts`,
-`src/hooks/queries/useOpenShift.ts`).
 
-**Status (27-08-2026): gebouwd, klaar voor merge-gate-review.** De drie punten
-uit de vorige review (het `useProducts()`/`useAlleProducten()`-contract,
-`useBeheerSession.ts`'s onderscheid tussen gedeelde device-sessie en echte
-beheerder-sessie, en het migratienummer/rebase) zijn opgelost.
+**Gebouwd en gemerged** ([issue #14](https://github.com/BramLambertJansen/ABAS/issues/14),
+[PR #45](https://github.com/BramLambertJansen/ABAS/pull/45), 2026-08-27,
+merge-commit `efccd83`). De rest van dit document beschrijft wat er
+daadwerkelijk op `main` staat.
+
+Onafhankelijk van ledenbeheer gekozen als losstaand ticket, ten tijde van
+bouw — raakte destijds geen van de bestanden die een parallel lopende
+bezetting/dienst/auth/CI-sessie tegelijk aanpaste (`src/middleware.ts`,
+`supabase/seed.sql`, `supabase/config.toml`, `.github/workflows/ci.yml`,
+`e2e/a11y.spec.ts`, `src/hooks/queries/useOpenShift.ts`) — die sessie is
+inmiddels zelf ook allang gemerged; dit is puur nog de historische reden
+waarom dit ticket destijds gekozen werd, geen actuele toestand.
 
 Deze spec volgt
 **[ADR 0002](../adr/0002-beheeracties-vereisen-eigen-e-mail-sessie.md)**
@@ -158,7 +161,7 @@ elke RPC de aanroeper aan het begin van dezelfde `SECURITY DEFINER`-functie
 via de sessie zelf:
 
 ```sql
-select id, role into v_actor
+select * into v_actor
 from members
 where auth_user_id = auth.uid() and not archived;
 
@@ -176,6 +179,23 @@ meer, Supabase Auth heeft de identiteit al geverifieerd bij het inloggen op
 `/beheer` (zie Betrokken shell). Pas ná deze check voert de RPC de
 eigenlijke schrijfactie uit, in dezelfde functie/hetzelfde statement — geen
 aparte "ontgrendel"-RPC, zelfde vorm als ADR 0001 al vastlegde.
+
+**Post-implementatie fix (commit `7d5d311`, ná de laatste Reviewer-
+goedkeuring maar vóór de merge, bevestigd door een echte `db:test`-run):**
+`v_actor` is een volledig row-typed `members`-variabele
+(`declare v_actor members;`). De eerste versie van alle drie RPC's deed
+`select id, role into v_actor` — dat vult alleen de `id`- en `role`-*velden*
+van de kolommen niet aan een row-typed doelvariabele op de manier die
+PL/pgSQL hier vereist; het effect was dat `v_actor.role` op `null` bleef
+staan, waardoor `v_actor.role <> 'beheerder'` naar `null` evalueerde in
+plaats van naar `true` en de `if`-check nooit blokkeerde. Elke
+bardienst-medewerker met een gekoppelde `auth_user_id` kwam zo ongemerkt
+door de rolcheck heen — precies wat ADR 0002/0003 moesten voorkomen. Het
+codeblok hierboven toont de gefixte vorm (`select * into v_actor`, de rij
+in zijn geheel); dat is het vereiste patroon voor een row-typed PL/pgSQL-
+variabele in dit repo, niet een subset van kolommen — zie ook de
+toelichting bovenaan `0005_assortimentbeheer.sql` en ADR 0002's
+"post-implementatie fix"-notitie.
 
 - **`create_product(p_name text, p_category text, p_price_cents integer)
   returns products`** — nieuw. Na de actor-check: `p_name` (getrimd) niet
@@ -245,16 +265,16 @@ verrassender dan twee hooks die ieder hun eigen naam waarmaken — en zou #8's
 al gemergede, geteste hook moeten aanraken voor een behoefte die #8 zelf niet
 heeft.
 
-**Voor de Developer die dit implementeert**: dit is een botsing tussen deze
-branch (#14, commit `63df6cd`, eigen `useProducts()` die #8's versie
-overschreef) en `main` (#8, PR #41). Los op door `src/hooks/queries/useProducts.ts`
-terug te brengen naar exact `main`'s versie (`git show origin/main:src/hooks/queries/useProducts.ts`)
-en de huidige, bredere implementatie te verplaatsen naar het nieuwe bestand
-`useAlleProducten.ts` onder de nieuwe namen hierboven. Werk de drie
-aanroepers in `src/features/assortimentbeheer/` (`ProductenLijst.tsx`,
-`NieuwProductOverlay.tsx`, `ProductBeherenOverlay.tsx`) bij naar
-`useAlleProducten`/`AssortimentProduct`. Geen wijziging nodig aan
-`useCreateProduct.ts`/`useUpdateProductPrice.ts`/`useSetProductArchived.ts` —
+**Hoe dit is opgelost** (was tijdens de bouwfase een botsing tussen deze
+branch — commit `63df6cd`, eigen `useProducts()` die #8's versie
+overschreef — en `main`, #8/PR #41): `src/hooks/queries/useProducts.ts` is
+teruggebracht naar exact `main`'s versie; de bredere leesbehoefte (alle
+producten, incl. archief) staat sindsdien in het aparte bestand
+`useAlleProducten.ts` onder de namen hierboven. De drie aanroepers in
+`src/features/assortimentbeheer/` (`ProductenLijst.tsx`,
+`NieuwProductOverlay.tsx`, `ProductBeherenOverlay.tsx`) gebruiken
+`useAlleProducten`/`AssortimentProduct`. `useCreateProduct.ts`/
+`useUpdateProductPrice.ts`/`useSetProductArchived.ts` waren niet geraakt —
 die roepen RPC's aan, niet `useProducts()`.
 
 ## `formatCents()`/`money.ts` — additief, geen herziening
@@ -425,12 +445,19 @@ leest) — dit was al zo onder ADR 0001 en verandert niet door ADR 0002.
   loze lijst.
 - **Kan productenlijst niet laden** (netwerkfout) → vaste Nederlandse
   foutmelding, zelfde patroon als `useOpenShift`/`useBarStaff`, geen crash.
-- **A11y van de overlay(s)**: zelfde openstaande punt als
-  `docs/features/bezetting-beheren.md` → Randgevallen al noteerde voor de
-  bezetting-overlay — `e2e/a11y.spec.ts` scant vandaag geen geopende
-  overlay-staat. Als Tester dat voor #7 al oplost (uitbreiden van de scan
-  naar een geopende-overlaystaat), hoort deze feature's overlay(s) in
-  dezelfde uitbreiding mee te lopen in plaats van een tweede losse oplossing.
+- **A11y van `/beheer` zelf: gedekt.** Een Reviewer-bevinding tijdens de
+  merge-gate-fase voegde `/beheer` toe aan `e2e/a11y.spec.ts`'s
+  route-lijst (het inlogformulier van Schermflow stap 0 wordt dus, net als
+  de bar- en portal-shell-root, bij elke `check:all`-run gescand) — geen
+  open punt meer.
+- **A11y van de overlay(s) ("Nieuw product"/"Product beheren"): nog open.**
+  `e2e/a11y.spec.ts` scant inmiddels wél een geopende overlay-staat — voor
+  #7's bezetting-overlay en #8's afrekenbevestiging bestaat die dekking al
+  (beide als aparte "stateful bar-shell scenarios"-tests). Dit is dus niet
+  langer een gedeeld openstaand punt met #7: alleen assortimentbeheer's
+  eigen twee overlays ("Nieuw product"/"Product beheren") missen nog een
+  vergelijkbare testcase in diezelfde suite — een losse toevoeging, geen
+  uitbreiding die op iets anders wacht.
 
 ## Expliciet buiten scope
 

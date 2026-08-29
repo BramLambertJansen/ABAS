@@ -507,12 +507,12 @@ Studio/CLI: een Auth-account aanmaken, `members.auth_user_id` handmatig
 koppelen) tot #15/#24 landen. Zelfde soort "prima handmatig voor nu,
 single-tenant, single-club"-afweging als bij het device-account.
 
-**Assortimentbeheer (settled, 2026-08-27)**: #14 is gebouwd — producten
-aanmaken/bewerken en prijzen wijzigen via `/beheer`
-(`docs/features/assortimentbeheer.md`, `src/features/assortimentbeheer/`),
-achter de hierboven beschreven beheer-sessie. Prijswijzigingen raken historie
-niet: `order_lines.unit_cents` bevriest de prijs op bestelmoment (`CLAUDE.md`).
-Momenteel in merge-gate-review, nog niet op `main`.
+**Assortimentbeheer (gebouwd en gemerged, #14, PR #45, 2026-08-27)**: #14 is
+op `main` — producten aanmaken/bewerken en prijzen wijzigen via `/beheer`
+(`docs/features/assortimentbeheer.md`, `src/features/assortimentbeheer/`,
+`supabase/migrations/0005_assortimentbeheer.sql`), achter de hierboven
+beschreven beheer-sessie. Prijswijzigingen raken historie niet:
+`order_lines.unit_cents` bevriest de prijs op bestelmoment (`CLAUDE.md`).
 
 ## Wat het prototype deed maar hier nog niet is besloten
 
