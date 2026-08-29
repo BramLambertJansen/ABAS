@@ -21,7 +21,13 @@ type Tab = "verkoop" | "dienst";
  * (assortiment, leden, bezetting) in plaats van een stale snapshot van
  * vóór het wisselen.
  */
-export function DienstTabs({ shift }: { shift: OpenShift }) {
+export function DienstTabs({
+  shift,
+  onShiftEnded,
+}: {
+  shift: OpenShift;
+  onShiftEnded: () => void;
+}) {
   const [tab, setTab] = useState<Tab>("verkoop");
   const verkoopTabId = useId();
   const dienstTabId = useId();
@@ -79,7 +85,7 @@ export function DienstTabs({ shift }: { shift: OpenShift }) {
           aria-labelledby={dienstTabId}
           className="flex min-h-0 flex-1 flex-col items-center justify-center gap-8 bg-rail px-6 py-10 text-white"
         >
-          <DienstActief shift={shift} />
+          <DienstActief shift={shift} onShiftEnded={onShiftEnded} />
         </div>
       )}
     </div>
