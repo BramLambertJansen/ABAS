@@ -117,7 +117,7 @@ export function OpwaarderenOverlay({
         </span>
       </div>
 
-      <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-muted">
+      <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-rail-muted">
         betaald met: contant
       </span>
 
