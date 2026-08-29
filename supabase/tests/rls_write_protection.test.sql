@@ -7,7 +7,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(8);
+select plan(9);
 
 set local role authenticated;
 
@@ -82,6 +82,19 @@ select throws_ok(
   '42501',
   'permission denied for table shift_members',
   'delete on shift_members is blocked for authenticated'
+);
+
+-- Added for #12 (docs/features/dienst-afsluiten.md → Testgevallen point 5,
+-- "belt-and-braces"): the spec assumed an `update shifts set ended_at =
+-- ...` case already existed here, but only `insert into shifts` was
+-- actually covered above — UPDATE was proven only indirectly via the same
+-- REVOKE statement, never with its own pgTAP case. end_shift's whole write
+-- path is exactly this UPDATE, so it gets its own explicit case now.
+select throws_ok(
+  $$ update shifts set ended_at = now() where id = gen_random_uuid() $$,
+  '42501',
+  'permission denied for table shifts',
+  'update on shifts (end_shift''s write path) is blocked for authenticated'
 );
 
 select * from finish();
