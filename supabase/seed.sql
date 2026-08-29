@@ -59,13 +59,17 @@ insert into members (name, role, pin_hash, balance_cents, archived) values
 -- Beheerder e-mail/wachtwoord account for Femke Bos, so
 -- e2e/a11y.spec.ts's beheer-login scenario (#11,
 -- docs/features/negatieve-saldolimiet.md → Randgevallen "A11y") can sign
--- in via BeheerLogin.tsx's real wachtwoord-flow instead of only her PIN
--- (PIN is a *different* mechanism — bar-modus dienst-starten — never used
--- for the beheer-sessie, ADR 0002/0003). No prior /beheer e2e scenario
--- needed this, which is why Femke Bos had no linked auth_user_id/wachtwoord
--- until now. Same local-dev-only direct auth.users/auth.identities insert
--- as the shared device account above, still never seeded into a real
--- deployment.
+-- in via BeheerLogin.tsx's real wachtwoord-flow. Her `pin_hash` is cleared
+-- below the moment she gets a linked auth_user_id: ADR 0003 makes the
+-- auth-methode a per-member either/or (PIN *or* e-mail/wachtwoord, never
+-- both), so a seeded member can't keep a working PIN once she's also
+-- given a password account (caught by review on PR #50 — the seed
+-- originally left her PIN active alongside the new password, which no
+-- real member state is meant to allow). No prior /beheer e2e scenario
+-- needed a password account, which is why Femke Bos had no linked
+-- auth_user_id until now. Same local-dev-only direct
+-- auth.users/auth.identities insert as the shared device account above,
+-- still never seeded into a real deployment.
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password,
   email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
@@ -95,8 +99,10 @@ select gen_random_uuid(), id, id::text,
 from auth.users where email = 'femke.bos@aurora.local';
 
 update members set auth_user_id = (
-  select id from auth.users where email = 'femke.bos@aurora.local'
-) where name = 'Femke Bos';
+    select id from auth.users where email = 'femke.bos@aurora.local'
+  ),
+  pin_hash = null
+where name = 'Femke Bos';
 
 insert into products (name, category, price_cents) values
   ('Pils',   'Bier', 250),
