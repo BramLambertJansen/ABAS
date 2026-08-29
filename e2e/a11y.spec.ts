@@ -266,7 +266,9 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
     }
     await banner.waitFor({ state: "visible", timeout: 15_000 });
 
-    await page.getByRole("button", { name: "opwaarderen" }).click();
+    // exact: true — "saldo opwaarderen" (de ledenkaart-knop, ook zichtbaar
+    // hier) matcht anders ook als substring op deze niet-exacte naam.
+    await page.getByRole("button", { name: "opwaarderen", exact: true }).click();
 
     const dialog = page.getByRole("dialog", { name: /^Saldo opwaarderen bij/ });
     await dialog.waitFor({ state: "visible" });
