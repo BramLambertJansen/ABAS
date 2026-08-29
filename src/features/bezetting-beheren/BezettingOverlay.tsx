@@ -12,7 +12,9 @@ import {
   useRemoveShiftMember,
   type RemoveShiftMemberErrorCode,
 } from "@/hooks/queries/useRemoveShiftMember";
-import { initials, ROLE_LABELS, NO_BAR_STAFF_MESSAGE } from "@/lib/staff";
+import { ROLE_LABELS, NO_BAR_STAFF_MESSAGE } from "@/lib/staff";
+import { InitialsAvatar } from "@/components/InitialsAvatar";
+import { RoleBadge } from "@/components/RoleBadge";
 
 function addErrorMessage(code: AddShiftMemberErrorCode): string {
   switch (code) {
@@ -137,22 +139,12 @@ export function BezettingOverlay({
                       : "border-rail-border bg-rail"
                   }`}
                 >
-                  <span className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-rail-border text-xs font-extrabold text-white">
-                    {initials(member.name)}
-                  </span>
+                  <InitialsAvatar name={member.name} size="sm" />
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <span className="truncate text-sm font-bold text-white">
                       {member.name}
                     </span>
-                    <span
-                      className={`w-fit rounded-full px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide ${
-                        member.role === "beheerder"
-                          ? "bg-accent text-rail"
-                          : "bg-rail-border text-white"
-                      }`}
-                    >
-                      {ROLE_LABELS[member.role]}
-                    </span>
+                    <RoleBadge role={member.role} />
                   </span>
                   <span
                     aria-hidden="true"
