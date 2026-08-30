@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Overlay } from "@/components/Overlay";
+import { StatCard } from "@/components/StatCard";
 import { formatCents } from "@/lib/money";
 import { usePlaceOrder, type PlaceOrderErrorCode } from "@/hooks/queries/usePlaceOrder";
 import type { MemberOption } from "@/hooks/queries/useMembers";
@@ -118,12 +119,11 @@ export function AfrekenenOverlay({
         {submitErrorCode ? placeOrderErrorMessage(submitErrorCode) : ""}
       </p>
 
-      <div className="flex flex-col gap-1 rounded-2xl bg-canvas p-3">
-        <span className="text-sm font-bold text-ink">{member.name}</span>
-        <span className="text-xs font-semibold text-muted">
-          saldo {formatCents(member.balanceCents)}
-        </span>
-      </div>
+      <StatCard
+        variant="member"
+        name={member.name}
+        subtitle={`saldo ${formatCents(member.balanceCents)}`}
+      />
 
       <ul className="flex max-h-[180px] flex-col gap-1.5 overflow-auto">
         {lines.map((line) => (

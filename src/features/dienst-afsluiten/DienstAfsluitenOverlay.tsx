@@ -1,8 +1,9 @@
 "use client";
 
 import { Overlay } from "@/components/Overlay";
+import { StatCard } from "@/components/StatCard";
+import { MemberPill } from "@/components/MemberPill";
 import { formatCents } from "@/lib/money";
-import { initials } from "@/lib/staff";
 import type { OpenShift } from "@/hooks/queries/useOpenShift";
 import { useShiftMembers } from "@/hooks/queries/useShiftMembers";
 import { useShiftSummary } from "@/hooks/queries/useShiftSummary";
@@ -23,7 +24,7 @@ const END_SHIFT_ERROR_MESSAGE = "er ging iets mis, probeer het opnieuw";
 
 /**
  * Overzicht + bevestiging voor het afsluiten van de actieve dienst (modal,
- * `src/components/Overlay.tsx` — de vierde consument). Zie
+ * `src/components/Overlay.tsx`-consument). Zie
  * docs/features/dienst-afsluiten.md → Schermflow.
  */
 export function DienstAfsluitenOverlay({
@@ -84,26 +85,18 @@ export function DienstAfsluitenOverlay({
 
       {shiftSummary.status === "ready" && (
         <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1 rounded-2xl bg-canvas p-3">
-            <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-muted">
-              Omzet deze dienst
-            </span>
-            <span className="text-xl font-extrabold text-ink">
-              {formatCents(shiftSummary.summary.salesTotalCents)}
-            </span>
-            <span className="text-xs font-semibold text-muted">
-              {shiftSummary.summary.orderCount} bestelling(en)
-            </span>
-          </div>
+          <StatCard
+            variant="metric"
+            label="Omzet deze dienst"
+            value={formatCents(shiftSummary.summary.salesTotalCents)}
+            subtitle={`${shiftSummary.summary.orderCount} bestelling(en)`}
+          />
 
-          <div className="flex flex-col gap-1 rounded-2xl bg-canvas p-3">
-            <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-muted">
-              Opgewaardeerd (contant)
-            </span>
-            <span className="text-xl font-extrabold text-ink">
-              {formatCents(shiftSummary.summary.topUpsTotalCents)}
-            </span>
-          </div>
+          <StatCard
+            variant="metric"
+            label="Opgewaardeerd (contant)"
+            value={formatCents(shiftSummary.summary.topUpsTotalCents)}
+          />
         </div>
       )}
 
@@ -119,18 +112,7 @@ export function DienstAfsluitenOverlay({
         {shiftMembers.status === "ready" && shiftMembers.members.length > 0 && (
           <ul className="flex w-full flex-wrap items-center justify-center gap-2">
             {shiftMembers.members.map((member) => (
-              <li
-                key={member.id}
-                className="flex items-center gap-1.5 rounded-full border border-rail-border bg-rail px-2.5 py-1 text-xs font-bold text-white"
-              >
-                <span
-                  aria-hidden="true"
-                  className="flex h-5 w-5 items-center justify-center rounded-full bg-rail-border text-[9px] font-extrabold"
-                >
-                  {initials(member.name)}
-                </span>
-                {member.name}
-              </li>
+              <MemberPill key={member.id} name={member.name} />
             ))}
           </ul>
         )}

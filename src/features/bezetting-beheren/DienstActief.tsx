@@ -5,7 +5,7 @@ import type { OpenShift } from "@/hooks/queries/useOpenShift";
 import { useShiftMembers } from "@/hooks/queries/useShiftMembers";
 import { BezettingOverlay } from "./BezettingOverlay";
 import { DienstAfsluitenOverlay } from "@/features/dienst-afsluiten/DienstAfsluitenOverlay";
-import { initials } from "@/lib/staff";
+import { MemberPill } from "@/components/MemberPill";
 
 function formatStartedAt(iso: string): string {
   return new Date(iso).toLocaleTimeString("nl-NL", {
@@ -74,18 +74,7 @@ export function DienstActief({
           shiftMembers.members.length > 0 && (
             <ul className="flex w-full flex-wrap items-center justify-center gap-2">
               {shiftMembers.members.map((member) => (
-                <li
-                  key={member.id}
-                  className="flex items-center gap-1.5 rounded-full border border-rail-border bg-rail px-2.5 py-1 text-xs font-bold text-white"
-                >
-                  <span
-                    aria-hidden="true"
-                    className="flex h-5 w-5 items-center justify-center rounded-full bg-rail-border text-[9px] font-extrabold"
-                  >
-                    {initials(member.name)}
-                  </span>
-                  {member.name}
-                </li>
+                <MemberPill key={member.id} name={member.name} />
               ))}
             </ul>
           )}
