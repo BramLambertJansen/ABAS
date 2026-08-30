@@ -95,7 +95,9 @@ export function DienstStarten() {
   // — its own full-page layout (light canvas, per docs/features/verkoop.md
   // → Navigatie), not another branch inside this dark PIN-entry screen.
   if (openShift.status === "ready" && openShift.shift) {
-    return <DienstTabs shift={openShift.shift} />;
+    return (
+      <DienstTabs shift={openShift.shift} onShiftEnded={openShift.refetch} />
+    );
   }
 
   return (

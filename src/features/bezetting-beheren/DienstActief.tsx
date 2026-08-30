@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { OpenShift } from "@/hooks/queries/useOpenShift";
 import { useShiftMembers } from "@/hooks/queries/useShiftMembers";
 import { BezettingOverlay } from "./BezettingOverlay";
+import { DienstAfsluitenOverlay } from "@/features/dienst-afsluiten/DienstAfsluitenOverlay";
 import { MemberPill } from "@/components/MemberPill";
 
 function formatStartedAt(iso: string): string {
@@ -19,9 +20,16 @@ function formatStartedAt(iso: string): string {
  * "Gestart door X om HH:MM"-tekst is hierheen verhuisd, ongewijzigd. Zie
  * docs/features/bezetting-beheren.md → Schermflow.
  */
-export function DienstActief({ shift }: { shift: OpenShift }) {
+export function DienstActief({
+  shift,
+  onShiftEnded,
+}: {
+  shift: OpenShift;
+  onShiftEnded: () => void;
+}) {
   const shiftMembers = useShiftMembers(shift.id);
   const [overlayOpen, setOverlayOpen] = useState(false);
+  const [afsluitenOverlayOpen, setAfsluitenOverlayOpen] = useState(false);
 
   return (
     <div className="flex w-full max-w-sm flex-col items-center gap-6 text-center">
@@ -78,11 +86,15 @@ export function DienstActief({ shift }: { shift: OpenShift }) {
         >
           Bezetting wijzigen
         </button>
-      </div>
 
-      <p className="max-w-xs text-xs font-medium text-rail-muted">
-        Verkoop en dienst afsluiten volgen in latere schermen.
-      </p>
+        <button
+          type="button"
+          onClick={() => setAfsluitenOverlayOpen(true)}
+          className="flex h-11 w-full items-center justify-center rounded-2xl border border-rail-border bg-rail px-4 text-sm font-bold text-white transition-colors hover:border-accent"
+        >
+          Dienst afsluiten
+        </button>
+      </div>
 
       {overlayOpen && (
         <BezettingOverlay
@@ -90,6 +102,14 @@ export function DienstActief({ shift }: { shift: OpenShift }) {
           members={shiftMembers.status === "ready" ? shiftMembers.members : []}
           onMembersChanged={shiftMembers.refetch}
           onClose={() => setOverlayOpen(false)}
+        />
+      )}
+
+      {afsluitenOverlayOpen && (
+        <DienstAfsluitenOverlay
+          shift={shift}
+          onClose={() => setAfsluitenOverlayOpen(false)}
+          onShiftEnded={onShiftEnded}
         />
       )}
     </div>

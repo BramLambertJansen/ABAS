@@ -147,9 +147,12 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
    *  per seed.sql's comment: "Demo PIN for every bar/beheer member below is
    *  1234") if none is open yet on this shared session, or reuses whichever
    *  shift is already open (e.g. left open by an earlier test in this
-   *  block — there's no end_shift UI, see docs/features/verkoop.md →
-   *  Randgevallen "shift_not_open" reachability note). Lands on the
-   *  Verkoop tab either way (docs/features/verkoop.md → Navigatie:
+   *  block). Note: since #12 (docs/features/dienst-afsluiten.md) there *is*
+   *  an end_shift UI (the "Dienst afsluiten"-overlay, scanned in its own
+   *  test below) — this helper itself only ever starts a shift, it never
+   *  closes one, so a shift left open by an earlier test in this block is
+   *  still the expected/reused case here, not a stale assumption. Lands on
+   *  the Verkoop tab either way (docs/features/verkoop.md → Navigatie:
    *  Verkoop is the default tab after start / on an already-open shift). */
   async function ensureShiftStarted(page: Page) {
     await page.goto("/");
@@ -212,6 +215,50 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
 
     // Required behaviour per docs/features/bezetting-beheren.md →
     // useShell()-contract: focus moves into the dialog on open.
+    await expect(dialog).toBeFocused();
+
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+
+    expect(results.violations, JSON.stringify(results.violations, null, 2))
+      .toEqual([]);
+  });
+
+  /**
+   * docs/features/dienst-afsluiten.md (#12) → Randgevallen → "A11y van de
+   * nieuwe overlay in het algemeen" / "e2e/a11y.spec.ts's bestaande
+   * ensureShiftStarted()-helper": this screen's newest interactive overlay
+   * (DienstAfsluitenOverlay.tsx — the fourth real consumer of
+   * src/components/Overlay.tsx). Opens via the "Dienst afsluiten"-button
+   * next to "Bezetting wijzigen" on the same Dienst-tab as the
+   * bezetting-overlay test above. Deliberately does **not** click the
+   * overlay's own "dienst afsluiten"-confirm button — that would actually
+   * call end_shift and close the shared session's open shift, which the
+   * later stateful tests in this block don't need and shouldn't have to
+   * tolerate as a side effect of an a11y scan; `ensureShiftStarted()` would
+   * recover either way (see its own comment), but scanning the open dialog
+   * is the whole point here, not exercising the RPC (that's
+   * end_shift.test.sql's job, supabase/tests/).
+   */
+  test("bar shell (/) dienst-afsluiten-overlay has no WCAG2A/AA violations", async ({
+    page,
+  }) => {
+    await ensureShiftStarted(page);
+
+    await page.getByRole("tab", { name: "Dienst" }).click();
+
+    await page
+      .getByRole("heading", { name: "Dienst actief" })
+      .waitFor({ state: "visible", timeout: 15_000 });
+
+    await page.getByRole("button", { name: "Dienst afsluiten" }).click();
+
+    const dialog = page.getByRole("dialog", { name: "Dienst afsluiten" });
+    await dialog.waitFor({ state: "visible" });
+
+    // Same focus-on-open contract as every Overlay.tsx consumer (see
+    // docs/features/bezetting-beheren.md → useShell()-contract).
     await expect(dialog).toBeFocused();
 
     const results = await new AxeBuilder({ page })

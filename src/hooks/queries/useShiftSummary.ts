@@ -1,0 +1,100 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+
+/** Omzet + opwaarderingen voor het "Dienst afsluiten"-overzicht. Eén cijfer
+ *  voor omzet, één voor opwaarderingen — geen op-rekening/pin-splitsing,
+ *  zie docs/features/dienst-afsluiten.md → "Nieuwe leeshook: useShiftSummary"
+ *  voor de begripsafbakening (er is vandaag maar één betaalwijze per
+ *  concept). */
+export type ShiftSummary = {
+  salesTotalCents: number;
+  orderCount: number;
+  topUpsTotalCents: number;
+};
+
+type State =
+  | { status: "loading" }
+  | { status: "error"; message: string }
+  | { status: "ready"; summary: ShiftSummary };
+
+/** Twee platte `select`s (`orders`, `top_ups`), client-side opgeteld — geen
+ *  Postgres-aggregatie, geen nieuwe RPC (dit raakt geen geld-schrijfpad,
+ *  zie CLAUDE.md → Architectuurbeslissingen: die gaat over schrijven, niet
+ *  lezen). Zelfde "gewoon alles ophalen, geen paginering"-afweging als
+ *  useMembers()/useProducts() gezien de single-club-schaal. */
+export function useShiftSummary(
+  shiftId: string | null
+): State & { refetch: () => void } {
+  const [state, setState] = useState<State>({ status: "loading" });
+  const [tick, setTick] = useState(0);
+
+  const load = useCallback(async () => {
+    if (!shiftId) {
+      setState({
+        status: "ready",
+        summary: { salesTotalCents: 0, orderCount: 0, topUpsTotalCents: 0 },
+      });
+      return;
+    }
+
+    setState({ status: "loading" });
+    try {
+      const supabase = createClient();
+      const [ordersResult, topUpsResult] = await Promise.all([
+        supabase.from("orders").select("total_cents").eq("shift_id", shiftId),
+        supabase
+          .from("top_ups")
+          .select("amount_cents")
+          .eq("shift_id", shiftId),
+      ]);
+
+      if (ordersResult.error) throw ordersResult.error;
+      if (topUpsResult.error) throw topUpsResult.error;
+
+      const orderRows = ordersResult.data ?? [];
+      const topUpRows = topUpsResult.data ?? [];
+
+      const salesTotalCents = orderRows.reduce(
+        (sum, row) => sum + (row.total_cents as number),
+        0
+      );
+      const topUpsTotalCents = topUpRows.reduce(
+        (sum, row) => sum + (row.amount_cents as number),
+        0
+      );
+
+      setState({
+        status: "ready",
+        summary: {
+          salesTotalCents,
+          orderCount: orderRows.length,
+          topUpsTotalCents,
+        },
+      });
+    } catch (err) {
+      // Never surface the raw error on a bar tablet mid-service — log it
+      // for whoever's debugging, show a fixed Dutch message at the bar.
+      console.error("useShiftSummary:", err);
+      setState({
+        status: "error",
+        message: "Kan het overzicht niet laden. Controleer de verbinding.",
+      });
+    }
+  }, [shiftId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    load().catch(() => {
+      if (!cancelled) {
+        setState({ status: "error", message: "Onbekende fout." });
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [tick, load]);
+
+  return { ...state, refetch: () => setTick((t) => t + 1) };
+}

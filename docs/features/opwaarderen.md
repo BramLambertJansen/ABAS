@@ -140,7 +140,7 @@ de open/close-levenscyclus (zelfde verdeling als `onOpenCheckout`).
 | `served_by_not_on_shift` | Race, zie hierboven | "degene die je koos staat niet meer in de bezetting — kies opnieuw" | keuze resetten, bezetting refetchen, overlay blijft open |
 | `member_not_found` | Lid wordt gearchiveerd tussen openen en boeken (praktisch onbereikbaar zolang #13 niet bestaat, wel cheap af te vangen) | "dit lid bestaat niet meer of is gearchiveerd — kies een ander lid" | overlay sluit terug naar het verkoopscherm, leden refetchen |
 | `invalid_amount` | Client-guard hoort dit al te voorkomen (geen geldig/positief bedrag); server-fallback bij een edge case in de invoer | "vul een geldig bedrag in" | overlay blijft open, invoerveld blijft bewerkbaar |
-| `shift_not_open` | Praktisch onbereikbaar vandaag — geen `end_shift`-UI (#12 niet gebouwd), zelfde constatering als `verkoop.md` | "de dienst is niet meer actief — herlaad het scherm" | — |
+| `shift_not_open` | Bereikbaar sinds #12 (docs/features/dienst-afsluiten.md): "Dienst afsluiten" op de Dienst-tab roept `end_shift` aan, waarna een nog open opwaardeer-overlay hierop stuit bij boeken, zelfde constatering als `verkoop.md` | "de dienst is niet meer actief — herlaad het scherm" | — |
 | `unknown` (netwerk/onverwacht) | Altijd mogelijk | "er ging iets mis, probeer het opnieuw" | overlay blijft open, bedrag/keuze blijven staan zodat opnieuw proberen kan zonder alles opnieuw in te vullen |
 
 **Overig**
