@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Overlay } from "@/components/Overlay";
+import { StatCard } from "@/components/StatCard";
 import { formatCents, parseEuroToCents } from "@/lib/money";
 import { useTopUp, type TopUpErrorCode } from "@/hooks/queries/useTopUp";
 import type { MemberOption } from "@/hooks/queries/useMembers";
@@ -109,13 +110,11 @@ export function OpwaarderenOverlay({
         {submitErrorCode ? topUpErrorMessage(submitErrorCode) : ""}
       </p>
 
-      <div className="flex flex-col gap-1 rounded-2xl bg-canvas p-3">
-        <span className="text-sm font-bold text-ink">{member.name}</span>
-        <span className="text-xs font-semibold text-muted">
-          saldo {formatCents(member.balanceCents)}
-          {member.balanceCents < lowBalanceThresholdCents && " — laag saldo"}
-        </span>
-      </div>
+      <StatCard
+        variant="member"
+        name={member.name}
+        subtitle={`saldo ${formatCents(member.balanceCents)}${member.balanceCents < lowBalanceThresholdCents ? " — laag saldo" : ""}`}
+      />
 
       <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-rail-muted">
         betaald met: contant
