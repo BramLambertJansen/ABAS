@@ -544,6 +544,26 @@ ADR-0002-actorcheck-vorm als `create_product`/`update_product_price`/
 `beheerder`), beheerder-only, geen schemawijziging — de kolom bestond en werd
 al gehandhaafd, alleen het schrijfpad ontbrak.
 
+**Dienst afsluiten (gebouwd en gemerged, #12, PR #52, 2026-08-30)**: een
+"Dienst afsluiten"-knop/overlay op de "Dienst"-tab
+(`DienstActief.tsx`, naast "Bezetting wijzigen"), zesde consument van
+`Overlay.tsx` (`docs/features/dienst-afsluiten.md`,
+`src/features/dienst-afsluiten/`). Twee nieuwe leeshooks/mutatiehooks:
+`useShiftSummary` (platte `select`s op `orders`/`top_ups`, client-side
+opgeteld tot omzet + opwaarderingen, geen nieuwe RPC) en `useEndShift`
+(mutatiehook rond `end_shift`). Geen migratie, geen nieuwe RPC: `end_shift`
+bestond al sinds `0001_init.sql` maar had tot dit ticket geen enkele
+UI-trigger — deze feature maakt het schrijfpad dat `place_order`/`top_up`
+al sinds `0001_init.sql` handhaven (`shift_not_open` zodra `shifts.ended_at`
+niet meer `null` is) voor het eerst daadwerkelijk bereikbaar. Geen
+actorcheck op `end_shift` zelf, bewust consistent met
+`add_shift_member`/`remove_shift_member`: iedereen op de gedeelde
+bar-tablet-sessie tijdens een open dienst mag afsluiten, geen restrictie tot
+de dienst-starter. De overlay is gebouwd tegen de gedeelde `StatCard`
+(`variant="metric"`)/`MemberPill`-componenten uit #53
+("Extract shared UI components", `src/components/`), die vóór #12's merge
+al specifiek met deze overlay als consument in gedachten waren gevormd.
+
 ## Wat het prototype deed maar hier nog niet is besloten
 
 Listed for reference only — none of this is scoped in or out yet. Don't build
