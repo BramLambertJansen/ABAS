@@ -13,6 +13,11 @@ constatering die `docs/features/assortimentbeheer.md` en
 `docs/features/negatieve-saldolimiet.md` al eerder maakten voor hun eigen
 schrijfacties.
 
+**Gebouwd en gemerged** ([issue #12](https://github.com/BramLambertJansen/ABAS/issues/12),
+[PR #52](https://github.com/BramLambertJansen/ABAS/pull/52), 2026-08-30,
+merge-commit `645e255`). De rest van dit document beschrijft wat er
+daadwerkelijk op `main` staat.
+
 ## Doel
 
 Een bardienst/beheerder kan de actieve dienst afsluiten vanaf het gedeelde
@@ -207,6 +212,24 @@ Inhoud, in volgorde:
 3. **Bezetting**: dezelfde namenlijst als `DienstActief.tsx` al toont
    (`useShiftMembers(shift.id)`, hergebruikt, geen nieuwe leeshook) — dit
    vult AC "wie er meewerkte" in zonder duplicatie.
+
+Implementatiedetail dat pas na de oorspronkelijke Developer-stap vastligt:
+de Developer bouwde de omzet-/opwaardeer-kaarten en de bezettingslijst
+aanvankelijk met eigen, ter plekke gedupliceerde markup (zelfde soort
+inline `<li>`/kaart-JSX als `DienstActief.tsx`/`AfrekenenOverlay.tsx` toen
+al hadden). Terwijl #12 nog in review stond, landde #53 ("Extract shared UI
+components") op `main` en voegde `src/components/StatCard.tsx`
+(`variant="metric"`) en `src/components/MemberPill.tsx` toe — beide
+expliciet gevormd met déze overlay als naamgenoemde toekomstige consument
+(zie de doc-comments in die twee bestanden). Bij het mergen van #12 met
+`main` is `DienstAfsluitenOverlay.tsx` bijgewerkt om die twee gedeelde
+componenten te gebruiken in plaats van de eigen duplicaat-markup — een
+kleine, na-de-review aanpassing tijdens het oplossen van het merge-
+conflict, geen scope- of gedragswijziging (CLAUDE.md → "Componenten zijn
+herbruikbaar totdat bewezen anders"). De omzet-/opwaardeer-kaarten hierboven
+zijn dus twee `<StatCard variant="metric" .../>`'s; de bezettingslijst is
+een `<ul>` van `<MemberPill />` (identiek aan hoe `DienstActief.tsx` zijn
+eigen bezettingslijst rendert, sinds diezelfde #53).
 4. **Laadstaten**: `useShiftSummary`/`useShiftMembers` op `"loading"` tonen
    "Overzicht laden…" (`role="status"`, zelfde patroon als elders); op
    `"error"` een vaste NL-melding (`role="alert"`) — de "afsluiten"-knop
