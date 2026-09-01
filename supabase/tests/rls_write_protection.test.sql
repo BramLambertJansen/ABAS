@@ -7,7 +7,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(9);
+select plan(11);
 
 set local role authenticated;
 
@@ -24,6 +24,28 @@ select throws_ok(
   '42501',
   'permission denied for table members',
   'insert on members is blocked for authenticated'
+);
+
+-- Added for ledenbeheer (docs/features/ledenbeheer.md): only `insert` on
+-- members was covered above until now — the new create_member/
+-- update_member_name/set_member_archived/set_member_role RPCs' whole
+-- write paths are UPDATE (three of the four) and INSERT (create_member),
+-- so UPDATE gets its own explicit belt-and-braces case too (DELETE was
+-- already implied by the blanket REVOKE but had no case of its own either;
+-- added for completeness, no RPC in this repo issues a `delete` on
+-- members).
+select throws_ok(
+  $$ update members set name = 'y' where id = gen_random_uuid() $$,
+  '42501',
+  'permission denied for table members',
+  'update on members (create_member/update_member_name/set_member_archived/set_member_role''s write path) is blocked for authenticated'
+);
+
+select throws_ok(
+  $$ delete from members where id = gen_random_uuid() $$,
+  '42501',
+  'permission denied for table members',
+  'delete on members is blocked for authenticated'
 );
 
 select throws_ok(
