@@ -22,8 +22,10 @@ beide ADR's eerst, deze spec past ze toe en herhaalt de motivatie niet.
 
 Een beheerder kan, vanaf het gedeelde bar-tablet, leden aanmaken (naam +
 optioneel startsaldo), een ledenlijst doorzoeken/filteren, de naam van een
-bestaand lid wijzigen, en een lid archiveren of terugzetten — vanuit een
-nieuwe "Leden"-tab binnen de bestaande `/beheer`-sessie. Dit is de tweede
+bestaand lid wijzigen, de rol van een bestaand lid wijzigen (Lid ↔ Bardienst
+↔ Beheerder — besloten door Bram, zie "Besloten door Bram"), en een lid
+archiveren of terugzetten — vanuit een nieuwe "Leden"-tab binnen de
+bestaande `/beheer`-sessie. Dit is de tweede
 helft van de "Leden admin screen (member CRUD)"-regel die
 `docs/ARCHITECTURE.md` als nog-niet-gespecificeerd noteerde; de eerste helft
 (`Assortiment` CRUD) is al gebouwd onder #14.
@@ -34,11 +36,12 @@ volgt:**
 - **"Geld beweegt alleen via RPC."** `members` staat al sinds `0001_init.sql`
   in de blanket-`REVOKE insert, update, delete ... from authenticated`
   (regel 137) — een directe tabel-write is dus vandaag al technisch
-  onmogelijk, niet alleen ontmoedigd. Deze spec voegt drie nieuwe,
+  onmogelijk, niet alleen ontmoedigd. Deze spec voegt vier nieuwe,
   beheerder-only RPC's toe (`create_member`, `update_member_name`,
-  `set_member_archived`, zie RPC's) die elk hun eigen schrijfactie valideren
-  en uitvoeren — geen client die een berekend resultaat aanlevert. Eén van
-  de drie (`create_member`) zet wél direct een `balance_cents`-waarde bij het
+  `set_member_archived`, `set_member_role`, zie RPC's) die elk hun eigen
+  schrijfactie valideren en uitvoeren — geen client die een berekend
+  resultaat aanlevert. Eén van de vier (`create_member`) zet wél direct een
+  `balance_cents`-waarde bij het
   aanmaken (het optionele startsaldo) — dit is **geen** geldbeweging in de
   zin die `place_order`/`top_up` bedoelen (een transactie tegen een
   *bestaand* saldo, met een tegenpartij en een controle tegen de
@@ -78,7 +81,7 @@ hidden-toggle) — elke wissel naar Leden krijgt zo een verse leeshook-lezing.
 tegenstelling tot `NegatieveLimietInstellingen.tsx` (één instelling, geen
 eigen datamodel/RPC-familie, vandaar wél in `assortimentbeheer/` geplaatst)
 heeft ledenbeheer een eigen datamodel (`members`, al bestaand) en een eigen
-RPC-familie (drie nieuwe RPC's, zie hieronder) — precies de situatie die
+RPC-familie (vier nieuwe RPC's, zie hieronder) — precies de situatie die
 assortimentbeheer.md zelf al onderscheidde: *"eigen issue, eigen spec, eigen
 featuremap"*. Nieuwe map `src/features/ledenbeheer/` (`LedenLijst.tsx`,
 `NieuwLidOverlay.tsx`, `LidBeherenOverlay.tsx`), naast (niet in)
@@ -99,10 +102,14 @@ nodig** in de nieuwe migratie hieronder, in tegenstelling tot #14's
 al vanaf het begin). Vermeld hier expliciet zodat de Developer 'm niet
 per ongeluk dubbel toevoegt.
 
-**`role` wordt door dit ticket niet gewijzigd — zie Openstaande vraag voor
-Bram, punt 2.** `create_member` zet altijd `role = 'lid'` (de kolomdefault,
-niet apart als parameter doorgegeven — zie RPC's); er is geen RPC die een
-bestaand lid promoveert naar `bardienst`/`beheerder` of terugzet naar `lid`.
+**`role` wordt door dit ticket wél gewijzigd — besloten door Bram, zie
+"Besloten door Bram" hieronder.** `create_member` zet nog steeds altijd
+`role = 'lid'` bij het aanmaken (de kolomdefault, niet apart als parameter
+doorgegeven — zie RPC's); een bestaand lid promoveren naar `bardienst`/
+`beheerder`, degraderen, of tussen die drie rollen wisselen loopt via een
+nieuwe RPC, `set_member_role` (zie RPC's) — geen directe `update` op
+`members.role`, zelfde RPC-only-schrijfpatroon als de andere drie
+kolom-wijzigingen in deze spec.
 
 ## RPC's
 
@@ -110,7 +117,7 @@ Nieuwe migratie, opeenvolgend genummerd — `0006_negatieve_saldolimiet.sql`
 is op dit moment de laatste op `main`, dus vermoedelijk
 `0007_ledenbeheer.sql`; de Developer verifieert dat bij het bouwen nog klopt
 (zelfde voorbehoud als assortimentbeheer.md maakte over zijn eigen
-migratienummer). Alle drie volgen ADR 0002's `auth.uid()`-actorcheck-vorm,
+migratienummer). Alle vier volgen ADR 0002's `auth.uid()`-actorcheck-vorm,
 1-op-1 gekopieerd van `create_product`/`update_product_price`/
 `set_product_archived`/`update_negative_limit` — inclusief het
 `select * into v_actor` post-implementatie-patroon (niet een kolom-subset,
@@ -137,7 +144,7 @@ end if;
   negatieve waarde geeft `invalid_starting_balance` (een lid begint nooit al
   in het rood — dat is wat de negatieflimiet-instelling regelt voor
   *bestellen*, niet voor aanmaken). Insert met `role = 'lid'` (kolomdefault,
-  geen parameter — zie Datamodel/Openstaande vraag), `pin_hash = null`,
+  geen parameter — zie Datamodel), `pin_hash = null`,
   `auth_user_id = null`, `archived = false`. Retourneert de nieuwe rij.
 - **`update_member_name(p_member_id uuid, p_name text) returns members`** —
   nieuw. Na de actor-check: lid bestaat → anders `member_not_found` (geen eis
@@ -156,9 +163,35 @@ end if;
   overgebleven andere beheerder is (geen "laatste beheerder"-telling, zie
   Randgevallen voor de afweging). Idempotent voor het overige, zelfde
   verdraagzaamheid als `set_product_archived`.
+- **`set_member_role(p_member_id uuid, p_role text) returns members`** —
+  nieuw. Client stuurt de expliciete gewenste rol als tekst, niet als
+  `member_role` — zelfde reden als `create_product`'s voorvalidatie op
+  `p_price_cents` (zie assortimentbeheer.md → RPC's): een ongeldige waarde
+  moet een nette Nederlandse boodschap opleveren, niet een rauwe
+  Postgres-enum-castfout die de client niet kan mappen. Na de actor-check:
+  lid bestaat → anders `member_not_found`; `p_role` (getrimd) is één van
+  `'lid'`, `'bardienst'`, `'beheerder'` → anders `invalid_role` (de
+  bestaande `member_role`-enum kent geen andere waarden, en dit ticket voegt
+  er ook geen toe — zie Expliciet buiten scope; dit pad is bedoeld als
+  server-fallback, de UI-select in Schermflow biedt zelf al alleen deze drie
+  opties aan). **Extra guard, zelfde soort zelfreferentie-risico als
+  `set_member_archived`'s `self_archive_forbidden`: een beheerder mag de
+  eigen rol niet verlagen** (`p_member_id = v_actor.id` en `p_role <>
+  'beheerder'` → `self_demote_forbidden`) — zie Randgevallen voor waarom.
+  Een beheerder die zichzelf naar `'beheerder'` "wijzigt" (dezelfde rol
+  opnieuw versturen) is geen degradatie en wordt niet geblokkeerd — dat valt
+  samen met de idempotentie hieronder. Rolwijziging van een ándere
+  beheerder naar `lid`/`bardienst` blijft wél toegestaan, ook als dat de
+  laatst overgebleven andere beheerder is (geen "laatste beheerder"-telling
+  — zie Randgevallen voor dezelfde afweging als bij `self_archive_forbidden`
+  hierboven). Idempotent: `p_role` gelijk aan de huidige rol sturen slaagt
+  gewoon (geen foutmelding, geen wijziging), zelfde verdraagzaamheid als
+  `set_member_archived`/`set_product_archived`. Update alleen `members.role`
+  — raakt nooit `pin_hash`, `balance_cents`, `archived` of
+  `shift_members`/`is_shift_member()` (zie Randgevallen).
 - `grant execute on function create_member, update_member_name,
-  set_member_archived to authenticated;` — zelfde grant-regel als de
-  bestaande beheerder-only RPC's.
+  set_member_archived, set_member_role to authenticated;` — zelfde
+  grant-regel als de bestaande beheerder-only RPC's.
 - Verder geen nieuwe RPC's. "Welke leden bestaan er, wat is hun rol/saldo/
   archiefstatus" is een platte `select` op `members` (bestaande
   `members_select`-policy, `authenticated` mag alles lezen, single-tenant) en
@@ -172,7 +205,8 @@ assortimentbeheer's "Contract met #8's `useProducts()`": `useMembers()`
 alleen niet-gearchiveerde leden, geen `role`/`archived`-veld in het type.
 Ledenbeheer heeft het tegenovergestelde nodig: elk lid, archived of niet
 (anders is een gearchiveerd lid niet terug te vinden om terug te zetten), mét
-`role` (voor het read-only rolbadge, zie Schermflow) en `archived`. Nieuwe
+`role` (voor het rolbadge in de lijst én het vooringevulde
+"Barrechten"-veld in `LidBeherenOverlay.tsx`, zie Schermflow) en `archived`. Nieuwe
 hook `useAlleLeden()` in `src/hooks/queries/useAlleLeden.ts`, eigen type
 `LedenbeheerLid` (`id`, `name`, `role`, `balanceCents`, `archived`),
 alfabetisch op naam — `useMembers()` blijft ongewijzigd, exact dezelfde
@@ -182,9 +216,12 @@ scheiding als `useAlleProducten()`/`useProducts()`.
 
 1. **Ledenlijst** (`LedenLijst.tsx`, Leden-tab): gesorteerd alfabetisch op
    naam (`useAlleLeden()`). Elke rij toont naam, een rolbadge (**BAR** voor
-   `bardienst`, **BEHEER** voor `beheerder`, geen badge voor `lid` — read-only
-   weergave, zie Openstaande vraag voor Bram punt 2 voor waarom er geen
-   bewerkactie bij zit) en saldo — een gearchiveerd lid blijft in de lijst
+   `bardienst`, **BEHEER** voor `beheerder`, geen badge voor `lid` — de
+   badge in de lijst zelf blijft read-only weergave; de bijbehorende
+   bewerkactie ("Barrechten", zie punt 3 hieronder) zit in
+   `LidBeherenOverlay.tsx`, niet in de lijstrij zelf, zelfde scheiding als
+   naam/archiefstatus daar al hadden) en saldo — een gearchiveerd lid blijft
+   in de lijst
    maar visueel gedempt (zelfde `text-muted`-patroon als
    `ProductenLijst.tsx`'s gearchiveerde rijen) en met een "GEARCHIVEERD"-label,
    niet weggefilterd.
@@ -216,10 +253,9 @@ scheiding als `useAlleProducten()`/`useProducts()`.
    toastvorm als assortimentbeheer). Mislukt → Nederlandse foutmelding via
    `role="alert"`, formulier blijft open met ingevulde gegevens.
 3. **Tik op een lidrij** → opent `LidBeherenOverlay.tsx`, titel **"Lid
-   beheren"**, twee onafhankelijke acties (matcht het ontwerp regel
-   1193–1234, min "Barrechten" — zie Openstaande vraag voor Bram punt 2 —
-   en min "saldocorrectie"/"saldo opwaarderen" — zie Expliciet buiten
-   scope):
+   beheren"**, drie onafhankelijke acties (matcht het ontwerp regel
+   1193–1234, min "saldocorrectie"/"saldo opwaarderen" — zie Expliciet
+   buiten scope):
    - Bovenaan een **read-only saldokaart** (huidig `balanceCents`, zelfde
      `bg-rail`-kaartstijl als `ProductBeherenOverlay.tsx`'s "Huidige prijs" —
      hier puur informatief, geen bewerkactie in deze overlay).
@@ -227,15 +263,30 @@ scheiding als `useAlleProducten()`/`useProducts()`.
      een niet-lege, van de huidige naam afwijkende waarde. Tik op "Opslaan"
      → direct `update_member_name`. Succes-toast: **"Naam bijgewerkt"**
      (letterlijk uit het ontwerp, regel 1866).
+   - **Barrechten** (matcht het ontwerp regel 1215–1222, letterlijke
+     ondertekst "bardienst staat achter de bar, beheerder beheert de
+     vereniging"): een select met de drie rolwaarden (**Lid**, **Bardienst**,
+     **Beheerder**), vooringevuld op de huidige `role` van het lid.
+     "Opslaan" pas actief bij een gekozen waarde die afwijkt van de huidige
+     rol — zelfde "afwijkt van huidige waarde"-patroon als "Naam wijzigen"
+     hierboven. Tik op "Opslaan" → direct `set_member_role` (geen
+     bevestigingsstap, zelfde redenering als de andere twee acties in deze
+     overlay). Succes-toast: **"Rechten bijgewerkt"**. Blokkeert de
+     `self_demote_forbidden`-guard uit RPC's (een beheerder die de eigen rol
+     probeert te verlagen) → Nederlandse foutmelding via `role="alert"`
+     **binnen deze actie** ("je kunt je eigen rechten niet verlagen — vraag
+     een andere beheerder"), de rest van de overlay (saldokaart, naam,
+     archiveren) blijft bruikbaar — het formulier sluit niet, de select
+     springt terug naar de huidige rol.
    - **Archiveren / terugzetten** (tekst wisselt op basis van huidige
      `archived`-staat, zelfde patroon als producten): tik → direct
      `set_member_archived` met de expliciete tegenovergestelde boolean, geen
      bevestigingsstap (de sessie zelf is al de bevestiging, zie
      Rolzichtbaarheid). Succes-toast: **"[Naam] gearchiveerd"** /
      **"[Naam] teruggezet"** (letterlijk uit het ontwerp, regel 1851).
-   - Beide acties delen dezelfde overlay-instantie maar zijn onafhankelijke
-     schrijfacties — elk een eigen RPC-call, geen gecombineerde aanroep
-     (zelfde vorm als `ProductBeherenOverlay.tsx`).
+   - Alle drie acties delen dezelfde overlay-instantie maar zijn
+     onafhankelijke schrijfacties — elk een eigen RPC-call, geen
+     gecombineerde aanroep (zelfde vorm als `ProductBeherenOverlay.tsx`).
 4. **Sluiten** (knop, Escape, backdrop-tik — `Overlay.tsx`'s bestaande
    a11y-eisen) → terug naar de ledenlijst, actuele staat (refetch bij elke
    succesvolle mutatie, niet pas bij sluiten).
@@ -247,7 +298,7 @@ bereikbaar met een actieve beheerder-sessie** op `/beheer`. Geen sessie →
 alleen het inlogformulier; de Leden-tab is nooit zichtbaar voor een
 niet-beheerder (`useBeheerSession()`'s `"denied"`-staat toont, zoals vandaag
 al, het bestaande foutscherm vóór de tabbalk — geen enkele tab, dus ook Leden
-niet). De drie nieuwe RPC's controleren `no_admin_role` daarnaast zelf,
+niet). De vier nieuwe RPC's controleren `no_admin_role` daarnaast zelf,
 zelfde verdediging-in-twee-lagen-redenering als
 `docs/features/assortimentbeheer.md` → Rolzichtbaarheid.
 
@@ -276,9 +327,49 @@ dat een bredere projectie van dezelfde, al leesbare tabel toont.
   nergens anders in deze RPC-familie voorkomt en die in de praktijk zelden
   relevant is (single-club, doorgaans meerdere beheerders) — geaccepteerd
   risico, zelfde soort afweging als issue #34's "geen tablet-trust-check".
+- **`self_demote_forbidden` — een beheerder kan de eigen rol niet verlagen.**
+  Zelfde zelfreferentie-risico als `self_archive_forbidden` hierboven, en
+  dezelfde afweging: een beheerder die zichzelf naar `lid`/`bardienst`
+  degradeert zou zichzelf bij de eerstvolgende RPC-aanroep (of een nieuwe
+  login op `/beheer`) als `no_admin_role` zien afgewezen, zonder dat er nog
+  een RPC-pad is om dat ongedaan te maken (`set_member_role` zelf zou de
+  aanroeper na de degradatie immers al op de rolcheck weigeren, niet meer op
+  `actor_not_found` zoals bij zelf-archiveren, maar het effect — geen
+  ingebouwd herstelpad binnen de RPC-familie zelf — is identiek). Ook dit is
+  teruggedraaid via Supabase Studio/CLI, geen gebouwde herstelroute hier —
+  vandaar blokkeren aan de bron. Nederlandse melding: "je kunt je eigen
+  rechten niet verlagen — vraag een andere beheerder". Zichzelf opnieuw
+  `beheerder` laten zijn (dezelfde rol) is geen degradatie en dus niet
+  geblokkeerd — valt samen met de idempotentie die RPC's al beschrijft.
+  **Zelfde "laatste beheerder"-afweging als bij `self_archive_forbidden`,
+  bewust consistent toegepast**: een ándere beheerder degraderen blijft
+  toegestaan, ook als dat de laatst overgebleven ándere beheerder is — een
+  losstaande telling zou hier evenveel stateful overhead toevoegen als bij
+  archiveren, voor hetzelfde zelden-relevante scenario (single-club,
+  doorgaans meerdere beheerders); consistent geaccepteerd risico, geen apart
+  besluit nodig voor deze RPC.
+- **`invalid_role`** — `p_role` is geen `lid`/`bardienst`/`beheerder`. In de
+  praktijk niet bereikbaar via de UI (de select in Schermflow biedt alleen
+  deze drie waarden aan), dus dit is een server-fallback, zelfde soort
+  verdediging als `invalid_starting_balance` hieronder.
+- **Rolwijziging van een lid dat op dit moment op een open dienst's
+  bezetting staat** — `set_member_role` raakt `shift_members`/
+  `is_shift_member()` niet, zelfde redenering als de
+  archiveer-op-actieve-bezetting-randgeval hieronder: `is_shift_member()`
+  checkt alleen roster-lidmaatschap (`shift_members`), niet `members.role`.
+  Een `bardienst`-lid dat halverwege een dienst gedegradeerd wordt naar
+  `lid` blijft dus voor de rest van die dienst gewoon kiesbaar als
+  `served_by` — geaccepteerd, bestaand gedrag dat deze spec niet wijzigt
+  (zelfde reden als bij archiveren: zou #6/#7's RPC's raken, buiten scope).
+  Nieuw toevoegen aan een bezetting kan niet meer via de bestaande
+  staff-picker zodra een lid naar `lid` gedegradeerd is (`useBarStaff()`
+  filtert al op `role in ('bardienst', 'beheerder')`) — alleen "al vóór de
+  rolwijziging toegevoegd, blijft de rest van de dienst staan" is het
+  randgeval.
 - **Regressietest saldo-freeze is hier niet van toepassing** (in
   tegenstelling tot assortimentbeheer's prijs-freeze) — `update_member_name`/
-  `set_member_archived` raken nooit `balance_cents`, en `create_member`
+  `set_member_archived`/`set_member_role` raken nooit `balance_cents`, en
+  `create_member`
   schrijft een startsaldo alleen bij het aanmaken van een nieuwe rij (zie
   Doel). Geen bestaande `order_lines`/`top_ups`-historie kan hierdoor
   wijzigen.
@@ -337,19 +428,20 @@ dat een bredere projectie van dezelfde, al leesbare tabel toont.
 
 - **Rollen/rechten buiten Lid/Bardienst/Beheerder, rapportages,
   boekhouder-rol.** Het ontwerp (`designs/Bar App.dc.html`) kent ook
-  `barmanager`/`boekhouder`, een rechten-wijzigen-select ("Barrechten") met
-  vier opties, en een `Rapportages`-tab. `docs/ARCHITECTURE.md` → "Roles"
-  legt al vast dat ABAS bewust bij het vereenvoudigde 3-rollenmodel blijft
-  (`lid`/`bardienst`/`beheerder`) totdat een feature-verzoek dat expliciet
-  heropent — dit ticket is dat verzoek niet. Geen `barmanager`/
-  `boekhouder`-enum-waarde, geen rapportagescherm.
-- **Rol wijzigen tussen Lid/Bardienst/Beheerder voor een bestaand lid** — zie
-  Openstaande vraag voor Bram, punt 2. Niet stilzwijgend uitgesloten: dit is
-  een expliciete open vraag, geen aanname.
+  `barmanager`/`boekhouder` als rolwaarden — de "Barrechten"-select die dit
+  ticket wél bouwt (zie Schermflow, besloten door Bram) heeft in het ontwerp
+  vijf opties (`Geen`/`Barmedewerker`/`Barmanager`/`Beheerder`/`Boekhouder`);
+  deze spec beperkt de select tot de drie bestaande `member_role`-waarden
+  (`lid`/`bardienst`/`beheerder`), en bouwt ook geen `Rapportages`-tab.
+  `docs/ARCHITECTURE.md` → "Roles" legt al vast dat ABAS bewust bij het
+  vereenvoudigde 3-rollenmodel blijft totdat een feature-verzoek dat
+  expliciet heropent — Bram's akkoord op dit ticket is dat verzoek niet.
+  Geen `barmanager`/`boekhouder`-enum-waarde, geen rapportagescherm.
 - **Self-service uitnodigingsflow (`inviteUserByEmail`)** — dat is een apart
-  ticket (`docs/ARCHITECTURE.md` → "Lid-accounts"). Zie ook Openstaande vraag
-  voor Bram, punt 1, voor de aangrenzende vraag over een handmatige
-  "invite (opnieuw) versturen"-knop.
+  ticket (`docs/ARCHITECTURE.md` → "Lid-accounts"). Zie ook "Besloten door
+  Bram" hieronder voor de aangrenzende vraag over een handmatige
+  "invite (opnieuw) versturen"-knop, die net als deze flow buiten dit ticket
+  blijft.
 - **Negatieve-saldolimiet-instelling** — al gebouwd
   (`docs/features/negatieve-saldolimiet.md`), hoort niet bij dit ticket.
 - **Audit-log/`Logboek`-scherm** — niet-besloten scope
@@ -384,11 +476,14 @@ dat een bredere projectie van dezelfde, al leesbare tabel toont.
 - **Race-conditie-bescherming bij gelijktijdige schrijfacties** — zie
   Randgevallen, zelfde afweging als elders in deze codebase (#29).
 - **Cascaderende aanpassing van `shift_members`/`is_shift_member()` bij het
-  archiveren van een lid dat op een actieve bezetting staat** — zie
-  Randgevallen; zou #6/#7's RPC's raken, niet in deze spec.
+  archiveren of degraderen van een lid dat op een actieve bezetting staat**
+  — zie Randgevallen (beide gevallen); zou #6/#7's RPC's raken, niet in deze
+  spec.
 - **"Laatste beheerder"-bescherming** (blokkeren dat de laatst overgebleven
-  ándere beheerder gearchiveerd wordt) — zie Randgevallen, alleen
-  zelf-archiveren wordt geblokkeerd.
+  ándere beheerder gearchiveerd of gedegradeerd wordt) — zie Randgevallen,
+  bij beide RPC's (`set_member_archived`/`set_member_role`) wordt alleen
+  zelf-archiveren/zelf-degraderen geblokkeerd, niet een actie tegen een
+  ándere beheerder.
 
 ## `useShell()`-contract
 
@@ -397,41 +492,26 @@ Geen nieuwe invulling. De overlay(s) hergebruiken `Overlay.tsx`'s bestaande
 worden hier niet nieuw ingevuld — de ledenlijst is, net als de
 productenlijst, een verticale lijst, geen grid.
 
-## Openstaande vraag voor Bram
+## Besloten door Bram
 
-Twee punten die deze spec zelf niet kon beantwoorden — geen aanname, geen
-placeholder, expliciet voorgelegd vóór de Developer bouwt (CLAUDE.md →
-Werkstraat):
+Deze spec legde twee punten voor vóór de Developer bouwt (CLAUDE.md →
+Werkstraat) — geen aanname, geen placeholder. Bram heeft beide beantwoord;
+de rest van deze spec is al bijgewerkt om die antwoorden toe te passen, dit
+is de vindplaats van de beslissing zelf.
 
-1. **Hoort een "invite (opnieuw) versturen"-knop bij dít ticket?**
-   `docs/ARCHITECTURE.md` → "Lid-accounts" noemt: *"Een beheerder kan vanuit
-   Ledenbeheer altijd handmatig een invite (opnieuw) laten versturen"* — maar
-   het onderliggende mechanisme (`supabase.auth.admin.inviteUserByEmail()`,
-   server-side) bestaat nog niet in de code; dat is de self-service-
-   uitnodigingsflow onder een apart, nog niet opgepakt ticket
-   (`docs/ARCHITECTURE.md` → "Lid-accounts"). Twee opties:
-   - (a) De knop hoort bij dít ticket, maar staat non-functioneel/disabled
-     tot het uitnodigingsticket landt (met een duidelijke tekst waarom, geen
-     stille no-op).
-   - (b) De knop is een latere iteratie, pas gebouwd zodra het
-     uitnodigingsticket zelf al klaar is — dit ticket toont 'm helemaal niet.
-   Deze spec kiest geen van beide: CLAUDE.md's eigen regel ("geen
-   placeholder die later 'wel even' wordt ingevuld") wijst richting (b), maar
-   dat is een aanname, geen vastgestelde keuze — Bram beslist.
-2. **Hoort rol wijzigen (Lid ↔ Bardienst ↔ Beheerder) bij dít ticket?** Het
-   ontwerp's "Lid beheren"-overlay bevat een "Barrechten"-select; deze spec
-   sluit rolwijziging tussen de drie bestaande rollen bewust uit van de
-   Schermflow (zie Datamodel/Expliciet buiten scope) omdat de door Bram
-   aangeleverde scope-omschrijving voor dit ticket letterlijk noemt: "een
-   ledenlijst, '+ nieuw lid' (naam + optioneel startsaldo), naam wijzigen,
-   archiveren/terugzetten van een lid" — geen rolwijziging. Zonder een
-   RPC hiervoor blijft de enige weg om een lid `bardienst`/`beheerder`-rechten
-   te geven **handmatig via Supabase Studio/CLI**, hetzelfde patroon als
-   vandaag al voor beheerder-Auth-accounts geldt
-   (`docs/ARCHITECTURE.md` → "Provisioning voor #14"). Dat is een reëel gat:
-   zonder een rolwijzigings-RPC kan een beheerder een nieuw bardienst-lid
-   niet vanuit de app zelf bar-toegang geven. Vraag aan Bram: hoort een
-   `set_member_role`-achtige RPC + UI-actie (Lid ↔ Bardienst ↔ Beheerder,
-   geen `barmanager`/`boekhouder`) bij dít ticket, of blijft rolwijziging
-   voorlopig bewust handmatig (Studio/CLI), met een apart, nog te formuleren
-   ticket zodra dat gat in de praktijk knelt?
+1. **Een "invite (opnieuw) versturen"-knop: nee, niet in dit ticket.** Blijft
+   bij het aparte, nog niet opgepakte uitnodigingsticket
+   (`docs/ARCHITECTURE.md` → "Lid-accounts", issue #24) zodra dat zelf
+   `inviteUserByEmail` bouwt — dit ticket toont geen (disabled of anderszins
+   niet-functionele) knop ervoor. Dat spoort met CLAUDE.md's eigen regel
+   ("geen placeholder die later 'wel even' wordt ingevuld"), optie (b) uit de
+   oorspronkelijke vraag. Zie Expliciet buiten scope.
+2. **Rolwijziging (Lid ↔ Bardienst ↔ Beheerder): ja, hoort bij dit ticket.**
+   Een nieuwe `set_member_role`-RPC + UI-actie ("Barrechten", in
+   `LidBeherenOverlay.tsx`) — geen `barmanager`/`boekhouder`, die blijven
+   buiten het bestaande 3-rollenmodel (`docs/ARCHITECTURE.md` → "Roles"). Dit
+   is verwerkt in Datamodel, RPC's, Schermflow, Randgevallen en Expliciet
+   buiten scope hierboven/hieronder — inclusief de nieuwe
+   `self_demote_forbidden`-guard (zelfde zelfreferentie-redenering als
+   `self_archive_forbidden`) en dezelfde bewuste "geen laatste-beheerder-
+   telling"-afweging als bij archiveren.
