@@ -36,20 +36,36 @@ Dat is PII die CLAUDE.md's domeinmodel niet aan bardienst toekent.
 ## Beslissing
 
 **Een kolom die persoonsgegevens bevat en niet voor elke `authenticated`-
-sessie zichtbaar mag zijn, wordt column-level `REVOKE`d en uitsluitend via
-een `SECURITY DEFINER`-RPC met een actorcheck (ADR 0002-vorm) gelezen —
-dezelfde structuur als het bestaande "geld alleen via RPC"-patroon
-(CLAUDE.md → Architectuurbeslissingen), hier toegepast op een leesrecht in
-plaats van een schrijfrecht.**
+sessie zichtbaar mag zijn, wordt uit de kolommenlijst gehaald die
+`authenticated` mag lezen, en uitsluitend via een `SECURITY DEFINER`-RPC
+met een actorcheck (ADR 0002-vorm) gelezen — dezelfde structuur als het
+bestaande "geld alleen via RPC"-patroon (CLAUDE.md → Architectuurbeslissingen),
+hier toegepast op een leesrecht in plaats van een schrijfrecht.**
 
-Concreet, voor `members.email`:
+**Correctie (Bram, na een echte `db:test`-run in CI, PR #59):** de eerste
+versie van deze beslissing beschreef een kale
+`revoke select (email) on members from authenticated`. Dat bleek in de
+praktijk geen effect te hebben — de nieuwe negatieve test faalde ("caught:
+no exception, wanted: 42501") op een echte Postgres. Oorzaak:
+`authenticated` heeft via Supabase's platform-brede default-privileges al
+een **tabel-niveau** SELECT-grant op `members` (noodzakelijk — zonder die
+grant zou `members_select` sowieso nooit iets kunnen filteren, RLS filtert
+rijen, geen tabeltoegang). Postgres' privilegemodel laat een column-level
+`REVOKE` geen effect hebben zolang een bredere table-level `GRANT` dezelfde
+toegang al dekt: je kunt met een column-level REVOKE alleen intrekken wat
+ooit expliciet op column-niveau gegeven is, niet wat via een tabel-brede
+grant al bestaat. Concreet betekent dit patroon dus:
 
-1. `revoke select (email) on members from authenticated;` — blokkeert élke
-   directe tabel-select van die kolom, voor **iedereen** die als
-   `authenticated` inlogt: gedeelde device-sessie én beheerder-sessie
-   allebei. Dit is bewust ongenuanceerd op database-niveau — de
-   Postgres-rol kan het onderscheid bardienst/beheerder niet maken, alleen
-   een RPC kan dat.
+1. `revoke select on members from authenticated;` gevolgd door
+   `grant select (<alle kolommen behalve email>) on members to
+   authenticated;` — de tabel-brede grant intrekken en de overgebleven
+   kolommen stuk voor stuk expliciet teruggeven is de enige manier waarop
+   een column-level afscherming in Postgres daadwerkelijk werkt. Dit
+   blokkeert élke directe tabel-select van de afgeschermde kolom, voor
+   **iedereen** die als `authenticated` inlogt: gedeelde device-sessie én
+   beheerder-sessie allebei. Dit is bewust ongenuanceerd op
+   database-niveau — de Postgres-rol kan het onderscheid bardienst/
+   beheerder niet maken, alleen een RPC kan dat.
 2. Een nieuwe `SECURITY DEFINER`-RPC (zie
    `docs/features/ledenbeheer-email.md` → RPC's → "Nieuw precedent" voor de
    exacte naam/signatuur) doet de ADR-0002-actorcheck

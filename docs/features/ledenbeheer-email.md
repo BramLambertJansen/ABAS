@@ -292,8 +292,17 @@ mag niet via de brede `members_select`-policy leesbaar blijven, want die
 policy geldt voor elke `authenticated`-sessie — inclusief de gedeelde
 bar-tablet-sessie (bardienst), die dit veld volgens CLAUDE.md → Domein niet
 hoort te kunnen lezen. Zelfde structuur als "geld alleen via RPC", hier
-toegepast op een leesrecht: column-level `REVOKE` + een `SECURITY
-DEFINER`-RPC met de ADR-0002-actorcheck.
+toegepast op een leesrecht: `email` uit de kolommenlijst van `authenticated`
+halen + een `SECURITY DEFINER`-RPC met de ADR-0002-actorcheck.
+
+**Correctie (Bram, na een echte `db:test`-run in CI, PR #59):** een kale
+`revoke select (email) on members from authenticated` bleek geen effect te
+hebben — `authenticated` heeft al een tabel-brede SELECT-grant op `members`
+(Supabase's platform-default, nodig voor RLS), en een column-level REVOKE
+kan die niet overrulen in Postgres. De werkende vorm: de tabel-brede
+SELECT intrekken en de overgebleven kolommen (alles behalve `email`)
+expliciet teruggeven. Zie [ADR 0004](../adr/0004-pii-kolommen-vereisen-rpc-gated-lezen.md)
+voor de volledige uitleg.
 
 **Naam:** `list_members_admin` — gekozen naar analogie van de bestaande
 `_admin`/`no_admin_role`-naamgeving in deze RPC-familie (het foutcode-woord
@@ -308,10 +317,15 @@ de actie in de naam dragen).
 ```sql
 -- ADR 0004: members.email is PII die niet via de brede members_select-policy
 -- leesbaar mag blijven (die geldt voor elke `authenticated`-sessie,
--- inclusief de gedeelde bar-tablet-sessie). Column-level REVOKE + een
--- SECURITY DEFINER-RPC met dezelfde ADR-0002-actorcheck als de overige
--- beheerder-only RPC's in dit bestand/0007/0008.
-revoke select (email) on members from authenticated;
+-- inclusief de gedeelde bar-tablet-sessie). `authenticated` heeft al een
+-- tabel-brede SELECT-grant op members (Supabase-platformdefault, nodig
+-- voor RLS) -- een column-level REVOKE kan die niet overrulen, dus: de
+-- tabel-brede SELECT intrekken en alle kolommen behalve email expliciet
+-- teruggeven (zie ADR 0004 voor de volledige uitleg van deze correctie).
+revoke select on members from authenticated;
+grant select (
+  id, name, role, pin_hash, balance_cents, archived, created_at, auth_user_id
+) on members to authenticated;
 
 create or replace function list_members_admin()
 returns setof members
