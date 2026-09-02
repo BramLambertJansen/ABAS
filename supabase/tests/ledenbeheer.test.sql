@@ -21,7 +21,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(59);
+select plan(61);
 
 -- ── Fixtures ──────────────────────────────────────────────────────────
 
@@ -508,6 +508,38 @@ select is(
   (select archived from members where id = '00000000-0000-0000-0000-0000000002a7'),
   true,
   'the member stays archived after its email was updated'
+);
+
+-- ── members_email_format_check (db-level constraint, #57) ───────────────
+--
+-- Belt-and-braces (spec → RPC's: "drie plekken, bewust niet één gedeelde
+-- bron" — db-constraint, RPC-validatie, client-helper). The RPC-level
+-- invalid_email tests above prove the RPC's own validation; they say
+-- nothing about whether the db-level `members_email_format_check`
+-- constraint itself actually rejects a bad value, independent of the RPC.
+-- These two cases write directly to the table (like
+-- rls_write_protection.test.sql does to prove the REVOKE), bypassing the
+-- RPC entirely, to prove the constraint itself holds. `authenticated`
+-- could never reach this path anyway — the blanket REVOKE on members
+-- (0001_init.sql, proven in rls_write_protection.test.sql) blocks it first
+-- — but this file's fixture inserts above already run with broader
+-- privileges than `authenticated` (no `set local role authenticated` in
+-- this file), which is exactly the "any future write path that bypasses
+-- the RPCs" scenario the migration's own comment names as the reason the
+-- constraint exists.
+
+select throws_ok(
+  $$ insert into members (name, role, email) values ('Ongeldige Email Insert', 'lid', 'niet-een-email') $$,
+  '23514',
+  'new row for relation "members" violates check constraint "members_email_format_check"',
+  'members_email_format_check rejects a direct insert with an invalid email format'
+);
+
+select throws_ok(
+  $$ update members set email = 'ook-ongeldig' where id = '00000000-0000-0000-0000-0000000002a5' $$,
+  '23514',
+  'new row for relation "members" violates check constraint "members_email_format_check"',
+  'members_email_format_check rejects a direct update with an invalid email format'
 );
 
 select * from finish();
