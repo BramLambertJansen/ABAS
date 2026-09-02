@@ -37,11 +37,21 @@ export function useUpdateMemberEmail() {
 
   /** `email` null/leeg -> stuurt `p_email = null` (of een leeg string, de
    *  RPC behandelt leeg/whitespace-only hetzelfde als null — "e-mailadres
-   *  wissen", zie docs/features/ledenbeheer-email.md → Randgevallen). */
+   *  wissen", zie docs/features/ledenbeheer-email.md → Randgevallen).
+   *
+   *  Retourneert de errorCode direct in het resultaat i.p.v. de aanroeper
+   *  `errorCode` uit deze hook's state te laten lezen na de `await` — dat
+   *  zou een stale closure zijn: `setState` plant alleen een volgende
+   *  render, de `emailMutation`-referentie in de aanroepende component is
+   *  nog die van de render vóór deze aanroep (Codex-reviewbevinding op
+   *  PR #59, `LidBeherenOverlay.tsx`'s `member_not_found`-race-afhandeling
+   *  las hierdoor altijd de oude errorCode). */
   async function updateMemberEmail(
     memberId: string,
     email: string | null
-  ): Promise<LedenbeheerLid | null> {
+  ): Promise<
+    { member: LedenbeheerLid; errorCode: null } | { member: null; errorCode: UpdateMemberEmailErrorCode }
+  > {
     setState({ status: "pending" });
     try {
       const supabase = createClient();
@@ -54,24 +64,26 @@ export function useUpdateMemberEmail() {
       });
 
       if (error) {
-        setState({ status: "error", code: toErrorCode(error.message) });
-        return null;
+        const code = toErrorCode(error.message);
+        setState({ status: "error", code });
+        return { member: null, errorCode: code };
       }
       setState({ status: "idle" });
       return {
-        id: data.id as string,
-        name: data.name as string,
-        role: data.role as LedenbeheerLid["role"],
-        balanceCents: data.balance_cents as number,
-        archived: data.archived as boolean,
-        email: data.email as string | null,
+        member: {
+          id: data.id as string,
+          name: data.name as string,
+          role: data.role as LedenbeheerLid["role"],
+          balanceCents: data.balance_cents as number,
+          archived: data.archived as boolean,
+          email: data.email as string | null,
+        },
+        errorCode: null,
       };
     } catch (err) {
-      setState({
-        status: "error",
-        code: toErrorCode(err instanceof Error ? err.message : undefined),
-      });
-      return null;
+      const code = toErrorCode(err instanceof Error ? err.message : undefined);
+      setState({ status: "error", code });
+      return { member: null, errorCode: code };
     }
   }
 

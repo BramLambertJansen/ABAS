@@ -170,16 +170,16 @@ export function LidBeherenOverlay({
   async function saveEmail() {
     if (!canSaveEmail) return;
     setLastAction("email");
-    const updated = await emailMutation.updateMemberEmail(
+    const result = await emailMutation.updateMemberEmail(
       member.id,
       trimmedEmail === "" ? null : trimmedEmail
     );
-    if (updated) {
-      setMember(updated);
-      setEmailInput(updated.email ?? "");
+    if (result.member) {
+      setMember(result.member);
+      setEmailInput(result.member.email ?? "");
       onChanged();
       showToast("E-mailadres bijgewerkt");
-    } else if (emailMutation.errorCode === "member_not_found") {
+    } else if (result.errorCode === "member_not_found") {
       onChanged();
     }
   }
