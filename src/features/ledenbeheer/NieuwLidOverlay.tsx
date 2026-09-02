@@ -8,6 +8,7 @@ import {
 } from "@/hooks/queries/useCreateMember";
 import type { LedenbeheerLid } from "@/hooks/queries/useAlleLeden";
 import { parseEuroToCents } from "@/lib/money";
+import { isValidEmailFormat } from "@/lib/email";
 
 function errorMessage(code: CreateMemberErrorCode): string {
   switch (code) {
@@ -15,6 +16,8 @@ function errorMessage(code: CreateMemberErrorCode): string {
       return "vul een naam in";
     case "invalid_starting_balance":
       return "vul een geldig startsaldo in (€0,00 of hoger)";
+    case "invalid_email":
+      return "vul een geldig e-mailadres in, of laat het veld leeg";
     case "actor_not_found":
       return "dit account is niet gekoppeld aan een lid — vraag een beheerder";
     case "no_admin_role":
@@ -25,9 +28,10 @@ function errorMessage(code: CreateMemberErrorCode): string {
 }
 
 /**
- * "Nieuw lid"-overlay — naam (verplicht) en startsaldo (optioneel). Zie
- * docs/features/ledenbeheer.md → Schermflow stap 2. Leeg startsaldo-veld
- * stuurt `p_starting_balance_cents = null`, niet `0` als string — de RPC
+ * "Nieuw lid"-overlay — naam (verplicht), startsaldo (optioneel) en
+ * e-mailadres (optioneel). Zie docs/features/ledenbeheer.md → Schermflow
+ * stap 2 en docs/features/ledenbeheer-email.md → Schermflow stap 1. Leeg
+ * startsaldo-/e-mailveld stuurt `null`, niet een lege string — de RPC
  * behandelt beide gelijk (zie RPC's).
  */
 export function NieuwLidOverlay({
@@ -40,22 +44,33 @@ export function NieuwLidOverlay({
   const createMember = useCreateMember();
   const [name, setName] = useState("");
   const [balanceInput, setBalanceInput] = useState("");
+  const [emailInput, setEmailInput] = useState("");
   const nameId = useId();
   const balanceId = useId();
+  const emailId = useId();
 
   const trimmedBalanceInput = balanceInput.trim();
   const balanceCents =
     trimmedBalanceInput === "" ? null : parseEuroToCents(trimmedBalanceInput);
   const balanceValid =
     trimmedBalanceInput === "" || (balanceCents !== null && balanceCents >= 0);
+
+  const trimmedEmailInput = emailInput.trim();
+  const emailValid =
+    trimmedEmailInput === "" || isValidEmailFormat(trimmedEmailInput);
+
   const canSubmit =
-    name.trim() !== "" && balanceValid && createMember.status !== "pending";
+    name.trim() !== "" &&
+    balanceValid &&
+    emailValid &&
+    createMember.status !== "pending";
 
   async function submit() {
     if (!canSubmit) return;
     const member = await createMember.createMember(
       name,
-      trimmedBalanceInput === "" ? null : balanceCents
+      trimmedBalanceInput === "" ? null : balanceCents,
+      trimmedEmailInput === "" ? null : trimmedEmailInput
     );
     if (member) {
       onCreated(member);
@@ -99,6 +114,19 @@ export function NieuwLidOverlay({
             className="h-12 flex-1 min-w-0 bg-transparent text-sm font-semibold text-white outline-none"
           />
         </div>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <label htmlFor={emailId} className="text-xs font-bold text-rail-muted">
+          E-mailadres (optioneel)
+        </label>
+        <input
+          id={emailId}
+          type="email"
+          value={emailInput}
+          onChange={(event) => setEmailInput(event.target.value)}
+          className="h-12 rounded-control border border-rail-border bg-rail px-3.5 text-sm font-semibold text-white outline-none focus:border-accent"
+        />
       </div>
 
       <div className="flex gap-2.5">

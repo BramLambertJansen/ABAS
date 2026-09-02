@@ -15,6 +15,7 @@ export type LedenbeheerLid = {
   role: "lid" | "bardienst" | "beheerder";
   balanceCents: number;
   archived: boolean;
+  email: string | null;
 };
 
 type State =
@@ -26,7 +27,16 @@ type State =
  *  vinden om terug te zetten), alfabetisch op naam. Writes gaan via
  *  create_member/update_member_name/set_member_archived/set_member_role,
  *  nooit een directe insert/update — `members` is REVOKEd voor
- *  `authenticated` sinds 0001_init.sql. */
+ *  `authenticated` sinds 0001_init.sql.
+ *
+ *  Lezen via de `list_members_admin()`-RPC, geen directe
+ *  `.from("members").select(...)` (ADR 0004, docs/features/
+ *  ledenbeheer-email.md → RPC's): `members.email` is PII en sinds
+ *  migratie 0009 column-level REVOKEd voor `authenticated` — de brede
+ *  `members_select`-policy geldt voor élke ingelogde sessie, inclusief de
+ *  gedeelde bar-tablet-sessie, dus een directe select zou de kolom niet meer
+ *  teruggeven. De RPC draait `security definer` met een beheerder-
+ *  actorcheck en sorteert zelf al op naam. */
 export function useAlleLeden(): State & { refetch: () => void } {
   const [state, setState] = useState<State>({ status: "loading" });
   const [tick, setTick] = useState(0);
@@ -35,19 +45,17 @@ export function useAlleLeden(): State & { refetch: () => void } {
     setState({ status: "loading" });
     try {
       const supabase = createClient();
-      const { data, error } = await supabase
-        .from("members")
-        .select("id, name, role, balance_cents, archived")
-        .order("name", { ascending: true });
+      const { data, error } = await supabase.rpc("list_members_admin");
 
       if (error) throw error;
 
-      const members: LedenbeheerLid[] = (data ?? []).map((row) => ({
+      const members: LedenbeheerLid[] = (data ?? []).map((row: Record<string, unknown>) => ({
         id: row.id as string,
         name: row.name as string,
         role: row.role as LedenbeheerLid["role"],
         balanceCents: row.balance_cents as number,
         archived: row.archived as boolean,
+        email: row.email as string | null,
       }));
 
       setState({ status: "ready", members });
