@@ -61,6 +61,7 @@ export function useUpdateMemberName() {
         role: data.role as LedenbeheerLid["role"],
         balanceCents: data.balance_cents as number,
         archived: data.archived as boolean,
+        email: data.email as string | null,
       };
     } catch (err) {
       setState({

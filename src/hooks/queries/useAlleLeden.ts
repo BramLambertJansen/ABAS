@@ -15,6 +15,7 @@ export type LedenbeheerLid = {
   role: "lid" | "bardienst" | "beheerder";
   balanceCents: number;
   archived: boolean;
+  email: string | null;
 };
 
 type State =
@@ -37,7 +38,7 @@ export function useAlleLeden(): State & { refetch: () => void } {
       const supabase = createClient();
       const { data, error } = await supabase
         .from("members")
-        .select("id, name, role, balance_cents, archived")
+        .select("id, name, role, balance_cents, archived, email")
         .order("name", { ascending: true });
 
       if (error) throw error;
@@ -48,6 +49,7 @@ export function useAlleLeden(): State & { refetch: () => void } {
         role: row.role as LedenbeheerLid["role"],
         balanceCents: row.balance_cents as number,
         archived: row.archived as boolean,
+        email: row.email as string | null,
       }));
 
       setState({ status: "ready", members });

@@ -4,13 +4,13 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { LedenbeheerLid } from "./useAlleLeden";
 
-/** Error codes `set_member_archived` (0007_ledenbeheer.sql) actually
- *  raises. Anything else valt terug op "unknown". `self_archive_forbidden`
- *  — zie docs/features/ledenbeheer.md → Randgevallen — is nieuw t.o.v. het
- *  assortimentbeheer-precedent (geen zelfreferentie-risico daar). */
-export type SetMemberArchivedErrorCode =
+/** Error codes `update_member_email` (0008_ledenbeheer_email.sql) actually
+ *  raises. Anything else valt terug op "unknown". Geen eis dat het lid niet
+ *  gearchiveerd is — zie docs/features/ledenbeheer-email.md → Randgevallen
+ *  "Gearchiveerd lid, e-mailadres wijzigen". */
+export type UpdateMemberEmailErrorCode =
   | "member_not_found"
-  | "self_archive_forbidden"
+  | "invalid_email"
   | "actor_not_found"
   | "no_admin_role"
   | "unknown";
@@ -18,12 +18,12 @@ export type SetMemberArchivedErrorCode =
 type State =
   | { status: "idle" }
   | { status: "pending" }
-  | { status: "error"; code: SetMemberArchivedErrorCode };
+  | { status: "error"; code: UpdateMemberEmailErrorCode };
 
-function toErrorCode(message: string | undefined): SetMemberArchivedErrorCode {
+function toErrorCode(message: string | undefined): UpdateMemberEmailErrorCode {
   if (
     message === "member_not_found" ||
-    message === "self_archive_forbidden" ||
+    message === "invalid_email" ||
     message === "actor_not_found" ||
     message === "no_admin_role"
   ) {
@@ -32,24 +32,25 @@ function toErrorCode(message: string | undefined): SetMemberArchivedErrorCode {
   return "unknown";
 }
 
-export function useSetMemberArchived() {
+export function useUpdateMemberEmail() {
   const [state, setState] = useState<State>({ status: "idle" });
 
-  /** Client stuurt de expliciete gewenste eindstaat — nooit een "toggle",
-   *  zelfde stijl als useSetProductArchived. */
-  async function setMemberArchived(
+  /** `email` null/leeg -> stuurt `p_email = null` (of een leeg string, de
+   *  RPC behandelt leeg/whitespace-only hetzelfde als null — "e-mailadres
+   *  wissen", zie docs/features/ledenbeheer-email.md → Randgevallen). */
+  async function updateMemberEmail(
     memberId: string,
-    archived: boolean
+    email: string | null
   ): Promise<LedenbeheerLid | null> {
     setState({ status: "pending" });
     try {
       const supabase = createClient();
-      // set_member_archived returns `members` (single row, not `setof
+      // update_member_email returns `members` (single row, not `setof
       // members`) — zie useCreateProduct.ts voor waarom geen
       // .single()/.maybeSingle() nodig is.
-      const { data, error } = await supabase.rpc("set_member_archived", {
+      const { data, error } = await supabase.rpc("update_member_email", {
         p_member_id: memberId,
-        p_archived: archived,
+        p_email: email,
       });
 
       if (error) {
@@ -77,7 +78,7 @@ export function useSetMemberArchived() {
   return {
     status: state.status,
     errorCode: state.status === "error" ? state.code : null,
-    setMemberArchived,
+    updateMemberEmail,
     reset: () => setState({ status: "idle" }),
   };
 }
