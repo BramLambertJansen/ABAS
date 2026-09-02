@@ -184,7 +184,7 @@ export function LedenLijst() {
                     {member.name}
                   </span>
                   {member.role === "bardienst" && (
-                    <span className="flex-none rounded-full bg-border-subtle px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide text-muted">
+                    <span className="flex-none rounded-full border border-border bg-canvas px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide text-muted">
                       BAR
                     </span>
                   )}
