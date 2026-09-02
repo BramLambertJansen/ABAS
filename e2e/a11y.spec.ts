@@ -111,6 +111,105 @@ test.describe("beheer ingelogde staat (a11y)", () => {
     expect(results.violations, JSON.stringify(results.violations, null, 2))
       .toEqual([]);
   });
+
+  /**
+   * docs/features/ledenbeheer.md → Randgevallen → "A11y": "Tester breidt
+   * hetzelfde scenario uit met de Leden-tab en beide nieuwe overlays
+   * ('Nieuw lid'/'Lid beheren')" — same shape as the Assortiment-/
+   * Instellingen-tab scenarios above, just for the new third tab
+   * (`LedenLijst.tsx`, `src/features/ledenbeheer/`).
+   */
+  test("beheer (/beheer) Leden-tab (ingelogd) has no WCAG2A/AA violations", async ({
+    page,
+  }) => {
+    await loginAsBeheerder(page);
+
+    await page.getByRole("tab", { name: "Leden" }).click();
+    await page
+      .getByRole("heading", { name: "Leden" })
+      .waitFor({ state: "visible", timeout: 15_000 });
+
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+
+    expect(results.violations, JSON.stringify(results.violations, null, 2))
+      .toEqual([]);
+  });
+
+  /**
+   * docs/features/ledenbeheer.md → Randgevallen → "A11y", second of the two
+   * new overlays. Opened from the Leden-tab's "+ nieuw lid"-button
+   * (`NieuwLidOverlay.tsx` — a plain `Overlay.tsx` consumer, same
+   * open-dialog-then-scan shape as the bar-shell overlay scenarios below,
+   * just reached from the beheer-sessie rather than a started shift).
+   */
+  test("beheer (/beheer) Nieuw-lid-overlay has no WCAG2A/AA violations", async ({
+    page,
+  }) => {
+    await loginAsBeheerder(page);
+
+    await page.getByRole("tab", { name: "Leden" }).click();
+    await page
+      .getByRole("heading", { name: "Leden" })
+      .waitFor({ state: "visible", timeout: 15_000 });
+
+    await page.getByRole("button", { name: "nieuw lid" }).click();
+
+    const dialog = page.getByRole("dialog", { name: "Nieuw lid" });
+    await dialog.waitFor({ state: "visible" });
+
+    // Same focus-on-open contract as every Overlay.tsx consumer (see
+    // docs/features/bezetting-beheren.md → useShell()-contract).
+    await expect(dialog).toBeFocused();
+
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+
+    expect(results.violations, JSON.stringify(results.violations, null, 2))
+      .toEqual([]);
+  });
+
+  /**
+   * docs/features/ledenbeheer.md → Randgevallen → "A11y", the last of the
+   * two new overlays. Opened by tapping a lidrij in the Leden-tab
+   * (`LidBeherenOverlay.tsx`). Uses "Anna de Vries" — same seeded, non-
+   * beheerder lid the stateful bar-shell scenarios below already pick by
+   * name (`supabase/seed.sql`) — deliberately not Femke Bos herself (the
+   * logged-in beheerder): opening her own row would still open the same
+   * overlay markup, but picking a different lid keeps this scenario's
+   * fixture choice independent of the self_archive_forbidden/
+   * self_demote_forbidden guards (docs/features/ledenbeheer.md →
+   * Randgevallen), which this a11y-only scan never exercises anyway (no
+   * button here is clicked beyond opening the dialog).
+   */
+  test("beheer (/beheer) Lid-beheren-overlay has no WCAG2A/AA violations", async ({
+    page,
+  }) => {
+    await loginAsBeheerder(page);
+
+    await page.getByRole("tab", { name: "Leden" }).click();
+    await page
+      .getByRole("heading", { name: "Leden" })
+      .waitFor({ state: "visible", timeout: 15_000 });
+
+    await page.getByRole("button", { name: /Anna de Vries/i }).click();
+
+    const dialog = page.getByRole("dialog", { name: "Lid beheren" });
+    await dialog.waitFor({ state: "visible" });
+
+    // Same focus-on-open contract as every Overlay.tsx consumer (see
+    // docs/features/bezetting-beheren.md → useShell()-contract).
+    await expect(dialog).toBeFocused();
+
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+
+    expect(results.violations, JSON.stringify(results.violations, null, 2))
+      .toEqual([]);
+  });
 });
 
 /**

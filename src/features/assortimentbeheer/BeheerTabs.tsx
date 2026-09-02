@@ -4,23 +4,29 @@ import Link from "next/link";
 import { useId, useState } from "react";
 import { ProductenLijst } from "./ProductenLijst";
 import { NegatieveLimietInstellingen } from "./NegatieveLimietInstellingen";
+import { LedenLijst } from "../ledenbeheer/LedenLijst";
 
-type Tab = "assortiment" | "instellingen";
+type Tab = "assortiment" | "leden" | "instellingen";
 
 /**
- * Navigatie tussen Assortiment (bestaande `ProductenLijst`, ongewijzigd) en
- * Instellingen (nieuw, issue #11 — `NegatieveLimietInstellingen`), ná een
- * bevestigde `/beheer`-sessie. Zie docs/features/negatieve-saldolimiet.md →
- * Betrokken shell / Navigatie: dit past exact hetzelfde `role="tablist"`-
- * patroon toe als `src/features/verkoop/DienstTabs.tsx` (bekeken als
- * referentie-implementatie), niet een nieuwe navigatiebeslissing —
+ * Navigatie tussen Assortiment (bestaande `ProductenLijst`, ongewijzigd),
+ * Leden (nieuw, ledenbeheer — `LedenLijst`, eigen featuremap
+ * `src/features/ledenbeheer/`, zie docs/features/ledenbeheer.md →
+ * Betrokken shell voor waarom dit een gewone cross-feature-import is, geen
+ * `check:arch`-overtreding) en Instellingen (issue #11 —
+ * `NegatieveLimietInstellingen`), ná een bevestigde `/beheer`-sessie. Zie
+ * docs/features/negatieve-saldolimiet.md → Betrokken shell / Navigatie: dit
+ * past exact hetzelfde `role="tablist"`-patroon toe als
+ * `src/features/verkoop/DienstTabs.tsx` (bekeken als referentie-
+ * implementatie), niet een nieuwe navigatiebeslissing —
  * `assortimentbeheer.md`'s eigen "geen tabbalk"-buiten-scope-punt klopte
  * alleen zolang er precies één scherm achter de beheer-login bestond.
+ * Tabvolgorde (Assortiment/Leden/Instellingen) is aan de Developer, geen
+ * architectuurkeuze (docs/features/ledenbeheer.md → Betrokken shell).
  *
  * Elk tabblad blijft alleen gemount terwijl het actief is (zelfde
  * mount/unmount-lifecycle als `DienstTabs`, geen hidden-toggle) — zo krijgt
- * de Instellingen-tab bij elke terugkeer altijd een verse
- * `useAppSettings()`-lezing.
+ * elke tab bij elke terugkeer altijd een verse leeshook-lezing.
  *
  * De "Ingelogd als {naam} — uitloggen"-indicator en de
  * "← terug naar bardienst"-link staan hier, niet meer in
@@ -36,6 +42,7 @@ export function BeheerTabs({
 }) {
   const [tab, setTab] = useState<Tab>("assortiment");
   const assortimentTabId = useId();
+  const ledenTabId = useId();
   const instellingenTabId = useId();
 
   return (
@@ -81,6 +88,21 @@ export function BeheerTabs({
         <button
           type="button"
           role="tab"
+          id={ledenTabId}
+          aria-selected={tab === "leden"}
+          aria-controls="leden-panel"
+          onClick={() => setTab("leden")}
+          className={`flex min-h-[44px] items-center rounded-2xl px-4 text-sm font-bold transition-colors ${
+            tab === "leden"
+              ? "bg-accent-active text-white"
+              : "text-muted hover:bg-white hover:text-ink"
+          }`}
+        >
+          Leden
+        </button>
+        <button
+          type="button"
+          role="tab"
           id={instellingenTabId}
           aria-selected={tab === "instellingen"}
           aria-controls="instellingen-panel"
@@ -103,6 +125,17 @@ export function BeheerTabs({
           className="flex min-h-0 flex-1 flex-col gap-5"
         >
           <ProductenLijst />
+        </div>
+      )}
+
+      {tab === "leden" && (
+        <div
+          id="leden-panel"
+          role="tabpanel"
+          aria-labelledby={ledenTabId}
+          className="flex min-h-0 flex-1 flex-col gap-5"
+        >
+          <LedenLijst />
         </div>
       )}
 
