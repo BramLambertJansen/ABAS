@@ -1,5 +1,17 @@
 # 0003 — Auth-methode is een per-lid either/or-keuze; modus (bar/beheer) is vast, niet wisselbaar binnen een sessie
 
+**Beslissing 1 (either/or, "nooit allebei tegelijk") is aangevuld door
+[ADR 0004](0004-wachtwoord-verplicht-pin-optionele-snelkoppeling.md)
+(2026-09-02)** — Bram heeft, bij het beoordelen van de #42-conceptspec die
+dit ADR uitvoerde, vastgesteld dat wachtwoord altijd verplicht is voor
+`bardienst`/`beheerder` en dat PIN een optionele, niet-exclusieve
+snelkoppeling is (beide tegelijk mag, alleen PIN zonder werkend wachtwoord
+niet). Beslissing 2/3/4 hieronder (modus-keuze, bar-modus-gedrag, doel van
+login) blijven ongewijzigd geldend — alleen Beslissing 1 is met ADR 0004
+vervangen voor de "welke inlogmethode(s) mag een lid hebben"-as. Lees ADR
+0004 voor de volledige context; dit document blijft voor het overige de
+geldende beschrijving.
+
 Status: **geïmplementeerd** voor het deel dat #14 bouwde (issue #14, PR #45,
 gemerged 2026-08-27 — `/beheer`'s inlogflow en de scope-splitsing hieronder,
 zie `docs/features/assortimentbeheer.md`); de auth-methode-instelling per
