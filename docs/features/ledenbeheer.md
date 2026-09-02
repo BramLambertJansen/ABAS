@@ -1,15 +1,35 @@
 # Ledenbeheer (member CRUD)
 
-Spec voor ledenbeheer — **GitHub-issuenummer nog niet toegewezen.** Er
-bestaat op het moment van schrijven geen ticket voor dit onderwerp; Bram
-heeft het als volgende onderwerp gekozen (zie `docs/ARCHITECTURE.md` → "Wat
-het prototype deed maar hier nog niet is besloten": *"`Leden` admin screen
-(member CRUD) — implied necessary since `beheerder` manages ledenbeheer per
-`CLAUDE.md`, but not yet specced."*). Deze spec vervangt die placeholder-regel
-zodra ze goedgekeurd is. Bram wijst bij akkoord een issuenummer toe (of dit
-gebeurt als onderdeel van het akkoord zelf) — de verwijzingen hieronder naar
-"dit ticket" zijn dus voorlopig zonder nummer; de Developer/Reviewer werken
-dit bij zodra het nummer bekend is, geen inhoudelijke wijziging.
+Spec voor [issue #13](https://github.com/BramLambertJansen/ABAS/issues/13).
+
+**Gebouwd en gemerged** ([issue #13](https://github.com/BramLambertJansen/ABAS/issues/13),
+[PR #55](https://github.com/BramLambertJansen/ABAS/pull/55), 2026-09-02,
+merge-commit `8a3cb412`). De rest van dit document beschrijft wat er
+daadwerkelijk op `main` staat.
+
+**Spec-correctie (Docs, 2026-09-02):** onderstaande alinea beweerde bij het
+schrijven van deze spec (2026-09-01) dat er "op het moment van schrijven
+geen ticket" voor dit onderwerp bestond. Dat was onjuist — issue #13
+("Ledenbeheer-scherm (CRUD, saldo inzien, archiveren)", Fase 2) stond al
+sinds 2026-08-25 open, vóór deze spec geschreven werd; de Architect heeft er
+bij het scopen niet naar gezocht. De rest van de alinea (waarom Bram dit als
+volgende onderwerp koos, de placeholder-regel in `docs/ARCHITECTURE.md`)
+klopt inhoudelijk nog steeds en staat ongewijzigd hieronder — alleen de
+"geen ticket bestaat"-claim was fout. Issue #13's eigen acceptatiecriterium
+"een e-mailadres is optioneel" doelde op een e-mailveld bij het aanmaken van
+een lid; dat veld is hier bewust niet gebouwd (zie Expliciet buiten scope
+hieronder) — consistent met #13's eigen "Let op"-sectie, die de
+e-mail/uitnodigingsflow al bij #24 belegde, niet bij dit scherm.
+
+Bram heeft ledenbeheer als volgende onderwerp gekozen (zie
+`docs/ARCHITECTURE.md` → "Wat het prototype deed maar hier nog niet is
+besloten": *"`Leden` admin screen (member CRUD) — implied necessary since
+`beheerder` manages ledenbeheer per `CLAUDE.md`, but not yet specced."*).
+Deze spec verving die placeholder-regel bij goedkeuring; de opmerking die
+hier eerder stond ("de verwijzingen hieronder naar 'dit ticket' zijn
+voorlopig zonder nummer") is achterhaald door de Spec-correctie hierboven —
+elke verwijzing naar "dit ticket" in de rest van dit document betekent
+gewoon #13.
 
 Volgt hetzelfde beheer-sessiepatroon als
 [#14](https://github.com/BramLambertJansen/ABAS/issues/14)

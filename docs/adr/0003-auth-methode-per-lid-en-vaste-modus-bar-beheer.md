@@ -133,7 +133,21 @@ voor bestaat. Daarom:
   werkende opties, plus de navigatie-ingang ernaartoe vanaf de bar-shell
   root), en de vraag wat er gebeurt met bestaande leden die alleen
   `pin_hash` hebben (default-methode, migratiepad). Zie de volledige
-  issue-tekst in de Architect-rapportage bij dit ADR.
+  issue-tekst in de Architect-rapportage bij dit ADR — inmiddels
+  [issue #42](https://github.com/BramLambertJansen/ABAS/issues/42).
+
+  **Update (Docs, 2026-09-02):** de gok hierboven ("vermoedelijk
+  ledenbeheer") is niet uitgekomen. Ledenbeheer is inmiddels gebouwd en
+  gemerged ([issue #13](https://github.com/BramLambertJansen/ABAS/issues/13),
+  PR #55, `docs/features/ledenbeheer.md`,
+  `docs/ARCHITECTURE.md` → "Ledenbeheer (gebouwd en gemerged, #13, PR #55,
+  2026-09-02)") zonder een auth-methode-instelling: die spec noemt dit
+  onderwerp nergens, `LidBeherenOverlay.tsx` biedt alleen naam/rol/archief
+  aan, geen PIN-vs-e-mail-keuze. #42 blijft dus volledig open en losstaand
+  — de "waar dit wordt ingesteld"-vraag is niet langer "vermoedelijk
+  ledenbeheer" maar een nog te bepalen plek binnen #42's eigen scope
+  (mogelijk een uitbreiding van `LidBeherenOverlay.tsx`, mogelijk elders —
+  aan de Architect van #42 om te beslissen, geen aanname hier).
 
 ## Effect op eerdere documenten
 

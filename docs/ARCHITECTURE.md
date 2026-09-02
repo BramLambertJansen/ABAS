@@ -564,6 +564,35 @@ de dienst-starter. De overlay is gebouwd tegen de gedeelde `StatCard`
 ("Extract shared UI components", `src/components/`), die vóór #12's merge
 al specifiek met deze overlay als consument in gedachten waren gevormd.
 
+**Ledenbeheer (gebouwd en gemerged, #13, PR #55, 2026-09-02)**: een nieuwe
+"Leden"-tab in `BeheerTabs.tsx` (naast Assortiment/Instellingen — zie
+"Negatieve-saldolimiet" hierboven voor die tabbalk zelf), eigen featuremap
+`src/features/ledenbeheer/` (`LedenLijst.tsx`, `NieuwLidOverlay.tsx`,
+`LidBeherenOverlay.tsx`), eigen leeshook `useAlleLeden()` naast de bestaande
+`useMembers()` (`docs/features/ledenbeheer.md` → Leeshook). Vier nieuwe
+beheerder-only RPC's (`supabase/migrations/0007_ledenbeheer.sql`):
+`create_member`, `update_member_name`, `set_member_archived`,
+`set_member_role` — allemaal ADR 0002's `auth.uid()`-actorcheckvorm, geen
+schemawijziging (`members` stond al sinds `0001_init.sql` in de
+blanket-`REVOKE`, dus geen nieuwe `REVOKE` nodig, in tegenstelling tot #14's
+`products`). Dit is de tweede, laatste helft van de oude "`Leden` admin
+screen (member CRUD)"-regel die eerder onder "Wat het prototype deed maar
+hier nog niet is besloten" stond (de eerste helft, `Assortiment` CRUD, was
+al #14) — die regel is nu verwijderd, beide helften staan op `main`.
+
+**Nieuw precedent: zelfreferentie-guards (`self_archive_forbidden`,
+`self_demote_forbidden`).** `set_member_archived` en `set_member_role`
+weigeren een schrijfactie waarmee de aanroepende beheerder de eigen
+`members`-rij zou archiveren, resp. de eigen rol zou verlagen — beide zouden
+de aanroeper bij de eerstvolgende RPC-aanroep of login zonder ingebouwd
+RPC-herstelpad buitensluiten (`actor_not_found` resp. `no_admin_role`), en
+zijn daarom aan de bron geblokkeerd. Geen eerder precedent kende dit risico
+(een product of een negatieflimiet is nooit de aanroeper zelf) — elke
+toekomstige beheerder-only RPC die tegen de eigen `members`-rij van de
+aanroeper kan schrijven, volgt dit patroon (`docs/features/ledenbeheer.md` →
+Randgevallen voor de volledige redenering, inclusief de bewuste keuze om
+géén "laatste beheerder"-telling te bouwen).
+
 ## Wat het prototype deed maar hier nog niet is besloten
 
 Listed for reference only — none of this is scoped in or out yet. Don't build
@@ -575,10 +604,6 @@ any of it without a `docs/features/<naam>.md` spec:
   UI for it yet.
 - Balance corrections and order-reversal flows.
 - A report builder / CSV-Excel-PDF export (`Rapportages`, `boekhouder` role).
-- `Leden` admin screen (member CRUD) — implied necessary since `beheerder`
-  manages ledenbeheer per `CLAUDE.md`, but not yet specced. (`Assortiment`
-  CRUD, the other half of this original bullet, is settled and built — see
-  "Assortimentbeheer (settled, 2026-08-27)" below.)
 
 ## Design reference
 
