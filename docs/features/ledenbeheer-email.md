@@ -2,6 +2,20 @@
 
 Spec voor [issue #57](https://github.com/BramLambertJansen/ABAS/issues/57).
 
+**Aanvulling (2026-09-02, P1-bevinding op PR #59, geen nieuw ticket):** een
+geautomatiseerde code-review op PR #59 signaleerde dat de oorspronkelijke
+aanname onder "Rolzichtbaarheid" hieronder — "geen nieuwe leestoegang nodig,
+`members_select` volstaat" — klopt voor de UI maar niet voor de database: de
+gedeelde bar-tablet-sessie authenticeert als dezelfde Postgres-rol
+(`authenticated`) als een beheerder-sessie, dus gaf `members_select` ook
+bardienst leesrecht op `members.email` via een rechtstreekse query, los van
+welk scherm de app toont. Zie [ADR
+0004](../adr/0004-pii-kolommen-vereisen-rpc-gated-lezen.md) voor de volledige
+analyse en het gekozen patroon. "RPC's", "Leeshook" en "Rolzichtbaarheid"
+hieronder zijn bijgewerkt naar de gecorrigeerde staat (migratie
+`0009_ledenbeheer_email_rpc_gated_read.sql`, opeenvolgend na `0008`, die zelf
+ongewijzigd blijft — al gemerged onderdeel van deze PR's geschiedenis).
+
 Vervolgticket op [`docs/features/ledenbeheer.md`](./ledenbeheer.md) (#13,
 PR #55) — zie dat document → "Acceptatiecriterium bewust niet meegenomen"
 voor de aanleiding: #13's acceptatiecriterium *"een e-mailadres is
@@ -98,6 +112,14 @@ opslag.
   **geen nieuwe REVOKE nodig** in `0008_ledenbeheer_email.sql`, exact zoals
   `ledenbeheer.md` → Datamodel dat voor de eerdere vier RPC's al noteerde.
   Expliciet vermeld zodat de Developer 'm niet per ongeluk dubbel toevoegt.
+  **Dat blanket-REVOKE is `insert, update, delete` — het dekt geen
+  `select`.** `members_select` (`0001_init.sql`, regel 124: `for select to
+  authenticated using (true)`) laat lezen dus wél breed toe, en dat werd pas
+  een probleem toen `0008` er een PII-kolom (`email`) aan toevoegde — zie de
+  aanvulling bovenaan dit document en [ADR
+  0004](../adr/0004-pii-kolommen-vereisen-rpc-gated-lezen.md) voor de
+  column-level `select`-REVOKE die dat corrigeert, apart van (en niet in
+  tegenspraak met) de write-REVOKE hier.
 
 ## RPC's
 
@@ -261,6 +283,72 @@ grant execute on function update_member_email to authenticated;
 - `invalid_name` / `invalid_starting_balance` — bestaand, alleen
   `create_member`, ongewijzigd.
 
+### 3. `list_members_admin` — nieuwe RPC (ADR 0004, migratie `0009`)
+
+**Reden, niet in de oorspronkelijke versie van deze spec voorzien:** zie de
+aanvulling bovenaan dit document en [ADR
+0004](../adr/0004-pii-kolommen-vereisen-rpc-gated-lezen.md). `members.email`
+mag niet via de brede `members_select`-policy leesbaar blijven, want die
+policy geldt voor elke `authenticated`-sessie — inclusief de gedeelde
+bar-tablet-sessie (bardienst), die dit veld volgens CLAUDE.md → Domein niet
+hoort te kunnen lezen. Zelfde structuur als "geld alleen via RPC", hier
+toegepast op een leesrecht: column-level `REVOKE` + een `SECURITY
+DEFINER`-RPC met de ADR-0002-actorcheck.
+
+**Naam:** `list_members_admin` — gekozen naar analogie van de bestaande
+`_admin`/`no_admin_role`-naamgeving in deze RPC-familie (het foutcode-woord
+`no_admin_role` hierboven, en het feit dat dit de eerste *lees*-RPC in deze
+codebase is: geen bestaand `list_`/`get_`-precedent om exact te volgen, dus
+een expliciete, zelfverklarende naam die het beheerder-only-karakter al in de
+naam draagt, net zoals `update_member_email`/`set_member_role` het object en
+de actie in de naam dragen).
+
+`supabase/migrations/0009_ledenbeheer_email_rpc_gated_read.sql`:
+
+```sql
+-- ADR 0004: members.email is PII die niet via de brede members_select-policy
+-- leesbaar mag blijven (die geldt voor elke `authenticated`-sessie,
+-- inclusief de gedeelde bar-tablet-sessie). Column-level REVOKE + een
+-- SECURITY DEFINER-RPC met dezelfde ADR-0002-actorcheck als de overige
+-- beheerder-only RPC's in dit bestand/0007/0008.
+revoke select (email) on members from authenticated;
+
+create or replace function list_members_admin()
+returns setof members
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_actor members;
+begin
+  select * into v_actor
+  from members
+  where auth_user_id = auth.uid() and not archived;
+
+  if v_actor.id is null then
+    raise exception 'actor_not_found' using errcode = 'P0001';
+  end if;
+  if v_actor.role <> 'beheerder' then
+    raise exception 'no_admin_role' using errcode = 'P0001';
+  end if;
+
+  return query select * from members order by name asc;
+end;
+$$;
+
+grant execute on function list_members_admin to authenticated;
+```
+
+**Foutcodes:** `actor_not_found`/`no_admin_role`, zelfde betekenis en
+Nederlandse afhandeling als elders in deze RPC-familie — geen nieuwe code.
+
+**Andere lezers van `members` blijven ongewijzigd.** `useMembers()`
+(verkoop-ledenzoeker, `src/hooks/queries/useMembers.ts`) en `useBarStaff()`
+selecteren nooit `email` — geverifieerd, geen aanpassing nodig, ze blijven op
+de bestaande brede `members_select`-policy draaien voor de kolommen die ze
+wél gebruiken (de column-level REVOKE raakt alleen `email`).
+
 **E-mailformaat-check, drie plekken, bewust niet één gedeelde bron** (zelfde
 situatie als `parseEuroToCents()` dat de cents-rekenlogica van de RPC
 spiegelt zonder SQL te importeren): de db-`check`-constraint (Datamodel), de
@@ -274,9 +362,24 @@ een minimale "ziet eruit als een e-mailadres"-check, consistent met hoe
 
 **`useAlleLeden()` (`src/hooks/queries/useAlleLeden.ts`) breidt uit, geen
 nieuwe hook.** `LedenbeheerLid` krijgt een vierde veld: `email: string |
-null`. De `select`-query wordt `"id, name, role, balance_cents, archived,
-email"`. Dit is nodig zodat `LidBeherenOverlay.tsx` het huidige e-mailadres
-kan voorinvullen — anders geen wijziging aan de bestaande hook-vorm.
+null`.
+
+**Gecorrigeerd t.o.v. de oorspronkelijke versie van deze spec (ADR 0004, zie
+RPC's → `list_members_admin`):** de hook doet **geen** directe
+`.from("members").select(...)` meer voor dit doel — `members.email` is
+column-level `REVOKE`d voor `authenticated`, dus zou die select nu een
+kolomfout teruggeven. In plaats daarvan: `supabase.rpc("list_members_admin")`,
+zonder parameters. `.order("name", { ascending: true })` vervalt op de
+client — de RPC sorteert zelf al (`order by name asc` in de functie) — maar
+een eventuele client-side her-sortering wegnemen is optioneel, geen
+functionele eis; de Developer mag 'm laten staan als extra garantie zonder
+dat dat een architectuurkeuze is.
+
+Zelfde `LedenbeheerLid`-return-type en error-afhandeling-stijl als voorheen
+(try/catch rond de call, vaste Nederlandse foutmelding, `console.error`
+loggen) — alleen de databron binnen de hook verandert, niet het contract
+naar de callers (`LedenLijst.tsx`, `LidBeherenOverlay.tsx`,
+`NieuwLidOverlay.tsx` blijven ongewijzigd).
 
 ## Schermflow
 
@@ -332,13 +435,22 @@ export function isValidEmailFormat(value: string): boolean {
 
 ## Rolzichtbaarheid
 
-Ongewijzigd t.o.v. `ledenbeheer.md` → Rolzichtbaarheid: alleen bereikbaar
-met een actieve beheerder-sessie op `/beheer`; beide RPC's controleren
-`no_admin_role` server-side, zelfde verdediging-in-twee-lagen. Het lezen
-van `members.email` (via `useAlleLeden()`) loopt via de bestaande
-`members_select`-policy — geen nieuwe leestoegang, geen nieuwe policy, dus
-ook geen nieuwe negatieve RLS-test nodig (`check:rls` vraagt een negatieve
-test per *nieuwe* policy; hier komt er geen bij).
+Alleen bereikbaar met een actieve beheerder-sessie op `/beheer`; alle drie
+de RPC's (`create_member`, `update_member_email`, `list_members_admin`)
+controleren `no_admin_role` server-side, zelfde verdediging-in-twee-lagen.
+
+**Gecorrigeerd t.o.v. de oorspronkelijke versie van deze spec (ADR 0004):**
+de eerdere aanname hier — "het lezen van `members.email` loopt via de
+bestaande `members_select`-policy, geen nieuwe leestoegang nodig" — was
+onjuist. Die policy geldt voor élke `authenticated`-sessie, dus ook de
+gedeelde bar-tablet-sessie (bardienst), niet alleen beheerder-sessies op
+`/beheer`; de UI-gating van `/beheer` is geen database-garantie tegen een
+rechtstreekse query. `members.email` is nu column-level `REVOKE`d voor
+`authenticated` en uitsluitend leesbaar via `list_members_admin`'s eigen
+actorcheck — zie RPC's. **Wél een nieuwe negatieve RLS-test nodig**, niet
+voor een nieuwe policy (er komt geen bij) maar voor de nieuwe REVOKE: een
+directe `select email from members` als gewone `authenticated`-sessie moet
+falen. Zie Randgevallen → "Negatieve tests".
 
 ## Randgevallen
 
@@ -389,6 +501,32 @@ test per *nieuwe* policy; hier komt er geen bij).
   - De bestaande `create_member`/`update_member_name`-tests in dit bestand
     blijven ongewijzigd geldig (ze roepen `create_member` aan zonder derde
     argument — `p_email default null` maakt dat backwards-compatible).
+  - **Aanvulling (ADR 0004, migratie `0009`):** het huidige testbestand
+    staat inmiddels op `plan(61)` (Tester, PR #59) — dat cijfer moet verder
+    omhoog met de nieuwe assertions hieronder; werk `select plan(N)` bij naar
+    het daadwerkelijke nieuwe totaal, geen geraden getal.
+    - `list_members_admin`: `actor_not_found` (beide varianten, zelfde
+      fixtures als de andere RPC's in dit bestand), `no_admin_role`, happy
+      path (beheerder-sessie krijgt alle leden terug, inclusief `email` voor
+      leden die er een hebben en `null` voor leden zonder), en een expliciete
+      assertie dat het geretourneerde `email`-veld overeenkomt met wat
+      `create_member`/`update_member_email` eerder in het bestand zetten
+      (bevestigt dat de RPC niet stilzwijgend een kolom weglaat).
+    - **Nieuw negatief geval, apart van de RPC-tests, in dezelfde
+      `throws_ok`-stijl als `supabase/tests/rls_write_protection.test.sql`**
+      (niet in dat bestand zelf — dat bestand is generiek voor alle
+      geld-/`members`-writes; dit is een lees-REVOKE specifiek voor #57, dus
+      hoort in `ledenbeheer.test.sql` bij de rest van de e-mail-tests):
+      `set local role authenticated; select throws_ok($$ select email from
+      members limit 1 $$, '42501', <exacte Postgres-boodschap>, 'select op
+      members.email is geblokkeerd voor authenticated buiten
+      list_members_admin')`. **De exacte verwachte boodschap (derde
+      argument) moet de Developer overnemen uit een echte `db:test`-run
+      tegen de nieuwe REVOKE** — niet raden of kopiëren van de
+      tabel-brede boodschap hierboven zonder te verifiëren dat een
+      column-level REVOKE dezelfde tekst geeft; `rls_write_protection.
+      test.sql`'s eigen commentaar (regel 14-20) waarschuwt hier expliciet
+      voor met exact dit precedent (issue #2).
 - **A11y** — de twee nieuwe velden (in bestaande overlays) vallen onder
   dezelfde a11y-scenario's die `ledenbeheer.md` → Randgevallen al aan
   `e2e/a11y.spec.ts` toevoegde ("Nieuw lid"/"Lid beheren"-overlays) — geen

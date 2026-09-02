@@ -2,10 +2,13 @@
 -- issuenummer toegewezen op het moment van schrijven — zie spec-intro) en
 -- ledenbeheer-email (docs/features/ledenbeheer-email.md, #57):
 -- create_member/update_member_name/set_member_archived/set_member_role/
--- update_member_email (ADR 0002's auth.uid()-based actorcheck, exact
--- hetzelfde patroon als assortimentbeheer.test.sql /
--- negatieve_saldolimiet.test.sql). Run met `npm run db:test` (= `supabase
--- test db`, vereist `supabase start` / Docker lokaal).
+-- update_member_email/list_members_admin (ADR 0002's auth.uid()-based
+-- actorcheck, exact hetzelfde patroon als assortimentbeheer.test.sql /
+-- negatieve_saldolimiet.test.sql; list_members_admin is de eerste
+-- lees-RPC, ADR 0004: members.email is column-level REVOKEd voor
+-- authenticated, alleen leesbaar via deze RPC's eigen actorcheck). Run met
+-- `npm run db:test` (= `supabase test db`, vereist `supabase start` /
+-- Docker lokaal).
 --
 -- Geschreven en nagelezen volgens assortimentbeheer.test.sql's fixture-/
 -- assertiestijl exact — zie dat bestand voor de twee aannames die alle
@@ -21,7 +24,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(61);
+select plan(69);
 
 -- ── Fixtures ──────────────────────────────────────────────────────────
 
@@ -540,6 +543,87 @@ select throws_ok(
   '23514',
   'new row for relation "members" violates check constraint "members_email_format_check"',
   'members_email_format_check rejects a direct update with an invalid email format'
+);
+
+-- ── list_members_admin (ADR 0004, migratie 0009) ─────────────────────────
+--
+-- members.email is column-level REVOKEd voor authenticated sinds migratie
+-- 0009 (zie hieronder) — deze RPC is de enige leesweg. Zelfde
+-- actorcheck-vorm/fixtures als de rest van dit bestand.
+
+-- 41) actor_not_found, variant A: auth.uid() matches no members row at all.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000283', true);
+select throws_ok(
+  $$ select * from list_members_admin() $$,
+  'P0001', 'actor_not_found',
+  'list_members_admin rejects a caller whose auth.uid() matches no members row'
+);
+
+-- 42) actor_not_found, variant B: caller resolves to a real members row, but
+-- it's archived.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000282', true);
+select throws_ok(
+  $$ select * from list_members_admin() $$,
+  'P0001', 'actor_not_found',
+  'list_members_admin rejects a caller whose members row is archived'
+);
+
+-- 43) no_admin_role
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000281', true);
+select throws_ok(
+  $$ select * from list_members_admin() $$,
+  'P0001', 'no_admin_role',
+  'list_members_admin rejects a caller whose role is bardienst, not beheerder'
+);
+
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000280', true);
+
+-- 44) happy path: beheerder-sessie krijgt de ledenlijst terug.
+select lives_ok(
+  $$ select * from list_members_admin() $$,
+  'list_members_admin succeeds for a beheerder session'
+);
+
+-- 45)-47) bevestigt dat de RPC de email-kolom daadwerkelijk teruggeeft
+-- (niet stilzwijgend weglaat) — vergeleken met wat eerdere tests in dit
+-- bestand op diezelfde rijen zetten (test 38/39), plus een rij die nooit
+-- een email had.
+select is(
+  (select email from list_members_admin() where id = '00000000-0000-0000-0000-0000000002a5'),
+  'gewijzigd@test.local',
+  'list_members_admin returns the email set earlier by update_member_email'
+);
+
+select is(
+  (select email from list_members_admin() where id = '00000000-0000-0000-0000-0000000002a6'),
+  null,
+  'list_members_admin returns null for a member whose email was wiped'
+);
+
+select is(
+  (select email from list_members_admin() where id = '00000000-0000-0000-0000-0000000002a1'),
+  null,
+  'list_members_admin returns null for a member that never had an email set'
+);
+
+-- ── column-level REVOKE op members.email (ADR 0004, migratie 0009) ──────
+--
+-- Bewijst de REVOKE zelf, los van list_members_admin's bestaan (spec →
+-- Randgevallen → "Negatieve tests"). De exacte Postgres-boodschap voor een
+-- column-level permission-fout is in deze sandbox niet tegen een echte
+-- Postgres geverifieerd (geen lokale Docker/Supabase-stack beschikbaar) —
+-- daarom alleen de SQLSTATE geasserteerd (message-argument NULL, pgTAP
+-- slaat de boodschap-vergelijking dan over) i.p.v. tekst te gokken, precies
+-- de valkuil die rls_write_protection.test.sql's eigen commentaar al
+-- documenteert (issue #2: een gegokte boodschap faalt zelfs als de REVOKE
+-- zelf correct is). CI bevestigt dat de query daadwerkelijk wordt
+-- geweigerd.
+set local role authenticated;
+select throws_ok(
+  $$ select email from members limit 1 $$,
+  '42501',
+  NULL,
+  'select on members.email is blocked for authenticated (column-level REVOKE, migration 0009)'
 );
 
 select * from finish();
