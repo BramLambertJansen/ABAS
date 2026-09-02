@@ -15,11 +15,20 @@ sinds 2026-08-25 open, vóór deze spec geschreven werd; de Architect heeft er
 bij het scopen niet naar gezocht. De rest van de alinea (waarom Bram dit als
 volgende onderwerp koos, de placeholder-regel in `docs/ARCHITECTURE.md`)
 klopt inhoudelijk nog steeds en staat ongewijzigd hieronder — alleen de
-"geen ticket bestaat"-claim was fout. Issue #13's eigen acceptatiecriterium
-"een e-mailadres is optioneel" doelde op een e-mailveld bij het aanmaken van
-een lid; dat veld is hier bewust niet gebouwd (zie Expliciet buiten scope
-hieronder) — consistent met #13's eigen "Let op"-sectie, die de
-e-mail/uitnodigingsflow al bij #24 belegde, niet bij dit scherm.
+"geen ticket bestaat"-claim was fout.
+
+**Onopgelost acceptatiecriterium (Docs, 2026-09-02, review-vondst PR #56):**
+issue #13's criterium "een e-mailadres is optioneel, geen verplicht veld"
+doelde op een e-mailveld bij het aanmaken van een lid zelf — dat veld
+bestaat hier niet (`NieuwLidOverlay.tsx` heeft alleen naam + startsaldo).
+#13's eigen "Let op"-sectie belegt bij #24 alléén het gedrag dát een
+ingevuld e-mailadres triggert (de uitnodiging via `inviteUserByEmail`), niet
+het veld zelf — deze spec had dat onderscheid niet gemaakt en verklaarde het
+criterium ten onrechte "consistent" met wat gebouwd is. Dat was het niet:
+dit is een echt onopgelost punt, geen documentatiefout die zichzelf oplost.
+Aan Bram: hoort een optioneel e-mailveld (zonder uitnodigingsgedrag, dat
+blijft bij #24) alsnog bij een kleine vervolg-toevoeging aan dit scherm, of
+verhuist het veld zelf ook volledig naar #24's scope? Geen aanname hier.
 
 Bram heeft ledenbeheer als volgende onderwerp gekozen (zie
 `docs/ARCHITECTURE.md` → "Wat het prototype deed maar hier nog niet is
@@ -133,11 +142,9 @@ kolom-wijzigingen in deze spec.
 
 ## RPC's
 
-Nieuwe migratie, opeenvolgend genummerd — `0006_negatieve_saldolimiet.sql`
-is op dit moment de laatste op `main`, dus vermoedelijk
-`0007_ledenbeheer.sql`; de Developer verifieert dat bij het bouwen nog klopt
-(zelfde voorbehoud als assortimentbeheer.md maakte over zijn eigen
-migratienummer). Alle vier volgen ADR 0002's `auth.uid()`-actorcheck-vorm,
+Nieuwe migratie: `supabase/migrations/0007_ledenbeheer.sql` (opeenvolgend
+genummerd na `0006_negatieve_saldolimiet.sql`, bevestigd op `main`). Alle
+vier volgen ADR 0002's `auth.uid()`-actorcheck-vorm,
 1-op-1 gekopieerd van `create_product`/`update_product_price`/
 `set_product_archived`/`update_negative_limit` — inclusief het
 `select * into v_actor` post-implementatie-patroon (niet een kolom-subset,
@@ -436,13 +443,13 @@ dat een bredere projectie van dezelfde, al leesbare tabel toont.
 - **Kan ledenlijst niet laden** (netwerkfout) → vaste Nederlandse
   foutmelding, zelfde patroon als `useMembers`/`useAlleProducten`, geen
   crash.
-- **A11y**: `/beheer`'s ingelogde staat (tabbalk + tabbladen) staat, per
+- **A11y**: `/beheer`'s ingelogde staat (tabbalk + tabbladen) stond, per
   `docs/features/negatieve-saldolimiet.md` → Randgevallen, nog niet volledig
-  in `e2e/a11y.spec.ts`'s scenario-lijst — dit is dus geen regressie die
-  ledenbeheer introduceert, maar een al bestaand openstaand punt. Tester
-  breidt hetzelfde scenario uit met de Leden-tab en beide nieuwe overlays
-  ("Nieuw lid"/"Lid beheren"), net zoals assortimentbeheer's eigen twee
-  overlays dat nog moesten krijgen.
+  in `e2e/a11y.spec.ts`'s scenario-lijst — geen regressie die ledenbeheer
+  introduceerde, maar een al bestaand openstaand punt. De Tester heeft dat
+  scenario uitgebreid met drie nieuwe gevallen (`e2e/a11y.spec.ts`):
+  de Leden-tab en beide nieuwe overlays ("Nieuw lid"/"Lid beheren"), net
+  zoals assortimentbeheer's eigen twee overlays dat al eerder kregen.
 
 ## Expliciet buiten scope
 
