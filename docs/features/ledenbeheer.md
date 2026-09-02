@@ -17,18 +17,19 @@ volgende onderwerp koos, de placeholder-regel in `docs/ARCHITECTURE.md`)
 klopt inhoudelijk nog steeds en staat ongewijzigd hieronder — alleen de
 "geen ticket bestaat"-claim was fout.
 
-**Onopgelost acceptatiecriterium (Docs, 2026-09-02, review-vondst PR #56):**
-issue #13's criterium "een e-mailadres is optioneel, geen verplicht veld"
-doelde op een e-mailveld bij het aanmaken van een lid zelf — dat veld
-bestaat hier niet (`NieuwLidOverlay.tsx` heeft alleen naam + startsaldo).
-#13's eigen "Let op"-sectie belegt bij #24 alléén het gedrag dát een
-ingevuld e-mailadres triggert (de uitnodiging via `inviteUserByEmail`), niet
-het veld zelf — deze spec had dat onderscheid niet gemaakt en verklaarde het
-criterium ten onrechte "consistent" met wat gebouwd is. Dat was het niet:
-dit is een echt onopgelost punt, geen documentatiefout die zichzelf oplost.
-Aan Bram: hoort een optioneel e-mailveld (zonder uitnodigingsgedrag, dat
-blijft bij #24) alsnog bij een kleine vervolg-toevoeging aan dit scherm, of
-verhuist het veld zelf ook volledig naar #24's scope? Geen aanname hier.
+**Acceptatiecriterium bewust niet meegenomen, vervolgticket
+[#57](https://github.com/BramLambertJansen/ABAS/issues/57) (Docs,
+2026-09-02, review-vondst PR #56, besloten door Bram):** issue #13's
+criterium "een e-mailadres is optioneel, geen verplicht veld" doelde op een
+e-mailveld bij het aanmaken van een lid zelf — dat veld bestaat hier niet
+(`NieuwLidOverlay.tsx` heeft alleen naam + startsaldo). #13's eigen "Let
+op"-sectie belegt bij #24 alléén het gedrag dát een ingevuld e-mailadres
+triggert (de uitnodiging via `inviteUserByEmail`), niet het veld zelf —
+deze spec had dat onderscheid niet gemaakt en verklaarde het criterium ten
+onrechte "consistent" met wat gebouwd is. Bram heeft besloten: klein,
+apart vervolgticket (#57) — geen heropening van dit ticket of #24. #57
+bouwt alleen het veld + de `members.email`-kolom, expliciet zonder
+`inviteUserByEmail`-uitnodigingsgedrag (dat blijft #24).
 
 Bram heeft ledenbeheer als volgende onderwerp gekozen (zie
 `docs/ARCHITECTURE.md` → "Wat het prototype deed maar hier nog niet is
