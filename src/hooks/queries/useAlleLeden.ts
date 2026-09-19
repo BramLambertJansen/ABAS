@@ -15,6 +15,19 @@ export type LedenbeheerLid = {
   role: "lid" | "bardienst" | "beheerder";
   balanceCents: number;
   archived: boolean;
+  /** `auth_user_id is not null` — heeft dit lid een gekoppeld
+   *  wachtwoordaccount. Alleen-lezen weergaveveld voor
+   *  `LidBeherenOverlay.tsx`'s "Inloggegevens"-sectie
+   *  (docs/features/auth-methode-per-lid.md → Datamodel) — geschreven wordt
+   *  dit veld nooit via deze hook of overlay, alleen handmatig (Supabase
+   *  Studio) of door het lid zelf (self-service e-mailkoppeling, buiten
+   *  scope, zie de spec). */
+  hasAccount: boolean;
+  /** `pin_hash is not null` — heeft dit lid een PIN-snelkoppeling aan
+   *  staan. Alleen-lezen, zelfde reden als hasAccount — de schrijfactie is
+   *  zelfbediening via `set_own_pin` ("Mijn account"), niet iets een
+   *  beheerder hier namens dit lid doet. */
+  hasPin: boolean;
 };
 
 type State =
@@ -37,7 +50,7 @@ export function useAlleLeden(): State & { refetch: () => void } {
       const supabase = createClient();
       const { data, error } = await supabase
         .from("members")
-        .select("id, name, role, balance_cents, archived")
+        .select("id, name, role, balance_cents, archived, auth_user_id, pin_hash")
         .order("name", { ascending: true });
 
       if (error) throw error;
@@ -48,6 +61,8 @@ export function useAlleLeden(): State & { refetch: () => void } {
         role: row.role as LedenbeheerLid["role"],
         balanceCents: row.balance_cents as number,
         archived: row.archived as boolean,
+        hasAccount: row.auth_user_id !== null,
+        hasPin: row.pin_hash !== null,
       }));
 
       setState({ status: "ready", members });

@@ -81,6 +81,14 @@ function archiveErrorMessage(code: SetMemberArchivedErrorCode): string {
  * (Sluiten/Escape/backdrop is de enige weg terug, zie Schermflow stap 4:
  * "refetch bij elke succesvolle mutatie, niet pas bij sluiten") — elke
  * actie toont zijn eigen succes-toast binnen de overlay zelf.
+ *
+ * Uitgebreid met een alleen-lezen "Inloggegevens"-sectie
+ * (docs/features/auth-methode-per-lid.md, #42) — zichtbaar zodra
+ * `member.role` (laatst opgeslagen rol) `bardienst`/`beheerder` is. Geen
+ * bewerkbare selector: onder ADR 0004 is de enige schrijfactie (PIN aan/uit)
+ * zelfbediening via `set_own_pin` ("Mijn account"), niet iets een beheerder
+ * hier namens een ander lid doet — zie de spec → "Besloten door de
+ * Architect" punt 3 voor waarom dat verschilt van een eerdere conceptspec.
  */
 export function LidBeherenOverlay({
   member: initialMember,
@@ -264,6 +272,33 @@ export function LidBeherenOverlay({
           </button>
         </div>
       </div>
+
+      {member.role !== "lid" && (
+        <div className="flex flex-col gap-2 rounded-control border border-rail-border p-3.5">
+          <div className="flex flex-col gap-0.5">
+            <span className="text-sm font-bold text-white">Inloggegevens</span>
+            <span className="text-xs font-medium text-rail-muted">
+              alleen-lezen — dit lid beheert de eigen pincode zelf via &quot;Mijn account&quot;
+            </span>
+          </div>
+          <div className="flex items-center justify-between rounded-control bg-rail px-3.5 py-3">
+            <span className="text-[10.5px] font-bold uppercase tracking-wide text-rail-muted">
+              Wachtwoordaccount
+            </span>
+            <span className="text-sm font-extrabold text-white">
+              {member.hasAccount ? "gekoppeld" : "niet gekoppeld"}
+            </span>
+          </div>
+          <div className="flex items-center justify-between rounded-control bg-rail px-3.5 py-3">
+            <span className="text-[10.5px] font-bold uppercase tracking-wide text-rail-muted">
+              Pincode
+            </span>
+            <span className="text-sm font-extrabold text-white">
+              {member.hasPin ? "ingesteld" : "niet ingesteld"}
+            </span>
+          </div>
+        </div>
+      )}
 
       <button
         type="button"

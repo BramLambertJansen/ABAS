@@ -14,10 +14,15 @@ type State =
   | { status: "error"; message: string }
   | { status: "ready"; staff: BarStaffMember[] };
 
-/** Non-archived bardienst/beheerder members — who's eligible to start a
- *  shift. `lid`-only members never appear here (start_shift rejects them
- *  server-side anyway; filtering here is just so the staff-picker doesn't
- *  offer a choice that can only fail). */
+/** Non-archived bardienst/beheerder members with a PIN set — who's eligible
+ *  to start a shift via the PIN-stafkeuze. `lid`-only members never appear
+ *  here (start_shift rejects them server-side anyway; filtering here is
+ *  just so the staff-picker doesn't offer a choice that can only fail).
+ *  Same reasoning now excludes a bardienst/beheerder member with
+ *  `pin_hash is null` (never had a PIN, or turned it off via "Mijn
+ *  account", docs/features/auth-methode-per-lid.md → Leeshook-wijziging):
+ *  such a member can never succeed via this picker either, they log in via
+ *  e-mail/wachtwoord (/beheer) instead, which always works under ADR 0004. */
 export function useBarStaff(): State {
   const [state, setState] = useState<State>({ status: "loading" });
 
@@ -32,6 +37,7 @@ export function useBarStaff(): State {
           .select("id, name, role")
           .in("role", ["bardienst", "beheerder"])
           .eq("archived", false)
+          .not("pin_hash", "is", null)
           .order("name", { ascending: true });
 
         if (cancelled) return;

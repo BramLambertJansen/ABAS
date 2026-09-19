@@ -1,23 +1,33 @@
 "use client";
 
+import { useState } from "react";
 import { useBeheerSession } from "@/hooks/queries/useBeheerSession";
 import { BeheerLogin } from "./BeheerLogin";
 import { BeheerTabs } from "./BeheerTabs";
+import { ModusKeuze } from "./ModusKeuze";
 
 /**
  * `/beheer`'s top-level screen (issue #14, docs/features/assortimentbeheer.md;
  * uitgebreid met een tabbalk in issue #11,
- * docs/features/negatieve-saldolimiet.md). Zonder actieve beheer-sessie: het
+ * docs/features/negatieve-saldolimiet.md; en met een modus-keuze in issue
+ * #42, docs/features/auth-methode-per-lid.md). Zonder actieve sessie: het
  * inlogformulier — dat geldt ook als er wél een sessie is maar die niet naar
- * een actieve `members`-rij met rol `beheerder` herleidt (bv. de gedeelde
- * device-sessie, zie useBeheerSession.ts), met een duidelijke foutmelding
- * erbij. Met een bevestigde beheerder-sessie: `BeheerTabs` (Assortiment |
- * Instellingen), geen tussenliggende bar/beheer-modus-keuze (ADR 0003 →
- * "Geen zichtbare 'bar'-knop in #14's inlogflow" — er is vandaag nog geen
- * bar-bestemming om naar te routeren vanaf deze e-mail-sessie).
+ * een actieve `members`-rij met rol `bardienst`/`beheerder` herleidt (bv. de
+ * gedeelde device-sessie, zie useBeheerSession.ts), met een duidelijke
+ * foutmelding erbij.
+ *
+ * Met een bevestigde bardienst/beheerder-sessie: `ModusKeuze` (Bar | Beheer |
+ * Mijn account, ADR 0003 → Beslissing 2, ongewijzigd door ADR 0004) — vóór
+ * #42 ging een bevestigde sessie hier direct naar `BeheerTabs`, dat gedrag
+ * geldt nu alleen nog ná het kiezen van de "Beheer"-tegel. `mode` is lokale
+ * state, geen aparte route: eenmaal op "beheer" is er geen weg terug naar de
+ * modus-keuze binnen dezelfde sessie (ADR 0003: modi zijn losse instanties,
+ * geen wisselknop) — alleen `BeheerTabs`'s eigen "Uitloggen" brengt je terug
+ * bij het inlogformulier.
  */
 export function Assortimentbeheer() {
   const session = useBeheerSession();
+  const [mode, setMode] = useState<"kiezen" | "beheer">("kiezen");
 
   if (session.status === "loading") {
     return (
@@ -37,5 +47,17 @@ export function Assortimentbeheer() {
     return <BeheerLogin deniedMessage={session.message} />;
   }
 
-  return <BeheerTabs name={session.name} onSignOut={session.signOut} />;
+  if (mode === "beheer") {
+    return <BeheerTabs name={session.name} onSignOut={session.signOut} />;
+  }
+
+  return (
+    <ModusKeuze
+      name={session.name}
+      hasPin={session.hasPin}
+      onChooseBeheer={() => setMode("beheer")}
+      onSignOut={session.signOut}
+      onPinChanged={session.refetch}
+    />
+  );
 }

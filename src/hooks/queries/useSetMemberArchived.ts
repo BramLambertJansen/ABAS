@@ -63,6 +63,10 @@ export function useSetMemberArchived() {
         role: data.role as LedenbeheerLid["role"],
         balanceCents: data.balance_cents as number,
         archived: data.archived as boolean,
+        // set_member_archived raakt auth_user_id/pin_hash nooit — zelfde
+        // reden als useUpdateMemberName.ts om deze mee te geven.
+        hasAccount: data.auth_user_id !== null,
+        hasPin: data.pin_hash !== null,
       };
     } catch (err) {
       setState({

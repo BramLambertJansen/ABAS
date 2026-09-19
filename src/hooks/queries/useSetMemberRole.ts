@@ -67,6 +67,15 @@ export function useSetMemberRole() {
         role: data.role as LedenbeheerLid["role"],
         balanceCents: data.balance_cents as number,
         archived: data.archived as boolean,
+        // set_member_role raakt auth_user_id/pin_hash nooit — zelfde reden
+        // als useUpdateMemberName.ts om deze mee te geven. Ook relevant
+        // hier: een rolwijziging naar/van 'lid' bepaalt of
+        // LidBeherenOverlay's "Inloggegevens"-sectie zichtbaar is
+        // (docs/features/auth-methode-per-lid.md → Schermflow stap 7), de
+        // onderliggende hasAccount/hasPin-waarden zelf wijzigen niet door
+        // deze RPC.
+        hasAccount: data.auth_user_id !== null,
+        hasPin: data.pin_hash !== null,
       };
     } catch (err) {
       setState({

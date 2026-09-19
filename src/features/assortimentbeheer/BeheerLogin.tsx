@@ -17,18 +17,24 @@ function errorMessage(code: BeheerLoginErrorCode): string {
 
 /**
  * `/beheer`'s own, minimal inlogformulier (ADR 0002/0003) — e-mail +
- * magic link of wachtwoord, een keuze van de beheerder zelf, geen
- * bar-modus-optie (zie docs/features/assortimentbeheer.md → Schermflow
- * stap 0, ADR 0003 → "Geen zichtbare 'bar'-knop in #14's inlogflow"). Er is
- * hier bewust geen bestaand formulier-patroon om op aan te sluiten — dit is
- * de eerste e-mail-inlogflow in deze codebase (PIN via StaffPicker/PinPad
- * is een ander mechanisme, zie src/features/dienst-starten/).
+ * magic link of wachtwoord, een keuze van de ingelogde persoon zelf.
+ * Gegeneraliseerd van "beheerder-only" naar "bardienst-of-beheerder"
+ * (docs/features/auth-methode-per-lid.md, #42, ADR 0004): dit formulier is
+ * niet langer de beheerder-ingang alleen, het is de gegarandeerde
+ * e-mail/wachtwoord-ingang voor iedereen met bardienst- of beheerrechten —
+ * zie `ModusKeuze.tsx` voor de Bar/Beheer/Mijn-account-keuze die na een
+ * geslaagde login volgt. Geen bar-modus-knop híer op het inlogformulier
+ * zelf (ADR 0003 → "Geen zichtbare 'bar'-knop in #14's inlogflow" — dat
+ * bleef zo, de keuze zit één scherm verderop). Er is hier bewust geen
+ * bestaand formulier-patroon om op aan te sluiten — dit is de eerste
+ * e-mail-inlogflow in deze codebase (PIN via StaffPicker/PinPad is een
+ * ander mechanisme, zie src/features/dienst-starten/).
  *
  * `deniedMessage` is optioneel en komt van `useBeheerSession.ts`: er ís een
  * sessie (bv. de gedeelde device-sessie), maar die herleidt niet naar een
- * actieve beheerder — zelfde soort boodschap als de RPC's `no_admin_role`/
- * `actor_not_found` teruggeven, hier vóór het inloggen al zichtbaar in
- * plaats van pas na een mislukte schrijfactie.
+ * actieve bardienst/beheerder — zelfde soort boodschap als de RPC's
+ * `no_admin_role`/`no_bar_role`/`actor_not_found` teruggeven, hier vóór het
+ * inloggen al zichtbaar in plaats van pas na een mislukte schrijfactie.
  */
 export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
   const login = useBeheerLogin();
@@ -59,7 +65,11 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
         <span className="text-[10.5px] font-bold tracking-[0.15em] text-muted">
           AURORA MUZIEKVERENIGING
         </span>
-        <h1 className="text-xl font-extrabold tracking-tight">Beheer</h1>
+        {/* Neutrale kop, geen "Beheer" meer vóór een modus gekozen is —
+            docs/features/auth-methode-per-lid.md → Schermflow stap 1: dit
+            formulier is de ingang voor bardienst én beheerder, niet alleen
+            voor beheer. */}
+        <h1 className="text-xl font-extrabold tracking-tight">Inloggen</h1>
       </div>
 
       {deniedMessage && !magicLinkSent && (
@@ -77,7 +87,7 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
             We hebben een inloglink gestuurd naar {login.magicLinkSentTo}.
           </p>
           <p className="text-xs font-medium text-muted">
-            Open die link op dit apparaat om in te loggen als beheerder.
+            Open die link op dit apparaat om in te loggen.
           </p>
           <button
             type="button"

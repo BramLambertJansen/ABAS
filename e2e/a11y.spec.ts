@@ -48,6 +48,15 @@ for (const { name, path } of routes) {
  * independent of the "one open shift" shared-state concern the stateful
  * block below documents (no shift/order/top_up touched here), so they are
  * not grouped into that `describe.serial`.
+ *
+ * Updated for #42 (docs/features/auth-methode-per-lid.md): a successful
+ * `/beheer`-login no longer lands directly on `BeheerTabs` — it lands on
+ * `ModusKeuze` (Bar/Beheer/Mijn account) first, ADR 0003 → Beslissing 2.
+ * `loginAsBeheerder()` now clicks the "Beheer"-tegel after signing in,
+ * before waiting for the tabbalk. `ModusKeuze`/"Mijn account" zelf krijgen
+ * hun eigen a11y-scenario's van de Tester (spec → Randgevallen → A11y) —
+ * deze aanpassing bestaat alleen om het bestaande, al gemergede scenario
+ * kloppend te houden met het nu gewijzigde schermverloop.
  */
 async function loginAsBeheerder(page: Page) {
   await page.goto("/beheer");
@@ -68,6 +77,10 @@ async function loginAsBeheerder(page: Page) {
     .fill("local-beheerder-dev-only");
 
   await page.getByRole("button", { name: "Inloggen" }).click();
+
+  const beheerTegel = page.getByRole("button", { name: "Beheer" });
+  await beheerTegel.waitFor({ state: "visible", timeout: 15_000 });
+  await beheerTegel.click();
 
   await page
     .getByRole("tablist", { name: "Beheer-navigatie" })

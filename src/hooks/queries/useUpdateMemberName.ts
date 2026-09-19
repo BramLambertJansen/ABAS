@@ -61,6 +61,14 @@ export function useUpdateMemberName() {
         role: data.role as LedenbeheerLid["role"],
         balanceCents: data.balance_cents as number,
         archived: data.archived as boolean,
+        // update_member_name raakt auth_user_id/pin_hash nooit — meegeven
+        // zodat LidBeherenOverlay's alleen-lezen "Inloggegevens"-sectie
+        // (docs/features/auth-methode-per-lid.md) niet stilletjes leeg
+        // valt na een naamwijziging (spec: hasAccount/hasPin zijn
+        // weergavevelden op elke LedenbeheerLid, niet alleen op de
+        // initiële lijst-load).
+        hasAccount: data.auth_user_id !== null,
+        hasPin: data.pin_hash !== null,
       };
     } catch (err) {
       setState({
