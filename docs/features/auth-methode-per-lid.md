@@ -1,9 +1,13 @@
 # Wachtwoord verplicht + PIN als optionele snelkoppeling; dual-mode login (bar via e-mail)
 
-Conceptspec voor [issue #42](https://github.com/BramLambertJansen/ABAS/issues/42).
-**Nog niet goedgekeurd door Bram** — bevat drie echte openstaande vragen (zie
-"Openstaande vragen voor Bram" hieronder) die vóór de Developer begint moeten
-worden beantwoord, per CLAUDE.md → Werkstraat.
+Spec voor [issue #42](https://github.com/BramLambertJansen/ABAS/issues/42).
+
+**Status: goedgekeurd door Bram, klaar voor de Developer (2026-09-19).** De
+drie punten die de vorige versie als "Openstaande vragen voor Bram" openliet
+zijn beantwoord — zie **"Definitieve keuzes (Bram, 2026-09-19)"** hieronder,
+die die sectie vervangt. Er staat in dit document geen open vraag meer; elke
+sectie (Datamodel, RPC's, Schermflow, Randgevallen) is bijgewerkt zodat hij
+consistent is met deze drie definitieve keuzes.
 
 **Herziening (Architect, 2026-09-02):** deze spec verving een eerdere versie
 die uitging van een exclusief either/or-model (PIN *of* e-mail/wachtwoord,
@@ -30,64 +34,147 @@ datamodel/schermflow. Wel wordt op meerdere plekken expliciet gemotiveerd
 *hoe* een detail uit ADR 0004 volgt, zodat een latere feature het niet
 per ongeluk als toeval leest.
 
-## Openstaande vragen voor Bram
+## Definitieve keuzes (Bram, 2026-09-19)
 
-Drie punten die deze conceptspec **niet** zelf invult, per CLAUDE.md →
-Werkstraat ("geen aanname, geen placeholder"):
+Bram heeft de drie punten die de vorige versie als "Openstaande vragen voor
+Bram" openliet, beantwoord. Met "doe wat logisch is" (punt 2) en "zet waar
+logisch is" (punt 3) heeft hij het architectuur-/UX-vakoordeel expliciet aan
+de Architect gedelegeerd — dat is geen ontbrekende beslissing meer per
+CLAUDE.md → Werkstraat ("geen aanname, geen placeholder"), wel een die
+hieronder wordt vastgelegd en beargumenteerd, niet aangenomen of als
+placeholder opengelaten. Dit was de laatste onderhandelingsronde vóór de
+Developer begint; er blijft na dit document geen open vraag over.
 
-1. **Provisioning: hoe krijgen bestaande PIN-only leden hun verplichte
-   wachtwoordaccount?** ADR 0004 → Beslissing 1 maakt een gekoppeld
-   Supabase Auth-account (`auth_user_id`) verplicht voor elk
-   `bardienst`/`beheerder`-lid. Vandaag hebben de meeste van die leden dat
-   niet — alleen Femke Bos (seed, en vermoedelijk een handvol echte
-   beheerders sinds #14) heeft een gekoppeld account; de rest logt alleen
-   met PIN in en heeft `auth_user_id is null`. Deze spec **beslist niet**
-   of/wanneer/hoe die leden een account krijgen — dat is een beleidsvraag met
-   impact op mensen buiten de codebase (moet iedereen per direct een
-   wachtwoord kiezen? Krijgen ze een uitnodigingsmail? Blijft PIN-only
-   tijdelijk toegestaan als overgangsstaat, ondanks dat dat ADR 0004's
-   eindmodel tegenspreekt? Wie provisioned de accounts — handmatig via
-   Supabase Studio zoals #14 deed voor Femke Bos, of moet er eindelijk een
-   zelfbedienings-uitnodigingsflow komen, wat feitelijk #24's scope naar
-   voren zou halen?). Zie Datamodel/Randgevallen hieronder voor hoe deze
-   spec een **overgangsperiode expliciet toestaat** (geen harde
-   database-constraint die vandaag al bestaande PIN-only leden zou breken)
-   zonder de beleidsvraag zelf te beantwoorden.
-2. **Navigatie-ingang naar e-mail-login vanaf de bar-shell root.** Nog steeds
-   geen bruikbaar ontwerp gevonden (zie "Onderzocht in /designs/"). De vorige
-   versie van deze spec stelde een subtiele tekstlink voor (zelfde
-   understatement als de bestaande "← terug naar bardienst"-link) — dat
-   voorstel staat, **ongewijzigd**, hieronder in Schermflow stap 0. Maar het
-   nieuwe wachtwoord-verplicht-model verandert de context van die vraag: waar
-   e-mail/wachtwoord voorheen een exclusief alternatief was dat maar een deel
-   van de bardienst/beheerder-leden ooit zou kiezen, is het nu de **enige
-   gegarandeerd werkende inlogmethode voor 100% van de bardienst/
-   beheerder-leden** (PIN is optioneel, wachtwoord niet). Een subtiele,
-   ondergeschikte link past bij "uitzonderingspad voor een minderheid"; het
-   past minder vanzelfsprekend bij "universele, altijd-werkende basis-
-   voordeur". Dit is echter een UX-prioriteitsafweging (hoe prominent moet
-   een altijd-werkende maar zelden-gebruikte ingang zijn naast een
-   snellere, dagelijkse PIN-flow?), geen technische — de Architect neemt 'm
-   niet zelf, ook niet nu het model veranderd is. Graag akkoord op het
-   bestaande voorstel, of een aanwijzing dat dit prominenter moet.
-3. **Waar leeft "PIN aan-/uitzetten" in `shells/bar`?** Bram noemt
-   "profielinstellingen" als de plek waar een lid dit zelf regelt. Er bestaat
-   vandaag geen profielinstellingen-scherm voor bardienst/beheerder-leden in
-   `shells/bar` (`designs/Bar App.dc.html` heeft er geen), en geen wireframe
-   toont er een. `designs/Lid App.dc.html` (portal, regel 668/680/714) heeft
-   wél een vergelijkbaar "Instellingen"-scherm met een "Pincode
-   instellen"-sheet, maar dat is een ander scherm voor een andere doelgroep
-   (leden op hun eigen telefoon) — niet zomaar herbruikbaar voor
-   bardienst/beheerder-personeel op een gedeeld tablet. Schermflow stap 6
-   hieronder beschrijft een voorstel (een "Mijn account"-ingang vanaf het
-   modus-keuzescherm, stap 2) zodat er iets is om op te reageren — dit is een
-   **voorstel, geen besluit**. Graag akkoord of een alternatief van Bram
-   vóór de Developer de schermtekst/positie bouwt.
+1. **Provisioning van bestaande PIN-only bardienst/beheerder-leden zonder
+   account.** Bram: **"die zijn er nog niet"** — er bestaat vandaag geen
+   echt Aurora-lid met rol `bardienst`/`beheerder` en `auth_user_id is
+   null`. Geverifieerd, niet aangenomen:
+   - `supabase/seed.sql` bevat op het eerste gezicht twee tegenvoorbeelden —
+     Tom Willems en Sanne Bakker (`bardienst`, `pin_hash` gezet, geen
+     `auth_user_id`). Maar dat bestand opent met "Local dev seed data...
+     fine for local `supabase start`, never seed this into a real
+     deployment", en `docs/ARCHITECTURE.md` → "Local/CI device account"
+     bevestigt hetzelfde expliciet voor precies dit soort rijen: "seed.sql
+     only runs on local `supabase start`/`db reset`, never against a
+     remote/production project — same guarantee the existing member/
+     product demo data already relies on." Tom Willems/Sanne Bakker zijn
+     dus fixtures om `start_shift`/de PIN-stafkeuze lokaal en in CI te
+     kunnen testen (zoals de PIN-stafkeuze dat al voor #6 nodig had), geen
+     bewijs van een echt Aurora-lid in die staat.
+   - Het enige spoor van een **echt** geprovisioned account in de codebase
+     is Femke Bos' patroon (`seed.sql`: handmatige `auth.users`/
+     `auth.identities`-insert, hetzelfde patroon als `docs/ARCHITECTURE.md`
+     → "Still open" voor productie noemt: "manual via Studio"). Nergens in
+     de codebase staat een aanname of registratie van een tweede, derde,
+     etc. echt lid dat nog geprovisioned zou moeten worden — de vorige
+     versie van deze spec noemde dat al slechts "vermoedelijk"
+     (ongeverifieerd), nooit als vaststaand feit.
+   - **Consequentie:** dit is geen migratie-/beleidsvraag die dit ticket
+     hoeft op te lossen. Datamodel hieronder **behoudt** de
+     overgangsstaat-toelating (geen `not null`-constraint op
+     `auth_user_id`) — niet langer omdat die vandaag een echt lid zou
+     beschermen (dat blijkt niet nodig), maar omdat (a) de lokale/
+     CI-seedfixtures (Tom Willems, Sanne Bakker) een `supabase start`/
+     CI-breuk zouden veroorzaken als de constraint er wél kwam, en (b) ADR
+     0004 → Beslissing 5 de *handhavingstiming* (of/wanneer een harde
+     deadline komt voor een toekomstig, wél bestaand geval) bewust als
+     Bram's eigen, nog te nemen beleidsvraag openlaat — een
+     schema-constraint zou die vraag stilzwijgend beslissen zonder dat
+     Bram dat hier gedaan heeft. Zie Datamodel en Randgevallen hieronder
+     voor de bijgewerkte formulering. **Mocht dit scenario ooit tóch
+     voorkomen** (bv. een toekomstig ticket voegt een bulkimport toe die
+     geen account koppelt): niets in deze spec breekt daarop — zo'n lid
+     blijft gewoon met PIN werken (Randgevallen), en kan alleen zelf geen
+     wachtwoordaccount koppelen totdat een beheerder dat handmatig doet
+     (ongewijzigd buiten scope). Dat is geen bouwverplichting van dit
+     ticket, alleen een vastgelegde uitkomst voor het geval het zich
+     voordoet.
 
-Openstaande vraag 2 uit de vorige versie van deze spec ("terug naar PIN
-blijft geblokkeerd zonder al bestaande `pin_hash`") is **vervallen, niet
-langer relevant** — zie "Besloten door de Architect" hieronder voor de
-expliciete verificatie waarom, in plaats van dat aan te nemen.
+2. **Navigatie-ingang naar e-mail-login vanaf de bar-shell root.** Bram:
+   **"doe wat logisch is."** Definitieve keuze: **een zichtbare, secundair
+   gestileerde knop over de volle breedte, direct onder de
+   `StaffPicker`-grid** ("Inloggen met e-mail", exacte copy aan de
+   Developer/design system) — niet de eerder voorgestelde subtiele
+   tekstlink (zelfde understatement als "← terug naar bardienst"), en ook
+   geen even zwaar gewicht als de PIN-tegels zelf.
+   - **Waarom niet subtiel meer:** onder ADR 0004 is e-mail/wachtwoord niet
+     langer een uitzonderingspad voor wie het ooit koos (het oude
+     either/or-model, ADR 0003) maar de enige gegarandeerd werkende
+     inlogmethode voor 100% van bardienst/beheerder. Sterker: voor een lid
+     zonder PIN (nooit een PIN gehad, of net zelf uitgezet via "Mijn
+     account", zie punt 3) verschijnt dat lid door de
+     `useBarStaff()`-wijziging (zie Leeshook-wijziging) helemaal niet meer
+     in de `StaffPicker`-grid — voor zo'n lid is deze knop niet "de
+     uitzondering", het is **de enige deur**. Een subtiele
+     understatement-link past bij "noodpad voor een enkeling"; het past
+     niet bij "enige deur voor een deel van de bezetting, universele
+     garantie voor de rest".
+   - **Waarom niet even zwaar als de PIN-tegels:** de dagelijkse,
+     tientallen-keren-per-dienst-flow blijft PIN voor wie een PIN heeft —
+     daar is `StaffPicker` voor ontworpen en dat blijft de snelste weg. Een
+     knop met hetzelfde visuele gewicht als de tegels zou een route
+     promoten die de meeste bardienst-leden zelden gebruiken, ten koste van
+     de snelheid van de dagelijkse flow. Een herkenbare, volwaardige knop
+     (geen miniatuur-tekstlink) met secundaire styling (outline/
+     ghost-variant, geen primary-kleur) geeft de universele-voordeur-status
+     het gewicht dat ADR 0004 vereist, zonder met de dagelijkse PIN-flow te
+     concurreren.
+   - **Plaats/zichtbaarheid**: ongewijzigd t.o.v. het vorige voorstel — enkel
+     zichtbaar op de stafkeuze-staat (`barStaff.status === "ready"`), naar
+     `/beheer`. Zie Schermflow stap 0 (bijgewerkt hieronder).
+
+3. **Waar "PIN aan-/uitzetten" leeft: "Mijn account."** Bram: er moet een
+   "Mijn account"-scherm/-ingang komen; plaatsing aan de Architect. Het
+   eerdere voorstel (een derde, kleinere ingang op het modus-keuzescherm,
+   naast Bar/Beheer) wordt hier heroverwogen, niet zomaar herbevestigd — en
+   blijkt bij die heroverweging niet alleen "nog steeds oké" maar **de
+   enige plek die daadwerkelijk werkt**, gegeven hoe `set_own_pin` de
+   aanroeper herleidt:
+   - `set_own_pin` herleidt de aanroeper via `select * into v_actor from
+     members where auth_user_id = auth.uid()`. Dat vereist een sessie
+     waarin `auth.uid()` daadwerkelijk het individuele lid is — dus een
+     sessie die tot stand kwam via het lid se **eigen**
+     e-mail/wachtwoord-login (`/beheer`, Schermflow stap 1).
+   - **Bar-modus, bereikt via de gedeelde PIN-stafkeuze, is daarom
+     technisch géén plek waar "Mijn account" kán werken.** Die sessie is
+     de gedeelde tablet-/device-sessie (`docs/ARCHITECTURE.md` → "Device
+     sign-in mechanism"; `src/middleware.ts` logt het tablet in als één
+     vast device-account, ongeacht wie er als bezetting geselecteerd is).
+     `auth.uid()` is dan het device-account, niet het individuele lid —
+     `set_own_pin` zou op zo'n sessie altijd `actor_not_found` teruggeven
+     (het device-account heeft geen eigen `members`-rij). Dit is geen
+     stijlkeuze maar een rechtstreeks gevolg van hoe bezetting/attributie
+     werkt (CLAUDE.md → Architectuurbeslissingen, "`served_by` komt uit de
+     bezetting, niet uit een PIN") — elke plek binnen Bar-modus zelf valt
+     dus af als kandidaat, ook al zou dat voor sommige leden korter voelen.
+   - **Het modus-keuzescherm (Schermflow stap 2) is de enige plek die alle
+     volgende eisen tegelijk vervult**: (a) uitsluitend bereikbaar via een
+     echte individuele e-mail/wachtwoord-sessie, nooit via de gedeelde
+     device-sessie; (b) even natuurlijk bereikbaar voor `bardienst` als
+     voor `beheerder`, zonder dat een van beide eerst een modus moet
+     kiezen die niet bij de eigen rol past — Beheer-modus/`BeheerTabs.tsx`
+     is voor een `bardienst`-lid weliswaar zichtbaar (rolgebaseerde
+     filtering van de modus-tegels is buiten scope, ADR 0003 →
+     Beslissing 4), maar functioneel een beheerder-scherm waarvan de
+     schrijfacties voor een `bardienst`-lid toch op ADR 0002's actorcheck
+     stuklopen — "Mijn account" daar plaatsen zou een zelfbedieningsactie
+     voor iedereen verstoppen achter een effectief beheerder-only scherm;
+     en (c) een plek die door zijn aard al tussen sessie-start en gekozen
+     werkcontext in zit — precies waar een korte, niet-modale
+     instellingenactie hoort, in plaats van middenin een van de twee echte
+     werkmodi.
+   - **Naamgeving:** de ingang heet **"Mijn account"** (Bram's eigen
+     woordkeuze), niet "Mijn PIN instellen" zoals het vorige voorstel
+     suggereerde — dat laatste dekte alleen de huidige inhoud, niet het
+     concept dat Bram benoemt en dat later (buiten dit ticket) meer kan
+     gaan bevatten dan alleen de PIN-toggle.
+   - Zie Schermflow stap 6 (bijgewerkt hieronder) voor de definitieve
+     uitwerking — dit is geen voorstel meer.
+
+Openstaande vraag 2 uit de versie van deze spec vóór de ADR 0004-herziening
+("terug naar PIN blijft geblokkeerd zonder al bestaande `pin_hash`") was al
+eerder vervallen verklaard — zie "Besloten door de Architect" hieronder voor
+de expliciete verificatie waarom, in plaats van dat aan te nemen.
 
 ## Onderzocht in /designs/
 
@@ -102,8 +189,9 @@ zijn:
   passend dan onder het oude either/or-model: wachtwoord is niet een
   uitzondering voor wie het koos, het is de gegarandeerde basis voor
   iedereen. Dit scherm blijft dus geen bruikbaar ontwerp voor de
-  navigatie-ingang zelf (zie Openstaande vraag 2) — hooguit voor losse
-  stijlelementen, zoals de vorige versie al concludeerde.
+  navigatie-ingang zelf (zie "Definitieve keuzes" punt 2 voor de definitieve
+  vorm) — hooguit voor losse stijlelementen, zoals de vorige versie al
+  concludeerde.
 - **Modus-keuzekaart** (`showModeChoice`, regel 1334–1354): nog steeds een
   bruikbaar visueel precedent voor Schermflow stap 2 — ongewijzigd
   bruikbaar, dit onderdeel raakt Beslissing 1 niet.
@@ -127,9 +215,11 @@ het patroon dat Bram nu voor #42 vraagt:
   volledig scherm binnen `shells/portal`'s navigatie (een tabblad/menu-item
   dat in de bar-shell niet bestaat), voor een rol (`lid`) die geen dienst
   start. Het bevestigt wél dat het gevraagde patroon al een keer is
-  doordacht in het ontwerp — alleen nooit voor bar/beheer-personeel. Vandaar
-  Openstaande vraag 3: er is geen wireframe voor *waar in `shells/bar`* dit
-  hoort, alleen het bewijs dat het concept elders al bestaat.
+  doordacht in het ontwerp — alleen nooit voor bar/beheer-personeel. Er was
+  hiervoor geen wireframe voor *waar in `shells/bar`* dit hoort, alleen het
+  bewijs dat het concept elders al bestaat — zie "Definitieve keuzes (Bram,
+  2026-09-19)" punt 3 hieronder voor de plek die de Architect op basis
+  hiervan én op basis van `set_own_pin`'s technische eisen heeft vastgelegd.
 
 `designs/Lid App.dc.html`'s `loginMethods` (regel 140/447/600) blijft, zoals
 de vorige versie al vaststelde, een ander scherm voor een ander doel (leden
@@ -176,9 +266,10 @@ Raakt vier bestaande plekken, geen van alle als herbouw:
   **alleen-lezen** "Inloggegevens"-sectie (zie Schermflow stap 7) — geen
   beheerder-bewerkbare selector meer, zie "Besloten door de Architect"
   hieronder voor waarom dat verschilt van de vorige versie.
-- **Nieuw: een "Mijn account"-scherm** (exacte plek/naam: zie Openstaande
-  vraag 3) waar een bardienst/beheerder-lid de eigen PIN zelf aan-/uitzet.
-  Dit is de enige daadwerkelijk nieuwe schermcomponent in deze spec.
+- **Nieuw: een "Mijn account"-scherm**, ingang op het modus-keuzescherm (zie
+  "Definitieve keuzes" punt 3 en Schermflow stap 6) waar een
+  bardienst/beheerder-lid de eigen PIN zelf aan-/uitzet. Dit is de enige
+  daadwerkelijk nieuwe schermcomponent in deze spec.
 
 **Route: `/beheer` blijft ongewijzigd, wordt niet hernoemd.** Zelfde
 motivatie als de vorige versie (PWA-standalone verbergt de URL toch, en
@@ -205,16 +296,24 @@ kolom al volledig:
   gekoppeld Supabase Auth-account, dus *kán* met wachtwoord inloggen. ADR
   0004 → Beslissing 1 maakt dit voor elk `bardienst`/`beheerder`-lid
   verplicht als **eindsituatie** — maar deze migratie voegt **geen**
-  `not null`- of `check`-constraint toe die dat afdwingt. Reden: dat zou
-  vandaag alle bestaande PIN-only bardienst/beheerder-leden zonder
-  `auth_user_id` breken (een schema-migratie kan zo'n rij niet met terugwerkende
-  kracht van een account voorzien), en *of/wanneer* die leden een account
-  krijgen is Openstaande vraag 1 — niet iets waar deze migratie op vooruit
-  mag lopen. Deze spec accepteert dus bewust een **overgangsperiode**
-  waarin een bardienst/beheerder-lid met `auth_user_id is null` kan bestaan
-  (net als vandaag) — zie Randgevallen voor het concrete gedrag daarvan
-  (zo'n lid kan gewoon met PIN blijven werken, kan zichzelf alleen geen
-  wachtwoord-fallback geven totdat een account geprovisioned is).
+  `not null`- of `check`-constraint toe die dat afdwingt. Bram heeft
+  bevestigd (zie "Definitieve keuzes" punt 1) dat er vandaag geen echt
+  Aurora-lid bestaat dat zo'n constraint zou breken — dit is dus geen geval
+  van "voorkomt vandaag een crash op bestaande rijen". De constraint blijft
+  toch achterwege, om twee andere, wel nog geldige redenen: (a)
+  `supabase/seed.sql`'s eigen lokale/CI-fixtures (Tom Willems, Sanne Bakker)
+  modelleren bewust precies deze overgangsstaat om `start_shift`/de
+  PIN-stafkeuze te kunnen testen — een harde constraint zou `supabase
+  start`/CI breken op data die met opzet zo is opgezet; en (b) *of/wanneer*
+  een toekomstig, wél bestaand geval van deze staat verplicht naar een
+  account gemigreerd moet worden is ADR 0004 → Beslissing 5's bewust
+  opengelaten beleidsvraag — een schema-constraint zou die handhavingstiming
+  stilzwijgend beslissen zonder dat Bram dat gedaan heeft. Deze spec staat
+  dus een **overgangsstaat toe die vandaag geen enkel echt lid raakt**, maar
+  wel de lokale/CI-fixtures en een eventueel toekomstig geval — zie
+  Randgevallen voor het concrete gedrag daarvan (zo'n lid kan gewoon met PIN
+  blijven werken, kan zichzelf alleen geen wachtwoord-fallback geven totdat
+  een account geprovisioned is).
 - **Geen wijziging aan hoe `pin_hash`/`auth_user_id` samen mogen voorkomen.**
   Beide gezet is de normale, verwachte eindsituatie (ADR 0004 → Beslissing
   3) — er is geen constraint die dat verbiedt of afdwingt, exact zoals ze nu
@@ -357,17 +456,19 @@ van als aanname:
    schrijfactie (PIN aan/uit) is zelfbediening (punt 2 hierboven). Een
    beheerder kan nu wel zien of een lid een PIN heeft en een gekoppeld
    account heeft (nuttig om te signaleren dat een lid nog geprovisioned
-   moet worden, zie Openstaande vraag 1), maar niet namens dat lid
-   schrijven. Zie Schermflow stap 7.
+   moet worden — vandaag naar verwachting nooit, zie "Definitieve keuzes"
+   punt 1), maar niet namens dat lid schrijven. Zie Schermflow stap 7.
 
 ## Schermflow
 
 0. **Navigatie-ingang op de bar-shell root** (`DienstStarten.tsx`,
-   `barStaff.status === "ready"`-tak, stafkeuzescherm) — **ongewijzigd
-   voorstel t.o.v. de vorige versie, zie Openstaande vraag 2**: een subtiele
-   tekstlink onder de `StaffPicker`-grid, bijvoorbeeld "Inloggen met
-   e-mail" (exacte bewoording aan Bram/Developer), naar `/beheer`. Alleen
-   zichtbaar op de stafkeuze-staat.
+   `barStaff.status === "ready"`-tak, stafkeuzescherm) — **definitief, zie
+   "Definitieve keuzes" punt 2**: een zichtbare, secundair gestileerde knop
+   over de volle breedte, direct onder de `StaffPicker`-grid, bijvoorbeeld
+   "Inloggen met e-mail" (exacte copy aan Developer/design system), naar
+   `/beheer`. Geen tekstlink meer, geen even zwaar gewicht als de
+   PIN-tegels — zie de motivatie hierboven. Alleen zichtbaar op de
+   stafkeuze-staat.
 1. **`/beheer`, geen sessie** (`BeheerLogin.tsx`, gegeneraliseerd) —
    ongewijzigd t.o.v. de vorige versie: neutrale kop ("Inloggen" i.p.v.
    "Beheer"), `deniedMessage` generieker. Dit klopt nu nog sterker dan
@@ -375,19 +476,33 @@ van als aanname:
    e-mail koos", het is de gegarandeerde ingang voor **iedereen** met
    bardienst/beheerder-rol.
 2. **`/beheer`, sessie herleidt naar een actieve `bardienst`- of
-   `beheerder`-rij** — ongewijzigd t.o.v. de vorige versie: modus-keuzescherm
-   met **Bar**/**Beheer**-tegels (visuele vorm van `showModeChoice`, regel
-   1334–1354). Zie Schermflow stap 6 voor de nieuwe, derde ingang
-   ("Mijn account") die hier eventueel bij komt — Openstaande vraag 3.
+   `beheerder`-rij** — ongewijzigd t.o.v. de vorige versie voor de
+   **Bar**/**Beheer**-tegels zelf (visuele vorm van `showModeChoice`, regel
+   1334–1354). **Definitief, zie "Definitieve keuzes" punt 3**: dit scherm
+   krijgt daarnaast een derde, kleinere ingang **"Mijn account"** (zie
+   Schermflow stap 6) — de enige plek in deze spec waar dat kan werken,
+   omdat dit het enige scherm is dat altijd op een individuele
+   e-mail/wachtwoord-sessie draait, ongeacht of het lid daarna Bar of Beheer
+   kiest.
 3. **Bar-modus, eenmaal op `/`**: ongewijzigd, identiek aan de bestaande
    PIN-flow-schermen.
 4. **Beheer-modus**: ongewijzigd, identiek aan vandaag.
 5. **Uitloggen**: ongewijzigd.
-6. **"Mijn account" — nieuw, zie Openstaande vraag 3.** Voorstel: een derde,
-   kleinere ingang op het modus-keuzescherm (stap 2), bijvoorbeeld een
-   tekstlink onder de twee Bar/Beheer-tegels ("Mijn PIN instellen" of
-   vergelijkbaar, exacte tekst aan Developer/Bram). Opent een minimaal
-   scherm/sheet met:
+6. **"Mijn account" — nieuw, definitief, zie "Definitieve keuzes" punt 3.**
+   Een derde, kleinere ingang op het modus-keuzescherm (stap 2) — bijv. een
+   tekstlink onder de twee Bar/Beheer-tegels (exacte vorm aan de
+   Developer/design system, zie hieronder), met het label **"Mijn
+   account"** (Bram's eigen woordkeuze, niet "Mijn PIN instellen": de naam
+   dekt het concept, niet alleen de huidige PIN-toggle-inhoud). Bewust
+   kleiner/onopvallender dan de Bar/Beheer-tegels — het is geen derde
+   werkmodus die je "binnengaat", maar een korte zelfbedieningsactie die je
+   bezoekt en weer verlaat om alsnog Bar of Beheer te kiezen. **Uitsluitend
+   bereikbaar vanaf dit scherm** (dus na een individuele
+   e-mail/wachtwoord-login), niet vanuit Bar-modus zelf — zie "Definitieve
+   keuzes" punt 3 voor waarom dat laatste technisch niet kan werken
+   (`set_own_pin` herleidt de aanroeper via `auth.uid()`, en de gedeelde
+   PIN-stafkeuze draait op de device-sessie, niet op een individuele
+   sessie). Opent een minimaal scherm/sheet met:
    - Een statusregel: "Je hebt nu wel/geen pincode ingesteld" (afgeleid van
      `pin_hash is not null` voor de ingelogde `auth.uid()`-rij — een nieuwe,
      kleine leeshook of hergebruik van een bestaand `members`-select met
@@ -403,11 +518,12 @@ van als aanname:
    - Dit scherm is **niet** rolafhankelijk zichtbaar — elk lid dat via deze
      sessie het modus-keuzescherm bereikt (dus al bardienst of beheerder)
      mag de eigen PIN beheren.
-   - **Dit hele punt is een voorstel, geen besluit** — zie Openstaande vraag
-     3. Als Bram een andere plek aanwijst (bv. een instellingen-tab binnen
-     `BeheerTabs.tsx`, ook bereikbaar voor een `bardienst`-lid dat toevallig
-     naar Beheer navigeert), past de Developer de locatie aan zonder dat dit
-     de RPC (`set_own_pin`) raakt.
+   - **Definitief besloten, geen voorstel meer** (zie "Definitieve keuzes"
+     punt 3) — de plaatsing op het modus-keuzescherm is niet alleen de
+     UX-voorkeur van de Architect maar de enige plek die functioneel werkt
+     gegeven `set_own_pin`'s `auth.uid()`-herleiding. De exacte visuele
+     vorm (tekstlink vs. knop, sheet vs. inline) blijft aan de
+     Developer/design system, de locatie niet.
 7. **`LidBeherenOverlay.tsx` — nieuwe, alleen-lezen "Inloggegevens"-sectie**
    (vervangt de vorige versie se bewerkbare "Inlogmethode"-sectie, zie
    "Besloten door de Architect" punt 3), alleen zichtbaar wanneer
@@ -436,16 +552,17 @@ de RPC (`no_bar_role`).
 ## Randgevallen
 
 - **Bardienst/beheerder-lid met `pin_hash is not null` maar
-  `auth_user_id is null`** (de huidige, overgangsstaat van bijna alle
-  bestaande leden — zie Datamodel en Openstaande vraag 1): kan nu, en tot
-  provisioning is opgelost, gewoon met PIN blijven werken — geen
-  gedragswijziging. Zo'n lid kan **niet** zelf een wachtwoordaccount
-  koppelen (dat blijft, net als in de vorige versie van deze spec, buiten
-  scope — handmatige provisioning) en kan dus ook geen gebruik maken van de
-  e-mail/wachtwoord-route totdat dat gebeurt is. Dit voldoet niet aan ADR
-  0004's eindmodel ("wachtwoord verplicht") — dat is precies waarom
-  Openstaande vraag 1 een echte, onbeantwoorde vraag is, geen
-  architectuurdetail.
+  `auth_user_id is null`** — vandaag **alleen aanwezig als lokale/CI-
+  seedfixture** (Tom Willems, Sanne Bakker in `supabase/seed.sql`), niet bij
+  enig echt Aurora-lid (bevestigd door Bram, zie "Definitieve keuzes" punt
+  1) — geen actief migratiescenario, wel gedocumenteerd gedrag voor het
+  geval dit ooit alsnog voorkomt: zo'n lid kan gewoon met PIN blijven
+  werken — geen gedragswijziging. Zo'n lid kan **niet** zelf een
+  wachtwoordaccount koppelen (dat blijft, net als in de vorige versie van
+  deze spec, buiten scope — handmatige provisioning) en kan dus ook geen
+  gebruik maken van de e-mail/wachtwoord-route totdat dat gebeurt is. Dit
+  voldoet niet aan ADR 0004's eindmodel ("wachtwoord verplicht"), maar is
+  geen bouwverplichting van dit ticket — zie "Definitieve keuzes" punt 1.
 - **Bardienst/beheerder-lid met `auth_user_id is not null` maar
   `pin_hash is null`** (het nieuwe, gewenste eindmodel voor wie geen PIN
   wil): logt in via `/beheer`, kiest een modus. Verschijnt niet in de
@@ -479,12 +596,15 @@ de RPC (`no_bar_role`).
   beheerder-leden zonder `auth_user_id`** — blijft #24's territorium
   (ledenbeheer's bestaande, nog niet gebouwde uitnodigingsflow). Handmatige
   provisioning (Supabase Studio, zelfde patroon als Femke Bos in
-  `seed.sql`) blijft de enige weg totdat dat gebouwd is — **tenzij Bram bij
-  Openstaande vraag 1 aangeeft dat dit ticket die uitnodigingsflow juist wél
-  naar voren moet halen**, wat een scope-uitbreiding zou zijn die deze spec
-  niet zelf beslist.
-- **Een geforceerde migratie/deadline voor bestaande PIN-only leden** — zie
-  Openstaande vraag 1, expliciet niet hier beslist.
+  `seed.sql`) blijft de enige weg — vandaag is er, per "Definitieve keuzes"
+  punt 1, geen bestaand geval dat deze weg zou moeten bewandelen; mocht dat
+  ooit ontstaan, dan geldt nog steeds handmatige provisioning totdat #24
+  gebouwd is, geen impliciete scope-uitbreiding van dit ticket.
+- **Een geforceerde migratie/deadline voor bestaande PIN-only leden** — niet
+  nodig om hier te beslissen: "Definitieve keuzes" punt 1 bevestigt dat er
+  vandaag geen bestaand geval is om te migreren. ADR 0004 → Beslissing 5's
+  handhavingstiming voor een eventueel toekomstig geval blijft een
+  onbeantwoorde beleidsvraag, hier bewust niet beslist.
 - **Beheerder-gestuurde PIN-reset voor een ander lid** — zie "Besloten door
   de Architect" punt 2: niet nodig onder het nieuwe model, geen RPC/scherm
   hiervoor.
@@ -505,6 +625,7 @@ Ongewijzigd t.o.v. de vorige versie voor het modus-keuzescherm (volledig
 scherm, geen overlay, geen `useShell().overlay`-gebruik). Het nieuwe "Mijn
 account"-scherm (Schermflow stap 6) is klein genoeg om als sheet/overlay te
 bouwen (`useShell().overlay`, zelfde patroon als andere overlays in
-`shells/bar`) — geen vaste-layout-argument zoals bij het modus-keuzescherm,
-maar ook geen architectuurkeuze: de Developer kiest de concrete vorm zodra
-Openstaande vraag 3 beantwoord is.
+`shells/bar`) — geen vaste-layout-argument zoals bij het modus-keuzescherm.
+De locatie (modus-keuzescherm) staat vast (zie "Definitieve keuzes" punt 3);
+de concrete visuele vorm (sheet vs. inline, exacte copy) blijft aan de
+Developer/design system.
