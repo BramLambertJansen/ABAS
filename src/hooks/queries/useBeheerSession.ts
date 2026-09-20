@@ -4,38 +4,54 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 /**
- * Tracks whether `/beheer` has an actual *beheerder* session, not merely
- * "any Supabase Auth session" — `src/middleware.ts` auto-signs the shared
- * bar-tablet device account in on almost every request (including `/beheer`)
- * whenever there's no session yet, so `supabase.auth.getSession()` returning
- * a `user` does NOT by itself mean a beheerder logged in via
+ * Tracks whether `/beheer` has an actual bardienst/beheerder session, not
+ * merely "any Supabase Auth session" — `src/middleware.ts` auto-signs the
+ * shared bar-tablet device account in on almost every request (including
+ * `/beheer`) whenever there's no session yet, so `supabase.auth.getSession()`
+ * returning a `user` does NOT by itself mean an individual logged in via
  * `BeheerLogin.tsx` (ADR 0002's mechanism: `/beheer`'s own e-mail-login
  * *replaces* that shared session — "no session" and "the device session" are
- * different cases, see docs/features/assortimentbeheer.md → Rolzichtbaarheid
- * and ADR 0002). A session only counts as "signed-in" here once it resolves,
- * via `auth_user_id`, to an active `members` row with `role = 'beheerder'` —
- * exactly the same check the RPC's run themselves
- * (`actor_not_found`/`no_admin_role`, see useCreateProduct.ts etc.). No
- * fallback to the session's e-mail as a display name when that lookup
- * doesn't match: a device-session or a non-beheerder member's e-mail-session
- * is reported as "denied", not "signed-in".
+ * different cases). A session only counts as "signed-in" here once it
+ * resolves, via `auth_user_id`, to an active `members` row with role
+ * `bardienst` or `beheerder` — exactly the same check the RPC's run
+ * themselves (`actor_not_found`/`no_admin_role`/`no_bar_role`).
+ *
+ * Generalized from "beheerder-only" to "bardienst-of-beheerder"
+ * (docs/features/auth-methode-per-lid.md, #42, ADR 0005): `/beheer` is now
+ * the guaranteed e-mail/wachtwoord-ingang for every member with either role,
+ * not just beheerder — ModusKeuze.tsx (rendered by Assortimentbeheer.tsx on
+ * "signed-in") is where the actual bar-vs-beheer split happens, this hook
+ * only gates entry. No fallback to the session's e-mail as a display name
+ * when the members lookup doesn't match: a device-session or a `lid`-only
+ * member's e-mail-session is reported as "denied", not "signed-in".
  *
  * "loading" while the initial getSession() round-trip (or the follow-up
  * members lookup) is in flight, "signed-out" when there's no session at
  * all, "denied" when there IS a session but it doesn't resolve to an active
- * beheerder (→ `BeheerLogin.tsx` shows a Nederlandse foutmelding + the login
- * form), "signed-in" only once a real beheerder session is confirmed.
+ * bardienst/beheerder member (→ `BeheerLogin.tsx` shows a Nederlandse
+ * foutmelding + the login form), "signed-in" only once a real
+ * bardienst/beheerder session is confirmed — with `hasPin` (`has_pin`, the
+ * `pin_hash is not null` generated column, for that same row) alongside it,
+ * so "Mijn account"
+ * (MijnAccountOverlay.tsx) doesn't need a second leeshook for the one
+ * boolean it displays.
  */
 export type BeheerSessionState =
   | { status: "loading" }
   | { status: "signed-out" }
   | { status: "denied"; message: string }
-  | { status: "signed-in"; email: string; name: string };
+  | { status: "signed-in"; email: string; name: string; hasPin: boolean };
 
 export function useBeheerSession(): BeheerSessionState & {
   signOut: () => Promise<void>;
+  /** Re-runs the members lookup against the current session — used after
+   *  `set_own_pin` so ModusKeuze's `hasPin` (and therefore
+   *  MijnAccountOverlay's status line, once reopened) reflects the change
+   *  without requiring a fresh sign-in. */
+  refetch: () => void;
 } {
   const [state, setState] = useState<BeheerSessionState>({ status: "loading" });
+  const [tick, setTick] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -56,7 +72,7 @@ export function useBeheerSession(): BeheerSessionState & {
         try {
           const { data, error } = await supabase
             .from("members")
-            .select("name, role")
+            .select("name, role, has_pin")
             .eq("auth_user_id", userId)
             .eq("archived", false)
             .maybeSingle();
@@ -74,26 +90,33 @@ export function useBeheerSession(): BeheerSessionState & {
             });
             return;
           }
-          if (data.role !== "beheerder") {
-            // Same case as the RPC's own `no_admin_role` — a real, linked
-            // member, just not one with beheerder-rechten.
+          if (data.role !== "bardienst" && data.role !== "beheerder") {
+            // Same case as the RPC's own `no_admin_role`/`no_bar_role` — a
+            // real, linked member, just not one with bardienst-/
+            // beheerrechten (e.g. a `lid`-only portal account).
             setState({
               status: "denied",
               message:
-                "Dit account kan het assortiment niet beheren — vraag een beheerder.",
+                "Dit account heeft geen bardienst- of beheerrechten — vraag een beheerder.",
             });
             return;
           }
-          setState({ status: "signed-in", email, name: data.name as string });
+          setState({
+            status: "signed-in",
+            email,
+            name: data.name as string,
+            hasPin: data.has_pin as boolean,
+          });
         } catch (err) {
-          // Can't confirm a beheerder-koppeling — fail closed (never
-          // "signed-in" without a confirmed match), log for debugging.
+          // Can't confirm a bardienst/beheerder-koppeling — fail closed
+          // (never "signed-in" without a confirmed match), log for
+          // debugging.
           console.error("useBeheerSession (role lookup):", err);
           if (!cancelled) {
             setState({
               status: "denied",
               message:
-                "Kon niet controleren of dit account mag beheren — probeer opnieuw in te loggen.",
+                "Kon niet controleren of dit account mag inloggen — probeer opnieuw in te loggen.",
             });
           }
         }
@@ -128,7 +151,7 @@ export function useBeheerSession(): BeheerSessionState & {
       cancelled = true;
       unsubscribe?.();
     };
-  }, []);
+  }, [tick]);
 
   async function signOut() {
     try {
@@ -143,5 +166,5 @@ export function useBeheerSession(): BeheerSessionState & {
     }
   }
 
-  return { ...state, signOut };
+  return { ...state, signOut, refetch: () => setTick((t) => t + 1) };
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useOpenShift } from "@/hooks/queries/useOpenShift";
 import { useBarStaff, type BarStaffMember } from "@/hooks/queries/useBarStaff";
@@ -146,6 +147,21 @@ export function DienstStarten() {
                 Wie start de dienst?
               </h1>
               <StaffPicker staff={barStaff.staff} onSelect={selectStaff} />
+              {/* Universele voordeur, niet een noodpad — sinds #42
+                  (docs/features/auth-methode-per-lid.md, ADR 0005) is
+                  e-mail/wachtwoord de gegarandeerde inlogmethode voor élk
+                  bardienst/beheerder-lid, en voor een lid zonder PIN (niet
+                  meer in de StaffPicker-grid hierboven, zie
+                  useBarStaff.ts) is dit de enige deur. Secundair gestileerd
+                  (outline, geen accent-vulling) zodat de dagelijkse
+                  PIN-flow het zwaarste gewicht houdt — zie de spec →
+                  Definitieve keuzes punt 2 voor de volledige afweging. */}
+              <Link
+                href="/beheer"
+                className="flex h-12 w-full max-w-[500px] items-center justify-center rounded-2xl border border-rail-border text-sm font-semibold text-rail-muted transition-colors hover:border-accent hover:text-white"
+              >
+                Inloggen met e-mail
+              </Link>
             </>
           )}
 

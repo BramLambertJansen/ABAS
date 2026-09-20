@@ -76,6 +76,13 @@ export function useUpdateMemberEmail() {
           role: data.role as LedenbeheerLid["role"],
           balanceCents: data.balance_cents as number,
           archived: data.archived as boolean,
+          // update_member_email raakt auth_user_id/pin_hash nooit — zelfde
+          // reden als de overige ledenbeheer-RPC-hooks om deze mee te
+          // geven. `has_pin` (generated column) i.p.v. `pin_hash`
+          // (0010_pin_hash_kolombeveiliging.sql scrubt pin_hash in de
+          // RPC-return naar null, ook voor deze RPC).
+          hasAccount: data.auth_user_id !== null,
+          hasPin: data.has_pin as boolean,
           email: data.email as string | null,
         },
         errorCode: null,

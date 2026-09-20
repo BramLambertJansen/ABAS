@@ -18,6 +18,9 @@
 
 # supabase
 /supabase/.branches
+
+# claude code local overrides
+/.claude/settings.local.json
 /supabase/.temp
 
 # logs

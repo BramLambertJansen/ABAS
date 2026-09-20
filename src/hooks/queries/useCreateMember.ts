@@ -72,6 +72,14 @@ export function useCreateMember() {
         role: data.role as LedenbeheerLid["role"],
         balanceCents: data.balance_cents as number,
         archived: data.archived as boolean,
+        // create_member zet role altijd op 'lid' met pin_hash/auth_user_id
+        // op null (0007_ledenbeheer.sql) — meegeven vanuit de teruggegeven
+        // rij zelf (niet hardcoded false) zodat dit niet stilletjes
+        // losraakt van wat de RPC daadwerkelijk doet. `has_pin` (generated
+        // column) i.p.v. `pin_hash` (0010_pin_hash_kolombeveiliging.sql
+        // scrubt pin_hash in de RPC-return naar null).
+        hasAccount: data.auth_user_id !== null,
+        hasPin: data.has_pin as boolean,
         email: data.email as string | null,
       };
     } catch (err) {

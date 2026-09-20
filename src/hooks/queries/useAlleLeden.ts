@@ -15,6 +15,26 @@ export type LedenbeheerLid = {
   role: "lid" | "bardienst" | "beheerder";
   balanceCents: number;
   archived: boolean;
+  /** `auth_user_id is not null` — heeft dit lid een gekoppeld
+   *  wachtwoordaccount. Alleen-lezen weergaveveld voor
+   *  `LidBeherenOverlay.tsx`'s "Inloggegevens"-sectie
+   *  (docs/features/auth-methode-per-lid.md → Datamodel) — geschreven wordt
+   *  dit veld nooit via deze hook of overlay, alleen handmatig (Supabase
+   *  Studio) of door het lid zelf (self-service e-mailkoppeling, buiten
+   *  scope, zie de spec). */
+  hasAccount: boolean;
+  /** `has_pin` (`pin_hash is not null`, generated column,
+   *  0010_pin_hash_kolombeveiliging.sql) — heeft dit lid een
+   *  PIN-snelkoppeling aan staan. Alleen-lezen, zelfde reden als hasAccount
+   *  — de schrijfactie is zelfbediening via `set_own_pin` ("Mijn account"),
+   *  niet iets een beheerder hier namens dit lid doet. De ruwe `pin_hash`-
+   *  kolom zelf is column-level REVOKEd voor `authenticated` en wordt hier
+   *  niet meer gelezen. */
+  hasPin: boolean;
+  /** `members.email` (0008_ledenbeheer_email.sql) — PII, alleen leesbaar
+   *  via `list_members_admin()` (ADR 0004 → PII-kolommen,
+   *  0009_ledenbeheer_email_rpc_gated_read.sql), niet via een directe
+   *  select. */
   email: string | null;
 };
 
@@ -36,7 +56,17 @@ type State =
  *  `members_select`-policy geldt voor élke ingelogde sessie, inclusief de
  *  gedeelde bar-tablet-sessie, dus een directe select zou de kolom niet meer
  *  teruggeven. De RPC draait `security definer` met een beheerder-
- *  actorcheck en sorteert zelf al op naam. */
+ *  actorcheck en sorteert zelf al op naam.
+ *
+ *  Let op — bekende restbeperking (gemeld in de PR, niet hier stilletjes
+ *  opgelost): `list_members_admin()` doet zelf `select * from members`
+ *  zonder de rij te scrubben, dus de ruwe RPC-respons bevat nog steeds de
+ *  echte `pin_hash`-kolomwaarde (column-level REVOKEs op `members` gelden
+ *  niet voor wat een `security definer`-functie zelf teruggeeft — vandaar
+ *  dat de vijf schrijf-RPC's hieronder hun eigen `v_member.pin_hash := null`
+ *  hebben, zie 0010_pin_hash_kolombeveiliging.sql). Deze hook mapt dat veld
+ *  simpelweg niet door naar `LedenbeheerLid`, wat de UI beschermt, maar de
+ *  ruwe network-response naar een ingelogde beheerder-sessie niet. */
 export function useAlleLeden(): State & { refetch: () => void } {
   const [state, setState] = useState<State>({ status: "loading" });
   const [tick, setTick] = useState(0);
@@ -55,6 +85,8 @@ export function useAlleLeden(): State & { refetch: () => void } {
         role: row.role as LedenbeheerLid["role"],
         balanceCents: row.balance_cents as number,
         archived: row.archived as boolean,
+        hasAccount: row.auth_user_id !== null,
+        hasPin: row.has_pin as boolean,
         email: row.email as string | null,
       }));
 
