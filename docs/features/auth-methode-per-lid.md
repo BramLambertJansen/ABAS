@@ -13,7 +13,7 @@ consistent is met deze drie definitieve keuzes.
 die uitging van een exclusief either/or-model (PIN *of* e-mail/wachtwoord,
 nooit allebei — ADR 0003 → Beslissing 1). Bram heeft dat model gekanteld:
 wachtwoord is altijd verplicht, PIN is een optionele, aanvullende
-snelkoppeling. Zie **[ADR 0004](../adr/0004-wachtwoord-verplicht-pin-optionele-snelkoppeling.md)**,
+snelkoppeling. Zie **[ADR 0005](../adr/0005-wachtwoord-verplicht-pin-optionele-snelkoppeling.md)**,
 die dit vastlegt en ADR 0003 → Beslissing 1 amendeert. Elk datamodel-,
 RPC- en schermflow-onderdeel hieronder is opnieuw doordacht vanuit dat
 nieuwe model — dit is geen kleine patch op de vorige versie, alle secties
@@ -25,13 +25,13 @@ uit (modus-keuze na login, bar-modus functioneel identiek via `served_by`) en
 bouwt voort op **[ADR 0002](../adr/0002-beheeracties-vereisen-eigen-e-mail-sessie.md)**
 (de sessie zelf) en op het al gemergede `/beheer`
 (`docs/features/assortimentbeheer.md`, issue #14). Lees ADR 0002, ADR 0003,
-ADR 0004 en `assortimentbeheer.md` eerst — deze spec herhaalt hun motivatie
+ADR 0005 en `assortimentbeheer.md` eerst — deze spec herhaalt hun motivatie
 niet.
 
-**Geen nieuwe ADR nodig voor de hieronder uitgewerkte details** — ADR 0004
+**Geen nieuwe ADR nodig voor de hieronder uitgewerkte details** — ADR 0005
 legt het principe vast, deze spec past het toe op een concreet
 datamodel/schermflow. Wel wordt op meerdere plekken expliciet gemotiveerd
-*hoe* een detail uit ADR 0004 volgt, zodat een latere feature het niet
+*hoe* een detail uit ADR 0005 volgt, zodat een latere feature het niet
 per ongeluk als toeval leest.
 
 ## Definitieve keuzes (Bram, 2026-09-19)
@@ -97,7 +97,7 @@ Developer begint; er blijft na dit document geen open vraag over.
    Developer/design system) — niet de eerder voorgestelde subtiele
    tekstlink (zelfde understatement als "← terug naar bardienst"), en ook
    geen even zwaar gewicht als de PIN-tegels zelf.
-   - **Waarom niet subtiel meer:** onder ADR 0004 is e-mail/wachtwoord niet
+   - **Waarom niet subtiel meer:** onder ADR 0005 is e-mail/wachtwoord niet
      langer een uitzonderingspad voor wie het ooit koos (het oude
      either/or-model, ADR 0003) maar de enige gegarandeerd werkende
      inlogmethode voor 100% van bardienst/beheerder. Sterker: voor een lid
@@ -117,7 +117,7 @@ Developer begint; er blijft na dit document geen open vraag over.
      de snelheid van de dagelijkse flow. Een herkenbare, volwaardige knop
      (geen miniatuur-tekstlink) met secundaire styling (outline/
      ghost-variant, geen primary-kleur) geeft de universele-voordeur-status
-     het gewicht dat ADR 0004 vereist, zonder met de dagelijkse PIN-flow te
+     het gewicht dat ADR 0005 vereist, zonder met de dagelijkse PIN-flow te
      concurreren.
    - **Plaats/zichtbaarheid**: ongewijzigd t.o.v. het vorige voorstel — enkel
      zichtbaar op de stafkeuze-staat (`barStaff.status === "ready"`), naar
@@ -171,7 +171,7 @@ Developer begint; er blijft na dit document geen open vraag over.
    - Zie Schermflow stap 6 (bijgewerkt hieronder) voor de definitieve
      uitwerking — dit is geen voorstel meer.
 
-Openstaande vraag 2 uit de versie van deze spec vóór de ADR 0004-herziening
+Openstaande vraag 2 uit de versie van deze spec vóór de ADR 0005-herziening
 ("terug naar PIN blijft geblokkeerd zonder al bestaande `pin_hash`") was al
 eerder vervallen verklaard — zie "Besloten door de Architect" hieronder voor
 de expliciete verificatie waarom, in plaats van dat aan te nemen.
@@ -229,10 +229,10 @@ personeel, maar nu dus wel de bron van het hergebruikte *principe*.
 ## Doel
 
 Elk lid met rol `bardienst` of `beheerder` heeft altijd, gegarandeerd, een
-werkende e-mail/wachtwoord-login (ADR 0004 → Beslissing 1). In de eigen
+werkende e-mail/wachtwoord-login (ADR 0005 → Beslissing 1). In de eigen
 profielinstellingen kan zo'n lid optioneel een PIN aan- of uitzetten als
 snelkoppeling voor de gedeelde bar-tablet — een PIN vervangt het wachtwoord
-nooit, schakelt het nooit uit, en beide kunnen tegelijk actief zijn (ADR 0004
+nooit, schakelt het nooit uit, en beide kunnen tegelijk actief zijn (ADR 0005
 → Beslissing 2/3). Na een succesvolle e-mail/wachtwoord-login kiest de
 ingelogde persoon een echte modus — **Bar** of **Beheer** — in plaats van
 (zoals #14 bouwde) altijd rechtstreeks naar de productenlijst te gaan.
@@ -240,7 +240,7 @@ ingelogde persoon een echte modus — **Bar** of **Beheer** — in plaats van
 PIN-flow (#6/#7): zelfde `start_shift`/`add_shift_member`/
 `remove_shift_member`, zelfde `served_by`-attributie uit de bezetting — dit
 ticket bouwt geen tweede bar-mechanisme, het opent alleen een tweede weg
-ernaartoe (ADR 0003 → Beslissing 3, ongewijzigd door ADR 0004).
+ernaartoe (ADR 0003 → Beslissing 3, ongewijzigd door ADR 0005).
 
 ## Betrokken shell
 
@@ -274,7 +274,7 @@ Raakt vier bestaande plekken, geen van alle als herbouw:
 **Route: `/beheer` blijft ongewijzigd, wordt niet hernoemd.** Zelfde
 motivatie als de vorige versie (PWA-standalone verbergt de URL toch, en
 hernoemen raakt de magic-link-redirect-configuratie voor niets) — dit is niet
-geraakt door ADR 0004. De letterlijke kop "Beheer" (`BeheerLogin.tsx` regel
+geraakt door ADR 0005. De letterlijke kop "Beheer" (`BeheerLogin.tsx` regel
 62) verdwijnt nog steeds vóór een modus gekozen is — zie Schermflow stap 1,
 ongewijzigd t.o.v. de vorige versie.
 
@@ -306,7 +306,7 @@ kolom al volledig:
   PIN-stafkeuze te kunnen testen — een harde constraint zou `supabase
   start`/CI breken op data die met opzet zo is opgezet; en (b) *of/wanneer*
   een toekomstig, wél bestaand geval van deze staat verplicht naar een
-  account gemigreerd moet worden is ADR 0004 → Beslissing 5's bewust
+  account gemigreerd moet worden is ADR 0005 → Beslissing 5's bewust
   opengelaten beleidsvraag — een schema-constraint zou die handhavingstiming
   stilzwijgend beslissen zonder dat Bram dat gedaan heeft. Deze spec staat
   dus een **overgangsstaat toe die vandaag geen enkel echt lid raakt**, maar
@@ -315,7 +315,7 @@ kolom al volledig:
   blijven werken, kan zichzelf alleen geen wachtwoord-fallback geven totdat
   een account geprovisioned is).
 - **Geen wijziging aan hoe `pin_hash`/`auth_user_id` samen mogen voorkomen.**
-  Beide gezet is de normale, verwachte eindsituatie (ADR 0004 → Beslissing
+  Beide gezet is de normale, verwachte eindsituatie (ADR 0005 → Beslissing
   3) — er is geen constraint die dat verbiedt of afdwingt, exact zoals ze nu
   al onafhankelijk van elkaar bestaan.
 
@@ -369,7 +369,7 @@ geschreven; de daadwerkelijke PIN-mutatie is zelfbediening (zie RPC's).
   - `grant execute on function set_own_pin to authenticated;`
 - **`start_shift` — geen wijziging.** De vorige versie van deze spec voegde
   een `auth_method <> 'pin'`-voorwaarde toe om "nooit allebei" af te
-  dwingen; die handhaving is met ADR 0004 overbodig **en fout** geworden —
+  dwingen; die handhaving is met ADR 0005 overbodig **en fout** geworden —
   er is niets meer om af te dwingen, PIN-login moet gewoon blijven werken
   zolang `pin_hash is not null`, ongeacht of er ook een wachtwoord bestaat.
   `start_shift` doet dat vandaag al precies zo (`0001_init.sql`, regel
@@ -380,7 +380,7 @@ geschreven; de daadwerkelijke PIN-mutatie is zelfbediening (zie RPC's).
   vorige versie ontwierp deze RPC (beheerder-only, exclusieve
   `'pin'`/`'email'`-keuze namens een ander lid) om de either/or-handhaving
   van ADR 0003 → Beslissing 1 te bedienen. Die handhaving bestaat niet meer
-  (ADR 0004) en de vervangende actie (PIN aan-/uitzetten) is zelfbediening,
+  (ADR 0005) en de vervangende actie (PIN aan-/uitzetten) is zelfbediening,
   niet iets wat een beheerder namens een ander lid doet — zie "Besloten door
   de Architect" hieronder voor waarom hier bewust geen beheerder-equivalent
   voor terugkomt.
@@ -418,7 +418,7 @@ blijven ongewijzigd.
 ## Besloten door de Architect
 
 Drie punten die de issue-tekst en Bram's reactie zelf niet expliciet
-uitspraken, hieronder gemotiveerd vanuit ADR 0004/bestaande code in plaats
+uitspraken, hieronder gemotiveerd vanuit ADR 0005/bestaande code in plaats
 van als aanname:
 
 1. **Openstaande vraag 2 uit de vorige versie is vervallen, niet alleen
@@ -541,7 +541,7 @@ van als aanname:
 
 ## Rolzichtbaarheid
 
-Ongewijzigd t.o.v. de vorige versie — ADR 0004 raakt Beslissing 2/3/4 van
+Ongewijzigd t.o.v. de vorige versie — ADR 0005 raakt Beslissing 2/3/4 van
 ADR 0003 niet, en dit hele hoofdstuk van de vorige versie (sessieniveau,
 RPC-niveau, bar-modus) volgde daaruit, niet uit Beslissing 1. Eén
 toevoeging: **de nieuwe "Mijn account"-ingang (Schermflow stap 6) is
@@ -561,7 +561,7 @@ de RPC (`no_bar_role`).
   wachtwoordaccount koppelen (dat blijft, net als in de vorige versie van
   deze spec, buiten scope — handmatige provisioning) en kan dus ook geen
   gebruik maken van de e-mail/wachtwoord-route totdat dat gebeurt is. Dit
-  voldoet niet aan ADR 0004's eindmodel ("wachtwoord verplicht"), maar is
+  voldoet niet aan ADR 0005's eindmodel ("wachtwoord verplicht"), maar is
   geen bouwverplichting van dit ticket — zie "Definitieve keuzes" punt 1.
 - **Bardienst/beheerder-lid met `auth_user_id is not null` maar
   `pin_hash is null`** (het nieuwe, gewenste eindmodel voor wie geen PIN
@@ -602,7 +602,7 @@ de RPC (`no_bar_role`).
   gebouwd is, geen impliciete scope-uitbreiding van dit ticket.
 - **Een geforceerde migratie/deadline voor bestaande PIN-only leden** — niet
   nodig om hier te beslissen: "Definitieve keuzes" punt 1 bevestigt dat er
-  vandaag geen bestaand geval is om te migreren. ADR 0004 → Beslissing 5's
+  vandaag geen bestaand geval is om te migreren. ADR 0005 → Beslissing 5's
   handhavingstiming voor een eventueel toekomstig geval blijft een
   onbeantwoorde beleidsvraag, hier bewust niet beslist.
 - **Beheerder-gestuurde PIN-reset voor een ander lid** — zie "Besloten door
@@ -616,7 +616,7 @@ de RPC (`no_bar_role`).
   filtert niet vooraf).
 - **Issue #22** ("Alternatieve inlogmethoden bar-shell naast PIN") — deze
   spec blijft, zoals ADR 0003 aankondigde, de volledige voortzetting van
-  #22's scope; ADR 0004 verandert daar niets aan. **Aanbeveling aan Bram**:
+  #22's scope; ADR 0005 verandert daar niets aan. **Aanbeveling aan Bram**:
   #22 sluiten zodra deze (herziene) spec gebouwd is.
 
 ## `useShell()`-contract
@@ -640,7 +640,7 @@ alleen een boolean nodig is. Een 4-cijferige PIN heeft een zoekruimte van
 brute-forcen triviaal; dat maakt bcrypt voor dit doel praktisch zinloos. Dit
 is een implementatiefix op wat hierboven al gespecificeerd staat (`hasPin`
 als alleen-lezen boolean, Datamodel/RPC's/Schermflow stap 6/7) — **geen**
-heroverweging van ADR 0004 (wachtwoord verplicht, PIN optionele
+heroverweging van ADR 0005 (wachtwoord verplicht, PIN optionele
 snelkoppeling via `pin_hash is not null`): die betekenis van de kolom blijft
 ongewijzigd, alleen hoe die betekenis de client bereikt verandert.
 
@@ -715,12 +715,94 @@ Overwogen opties (zie opdracht):
    `0004_revoke_app_settings_writes.sql`, `0005_assortimentbeheer.sql`), en
    voegt geen nieuw schema-objecttype toe.
 
-### Migratie: nieuwe `supabase/migrations/0009_pin_hash_kolombeveiliging.sql`
+### Migratie: nieuwe `supabase/migrations/0010_pin_hash_kolombeveiliging.sql`
 
 Nieuwe migratie, niet een wijziging van `0008_pin_zelfbediening.sql` —
 zelfde append-only-conventie als de rest van `supabase/migrations/` (zie
 bv. `0002_fix_start_shift_pgcrypto_search_path.sql`, dat ook een fix op
 `0001_init.sql` is via een nieuwe migratie, niet door 0001 te bewerken).
+
+**Correctie na het mergen van `main` (2026-09-20) — de kale kolom-REVOKE
+hieronder werkt niet, en is vervangen.** Dit bestand heette bij het
+schrijven ervan nog `0009_pin_hash_kolombeveiliging.sql`; het is hernummerd
+naar `0010` omdat `main` intussen zelf `0009` claimde
+(`0009_ledenbeheer_email_rpc_gated_read.sql`, issue #57/PR #59). Die
+merge bracht iets belangrijkers aan het licht dan alleen een
+bestandsnummerbotsing: PR #59's **eerste** fixpoging voor `members.email`
+deed precies dezelfde soort kale `revoke select (<kolom>) on members from
+authenticated` als stap 2 hieronder oorspronkelijk beschreef — en die bleek
+in een echte `db:test`-run tegen een live Postgres **geen effect te hebben**
+(`caught: no exception, wanted: 42501`). Oorzaak, vastgelegd in
+[ADR 0004](../adr/0004-pii-kolommen-vereisen-rpc-gated-lezen.md) → "Correctie
+(Bram, na een echte `db:test`-run in CI, PR #59)": `authenticated` heeft via
+Supabase's platform-brede default-privileges al een **tabel-niveau**
+`SELECT`-grant op `members` — een column-level `REVOKE` kan alleen intrekken
+wat ooit expliciet op column-niveau gegeven is, nooit iets dat via een
+bredere tabel-grant al toegankelijk is. Onze eigen `revoke select (pin_hash)
+on members from authenticated` (stap 2 hieronder, in de originele
+`0009_pin_hash_kolombeveiliging.sql`) is nooit tegen een echte database
+geverifieerd (`db:test` kon in deze sandbox niet draaien, zie de
+commit-boodschap van `3c4b307`) en heeft vermoedelijk exact hetzelfde,
+nooit-bewezen probleem.
+
+**Deze keer wel geverifieerd, niet aangenomen.** `npm run db:test` (het echte
+pgTAP/CI-pad) kon ook tijdens deze merge niet draaien (geen Docker, uitgaand
+verkeer naar `*.supabase.co` geblokkeerd — bekende sandboxbeperking, zie de
+opdracht voor deze merge). Wél beschikbaar in deze sandbox: een kale, lokale
+Postgres 16-server (`pg_ctlcluster`/`psql`, geen Supabase/pgTAP). Daarmee is,
+vóórdat deze migratie werd vastgesteld, eerst een geïsoleerd
+GRANT/REVOKE-experiment gedraaid dat exact `main`'s eerdere fout reproduceert
+(kale column-REVOKE tegen een tabel-brede GRANT heeft geen effect — bevestigd)
+én aantoont dat een latere `grant select (<lijst zonder pin_hash>)` een
+eerder gegeven, expliciete column-level `pin_hash`-grant niét intrekt (GRANT
+stapelt, het vervangt geen kolomlijst) — dat laatste was een aanname in een
+eerdere versie van deze aantekening die empirisch **onjuist** bleek, vandaar
+de expliciete `revoke select (pin_hash) ...` die nu wél in stap 2 hieronder
+staat. Daarna is de **volledige migratieketen** (`0001` t/m `0010`, inclusief
+beide `0008`-bestanden en `main`'s `0009`) tegen een verse database
+toegepast — geen enkele migratie faalt, er bestaat maar één `create_member`-
+functie (drie parameters, geen achtergebleven tweeparameterversie), en
+`create_member`/`update_member_name`/`set_member_archived`/`set_member_role`/
+`set_own_pin`/`update_member_email` geven stuk voor stuk `pin_hash: null`
+terug terwijl `email` gewoon meekomt; een rechtstreekse `select pin_hash`/
+`select email from members` als `authenticated` faalt met "permission
+denied". Dit is geen vervanging van een echte `db:test`-run (geen RLS-
+policy-evaluatie via PostgREST, geen pgTAP-assertions, geen Supabase-eigen
+rolopzet) maar wel een aanzienlijk sterker bewijs dan "leest logisch klopt",
+en dekt precies het mechanisme (Postgres' eigen privilegemodel) waar de
+vorige, ongeverifieerde poging op vastliep.
+
+De echte fix, nu toegepast in `0010_pin_hash_kolombeveiliging.sql`: bouw
+voort op `main`'s `0009_ledenbeheer_email_rpc_gated_read.sql`, dat al
+`revoke select on members from authenticated;` (de hele tabel) deed, gevolgd
+door een `grant select (<kolommen zonder email>) on members to
+authenticated;`. Onze migratie voegt daar geen nieuwe tabel-brede `REVOKE`
+aan toe (die staat al) — alleen een nieuwe `grant select (...)` met dezelfde
+kolomlijst, min `pin_hash`, plus de nieuwe `has_pin`-kolom:
+
+```sql
+grant select (
+  id, name, role, balance_cents, archived, created_at, auth_user_id, has_pin
+) on members to authenticated;
+```
+
+Een latere column-level `GRANT`/`REVOKE` op dezelfde tabel stapelt met een
+eerdere (het is geen "laatste wint"-vervanging van de hele
+kolomtoegangslijst) — een kolom die niet in déze `grant`-lijst staat, blijft
+dus alsnog ontoegankelijk zolang geen enkele actieve `grant` hem noemt. Omdat
+de tabel-brede `SELECT` al ingetrokken is door `main`'s migratie, is precies
+zeggen welke kolommen wél mogen de enige manier om iets zichtbaar te maken —
+`pin_hash` simpelweg weglaten uit deze tweede `grant` is voldoende om hem
+dicht te houden, er hoeft geen aparte `revoke select (pin_hash) on members
+from authenticated` naast.
+
+De vijf RPC-scrubs (stap 3 hieronder, en `update_member_email` uit `main`'s
+`0008_ledenbeheer_email.sql` die er ongepland bij kwam, zie verderop) blijven
+onveranderd nodig — dat is verdediging in de diepte tegen een heel ander
+lekpad (een `security definer`-RPC die de volledige rij teruggeeft is nooit
+onderhevig aan een `authenticated`-kolom-`REVOKE`, ongeacht of die zelf werkt)
+en heeft niets te maken met de vraag of de `REVOKE`/`GRANT` op de tabel zelf
+klopt.
 
 1. **Nieuwe kolom, geen aparte view:**
    ```sql
@@ -730,10 +812,20 @@ bv. `0002_fix_start_shift_pgcrypto_search_path.sql`, dat ook een fix op
    Eén plek die "heeft PIN" definieert — zelfde uitdrukking
    (`pin_hash is not null`) als de rest van deze spec al gebruikt, nu als
    kolom in plaats van als losse client-side afleiding op zes plekken.
-2. **Kolomniveau-REVOKE, het technische slot:**
+2. **Kolomniveau-afscherming, het technische slot — hieronder de
+   oorspronkelijke, inmiddels achterhaalde beschrijving; zie de
+   "Correctie na het mergen van `main`"-alinea hierboven voor wat er
+   werkelijk in `0010_pin_hash_kolombeveiliging.sql` staat.** Oorspronkelijk
+   opgeschreven als:
    ```sql
    revoke select (pin_hash) on members from authenticated;
    ```
+   Dat is **niet** wat de uiteindelijke migratie doet — een kale
+   column-level `REVOKE` heeft geen effect zolang `authenticated` de kolom
+   al via een tabel-brede `GRANT` kan lezen (zie de correctie hierboven). De
+   werkelijke implementatie is een hernieuwde `grant select (...)` die
+   `pin_hash` weglaat, bovenop `main`'s tabel-brede `revoke select on
+   members from authenticated;` (uit `0009_ledenbeheer_email_rpc_gated_read.sql`).
    Werkt naast de bestaande tabelbrede `members_select ... using (true)`-RLS-
    policy (`0001_init.sql` regel 124) — RLS bepaalt welke *rijen* zichtbaar
    zijn, dit bepaalt welke *kolom* onzichtbaar blijft, ongeacht welke rijen
@@ -764,6 +856,28 @@ bv. `0002_fix_start_shift_pgcrypto_search_path.sql`, dat ook een fix op
      `has_pin` (de generated column) reflecteert in beide gevallen automatisch
      de nieuwe staat, omdat de `update ... returning *` na de schrijfactie
      plaatsvindt.
+
+   **Twee aanpassingen t.o.v. de oorspronkelijke lijst, noodzakelijk gemaakt
+   door het mergen van `main`:**
+   - `create_member`'s handtekening is op `main`
+     (`0008_ledenbeheer_email.sql`) gewijzigd naar drie parameters
+     (`p_name, p_starting_balance_cents, p_email default null`) — Postgres
+     behandelt dat als een ander functie-object dan de oorspronkelijke
+     tweeparameterversie. `0010_pin_hash_kolombeveiliging.sql` redefinieert
+     daarom de **drie**-parameterversie (met de `p_email`-verwerking uit
+     `main` ongewijzigd overgenomen), niet de oude tweeparameterversie —
+     anders zou de daadwerkelijk aangeroepen functie (drie parameters) de
+     scrub missen en zou een dode, nooit-aangeroepen tweeparameterversie
+     overblijven.
+   - `update_member_email` (nieuw op `main`, `0008_ledenbeheer_email.sql`)
+     heeft dezelfde vorm als de vijf hierboven (`returns members`,
+     beheerder-actorcheck, `returning * into v_member; return v_member;`
+     zonder scrub) en lekt dus `pin_hash` op dezelfde manier. Niet in de
+     oorspronkelijke vijf genoemd omdat de RPC nog niet bestond toen dit
+     ticket geschreven werd. `0010_pin_hash_kolombeveiliging.sql` past
+     dezelfde scrub hierop toe, om dezelfde reden als de andere vijf —
+     dit is een expliciete uitbreiding tijdens het mergen, geen
+     stilzwijgende aanname; zie de PR-omschrijving voor de motivatie.
 
    De teruggegeven `members`-rij bevat na deze wijziging altijd
    `pin_hash: null` (ongeacht de werkelijke staat) en het correcte `has_pin`
@@ -822,7 +936,7 @@ database, niet als de `authenticated`-rol via PostgREST, dus de kolom-REVOKE
 
 ### Niet gewijzigd door deze fix
 
-- ADR 0004 zelf, en de betekenis van `pin_hash is not null` als "heeft PIN
+- ADR 0005 zelf, en de betekenis van `pin_hash is not null` als "heeft PIN
   aan" — ongewijzigd, nu alleen via `has_pin` gelezen in plaats van via de
   ruwe kolom.
 - `start_shift`'s interne PIN-verificatie (`0001_init.sql`/
@@ -831,3 +945,31 @@ database, niet als de `authenticated`-rol via PostgREST, dus de kolom-REVOKE
   kolom-REVOKE.
 - Alle overige RPC's/Schermflow-stappen/Randgevallen hierboven in deze spec —
   ongewijzigd, dit is uitsluitend een transportlaag-fix.
+- `list_members_admin()` (`main`'s eigen RPC,
+  `0009_ledenbeheer_email_rpc_gated_read.sql`) — expliciet **niet** door
+  `0010_pin_hash_kolombeveiliging.sql` gewijzigd, op instructie: dit blijft
+  `main`'s functie, niet dubbel definiëren. **Bekende restbeperking, hier
+  gemeld in plaats van stilzwijgend genegeerd:** deze RPC doet zelf `return
+  query select * from members order by name asc;` zonder scrub, en heeft
+  dus, om precies dezelfde reden als de zes hierboven, de ruwe `pin_hash`
+  gewoon in de RPC-respons staan — de kolom-`REVOKE`/`GRANT` op de tabel
+  raakt een `security definer`-functie se eigen `select *` niet.
+  `useAlleLeden.ts` (die deze RPC aanroept) mapt het veld simpelweg niet
+  door naar `LedenbeheerLid`, wat de UI beschermt, maar niet de ruwe
+  network-response naar een ingelogde beheerder-sessie. Aangezien een
+  4-cijferige PIN-hash met slechts 10.000 mogelijke waarden triviaal offline
+  te kraken is, is dit dezelfde soort risico als de oorspronkelijke
+  Reviewer-bevinding, nu alleen beperkt tot wie al een geldige
+  beheerder-sessie heeft (de actorcheck in `list_members_admin()` blokkeert
+  bardienst/gedeelde-tablet-sessies). **Empirisch bevestigd, niet alleen
+  afgeleid**: de volledige migratieketen (`0001` t/m `0010`) is tijdens deze
+  merge tegen een echte, verse lokale Postgres 16 toegepast (geen
+  Supabase/pgTAP-stack, wel echte GRANT/REVOKE/RLS-semantiek), met gestubde
+  `auth.uid()`/`auth.users` — `select * from list_members_admin()` als
+  `authenticated`, met een geldige beheerder-JWT-sub, gaf de bcrypt-hash
+  gewoon terug in de `pin_hash`-kolom van het resultaat, terwijl een
+  rechtstreekse `select pin_hash from members`/`select email from members`
+  in diezelfde sessie correct faalden met "permission denied". Niet in dit
+  ticket opgelost — vraag
+  aan Bram/Architect of `list_members_admin()` dezelfde scrub moet krijgen
+  als de overige zes.

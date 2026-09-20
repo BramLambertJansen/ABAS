@@ -23,7 +23,7 @@ insert into members (id, name, role, pin_hash, balance_cents, archived) values
 -- Regression fixture for docs/features/auth-methode-per-lid.md (#42) / ADR
 -- 0004: a bardienst member with BOTH a pin_hash AND a linked auth_user_id
 -- (the normal, expected end state for a member who set up a PIN shortcut on
--- top of the now-mandatory password account, ADR 0004 → Beslissing 2/3).
+-- top of the now-mandatory password account, ADR 0005 → Beslissing 2/3).
 -- start_shift itself was explicitly NOT changed for #42 (spec → RPC's:
 -- "geen migratie nodig voor deze RPC") — this proves that claim rather than
 -- assuming it, by confirming PIN-login still succeeds when a password
@@ -115,7 +115,7 @@ select lives_ok(
        '00000000-0000-0000-0000-000000000054'::uuid,
        '1234'
      ) $$,
-  'start_shift succeeds via PIN for a member who also has a linked auth_user_id (both mechanisms coexist, ADR 0004)'
+  'start_shift succeeds via PIN for a member who also has a linked auth_user_id (both mechanisms coexist, ADR 0005)'
 );
 
 select is(

@@ -514,6 +514,24 @@ op `main` — producten aanmaken/bewerken en prijzen wijzigen via `/beheer`
 beschreven beheer-sessie. Prijswijzigingen raken historie niet:
 `order_lines.unit_cents` bevriest de prijs op bestelmoment (`CLAUDE.md`).
 
+**Optioneel e-mailveld + RPC-gated lezen (gebouwd, #57, 2026-09-02)**:
+`members.email`, nullable, optioneel bij aanmaken/wijzigen van een lid
+(`docs/features/ledenbeheer-email.md`, `supabase/migrations/
+0008_ledenbeheer_email.sql`). Een P1-security-bevinding op de bijbehorende
+PR bracht aan het licht dat de bestaande brede `members_select`-policy
+(`0001_init.sql`, `for select to authenticated using (true)`) dit
+PII-veld ook aan de gedeelde bar-tablet-sessie (bardienst) blootstelde —
+RLS is row-level, niet column-level, en de gedeelde device-sessie
+authenticeert als dezelfde Postgres-rol (`authenticated`) als een
+beheerder-sessie. Opgelost met een nieuw, herbruikbaar patroon: **PII-
+kolommen worden column-level `REVOKE`d en uitsluitend via een `SECURITY
+DEFINER`-RPC met de ADR-0002-actorcheck gelezen** — zelfde structuur als
+"geld alleen via RPC", hier toegepast op een leesrecht. Zie [ADR
+0004](adr/0004-pii-kolommen-vereisen-rpc-gated-lezen.md)
+(`list_members_admin`, migratie `0009`) voor het volledige patroon en de
+motivatie; dit patroon geldt voor elke toekomstige PII-kolom op `members`,
+niet met terugwerkende kracht voor `name`/`role`/`balance_cents`/`archived`.
+
 **Saldo opwaarderen (gebouwd, #10, 2026-08-29)**: contant opwaarderen vanuit
 het verkoopscherm (`docs/features/opwaarderen.md`,
 `src/features/opwaarderen/`), derde consument van `Overlay.tsx`. Geen

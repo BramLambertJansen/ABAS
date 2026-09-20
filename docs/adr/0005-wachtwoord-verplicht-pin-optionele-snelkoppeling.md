@@ -1,7 +1,12 @@
-# 0004 — Wachtwoord is verplicht voor bardienst/beheerder; PIN is een optionele, aanvullende snelkoppeling
+# 0005 — Wachtwoord is verplicht voor bardienst/beheerder; PIN is een optionele, aanvullende snelkoppeling
 
 Status: **geaccepteerd** (Bram, 2026-09-02, naar aanleiding van de
 Architect-conceptspec voor issue #42, `docs/features/auth-methode-per-lid.md`).
+Hernummerd van 0004 naar 0005 bij het mergen van `main` in deze branch
+(2026-09-20): main claimde nummer 0004 intussen voor een eigen, ongerelateerd
+ADR ([0004 — PII-kolommen vereisen RPC-gated lezen](0004-pii-kolommen-vereisen-rpc-gated-lezen.md),
+uit issue #57/PR #59). Inhoudelijk is dit ADR ongewijzigd t.o.v. de versie
+die Bram hierboven goedkeurde.
 **Amendeert [ADR 0003](0003-auth-methode-per-lid-en-vaste-modus-bar-beheer.md)
 → Beslissing 1 alleen.** Beslissing 2 (modus-keuze na login, losse
 instanties, geen wisselknop), Beslissing 3 (bar-modus functioneel identiek,

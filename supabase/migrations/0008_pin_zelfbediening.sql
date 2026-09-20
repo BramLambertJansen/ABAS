@@ -1,5 +1,5 @@
 -- Zelfbediening: elk bardienst/beheerder-lid zet de eigen PIN-snelkoppeling
--- zelf aan of uit. docs/features/auth-methode-per-lid.md (#42), ADR 0004
+-- zelf aan of uit. docs/features/auth-methode-per-lid.md (#42), ADR 0005
 -- (wachtwoord verplicht, PIN optioneel en niet-exclusief, ADR 0003 →
 -- Beslissing 1 geamendeerd) → RPC's.
 --
@@ -28,7 +28,7 @@
 -- start_shift blijft ongewijzigd (0001_init.sql) — PIN-login moet gewoon
 -- blijven werken zolang pin_hash is not null, ongeacht of er ook een
 -- wachtwoord bestaat. set_member_auth_method (het either/or-model uit een
--- eerdere conceptspec) wordt niet gebouwd, zie ADR 0004/de spec → RPC's.
+-- eerdere conceptspec) wordt niet gebouwd, zie ADR 0005/de spec → RPC's.
 
 create or replace function set_own_pin(p_pin text)
 returns members

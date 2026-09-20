@@ -22,10 +22,10 @@ type State =
  *  `has_pin = false` (never had a PIN, or turned it off via "Mijn
  *  account", docs/features/auth-methode-per-lid.md → Leeshook-wijziging):
  *  such a member can never succeed via this picker either, they log in via
- *  e-mail/wachtwoord (/beheer) instead, which always works under ADR 0004.
+ *  e-mail/wachtwoord (/beheer) instead, which always works under ADR 0005.
  *  Filters on the `has_pin` generated column rather than `pin_hash` itself
  *  — `pin_hash` is column-level REVOKEd for `authenticated`
- *  (0009_pin_hash_kolombeveiliging.sql), so referencing it in a filter
+ *  (0010_pin_hash_kolombeveiliging.sql), so referencing it in a filter
  *  would fail with a permission error. */
 export function useBarStaff(): State {
   const [state, setState] = useState<State>({ status: "loading" });

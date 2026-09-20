@@ -1,8 +1,12 @@
 -- Negative-test coverage for ledenbeheer (docs/features/ledenbeheer.md, no
--- issuenummer toegewezen op het moment van schrijven — zie spec-intro):
--- create_member/update_member_name/set_member_archived/set_member_role
--- (ADR 0002's auth.uid()-based actorcheck, exact hetzelfde patroon als
--- assortimentbeheer.test.sql / negatieve_saldolimiet.test.sql). Run met
+-- issuenummer toegewezen op het moment van schrijven — zie spec-intro) en
+-- ledenbeheer-email (docs/features/ledenbeheer-email.md, #57):
+-- create_member/update_member_name/set_member_archived/set_member_role/
+-- update_member_email/list_members_admin (ADR 0002's auth.uid()-based
+-- actorcheck, exact hetzelfde patroon als assortimentbeheer.test.sql /
+-- negatieve_saldolimiet.test.sql; list_members_admin is de eerste
+-- lees-RPC, ADR 0004: members.email is column-level REVOKEd voor
+-- authenticated, alleen leesbaar via deze RPC's eigen actorcheck). Run met
 -- `npm run db:test` (= `supabase test db`, vereist `supabase start` /
 -- Docker lokaal).
 --
@@ -20,7 +24,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(42);
+select plan(69);
 
 -- ── Fixtures ──────────────────────────────────────────────────────────
 
@@ -68,6 +72,14 @@ insert into members (id, name, role, pin_hash, balance_cents, archived) values
   ('00000000-0000-0000-0000-0000000002a2', 'LB Archived Rename Target',   'lid',       null, 0, true),
   ('00000000-0000-0000-0000-0000000002a3', 'LB Archive Target',           'lid',       null, 0, false),
   ('00000000-0000-0000-0000-0000000002a4', 'LB Role Target',              'lid',       null, 0, false);
+
+-- Target rows voor update_member_email (#57), los van de rijen hierboven —
+-- die worden al door de create_member/update_member_name/set_member_archived/
+-- set_member_role-tests gemuteerd, dus niet herbruikt voor de e-mailtests.
+insert into members (id, name, role, pin_hash, balance_cents, archived, email) values
+  ('00000000-0000-0000-0000-0000000002a5', 'LB Email Target',             'lid', null, 0, false, null),
+  ('00000000-0000-0000-0000-0000000002a6', 'LB Email Wipe Target',        'lid', null, 0, false, 'bestaand@test.local'),
+  ('00000000-0000-0000-0000-0000000002a7', 'LB Archived Email Target',    'lid', null, 0, true,  null);
 
 -- ── create_member ─────────────────────────────────────────────────────
 
@@ -131,9 +143,43 @@ select is(
   'a null starting balance defaults to 0'
 );
 
+-- 7) invalid_email (#57): een niet-leeg e-mailadres dat het minimale
+-- formaat niet matcht.
+select throws_ok(
+  $$ select create_member('Nieuw Lid Ongeldige Email', null, 'niet-een-email') $$,
+  'P0001', 'invalid_email',
+  'create_member rejects a starting email that does not match the minimal format'
+);
+
+-- 8) happy path met een geldig e-mailadres (#57).
+select lives_ok(
+  $$ select create_member('Nieuw Lid Met Email', null, 'nieuw-lid@test.local') $$,
+  'create_member succeeds for a beheerder with a valid starting email'
+);
+
+select is(
+  (select email from members where name = 'Nieuw Lid Met Email'),
+  'nieuw-lid@test.local',
+  'the new member is stored with the given starting email'
+);
+
+-- 9) happy path met null/leeg e-mailadres (#57): bestaand gedrag blijft
+-- werken na de signatuurwijziging (p_email default null, backwards
+-- compatible met de 2-parameter-aanroepen hierboven).
+select lives_ok(
+  $$ select create_member('Nieuw Lid Zonder Email', null, '   ') $$,
+  'create_member succeeds with a whitespace-only (effectively empty) starting email'
+);
+
+select is(
+  (select email from members where name = 'Nieuw Lid Zonder Email'),
+  null,
+  'a whitespace-only starting email is stored as null'
+);
+
 -- ── update_member_name ───────────────────────────────────────────────────
 
--- 7) actor_not_found, variant B: caller resolves to a real members row, but
+-- 10) actor_not_found, variant B: caller resolves to a real members row, but
 -- it's archived.
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000282', true);
 select throws_ok(
@@ -142,7 +188,7 @@ select throws_ok(
   'update_member_name rejects a caller whose members row is archived'
 );
 
--- 8) no_admin_role
+-- 11) no_admin_role
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000281', true);
 select throws_ok(
   $$ select update_member_name('00000000-0000-0000-0000-0000000002a1', 'X') $$,
@@ -152,21 +198,21 @@ select throws_ok(
 
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000280', true);
 
--- 9) member_not_found
+-- 12) member_not_found
 select throws_ok(
   $$ select update_member_name('00000000-0000-0000-0000-0000000002ff', 'X') $$,
   'P0001', 'member_not_found',
   'update_member_name rejects a member id that does not exist'
 );
 
--- 10) invalid_name
+-- 13) invalid_name
 select throws_ok(
   $$ select update_member_name('00000000-0000-0000-0000-0000000002a1', '   ') $$,
   'P0001', 'invalid_name',
   'update_member_name rejects a blank (whitespace-only) name'
 );
 
--- 11) happy path
+-- 14) happy path
 select lives_ok(
   $$ select update_member_name('00000000-0000-0000-0000-0000000002a1', 'Herdoopt Lid') $$,
   'update_member_name succeeds for a beheerder with a valid new name'
@@ -178,7 +224,7 @@ select is(
   'the member name is updated to the new value'
 );
 
--- 12) randgeval: een gearchiveerd lid blijft naam-bewerkbaar (spec →
+-- 15) randgeval: een gearchiveerd lid blijft naam-bewerkbaar (spec →
 -- Randgevallen / RPC's: geen "not archived"-eis op update_member_name,
 -- zelfde redenering als update_product_price op een gearchiveerd product).
 select lives_ok(
@@ -200,7 +246,7 @@ select is(
 
 -- ── set_member_archived ──────────────────────────────────────────────────
 
--- 13) actor_not_found, variant A
+-- 16) actor_not_found, variant A
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000283', true);
 select throws_ok(
   $$ select set_member_archived('00000000-0000-0000-0000-0000000002a3', true) $$,
@@ -208,7 +254,7 @@ select throws_ok(
   'set_member_archived rejects a caller whose auth.uid() matches no members row'
 );
 
--- 14) no_admin_role
+-- 17) no_admin_role
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000281', true);
 select throws_ok(
   $$ select set_member_archived('00000000-0000-0000-0000-0000000002a3', true) $$,
@@ -218,14 +264,14 @@ select throws_ok(
 
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000280', true);
 
--- 15) member_not_found
+-- 18) member_not_found
 select throws_ok(
   $$ select set_member_archived('00000000-0000-0000-0000-0000000002ff', true) $$,
   'P0001', 'member_not_found',
   'set_member_archived rejects a member id that does not exist'
 );
 
--- 16) self_archive_forbidden: a beheerder cannot archive their own row (spec
+-- 19) self_archive_forbidden: a beheerder cannot archive their own row (spec
 -- → Randgevallen: would lock the actor out of /beheer with no RPC path back).
 select throws_ok(
   $$ select set_member_archived('00000000-0000-0000-0000-000000000290', true) $$,
@@ -233,7 +279,7 @@ select throws_ok(
   'set_member_archived rejects a beheerder archiving their own members row'
 );
 
--- 17) happy path: archive
+-- 20) happy path: archive
 select lives_ok(
   $$ select set_member_archived('00000000-0000-0000-0000-0000000002a3', true) $$,
   'set_member_archived succeeds in archiving an active member'
@@ -245,7 +291,7 @@ select is(
   'the member is now archived'
 );
 
--- 18) idempotent: sending p_archived = true again on an already-archived
+-- 21) idempotent: sending p_archived = true again on an already-archived
 -- member does not fail (spec → RPC's, same tolerance as set_product_archived).
 select lives_ok(
   $$ select set_member_archived('00000000-0000-0000-0000-0000000002a3', true) $$,
@@ -258,7 +304,7 @@ select is(
   'the already-archived member stays archived after the idempotent call'
 );
 
--- 19) happy path: terugzetten (de-archive)
+-- 22) happy path: terugzetten (de-archive)
 select lives_ok(
   $$ select set_member_archived('00000000-0000-0000-0000-0000000002a3', false) $$,
   'set_member_archived succeeds in de-archiving (terugzetten) the same member'
@@ -272,7 +318,7 @@ select is(
 
 -- ── set_member_role ───────────────────────────────────────────────────────
 
--- 20) actor_not_found, variant B
+-- 23) actor_not_found, variant B
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000282', true);
 select throws_ok(
   $$ select set_member_role('00000000-0000-0000-0000-0000000002a4', 'bardienst') $$,
@@ -280,7 +326,7 @@ select throws_ok(
   'set_member_role rejects a caller whose members row is archived'
 );
 
--- 21) no_admin_role
+-- 24) no_admin_role
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000281', true);
 select throws_ok(
   $$ select set_member_role('00000000-0000-0000-0000-0000000002a4', 'bardienst') $$,
@@ -290,14 +336,14 @@ select throws_ok(
 
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000280', true);
 
--- 22) member_not_found
+-- 25) member_not_found
 select throws_ok(
   $$ select set_member_role('00000000-0000-0000-0000-0000000002ff', 'bardienst') $$,
   'P0001', 'member_not_found',
   'set_member_role rejects a member id that does not exist'
 );
 
--- 23) invalid_role: not one of lid/bardienst/beheerder (server-fallback,
+-- 26) invalid_role: not one of lid/bardienst/beheerder (server-fallback,
 -- unreachable via the UI select — spec → RPC's/Randgevallen).
 select throws_ok(
   $$ select set_member_role('00000000-0000-0000-0000-0000000002a4', 'superadmin') $$,
@@ -305,7 +351,7 @@ select throws_ok(
   'set_member_role rejects a role value outside lid/bardienst/beheerder'
 );
 
--- 24) self_demote_forbidden: a beheerder cannot lower their own role (spec →
+-- 27) self_demote_forbidden: a beheerder cannot lower their own role (spec →
 -- Randgevallen: would lock the actor out of /beheer with no RPC path back).
 select throws_ok(
   $$ select set_member_role('00000000-0000-0000-0000-000000000290', 'lid') $$,
@@ -313,7 +359,7 @@ select throws_ok(
   'set_member_role rejects a beheerder demoting their own role'
 );
 
--- 25) not a demotion: a beheerder re-sending 'beheerder' for their own row is
+-- 28) not a demotion: a beheerder re-sending 'beheerder' for their own row is
 -- allowed (idempotent, not blocked by self_demote_forbidden).
 select lives_ok(
   $$ select set_member_role('00000000-0000-0000-0000-000000000290', 'beheerder') $$,
@@ -326,7 +372,7 @@ select is(
   'the actor''s own role stays beheerder after the no-op self re-send'
 );
 
--- 26) rolwijziging van een ándere beheerder, ook als dat de laatst
+-- 29) rolwijziging van een ándere beheerder, ook als dat de laatst
 -- overgebleven ándere beheerder is, blijft toegestaan (spec expliciet: geen
 -- "laatste beheerder"-telling/-bescherming — Randgevallen/Expliciet buiten
 -- scope). At this point in the fixture set, (...2a0) is the only other
@@ -343,7 +389,7 @@ select is(
   'the other member''s role is now lid'
 );
 
--- 27) happy path transition: lid -> bardienst
+-- 30) happy path transition: lid -> bardienst
 select lives_ok(
   $$ select set_member_role('00000000-0000-0000-0000-0000000002a4', 'bardienst') $$,
   'set_member_role succeeds for the lid -> bardienst transition'
@@ -355,7 +401,7 @@ select is(
   'the member''s role is now bardienst'
 );
 
--- 28) happy path transition: bardienst -> beheerder
+-- 31) happy path transition: bardienst -> beheerder
 select lives_ok(
   $$ select set_member_role('00000000-0000-0000-0000-0000000002a4', 'beheerder') $$,
   'set_member_role succeeds for the bardienst -> beheerder transition'
@@ -367,7 +413,7 @@ select is(
   'the member''s role is now beheerder'
 );
 
--- 29) idempotent, non-actor: sending the same role again succeeds without
+-- 32) idempotent, non-actor: sending the same role again succeeds without
 -- error or change (spec → RPC's, same tolerance as set_member_archived).
 select lives_ok(
   $$ select set_member_role('00000000-0000-0000-0000-0000000002a4', 'beheerder') $$,
@@ -378,6 +424,206 @@ select is(
   (select role::text from members where id = '00000000-0000-0000-0000-0000000002a4'),
   'beheerder',
   'the member''s role is unchanged (still beheerder) after the idempotent call'
+);
+
+-- ── update_member_email (#57) ────────────────────────────────────────────
+
+-- 33) actor_not_found, variant A: auth.uid() matches no members row at all.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000283', true);
+select throws_ok(
+  $$ select update_member_email('00000000-0000-0000-0000-0000000002a5', 'x@test.local') $$,
+  'P0001', 'actor_not_found',
+  'update_member_email rejects a caller whose auth.uid() matches no members row'
+);
+
+-- 34) actor_not_found, variant B: caller resolves to a real members row, but
+-- it's archived.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000282', true);
+select throws_ok(
+  $$ select update_member_email('00000000-0000-0000-0000-0000000002a5', 'x@test.local') $$,
+  'P0001', 'actor_not_found',
+  'update_member_email rejects a caller whose members row is archived'
+);
+
+-- 35) no_admin_role
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000281', true);
+select throws_ok(
+  $$ select update_member_email('00000000-0000-0000-0000-0000000002a5', 'x@test.local') $$,
+  'P0001', 'no_admin_role',
+  'update_member_email rejects a caller whose role is bardienst, not beheerder'
+);
+
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000280', true);
+
+-- 36) member_not_found
+select throws_ok(
+  $$ select update_member_email('00000000-0000-0000-0000-0000000002ff', 'x@test.local') $$,
+  'P0001', 'member_not_found',
+  'update_member_email rejects a member id that does not exist'
+);
+
+-- 37) invalid_email
+select throws_ok(
+  $$ select update_member_email('00000000-0000-0000-0000-0000000002a5', 'niet-een-email') $$,
+  'P0001', 'invalid_email',
+  'update_member_email rejects a value that does not match the minimal email format'
+);
+
+-- 38) happy path: nieuw e-mailadres zetten (null -> waarde).
+select lives_ok(
+  $$ select update_member_email('00000000-0000-0000-0000-0000000002a5', 'gewijzigd@test.local') $$,
+  'update_member_email succeeds in setting a new email on a member that had none'
+);
+
+select is(
+  (select email from members where id = '00000000-0000-0000-0000-0000000002a5'),
+  'gewijzigd@test.local',
+  'the member email is updated to the new value'
+);
+
+-- 39) happy path: bestaand e-mailadres wissen naar null (leeg veld).
+select lives_ok(
+  $$ select update_member_email('00000000-0000-0000-0000-0000000002a6', '') $$,
+  'update_member_email succeeds in wiping an existing email back to null'
+);
+
+select is(
+  (select email from members where id = '00000000-0000-0000-0000-0000000002a6'),
+  null,
+  'the member email is null after being wiped'
+);
+
+-- 40) randgeval: een gearchiveerd lid blijft e-mailadres-bewerkbaar (spec →
+-- Randgevallen: geen "not archived"-eis, zelfde redenering als
+-- update_member_name op een gearchiveerd lid).
+select lives_ok(
+  $$ select update_member_email('00000000-0000-0000-0000-0000000002a7', 'archief@test.local') $$,
+  'update_member_email succeeds even when the target member is archived'
+);
+
+select is(
+  (select email from members where id = '00000000-0000-0000-0000-0000000002a7'),
+  'archief@test.local',
+  'the archived member''s email is updated'
+);
+
+select is(
+  (select archived from members where id = '00000000-0000-0000-0000-0000000002a7'),
+  true,
+  'the member stays archived after its email was updated'
+);
+
+-- ── members_email_format_check (db-level constraint, #57) ───────────────
+--
+-- Belt-and-braces (spec → RPC's: "drie plekken, bewust niet één gedeelde
+-- bron" — db-constraint, RPC-validatie, client-helper). The RPC-level
+-- invalid_email tests above prove the RPC's own validation; they say
+-- nothing about whether the db-level `members_email_format_check`
+-- constraint itself actually rejects a bad value, independent of the RPC.
+-- These two cases write directly to the table (like
+-- rls_write_protection.test.sql does to prove the REVOKE), bypassing the
+-- RPC entirely, to prove the constraint itself holds. `authenticated`
+-- could never reach this path anyway — the blanket REVOKE on members
+-- (0001_init.sql, proven in rls_write_protection.test.sql) blocks it first
+-- — but this file's fixture inserts above already run with broader
+-- privileges than `authenticated` (no `set local role authenticated` in
+-- this file), which is exactly the "any future write path that bypasses
+-- the RPCs" scenario the migration's own comment names as the reason the
+-- constraint exists.
+
+select throws_ok(
+  $$ insert into members (name, role, email) values ('Ongeldige Email Insert', 'lid', 'niet-een-email') $$,
+  '23514',
+  'new row for relation "members" violates check constraint "members_email_format_check"',
+  'members_email_format_check rejects a direct insert with an invalid email format'
+);
+
+select throws_ok(
+  $$ update members set email = 'ook-ongeldig' where id = '00000000-0000-0000-0000-0000000002a5' $$,
+  '23514',
+  'new row for relation "members" violates check constraint "members_email_format_check"',
+  'members_email_format_check rejects a direct update with an invalid email format'
+);
+
+-- ── list_members_admin (ADR 0004, migratie 0009) ─────────────────────────
+--
+-- members.email is column-level REVOKEd voor authenticated sinds migratie
+-- 0009 (zie hieronder) — deze RPC is de enige leesweg. Zelfde
+-- actorcheck-vorm/fixtures als de rest van dit bestand.
+
+-- 41) actor_not_found, variant A: auth.uid() matches no members row at all.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000283', true);
+select throws_ok(
+  $$ select * from list_members_admin() $$,
+  'P0001', 'actor_not_found',
+  'list_members_admin rejects a caller whose auth.uid() matches no members row'
+);
+
+-- 42) actor_not_found, variant B: caller resolves to a real members row, but
+-- it's archived.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000282', true);
+select throws_ok(
+  $$ select * from list_members_admin() $$,
+  'P0001', 'actor_not_found',
+  'list_members_admin rejects a caller whose members row is archived'
+);
+
+-- 43) no_admin_role
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000281', true);
+select throws_ok(
+  $$ select * from list_members_admin() $$,
+  'P0001', 'no_admin_role',
+  'list_members_admin rejects a caller whose role is bardienst, not beheerder'
+);
+
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000280', true);
+
+-- 44) happy path: beheerder-sessie krijgt de ledenlijst terug.
+select lives_ok(
+  $$ select * from list_members_admin() $$,
+  'list_members_admin succeeds for a beheerder session'
+);
+
+-- 45)-47) bevestigt dat de RPC de email-kolom daadwerkelijk teruggeeft
+-- (niet stilzwijgend weglaat) — vergeleken met wat eerdere tests in dit
+-- bestand op diezelfde rijen zetten (test 38/39), plus een rij die nooit
+-- een email had.
+select is(
+  (select email from list_members_admin() where id = '00000000-0000-0000-0000-0000000002a5'),
+  'gewijzigd@test.local',
+  'list_members_admin returns the email set earlier by update_member_email'
+);
+
+select is(
+  (select email from list_members_admin() where id = '00000000-0000-0000-0000-0000000002a6'),
+  null,
+  'list_members_admin returns null for a member whose email was wiped'
+);
+
+select is(
+  (select email from list_members_admin() where id = '00000000-0000-0000-0000-0000000002a1'),
+  null,
+  'list_members_admin returns null for a member that never had an email set'
+);
+
+-- ── column-level REVOKE op members.email (ADR 0004, migratie 0009) ──────
+--
+-- Bewijst de REVOKE zelf, los van list_members_admin's bestaan (spec →
+-- Randgevallen → "Negatieve tests"). De exacte Postgres-boodschap voor een
+-- column-level permission-fout is in deze sandbox niet tegen een echte
+-- Postgres geverifieerd (geen lokale Docker/Supabase-stack beschikbaar) —
+-- daarom alleen de SQLSTATE geasserteerd (message-argument NULL, pgTAP
+-- slaat de boodschap-vergelijking dan over) i.p.v. tekst te gokken, precies
+-- de valkuil die rls_write_protection.test.sql's eigen commentaar al
+-- documenteert (issue #2: een gegokte boodschap faalt zelfs als de REVOKE
+-- zelf correct is). CI bevestigt dat de query daadwerkelijk wordt
+-- geweigerd.
+set local role authenticated;
+select throws_ok(
+  $$ select email from members limit 1 $$,
+  '42501',
+  NULL,
+  'select on members.email is blocked for authenticated (column-level REVOKE, migration 0009)'
 );
 
 select * from finish();

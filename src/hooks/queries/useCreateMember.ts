@@ -4,12 +4,15 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { LedenbeheerLid } from "./useAlleLeden";
 
-/** Error codes `create_member` (0007_ledenbeheer.sql) actually raises.
- *  Anything else (network failure, unexpected server error) valt terug op
- *  "unknown". Zelfde patroon als useCreateProduct.ts. */
+/** Error codes `create_member` (0007_ledenbeheer.sql, uitgebreid in
+ *  0008_ledenbeheer_email.sql) actually raises. Anything else (network
+ *  failure, unexpected server error) valt terug op "unknown". Zelfde
+ *  patroon als useCreateProduct.ts. `invalid_email` — nieuw, zie
+ *  docs/features/ledenbeheer-email.md → RPC's. */
 export type CreateMemberErrorCode =
   | "invalid_name"
   | "invalid_starting_balance"
+  | "invalid_email"
   | "actor_not_found"
   | "no_admin_role"
   | "unknown";
@@ -23,6 +26,7 @@ function toErrorCode(message: string | undefined): CreateMemberErrorCode {
   if (
     message === "invalid_name" ||
     message === "invalid_starting_balance" ||
+    message === "invalid_email" ||
     message === "actor_not_found" ||
     message === "no_admin_role"
   ) {
@@ -36,10 +40,14 @@ export function useCreateMember() {
 
   /** `startingBalanceCents` null -> stuurt `p_starting_balance_cents = null`
    *  ("geen startsaldo", de RPC behandelt dat gelijk aan 0 — zie
-   *  docs/features/ledenbeheer.md → Schermflow stap 2). */
+   *  docs/features/ledenbeheer.md → Schermflow stap 2). `email` null ->
+   *  stuurt `p_email = null` ("geen e-mailadres", zelfde
+   *  leeg-veld-stuurt-null-patroon, zie
+   *  docs/features/ledenbeheer-email.md → Schermflow stap 1). */
   async function createMember(
     name: string,
-    startingBalanceCents: number | null
+    startingBalanceCents: number | null,
+    email: string | null
   ): Promise<LedenbeheerLid | null> {
     setState({ status: "pending" });
     try {
@@ -50,6 +58,7 @@ export function useCreateMember() {
       const { data, error } = await supabase.rpc("create_member", {
         p_name: name,
         p_starting_balance_cents: startingBalanceCents,
+        p_email: email,
       });
 
       if (error) {
@@ -67,10 +76,11 @@ export function useCreateMember() {
         // op null (0007_ledenbeheer.sql) — meegeven vanuit de teruggegeven
         // rij zelf (niet hardcoded false) zodat dit niet stilletjes
         // losraakt van wat de RPC daadwerkelijk doet. `has_pin` (generated
-        // column) i.p.v. `pin_hash` (0009_pin_hash_kolombeveiliging.sql
+        // column) i.p.v. `pin_hash` (0010_pin_hash_kolombeveiliging.sql
         // scrubt pin_hash in de RPC-return naar null).
         hasAccount: data.auth_user_id !== null,
         hasPin: data.has_pin as boolean,
+        email: data.email as string | null,
       };
     } catch (err) {
       setState({

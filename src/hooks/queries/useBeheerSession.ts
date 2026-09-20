@@ -17,7 +17,7 @@ import { createClient } from "@/lib/supabase/client";
  * themselves (`actor_not_found`/`no_admin_role`/`no_bar_role`).
  *
  * Generalized from "beheerder-only" to "bardienst-of-beheerder"
- * (docs/features/auth-methode-per-lid.md, #42, ADR 0004): `/beheer` is now
+ * (docs/features/auth-methode-per-lid.md, #42, ADR 0005): `/beheer` is now
  * the guaranteed e-mail/wachtwoord-ingang for every member with either role,
  * not just beheerder — ModusKeuze.tsx (rendered by Assortimentbeheer.tsx on
  * "signed-in") is where the actual bar-vs-beheer split happens, this hook

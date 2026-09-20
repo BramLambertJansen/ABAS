@@ -17,7 +17,7 @@ import { ModusKeuze } from "./ModusKeuze";
  * foutmelding erbij.
  *
  * Met een bevestigde bardienst/beheerder-sessie: `ModusKeuze` (Bar | Beheer |
- * Mijn account, ADR 0003 → Beslissing 2, ongewijzigd door ADR 0004) — vóór
+ * Mijn account, ADR 0003 → Beslissing 2, ongewijzigd door ADR 0005) — vóór
  * #42 ging een bevestigde sessie hier direct naar `BeheerTabs`, dat gedrag
  * geldt nu alleen nog ná het kiezen van de "Beheer"-tegel. `mode` is lokale
  * state, geen aparte route: eenmaal op "beheer" is er geen weg terug naar de

@@ -7,6 +7,10 @@ import {
   type UpdateMemberNameErrorCode,
 } from "@/hooks/queries/useUpdateMemberName";
 import {
+  useUpdateMemberEmail,
+  type UpdateMemberEmailErrorCode,
+} from "@/hooks/queries/useUpdateMemberEmail";
+import {
   useSetMemberRole,
   type SetMemberRoleErrorCode,
 } from "@/hooks/queries/useSetMemberRole";
@@ -16,6 +20,7 @@ import {
 } from "@/hooks/queries/useSetMemberArchived";
 import type { LedenbeheerLid } from "@/hooks/queries/useAlleLeden";
 import { formatCents } from "@/lib/money";
+import { isValidEmailFormat } from "@/lib/email";
 
 const TOAST_DURATION_MS = 3500;
 
@@ -29,6 +34,21 @@ function nameErrorMessage(code: UpdateMemberNameErrorCode): string {
   switch (code) {
     case "invalid_name":
       return "vul een naam in";
+    case "member_not_found":
+      return "dit lid bestaat niet meer — de lijst is bijgewerkt";
+    case "actor_not_found":
+      return "dit account is niet gekoppeld aan een lid — vraag een beheerder";
+    case "no_admin_role":
+      return "dit account kan leden niet beheren — vraag een beheerder";
+    case "unknown":
+      return "er ging iets mis, probeer het opnieuw";
+  }
+}
+
+function emailErrorMessage(code: UpdateMemberEmailErrorCode): string {
+  switch (code) {
+    case "invalid_email":
+      return "vul een geldig e-mailadres in, of laat het veld leeg";
     case "member_not_found":
       return "dit lid bestaat niet meer — de lijst is bijgewerkt";
     case "actor_not_found":
@@ -85,7 +105,7 @@ function archiveErrorMessage(code: SetMemberArchivedErrorCode): string {
  * Uitgebreid met een alleen-lezen "Inloggegevens"-sectie
  * (docs/features/auth-methode-per-lid.md, #42) — zichtbaar zodra
  * `member.role` (laatst opgeslagen rol) `bardienst`/`beheerder` is. Geen
- * bewerkbare selector: onder ADR 0004 is de enige schrijfactie (PIN aan/uit)
+ * bewerkbare selector: onder ADR 0005 is de enige schrijfactie (PIN aan/uit)
  * zelfbediening via `set_own_pin` ("Mijn account"), niet iets een beheerder
  * hier namens een ander lid doet — zie de spec → "Besloten door de
  * Architect" punt 3 voor waarom dat verschilt van een eerdere conceptspec.
@@ -101,19 +121,22 @@ export function LidBeherenOverlay({
 }) {
   const [member, setMember] = useState(initialMember);
   const [nameInput, setNameInput] = useState(initialMember.name);
+  const [emailInput, setEmailInput] = useState(initialMember.email ?? "");
   const [roleValue, setRoleValue] = useState<LedenbeheerLid["role"]>(
     initialMember.role
   );
-  const [lastAction, setLastAction] = useState<"name" | "role" | "archive" | null>(
-    null
-  );
+  const [lastAction, setLastAction] = useState<
+    "name" | "email" | "role" | "archive" | null
+  >(null);
   const [toast, setToast] = useState<string | null>(null);
 
   const nameMutation = useUpdateMemberName();
+  const emailMutation = useUpdateMemberEmail();
   const roleMutation = useSetMemberRole();
   const archiveMutation = useSetMemberArchived();
 
   const nameId = useId();
+  const emailId = useId();
   const roleId = useId();
 
   useEffect(() => {
@@ -140,6 +163,31 @@ export function LidBeherenOverlay({
       onChanged();
       showToast("Naam bijgewerkt");
     } else if (nameMutation.errorCode === "member_not_found") {
+      onChanged();
+    }
+  }
+
+  const trimmedEmail = emailInput.trim();
+  const currentEmail = member.email ?? "";
+  const emailFormatValid = trimmedEmail === "" || isValidEmailFormat(trimmedEmail);
+  const canSaveEmail =
+    trimmedEmail !== currentEmail &&
+    emailFormatValid &&
+    emailMutation.status !== "pending";
+
+  async function saveEmail() {
+    if (!canSaveEmail) return;
+    setLastAction("email");
+    const result = await emailMutation.updateMemberEmail(
+      member.id,
+      trimmedEmail === "" ? null : trimmedEmail
+    );
+    if (result.member) {
+      setMember(result.member);
+      setEmailInput(result.member.email ?? "");
+      onChanged();
+      showToast("E-mailadres bijgewerkt");
+    } else if (result.errorCode === "member_not_found") {
       onChanged();
     }
   }
@@ -182,11 +230,13 @@ export function LidBeherenOverlay({
   const errorMessage =
     lastAction === "name" && nameMutation.errorCode
       ? nameErrorMessage(nameMutation.errorCode)
-      : lastAction === "role" && roleMutation.errorCode
-        ? roleErrorMessage(roleMutation.errorCode)
-        : lastAction === "archive" && archiveMutation.errorCode
-          ? archiveErrorMessage(archiveMutation.errorCode)
-          : null;
+      : lastAction === "email" && emailMutation.errorCode
+        ? emailErrorMessage(emailMutation.errorCode)
+        : lastAction === "role" && roleMutation.errorCode
+          ? roleErrorMessage(roleMutation.errorCode)
+          : lastAction === "archive" && archiveMutation.errorCode
+            ? archiveErrorMessage(archiveMutation.errorCode)
+            : null;
 
   return (
     <Overlay
@@ -230,6 +280,32 @@ export function LidBeherenOverlay({
             type="button"
             disabled={!canSaveName}
             onClick={saveName}
+            className="flex h-11 items-center justify-center rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:opacity-50"
+          >
+            Opslaan
+          </button>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2 rounded-control border border-rail-border p-3.5">
+        <div className="flex flex-col gap-0.5">
+          <span className="text-sm font-bold text-white">E-mailadres</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <label htmlFor={emailId} className="sr-only">
+            E-mailadres
+          </label>
+          <input
+            id={emailId}
+            type="email"
+            value={emailInput}
+            onChange={(event) => setEmailInput(event.target.value)}
+            className="h-11 flex-1 min-w-0 rounded-control border border-rail-border bg-rail px-3.5 text-sm font-semibold text-white outline-none focus:border-accent"
+          />
+          <button
+            type="button"
+            disabled={!canSaveEmail}
+            onClick={saveEmail}
             className="flex h-11 items-center justify-center rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:opacity-50"
           >
             Opslaan

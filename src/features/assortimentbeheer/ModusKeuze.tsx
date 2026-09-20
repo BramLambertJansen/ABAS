@@ -6,7 +6,7 @@ import { MijnAccountOverlay } from "./MijnAccountOverlay";
 
 /**
  * Modus-keuze ná een geslaagde `/beheer`-sessie (ADR 0003 → Beslissing 2,
- * ongewijzigd door ADR 0004) — Bar of Beheer, losse instanties, geen
+ * ongewijzigd door ADR 0005) — Bar of Beheer, losse instanties, geen
  * wisselknop binnen deze sessie. "Bar" navigeert naar `/` (de bestaande
  * PIN-flow, #6/#7 — functioneel identiek ongeacht hoe hierheen ingelogd
  * is, ADR 0003 → Beslissing 3): dit bouwt geen tweede bar-mechanisme, enkel

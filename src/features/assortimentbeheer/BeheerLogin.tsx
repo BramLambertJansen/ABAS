@@ -19,7 +19,7 @@ function errorMessage(code: BeheerLoginErrorCode): string {
  * `/beheer`'s own, minimal inlogformulier (ADR 0002/0003) — e-mail +
  * magic link of wachtwoord, een keuze van de ingelogde persoon zelf.
  * Gegeneraliseerd van "beheerder-only" naar "bardienst-of-beheerder"
- * (docs/features/auth-methode-per-lid.md, #42, ADR 0004): dit formulier is
+ * (docs/features/auth-methode-per-lid.md, #42, ADR 0005): dit formulier is
  * niet langer de beheerder-ingang alleen, het is de gegarandeerde
  * e-mail/wachtwoord-ingang voor iedereen met bardienst- of beheerrechten —
  * zie `ModusKeuze.tsx` voor de Bar/Beheer/Mijn-account-keuze die na een

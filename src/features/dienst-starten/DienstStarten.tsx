@@ -148,7 +148,7 @@ export function DienstStarten() {
               </h1>
               <StaffPicker staff={barStaff.staff} onSelect={selectStaff} />
               {/* Universele voordeur, niet een noodpad — sinds #42
-                  (docs/features/auth-methode-per-lid.md, ADR 0004) is
+                  (docs/features/auth-methode-per-lid.md, ADR 0005) is
                   e-mail/wachtwoord de gegarandeerde inlogmethode voor élk
                   bardienst/beheerder-lid, en voor een lid zonder PIN (niet
                   meer in de StaffPicker-grid hierboven, zie
