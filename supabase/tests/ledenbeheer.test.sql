@@ -24,7 +24,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(69);
+select plan(72);
 
 -- ── Fixtures ──────────────────────────────────────────────────────────
 
@@ -80,6 +80,14 @@ insert into members (id, name, role, pin_hash, balance_cents, archived, email) v
   ('00000000-0000-0000-0000-0000000002a5', 'LB Email Target',             'lid', null, 0, false, null),
   ('00000000-0000-0000-0000-0000000002a6', 'LB Email Wipe Target',        'lid', null, 0, false, 'bestaand@test.local'),
   ('00000000-0000-0000-0000-0000000002a7', 'LB Archived Email Target',    'lid', null, 0, true,  null);
+
+-- Target rij voor de list_members_admin pin_hash-scrub-test (migratie
+-- 0011_list_members_admin_pin_hash_scrub.sql, restbeperking #42) — de enige
+-- rij in dit bestand met een echte (niet-lege) pin_hash, zodat de scrub ook
+-- daadwerkelijk iets scrubt om te bewijzen (een pin_hash die toch al null
+-- was, zou de test laten slagen zonder dat de scrub ooit iets deed).
+insert into members (id, name, role, pin_hash, balance_cents, archived) values
+  ('00000000-0000-0000-0000-0000000002a8', 'LB Pin Scrub Target', 'bardienst', crypt('4321', gen_salt('bf')), 0, false);
 
 -- ── create_member ─────────────────────────────────────────────────────
 
@@ -606,6 +614,26 @@ select is(
   'list_members_admin returns null for a member that never had an email set'
 );
 
+-- 48)-49) list_members_admin pin_hash-scrub (migratie
+-- 0011_list_members_admin_pin_hash_scrub.sql, restbeperking #42): pin_hash
+-- moet altijd null zijn in het resultaat, ook voor een lid met een
+-- daadwerkelijk gezette PIN (LB Pin Scrub Target hierboven) — has_pin blijft
+-- wél true, want die generated column leest de ruwe kolom in de tabel zelf,
+-- niet wat deze RPC teruggeeft. Geen throws_ok: dit is geen weigering maar
+-- een scrub op een geslaagde aanroep, zelfde soort test als 45)-47)
+-- hierboven voor email.
+select is(
+  (select pin_hash from list_members_admin() where id = '00000000-0000-0000-0000-0000000002a8'),
+  null,
+  'list_members_admin scrubs pin_hash to null even for a member with a set pin (migration 0011)'
+);
+
+select is(
+  (select has_pin from list_members_admin() where id = '00000000-0000-0000-0000-0000000002a8'),
+  true,
+  'list_members_admin still reports has_pin = true for that member (migration 0011)'
+);
+
 -- ── column-level REVOKE op members.email (ADR 0004, migratie 0009) ──────
 --
 -- Bewijst de REVOKE zelf, los van list_members_admin's bestaan (spec →
@@ -624,6 +652,26 @@ select throws_ok(
   '42501',
   NULL,
   'select on members.email is blocked for authenticated (column-level REVOKE, migration 0009)'
+);
+
+-- ── column-level REVOKE op members.pin_hash (migratie 0010, #42) ────────
+--
+-- Zelfde soort bewijs als de email-REVOKE-test hierboven, nu voor pin_hash
+-- (0010_pin_hash_kolombeveiliging.sql) — zie die migratie's eigen
+-- uitgebreide commentaar voor waarom een kale column-level REVOKE niet
+-- vanzelfsprekend werkt (een eerdere, kale versie van precies deze REVOKE
+-- bleek zonder een voorafgaande tabel-brede REVOKE geen effect te hebben) en
+-- hoe dit nu wél empirisch geverifieerd is. Zelfde voorzichtigheid als de
+-- email-test hierboven: alleen de SQLSTATE geasserteerd (message-argument
+-- NULL), de exacte Postgres-foutmelding niet gegokt (zie ook
+-- rls_write_protection.test.sql's eigen geschiedenis met dat probleem). Nog
+-- steeds `authenticated` sinds `set local role` hierboven, geen nieuwe
+-- rolwissel nodig.
+select throws_ok(
+  $$ select pin_hash from members limit 1 $$,
+  '42501',
+  NULL,
+  'select on members.pin_hash is blocked for authenticated (column-level REVOKE, migration 0010)'
 );
 
 select * from finish();
