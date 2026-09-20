@@ -946,30 +946,42 @@ database, niet als de `authenticated`-rol via PostgREST, dus de kolom-REVOKE
 - Alle overige RPC's/Schermflow-stappen/Randgevallen hierboven in deze spec —
   ongewijzigd, dit is uitsluitend een transportlaag-fix.
 - `list_members_admin()` (`main`'s eigen RPC,
-  `0009_ledenbeheer_email_rpc_gated_read.sql`) — expliciet **niet** door
-  `0010_pin_hash_kolombeveiliging.sql` gewijzigd, op instructie: dit blijft
-  `main`'s functie, niet dubbel definiëren. **Bekende restbeperking, hier
-  gemeld in plaats van stilzwijgend genegeerd:** deze RPC doet zelf `return
-  query select * from members order by name asc;` zonder scrub, en heeft
-  dus, om precies dezelfde reden als de zes hierboven, de ruwe `pin_hash`
-  gewoon in de RPC-respons staan — de kolom-`REVOKE`/`GRANT` op de tabel
-  raakt een `security definer`-functie se eigen `select *` niet.
-  `useAlleLeden.ts` (die deze RPC aanroept) mapt het veld simpelweg niet
-  door naar `LedenbeheerLid`, wat de UI beschermt, maar niet de ruwe
-  network-response naar een ingelogde beheerder-sessie. Aangezien een
-  4-cijferige PIN-hash met slechts 10.000 mogelijke waarden triviaal offline
-  te kraken is, is dit dezelfde soort risico als de oorspronkelijke
-  Reviewer-bevinding, nu alleen beperkt tot wie al een geldige
-  beheerder-sessie heeft (de actorcheck in `list_members_admin()` blokkeert
-  bardienst/gedeelde-tablet-sessies). **Empirisch bevestigd, niet alleen
-  afgeleid**: de volledige migratieketen (`0001` t/m `0010`) is tijdens deze
-  merge tegen een echte, verse lokale Postgres 16 toegepast (geen
-  Supabase/pgTAP-stack, wel echte GRANT/REVOKE/RLS-semantiek), met gestubde
-  `auth.uid()`/`auth.users` — `select * from list_members_admin()` als
-  `authenticated`, met een geldige beheerder-JWT-sub, gaf de bcrypt-hash
-  gewoon terug in de `pin_hash`-kolom van het resultaat, terwijl een
-  rechtstreekse `select pin_hash from members`/`select email from members`
-  in diezelfde sessie correct faalden met "permission denied". Niet in dit
-  ticket opgelost — vraag
-  aan Bram/Architect of `list_members_admin()` dezelfde scrub moet krijgen
-  als de overige zes.
+  `0009_ledenbeheer_email_rpc_gated_read.sql`) — **opgelost, niet langer een
+  restbeperking.** Deze RPC deed zelf `return query select * from members
+  order by name asc;` zonder scrub, en had dus, om precies dezelfde reden
+  als de zes RPC's hierboven, de ruwe `pin_hash` gewoon in de RPC-respons
+  staan — de kolom-`REVOKE`/`GRANT` op de tabel raakt een
+  `security definer`-functie se eigen `select *` niet. Oorspronkelijk hier
+  bewust ongewijzigd gelaten (instructie: "main's functie, niet dubbel
+  definiëren") en gemeld als openstaande vraag aan Bram/Architect. Bram
+  heeft alsnog expliciet akkoord gegeven om dit te fixen; opgelost in
+  `0011_list_members_admin_pin_hash_scrub.sql` (nieuw ticket, zelfde issue
+  #42).
+
+  Andere vorm dan de zes scrubs hierboven: die muteren een losse
+  `v_member`-variabele (`v_member.pin_hash := null;`) na een enkele
+  insert/update `returning * into`. `list_members_admin()` heeft geen
+  rij-variabele — het is `return query select * from members ...` die
+  meteen een hele `setof members` teruggeeft. `returns setof members`
+  vereist dat elke rij van de `return query`-select positioneel matcht met
+  de kolommen van `members` (aantal en type, niet per se de namen) — de
+  kolom simpelweg weglaten uit de select zou dus een kolomaantal-mismatch
+  geven en is geen optie. De oplossing: de `select *` vervangen door een
+  expliciete kolommenlijst met `null::text as pin_hash` op precies de plek
+  waar `pin_hash` in `members` staat, zodat elke rij nog aan het
+  `setof members`-contract voldoet maar de kolom zelf nooit de echte hash
+  bevat. Identieke signatuur/returntype -> `create or replace function`,
+  geen `drop function`, dus ook geen her-`grant execute` nodig (0009's grant
+  blijft staan).
+
+  **Empirisch bevestigd, niet alleen afgeleid**: de volledige migratieketen
+  (`0001` t/m `0011`) is tegen een echte, verse lokale Postgres 16 toegepast
+  (geen Supabase/pgTAP-stack, wel echte GRANT/REVOKE/RLS-semantiek), met
+  gestubde `auth.uid()`/`auth.users`. Vóór `0011`: `select * from
+  list_members_admin()` als `authenticated`, met een geldige
+  beheerder-JWT-sub, gaf de bcrypt-hash nog gewoon terug in de `pin_hash`-
+  kolom (reproductie van de restbeperking). Ná `0011`: hetzelfde aanroep
+  geeft `pin_hash: null` terug, met `has_pin` en alle overige kolommen
+  (inclusief `email`) ongewijzigd correct meekomend; een rechtstreekse
+  `select pin_hash from members` in dezelfde sessie blijft, ongewijzigd
+  door `0011`, falen met "permission denied".
