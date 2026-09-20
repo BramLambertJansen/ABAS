@@ -30,8 +30,9 @@ import { createClient } from "@/lib/supabase/client";
  * all, "denied" when there IS a session but it doesn't resolve to an active
  * bardienst/beheerder member (→ `BeheerLogin.tsx` shows a Nederlandse
  * foutmelding + the login form), "signed-in" only once a real
- * bardienst/beheerder session is confirmed — with `hasPin` (`pin_hash is not
- * null` for that same row) alongside it, so "Mijn account"
+ * bardienst/beheerder session is confirmed — with `hasPin` (`has_pin`, the
+ * `pin_hash is not null` generated column, for that same row) alongside it,
+ * so "Mijn account"
  * (MijnAccountOverlay.tsx) doesn't need a second leeshook for the one
  * boolean it displays.
  */
@@ -71,7 +72,7 @@ export function useBeheerSession(): BeheerSessionState & {
         try {
           const { data, error } = await supabase
             .from("members")
-            .select("name, role, pin_hash")
+            .select("name, role, has_pin")
             .eq("auth_user_id", userId)
             .eq("archived", false)
             .maybeSingle();
@@ -104,7 +105,7 @@ export function useBeheerSession(): BeheerSessionState & {
             status: "signed-in",
             email,
             name: data.name as string,
-            hasPin: data.pin_hash !== null,
+            hasPin: data.has_pin as boolean,
           });
         } catch (err) {
           // Can't confirm a bardienst/beheerder-koppeling — fail closed

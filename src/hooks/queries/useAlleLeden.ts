@@ -23,10 +23,13 @@ export type LedenbeheerLid = {
    *  Studio) of door het lid zelf (self-service e-mailkoppeling, buiten
    *  scope, zie de spec). */
   hasAccount: boolean;
-  /** `pin_hash is not null` — heeft dit lid een PIN-snelkoppeling aan
-   *  staan. Alleen-lezen, zelfde reden als hasAccount — de schrijfactie is
-   *  zelfbediening via `set_own_pin` ("Mijn account"), niet iets een
-   *  beheerder hier namens dit lid doet. */
+  /** `has_pin` (`pin_hash is not null`, generated column,
+   *  0009_pin_hash_kolombeveiliging.sql) — heeft dit lid een
+   *  PIN-snelkoppeling aan staan. Alleen-lezen, zelfde reden als hasAccount
+   *  — de schrijfactie is zelfbediening via `set_own_pin` ("Mijn account"),
+   *  niet iets een beheerder hier namens dit lid doet. De ruwe `pin_hash`-
+   *  kolom zelf is column-level REVOKEd voor `authenticated` en wordt hier
+   *  niet meer gelezen. */
   hasPin: boolean;
 };
 
@@ -50,7 +53,7 @@ export function useAlleLeden(): State & { refetch: () => void } {
       const supabase = createClient();
       const { data, error } = await supabase
         .from("members")
-        .select("id, name, role, balance_cents, archived, auth_user_id, pin_hash")
+        .select("id, name, role, balance_cents, archived, auth_user_id, has_pin")
         .order("name", { ascending: true });
 
       if (error) throw error;
@@ -62,7 +65,7 @@ export function useAlleLeden(): State & { refetch: () => void } {
         balanceCents: row.balance_cents as number,
         archived: row.archived as boolean,
         hasAccount: row.auth_user_id !== null,
-        hasPin: row.pin_hash !== null,
+        hasPin: row.has_pin as boolean,
       }));
 
       setState({ status: "ready", members });

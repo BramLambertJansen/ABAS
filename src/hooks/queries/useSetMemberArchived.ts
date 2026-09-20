@@ -64,9 +64,12 @@ export function useSetMemberArchived() {
         balanceCents: data.balance_cents as number,
         archived: data.archived as boolean,
         // set_member_archived raakt auth_user_id/pin_hash nooit — zelfde
-        // reden als useUpdateMemberName.ts om deze mee te geven.
+        // reden als useUpdateMemberName.ts om deze mee te geven. `has_pin`
+        // (generated column) i.p.v. `pin_hash`
+        // (0009_pin_hash_kolombeveiliging.sql scrubt pin_hash in de
+        // RPC-return naar null).
         hasAccount: data.auth_user_id !== null,
-        hasPin: data.pin_hash !== null,
+        hasPin: data.has_pin as boolean,
       };
     } catch (err) {
       setState({

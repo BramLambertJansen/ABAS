@@ -629,3 +629,205 @@ bouwen (`useShell().overlay`, zelfde patroon als andere overlays in
 De locatie (modus-keuzescherm) staat vast (zie "Definitieve keuzes" punt 3);
 de concrete visuele vorm (sheet vs. inline, exacte copy) blijft aan de
 Developer/design system.
+
+## Beveiligingsfix na Reviewer-bevinding (Architect, 2026-09-19)
+
+**Blokkerende bevinding van de Reviewer op de Developer-implementatie
+(commit `fc07c62`, branch `claude/next-ticket-8gwda6`):** `pin_hash` (de
+bcrypt-hash van een 4-cijferige PIN) komt bij de client terecht, terwijl
+alleen een boolean nodig is. Een 4-cijferige PIN heeft een zoekruimte van
+10.000 — zodra de hash op het netwerk/in React-state ligt, is offline
+brute-forcen triviaal; dat maakt bcrypt voor dit doel praktisch zinloos. Dit
+is een implementatiefix op wat hierboven al gespecificeerd staat (`hasPin`
+als alleen-lezen boolean, Datamodel/RPC's/Schermflow stap 6/7) — **geen**
+heroverweging van ADR 0004 (wachtwoord verplicht, PIN optionele
+snelkoppeling via `pin_hash is not null`): die betekenis van de kolom blijft
+ongewijzigd, alleen hoe die betekenis de client bereikt verandert.
+
+### Wat er precies lekt — breder dan de twee gerapporteerde regels
+
+De Reviewer wees op twee directe `select`s
+(`useAlleLeden.ts:53`/`useBeheerSession.ts:74`) die `pin_hash` expliciet
+opvragen om alleen `!== null` te toetsen. Bij uitzoeken blijkt de kolom via
+een **tweede, ouder mechanisme** al langer op de kabel te staan, van vóór
+dit ticket:
+
+- `create_member`, `update_member_name`, `set_member_archived`,
+  `set_member_role` (alle vier `supabase/migrations/0007_ledenbeheer.sql`,
+  dus **vóór** #42) zijn `returns members` — PostgREST serialiseert bij een
+  RPC-aanroep de volledige teruggegeven rij, kolom voor kolom, inclusief
+  `pin_hash`. Dat gebeurt al sinds 0007, ongeacht wat de TypeScript-kant met
+  het antwoord doet. #42 zelf voegde geen nieuwe blootstelling op dit punt
+  toe — het voegde alleen de client-code toe die dat al aanwezige veld
+  (`useCreateMember.ts`/`useSetMemberRole.ts`/`useSetMemberArchived.ts`/
+  `useUpdateMemberName.ts`, elk `data.pin_hash !== null`) voor het eerst
+  daadwerkelijk *las*. De hash stond al in elke Network-tab sinds
+  ledenbeheer werd gebouwd, alleen ongebruikt.
+- `set_own_pin` (`supabase/migrations/0008_pin_zelfbediening.sql`, wél #42)
+  is dezelfde vorm: `returns members`, dus retourneert ook de eigen
+  zojuist-gezette hash aan de aanroeper zelf. Minder ernstig (de aanroeper
+  kent de PIN al, die heeft 'm net getypt) maar dezelfde onnodige
+  blootstelling, met dezelfde technische oorzaak.
+- `useBarStaff.ts` filtert met `.not("pin_hash", "is", null)` — dit selecteert
+  de kolom niet in de payload, maar PostgREST/Postgres vereist wel
+  kolomniveau-`SELECT`-recht op `pin_hash` om er in een filter naar te
+  verwijzen. Relevant omdat de hieronder gekozen fix (kolom-`REVOKE`) deze
+  aanroep anders stuk zou maken — geen lek op zichzelf, wel een
+  noodzakelijke meeverhuizing.
+
+**Conclusie van het "is dit een pre-existing patroon"-onderzoek:** ja, ten
+dele. Er bestaat geen eerder, wél-goed-afgeschermd `has_pin`-precedent om te
+kopiëren (`grep` naar `REVOKE`/`create view`/`generated always` in
+`supabase/migrations/` levert alleen insert/update/delete-REVOKEs op, zie
+0001/0004/0005 — nooit een kolomniveau-`SELECT`-REVOKE of view). Het
+onderliggende probleem (`returns members` lekt élke kolom) bestaat al sinds
+0007, dus dit ticket dicht een gat dat groter is dan de twee door de
+Reviewer aangewezen regels — anders zou de fix theater zijn: de exacte hash
+blijft dan alsnog via vier andere RPC's op de kabel staan.
+
+### Gekozen vorm: generated column `has_pin` + kolom-`REVOKE` + scrub in elke RPC die een volledige rij teruggeeft
+
+Overwogen opties (zie opdracht):
+
+1. **View die alleen een boolean exposeert, `pin_hash` zelf column-level
+   `REVOKE`d.** Deze codebase heeft nergens een `create view` (geverifieerd,
+   zie hierboven) — een nieuw schema-object introduceren voor iets dat een
+   kolom net zo goed oplost, is meer machinerie dan nodig. Belangrijker: een
+   view lost het `returns members`-lek helemaal niet op — een
+   `security definer`-functie serialiseert een al-berekende rijwaarde, dat
+   loopt nooit via een view of via `SELECT`-rechten van de aanroeper. Optie 1
+   alleen zou dus **onvoldoende** zijn, met of zonder view.
+2. **Boolean via een RPC in plaats van een rechtstreekse `select`.** Past
+   niet bij het bestaande leespatroon: `members` wordt vandaag overal
+   (`useAlleLeden`, `useMembers`, `useBarStaff`) via een gewone `select` +
+   RLS gelezen — RPC's zijn in deze codebase gereserveerd voor
+   actor-gecontroleerde *schrijf*acties (ADR 0002-vorm), niet voor lezen. Een
+   RPC alleen voor deze ene boolean zou een tweede leespatroon naast het
+   bestaande introduceren, voor iets dat een kolom net zo goed dekt.
+3. **Gekozen: een `generated`-kolom `has_pin` op `members`, kolomniveau-
+   `REVOKE` op `pin_hash` voor `authenticated`, én elke RPC die vandaag een
+   volledige `members`-rij teruggeeft (`create_member`, `update_member_name`,
+   `set_member_archived`, `set_member_role`, `set_own_pin`) wist `pin_hash`
+   uit de teruggegeven rij vóór de `return`.** Dit is de enige optie die
+   *beide* lekpaden met één mechanisme dicht (rechtstreekse `select` én
+   RPC-return), blijft binnen het bestaande "REVOKE als extra slot naast RLS"
+   -idioom (`CLAUDE.md` → Verificatie, `0001_init.sql` regel 135-137,
+   `0004_revoke_app_settings_writes.sql`, `0005_assortimentbeheer.sql`), en
+   voegt geen nieuw schema-objecttype toe.
+
+### Migratie: nieuwe `supabase/migrations/0009_pin_hash_kolombeveiliging.sql`
+
+Nieuwe migratie, niet een wijziging van `0008_pin_zelfbediening.sql` —
+zelfde append-only-conventie als de rest van `supabase/migrations/` (zie
+bv. `0002_fix_start_shift_pgcrypto_search_path.sql`, dat ook een fix op
+`0001_init.sql` is via een nieuwe migratie, niet door 0001 te bewerken).
+
+1. **Nieuwe kolom, geen aparte view:**
+   ```sql
+   alter table members
+     add column has_pin boolean generated always as (pin_hash is not null) stored;
+   ```
+   Eén plek die "heeft PIN" definieert — zelfde uitdrukking
+   (`pin_hash is not null`) als de rest van deze spec al gebruikt, nu als
+   kolom in plaats van als losse client-side afleiding op zes plekken.
+2. **Kolomniveau-REVOKE, het technische slot:**
+   ```sql
+   revoke select (pin_hash) on members from authenticated;
+   ```
+   Werkt naast de bestaande tabelbrede `members_select ... using (true)`-RLS-
+   policy (`0001_init.sql` regel 124) — RLS bepaalt welke *rijen* zichtbaar
+   zijn, dit bepaalt welke *kolom* onzichtbaar blijft, ongeacht welke rijen
+   een policy toelaat. Raakt `start_shift`/andere `security definer`-RPC's se
+   **interne** gebruik van `pin_hash` niet (die lezen de tabel als
+   functie-eigenaar, niet als `authenticated`) — alleen rechtstreekse
+   client-`select`s en client-side filters op de kolom lopen hierop vast.
+3. **Scrub vóór elke `return` die een volledige `members`-rij teruggeeft** —
+   vijf functies, telkens dezelfde ene regel toegevoegd vlak vóór de
+   bestaande `return v_member;`, verder ongewijzigd (`create or replace
+   function` met identieke signatuur/returntype — geen `drop function`
+   nodig, dus ook geen her-`grant execute`):
+   ```sql
+   v_member.pin_hash := null;
+   return v_member;
+   ```
+   Toe te passen in (`create or replace function` van elk, met de rest van
+   het functielichaam ongewijzigd overgenomen uit de aangehaalde migratie):
+   - `create_member` (`0007_ledenbeheer.sql`, vlak vóór de bestaande
+     `return v_member;` na de `insert ... returning * into v_member;`).
+   - `update_member_name` (`0007_ledenbeheer.sql`, idem, na de `update ...
+     returning * into v_member;`).
+   - `set_member_archived` (`0007_ledenbeheer.sql`, idem).
+   - `set_member_role` (`0007_ledenbeheer.sql`, idem).
+   - `set_own_pin` (`0008_pin_zelfbediening.sql`) — **op allebei de
+     `return`-punten**: zowel de `p_pin is null`-tak (PIN uitzetten) als de
+     tak die `pin_hash = crypt(p_pin, gen_salt('bf'))` zet (PIN aan/wijzigen).
+     `has_pin` (de generated column) reflecteert in beide gevallen automatisch
+     de nieuwe staat, omdat de `update ... returning *` na de schrijfactie
+     plaatsvindt.
+
+   De teruggegeven `members`-rij bevat na deze wijziging altijd
+   `pin_hash: null` (ongeacht de werkelijke staat) en het correcte `has_pin`
+   ernaast — precies zoals een rechtstreekse `select` op `members` dat na
+   stap 1/2 ook doet.
+
+### Wat de Developer aan de clientkant aanpast
+
+Zes bestaande hooks, geen nieuwe hook, geen nieuw type-veld (`hasPin` bestaat
+al op `LedenbeheerLid`/`BeheerSessionState` — alleen de **bron** verandert):
+
+- **`src/hooks/queries/useAlleLeden.ts`** — `.select("id, name, role,
+  balance_cents, archived, auth_user_id, has_pin")` (was: `..., pin_hash`);
+  `hasPin: row.has_pin as boolean` (was: `row.pin_hash !== null`).
+- **`src/hooks/queries/useBeheerSession.ts`** — `.select("name, role,
+  has_pin")` (was: `..., pin_hash`); `hasPin: data.has_pin as boolean` (was:
+  `data.pin_hash !== null`).
+- **`src/hooks/queries/useBarStaff.ts`** — `.eq("has_pin", true)` (was:
+  `.not("pin_hash", "is", null)`) — noodzakelijke meeverhuizing door de
+  kolom-REVOKE in stap 2 hierboven, geen gedragswijziging (zelfde leden
+  verschijnen/verdwijnen uit de PIN-stafkeuze).
+- **`src/hooks/queries/useCreateMember.ts`**,
+  **`useSetMemberRole.ts`**, **`useSetMemberArchived.ts`**,
+  **`useUpdateMemberName.ts`** — elk `hasPin: data.pin_hash !== null` wordt
+  `hasPin: data.has_pin as boolean`. Geen `.select(...)`-wijziging nodig (dit
+  zijn RPC-aanroepen, geen `select`s) — de RPC's eigen teruggegeven rij bevat
+  na de migratie gewoon `has_pin` naast (het altijd-`null`) `pin_hash`.
+- **`useSetOwnPin.ts`** — geen wijziging: deze hook leest vandaag alleen
+  `error` uit de RPC-respons, nooit `data`/`pin_hash` — de scrub in
+  `set_own_pin` (migratiestap 3) raakt hem dus niet.
+- **Code-commentaar dat `pin_hash is not null` als de leeswijze noemt**
+  (`useAlleLeden.ts` regel 26, `useBeheerSession.ts` regel 33-34,
+  `useCreateMember/useSetMemberRole/useSetMemberArchived/
+  useUpdateMemberName.ts`'s `pin_hash`-commentaarregels) — bijwerken naar
+  `has_pin`, anders wijst het commentaar na deze fix naar een kolom die de
+  client niet meer mag lezen.
+
+### `db:test`/`check:rls`
+
+Nieuwe negatieve test nodig (`check:rls` → "elke policy een negatieve test"
+dekt dit niet letterlijk, dit is kolomniveau in plaats van rijniveau, maar
+verdient dezelfde soort dekking): bevestig dat een `authenticated`-sessie een
+`permission denied for column pin_hash`-fout krijgt bij een rechtstreekse
+`select pin_hash from members`, en dat `select has_pin from members` wél
+slaagt. **Niet mijn scope om dit testbestand te schrijven of de al gestagede
+Tester-bestanden (`e2e/a11y.spec.ts`,
+`supabase/tests/set_own_pin.test.sql`, `supabase/tests/start_shift.test.sql`)
+aan te raken** — dit is voor de Tester, na de Developer's implementatie.
+Bestaande SQL-tests die vandaag rechtstreeks op `pin_hash`'s waarde
+controleren (`set_own_pin.test.sql`, `ledenbeheer.test.sql`,
+`start_shift.test.sql`, `negatieve_saldolimiet.test.sql`, `place_order.test.sql`,
+`end_shift.test.sql`, `assortimentbeheer.test.sql`, `shift_members.test.sql`,
+`top_up.test.sql`) blijven werken: die draaien serverside tegen een echte
+database, niet als de `authenticated`-rol via PostgREST, dus de kolom-REVOKE
+(die alleen `authenticated` raakt) heeft daar geen effect op.
+
+### Niet gewijzigd door deze fix
+
+- ADR 0004 zelf, en de betekenis van `pin_hash is not null` als "heeft PIN
+  aan" — ongewijzigd, nu alleen via `has_pin` gelezen in plaats van via de
+  ruwe kolom.
+- `start_shift`'s interne PIN-verificatie (`0001_init.sql`/
+  `0002_fix_start_shift_pgcrypto_search_path.sql`) — leest `pin_hash` als
+  functie-eigenaar, nooit als `authenticated`, dus ongeraakt door de
+  kolom-REVOKE.
+- Alle overige RPC's/Schermflow-stappen/Randgevallen hierboven in deze spec —
+  ongewijzigd, dit is uitsluitend een transportlaag-fix.

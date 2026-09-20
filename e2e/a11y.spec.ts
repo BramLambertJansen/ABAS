@@ -87,6 +87,28 @@ async function loginAsBeheerder(page: Page) {
     .waitFor({ state: "visible", timeout: 15_000 });
 }
 
+/**
+ * docs/features/auth-methode-per-lid.md (#42) → Randgevallen → "A11y" (a):
+ * signs in the same way as `loginAsBeheerder()` above, but stops at
+ * `ModusKeuze` (Bar/Beheer/Mijn account) instead of clicking through to
+ * `BeheerTabs` — this is the screen state itself under test here, not a
+ * step on the way to another one.
+ */
+async function loginToModusKeuze(page: Page) {
+  await page.goto("/beheer");
+
+  await page.locator('label:has(input[value="password"])').click();
+  await page.locator('input[type="email"]').fill("femke.bos@aurora.local");
+  await page
+    .locator('input[type="password"]')
+    .fill("local-beheerder-dev-only");
+  await page.getByRole("button", { name: "Inloggen" }).click();
+
+  await page
+    .getByRole("heading", { name: /^Welkom,/ })
+    .waitFor({ state: "visible", timeout: 15_000 });
+}
+
 test.describe("beheer ingelogde staat (a11y)", () => {
   test("beheer (/beheer) Assortiment-tab (ingelogd) has no WCAG2A/AA violations", async ({
     page,
@@ -116,6 +138,60 @@ test.describe("beheer ingelogde staat (a11y)", () => {
     await page
       .getByRole("heading", { name: "Negatief saldo toestaan" })
       .waitFor({ state: "visible", timeout: 15_000 });
+
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+
+    expect(results.violations, JSON.stringify(results.violations, null, 2))
+      .toEqual([]);
+  });
+
+  /**
+   * docs/features/auth-methode-per-lid.md (#42) → Randgevallen → "A11y" (a):
+   * the modus-keuzestaat op `/beheer` — after a successful e-mail/wachtwoord-
+   * login, before Bar or Beheer is chosen (`ModusKeuze.tsx`). Not part of the
+   * `loginAsBeheerder()`-based tests above/below: those all click straight
+   * through to `BeheerTabs`, so this is the only scenario that actually
+   * scans this intermediate screen.
+   */
+  test("beheer (/beheer) modus-keuze (ingelogd, vóór modus gekozen) has no WCAG2A/AA violations", async ({
+    page,
+  }) => {
+    await loginToModusKeuze(page);
+
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+
+    expect(results.violations, JSON.stringify(results.violations, null, 2))
+      .toEqual([]);
+  });
+
+  /**
+   * docs/features/auth-methode-per-lid.md (#42) → Randgevallen → "A11y" (b):
+   * the new "Mijn account"-overlay/PIN-toggle (`MijnAccountOverlay.tsx`),
+   * opened from `ModusKeuze.tsx`'s "Mijn account"-knop — this app's fifth
+   * real `Overlay.tsx` consumer. Scans the "geen pincode ingesteld"-staat
+   * (Femke Bos, the seeded beheerder used here, has no `pin_hash` set in
+   * `supabase/seed.sql`), i.e. the invoerveld-variant of the overlay rather
+   * than the "pincode uitzetten"-knop-variant — both variants share the same
+   * `Overlay.tsx` chrome/markup already scanned elsewhere in this file, the
+   * form-vs-button difference is the part unique to this scenario.
+   */
+  test("beheer (/beheer) Mijn-account-overlay has no WCAG2A/AA violations", async ({
+    page,
+  }) => {
+    await loginToModusKeuze(page);
+
+    await page.getByRole("button", { name: "Mijn account" }).click();
+
+    const dialog = page.getByRole("dialog", { name: "Mijn account" });
+    await dialog.waitFor({ state: "visible" });
+
+    // Same focus-on-open contract as every Overlay.tsx consumer (see
+    // docs/features/bezetting-beheren.md → useShell()-contract).
+    await expect(dialog).toBeFocused();
 
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa"])

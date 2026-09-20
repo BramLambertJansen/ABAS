@@ -66,9 +66,11 @@ export function useUpdateMemberName() {
         // (docs/features/auth-methode-per-lid.md) niet stilletjes leeg
         // valt na een naamwijziging (spec: hasAccount/hasPin zijn
         // weergavevelden op elke LedenbeheerLid, niet alleen op de
-        // initiële lijst-load).
+        // initiële lijst-load). `has_pin` (generated column) i.p.v.
+        // `pin_hash` (0009_pin_hash_kolombeveiliging.sql scrubt pin_hash in
+        // de RPC-return naar null).
         hasAccount: data.auth_user_id !== null,
-        hasPin: data.pin_hash !== null,
+        hasPin: data.has_pin as boolean,
       };
     } catch (err) {
       setState({

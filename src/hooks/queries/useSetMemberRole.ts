@@ -73,9 +73,11 @@ export function useSetMemberRole() {
         // LidBeherenOverlay's "Inloggegevens"-sectie zichtbaar is
         // (docs/features/auth-methode-per-lid.md → Schermflow stap 7), de
         // onderliggende hasAccount/hasPin-waarden zelf wijzigen niet door
-        // deze RPC.
+        // deze RPC. `has_pin` (generated column) i.p.v. `pin_hash`
+        // (0009_pin_hash_kolombeveiliging.sql scrubt pin_hash in de
+        // RPC-return naar null).
         hasAccount: data.auth_user_id !== null,
-        hasPin: data.pin_hash !== null,
+        hasPin: data.has_pin as boolean,
       };
     } catch (err) {
       setState({
