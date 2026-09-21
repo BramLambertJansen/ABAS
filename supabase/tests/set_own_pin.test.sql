@@ -1,5 +1,5 @@
 -- Negative-test coverage for set_own_pin (supabase/migrations/
--- 0008_pin_zelfbediening.sql, docs/features/auth-methode-per-lid.md #42, ADR
+-- 0014_pin_zelfbediening.sql, docs/features/auth-methode-per-lid.md #42, ADR
 -- 0004). Run with `npm run db:test` (= `supabase test db`, needs `supabase
 -- start` / Docker locally).
 --
@@ -16,7 +16,7 @@
 -- auth.uid()).
 --
 -- Foutcodes hieronder zijn letterlijk overgenomen uit
--- 0008_pin_zelfbediening.sql, niet aangenomen: actor_not_found (regel 48),
+-- 0014_pin_zelfbediening.sql, niet aangenomen: actor_not_found (regel 48),
 -- no_bar_role (regel 54), invalid_pin_format (regel 69).
 
 create extension if not exists pgtap with schema extensions;

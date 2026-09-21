@@ -3,6 +3,47 @@
 -- (wachtwoord verplicht, PIN optioneel en niet-exclusief, ADR 0003 →
 -- Beslissing 1 geamendeerd) → RPC's.
 --
+-- Hernummerd van 0008 naar 0014 (2026-09-21): dit bestand en
+-- 0008_ledenbeheer_email.sql claimden allebei versienummer 0008 — beide
+-- kregen dat nummer op hun eigen branch, en de botsing werd pas zichtbaar
+-- toen beide branches in main samenkwamen (PR #60), wat `supabase start`
+-- sindsdien op elke CI-run laat crashen met "duplicate key value violates
+-- unique constraint schema_migrations_pkey" (versie 0008 bestaat al).
+-- 0008_ledenbeheer_email.sql blijft op zijn nummer: die is ouder (#57,
+-- 2026-09-02, dit bestand komt uit #42, 2026-09-19) en
+-- 0009_ledenbeheer_email_rpc_gated_read.sql hangt al van zijn volgorde af.
+-- Dit bestand zelf heeft geen enkele migratie die er specifiek ná moet
+-- komen (0011 raakt set_own_pin niet), dus dit is de veilige kant om te
+-- hernummeren. 0012/0013 zijn al in gebruik door een andere, nog niet
+-- gemergede branch (issue #24) — vandaar 0014, niet het eerstvolgende vrije
+-- nummer op main zelf.
+--
+-- Correctie (Codex-review op deze PR, direct na de hernummering): dit
+-- bestand draaide origineel vóór 0010_pin_hash_kolombeveiliging.sql, dat
+-- `set_own_pin` volledig herdefinieert mét een `pin_hash`-scrub vóór elke
+-- return (de beveiligingsfix uit #42/PR #60). Door dit bestand naar 0014
+-- te verplaatsen (ná 0010/0011) draait het nu ná die fix, en de
+-- oorspronkelijke, ongescrubde body hieronder zou 0010's fix stilzwijgend
+-- weer ongedaan maken -- de bcrypt-hash van een 4-cijferige PIN (10.000
+-- mogelijke waarden, triviaal offline te brute-forcen) zou opnieuw naar
+-- elke `authenticated`-sessie lekken. De scrub hieronder is daarom
+-- toegevoegd aan déze versie ook -- inhoudelijk nu identiek aan 0010's
+-- kopie van dezelfde functie, redundant maar onschadelijk (`create or
+-- replace` is idempotent), en veilig ongeacht de exacte volgorde.
+--
+-- Tweede correctie (echte CI-run op deze PR, eerste keer dat db:test ooit
+-- voorbij de 0008-versiebotsing kwam): `search_path = public` alleen laat
+-- `crypt()`/`gen_salt()` (pgcrypto) onvindbaar -- exact dezelfde, al eerder
+-- bekende klasse fout als 0002_fix_start_shift_pgcrypto_search_path.sql
+-- destijds voor start_shift repareerde (issue #2), hier nooit toegepast op
+-- deze functie (los gesignaleerd als issue #61, vóór dit inzicht dat de
+-- fix toch al in déze PR thuishoort). Omdat dit bestand ná 0010 draait, is
+-- dít de daadwerkelijk actieve definitie -- 0010's eigen kopie van
+-- set_own_pin heeft dezelfde ontbrekende `extensions`, maar wordt door deze
+-- migratie stilzwijgend overschreven en blijft daarom historisch, geen
+-- actieve bug. Zelfde fix als 0002: `extensions` toegevoegd aan de
+-- search_path.
+--
 -- Geen schemawijziging: geen nieuwe kolom, geen nieuw enum. `pin_hash is not
 -- null` is en blijft de volledige "heeft PIN"-vlag (0001_init.sql) — dit
 -- ticket voegt alleen een RPC toe die die kolom namens de ingelogde
@@ -34,7 +75,7 @@ create or replace function set_own_pin(p_pin text)
 returns members
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare
   v_actor members;
@@ -60,6 +101,7 @@ begin
   if p_pin is null then
     update members set pin_hash = null where id = v_actor.id
       returning * into v_member;
+    v_member.pin_hash := null;
     return v_member;
   end if;
 
@@ -72,6 +114,7 @@ begin
   update members set pin_hash = crypt(p_pin, gen_salt('bf')) where id = v_actor.id
     returning * into v_member;
 
+  v_member.pin_hash := null;
   return v_member;
 end;
 $$;
