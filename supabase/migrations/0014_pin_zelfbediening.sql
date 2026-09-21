@@ -13,11 +13,23 @@
 -- 2026-09-02, dit bestand komt uit #42, 2026-09-19) en
 -- 0009_ledenbeheer_email_rpc_gated_read.sql hangt al van zijn volgorde af.
 -- Dit bestand zelf heeft geen enkele migratie die er specifiek ná moet
--- komen (0010/0011 doen allebei een volledige `create or replace function
--- set_own_pin`, dus onafhankelijk van de exacte volgorde correct), dus dit
--- is de veilige kant om te hernummeren. 0012/0013 zijn al in gebruik door
--- een andere, nog niet gemergede branch (issue #24) — vandaar 0014, niet
--- het eerstvolgende vrije nummer op main zelf.
+-- komen (0011 raakt set_own_pin niet), dus dit is de veilige kant om te
+-- hernummeren. 0012/0013 zijn al in gebruik door een andere, nog niet
+-- gemergede branch (issue #24) — vandaar 0014, niet het eerstvolgende vrije
+-- nummer op main zelf.
+--
+-- Correctie (Codex-review op deze PR, direct na de hernummering): dit
+-- bestand draaide origineel vóór 0010_pin_hash_kolombeveiliging.sql, dat
+-- `set_own_pin` volledig herdefinieert mét een `pin_hash`-scrub vóór elke
+-- return (de beveiligingsfix uit #42/PR #60). Door dit bestand naar 0014
+-- te verplaatsen (ná 0010/0011) draait het nu ná die fix, en de
+-- oorspronkelijke, ongescrubde body hieronder zou 0010's fix stilzwijgend
+-- weer ongedaan maken -- de bcrypt-hash van een 4-cijferige PIN (10.000
+-- mogelijke waarden, triviaal offline te brute-forcen) zou opnieuw naar
+-- elke `authenticated`-sessie lekken. De scrub hieronder is daarom
+-- toegevoegd aan déze versie ook -- inhoudelijk nu identiek aan 0010's
+-- kopie van dezelfde functie, redundant maar onschadelijk (`create or
+-- replace` is idempotent), en veilig ongeacht de exacte volgorde.
 --
 -- Geen schemawijziging: geen nieuwe kolom, geen nieuw enum. `pin_hash is not
 -- null` is en blijft de volledige "heeft PIN"-vlag (0001_init.sql) — dit
@@ -76,6 +88,7 @@ begin
   if p_pin is null then
     update members set pin_hash = null where id = v_actor.id
       returning * into v_member;
+    v_member.pin_hash := null;
     return v_member;
   end if;
 
@@ -88,6 +101,7 @@ begin
   update members set pin_hash = crypt(p_pin, gen_salt('bf')) where id = v_actor.id
     returning * into v_member;
 
+  v_member.pin_hash := null;
   return v_member;
 end;
 $$;
