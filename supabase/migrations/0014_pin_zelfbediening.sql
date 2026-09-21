@@ -31,6 +31,19 @@
 -- kopie van dezelfde functie, redundant maar onschadelijk (`create or
 -- replace` is idempotent), en veilig ongeacht de exacte volgorde.
 --
+-- Tweede correctie (echte CI-run op deze PR, eerste keer dat db:test ooit
+-- voorbij de 0008-versiebotsing kwam): `search_path = public` alleen laat
+-- `crypt()`/`gen_salt()` (pgcrypto) onvindbaar -- exact dezelfde, al eerder
+-- bekende klasse fout als 0002_fix_start_shift_pgcrypto_search_path.sql
+-- destijds voor start_shift repareerde (issue #2), hier nooit toegepast op
+-- deze functie (los gesignaleerd als issue #61, vóór dit inzicht dat de
+-- fix toch al in déze PR thuishoort). Omdat dit bestand ná 0010 draait, is
+-- dít de daadwerkelijk actieve definitie -- 0010's eigen kopie van
+-- set_own_pin heeft dezelfde ontbrekende `extensions`, maar wordt door deze
+-- migratie stilzwijgend overschreven en blijft daarom historisch, geen
+-- actieve bug. Zelfde fix als 0002: `extensions` toegevoegd aan de
+-- search_path.
+--
 -- Geen schemawijziging: geen nieuwe kolom, geen nieuw enum. `pin_hash is not
 -- null` is en blijft de volledige "heeft PIN"-vlag (0001_init.sql) — dit
 -- ticket voegt alleen een RPC toe die die kolom namens de ingelogde
@@ -62,7 +75,7 @@ create or replace function set_own_pin(p_pin text)
 returns members
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare
   v_actor members;
