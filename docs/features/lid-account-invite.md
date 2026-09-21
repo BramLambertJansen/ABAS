@@ -1,6 +1,23 @@
 # Lid-account aanmaken: magic-link invite via een handmatige knop
 
 Spec voor [issue #24](https://github.com/BramLambertJansen/ABAS/issues/24).
+
+**Status: gebouwd (2026-09-21), 1-op-1 conform deze spec — geen afwijking.**
+Developer-commit `699480a`, Tester-commit `f00540b` (13 nieuwe pgTAP-
+assertions voor `mark_member_invited`, `plan(72)` → `plan(85)` in
+`supabase/tests/ledenbeheer.test.sql`, 85/85 groen). Gebouwde bestanden:
+migratie `supabase/migrations/0012_lid_account_uitnodigen.sql`,
+`src/lib/supabase/admin.ts`, `src/lib/inviteMember.ts`,
+`src/app/(bar)/beheer/invite/route.ts`, `src/hooks/queries/
+useSendMemberInvite.ts`, en de uitbreiding van `LidBeherenOverlay.tsx` — elk
+exact zoals hieronder beschreven (RPC-naam, foutcodes, copy, bestandsnamen).
+De rest van dit document beschrijft dus niet langer een plan maar de
+daadwerkelijk gebouwde staat; verleden/tegenwoordige tijd door het document
+heen ongewijzigd gelaten waar dat al klopte. Zie
+[ADR 0006](../adr/0006-privileged-auth-admin-calls-via-server-actie-naast-rpc.md)
+→ Status voor de afronding van het architectuurpatroon dat deze spec
+introduceerde.
+
 **Bijgewerkt op Bram's antwoorden (2026-09-21) — klaar voor de Developer.**
 Zie "Besloten door Bram" en "Architect-beslissingen (gedelegeerd)" hieronder
 voor wat er ten opzichte van de conceptversie veranderd is en waarom.
@@ -399,6 +416,11 @@ verdediging-in-twee-lagen-principe als overal elders in deze RPC-familie.
   onopgemerkt gat: de Tester-agent moet dit expliciet noteren als
   buiten `db:test`'s bereik, net zoals `docs/ARCHITECTURE.md` dat eerder
   deed voor andere "known rough edges" in de gate-scripts.
+  **Bevestigd (Tester, commit `f00540b`):** de nieuwe negatieve tests dekken
+  uitsluitend `mark_member_invited` (`actor_not_found`/`no_admin_role`/
+  `member_not_found`/`already_linked` plus de happy path/`pin_hash`-scrub-
+  regressie); de `inviteUserByEmail()`-aanroep zelf bleef ongetest via pgTAP,
+  precies zoals hier voorzien.
 - **Archief lid met e-mailadres** — een gearchiveerd `bardienst`/
   `beheerder`-lid kan nog steeds eligible zijn voor een invite (de
   eligibility-check in RPC's → punt 2.3 toetst niet op `archived`). Bewust

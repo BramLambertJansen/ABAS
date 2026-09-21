@@ -1,12 +1,16 @@
 # 0006 — Privileged Supabase Auth Admin-calls lopen via een server-side actie met een eigen service-role-bestand, niet via een SQL-RPC
 
-Status: **geaccepteerd** (Bram, 2026-09-21, samen met
-`docs/features/lid-account-invite.md` — issue #24). Bram's antwoorden op de
-spec (rolreikwijdte beperkt tot `bardienst`/`beheerder`, uitsluitend een
-handmatige trigger, geen automatische invite bij opslaan) raken de scope van
-de feature, niet het patroon dat dit ADR vastlegt — het patroon hieronder is
-ongewijzigd van kracht. Vult ADR 0002 en ADR 0004 aan, geen van beide
-vervangen.
+Status: **geïmplementeerd** (issue #24, commits `699480a`/`f00540b`,
+2026-09-21 — `src/lib/supabase/admin.ts`, `src/lib/inviteMember.ts`,
+`src/app/(bar)/beheer/invite/route.ts`, migratie
+`0012_lid_account_uitnodigen.sql`, zie
+`docs/features/lid-account-invite.md`). Oorspronkelijk geaccepteerd (Bram,
+2026-09-21, samen met `docs/features/lid-account-invite.md`). Bram's
+antwoorden op de spec (rolreikwijdte beperkt tot `bardienst`/`beheerder`,
+uitsluitend een handmatige trigger, geen automatische invite bij opslaan)
+raakten de scope van de feature, niet het patroon dat dit ADR vastlegt — het
+patroon hieronder bleef ongewijzigd van kracht tot en met de bouw. Vult ADR
+0002 en ADR 0004 aan, geen van beide vervangen.
 
 ## Context
 
