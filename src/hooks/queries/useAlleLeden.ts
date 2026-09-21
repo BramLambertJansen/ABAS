@@ -36,6 +36,12 @@ export type LedenbeheerLid = {
    *  0009_ledenbeheer_email_rpc_gated_read.sql), niet via een directe
    *  select. */
   email: string | null;
+  /** `members.invited_at` (0012_lid_account_uitnodigen.sql) — ISO-timestamp
+   *  van de laatste geslaagde handmatige invite, of `null` als er nog nooit
+   *  een is verstuurd. Geen PII (docs/features/lid-account-invite.md →
+   *  Datamodel), gebruikt door `LidBeherenOverlay.tsx`'s statusregel/
+   *  knoplabel. */
+  invitedAt: string | null;
 };
 
 type State =
@@ -88,6 +94,7 @@ export function useAlleLeden(): State & { refetch: () => void } {
         hasAccount: row.auth_user_id !== null,
         hasPin: row.has_pin as boolean,
         email: row.email as string | null,
+        invitedAt: row.invited_at as string | null,
       }));
 
       setState({ status: "ready", members });

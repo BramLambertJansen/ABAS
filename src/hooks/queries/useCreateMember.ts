@@ -81,6 +81,12 @@ export function useCreateMember() {
         hasAccount: data.auth_user_id !== null,
         hasPin: data.has_pin as boolean,
         email: data.email as string | null,
+        // create_member zet invited_at nooit (0012_lid_account_uitnodigen.sql
+        // — een net aangemaakt lid heeft role 'lid', dus nooit eligible voor
+        // een invite, zie docs/features/lid-account-invite.md → Betrokken
+        // shell(s)). Meegeven vanuit de rij zelf, niet hardcoded null,
+        // zelfde reden als hasAccount/hasPin hierboven.
+        invitedAt: data.invited_at as string | null,
       };
     } catch (err) {
       setState({

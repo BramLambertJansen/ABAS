@@ -466,29 +466,61 @@ Een `lid`-record (naam, saldo, …) bestaat onafhankelijk van een Supabase
 Auth-account — bardienst kan een lid aanmaken en laten bestellen/opwaarderen
 zonder dat er ooit een e-mailadres of portal-account bij hoort.
 
-- Een e-mailadres bij een lid is optioneel. Het invullen en opslaan van een
-  (nieuw) e-mailadres is de trigger om via
-  `supabase.auth.admin.inviteUserByEmail()` (server-side, secret key) een
-  magic-link-invite te versturen waarmee het lid zelf een portal-account
-  activeert. Dit gebeurt server-side vanuit `src/lib/supabase/server.ts` (of
-  een route handler die dat bestand gebruikt) — nooit met de client-side
-  sleutel, per de bestaande regel dat alleen die twee bestanden de Supabase
-  SDK mogen importeren.
-- Dit gebeurt automatisch **alleen** de allereerste keer dat een lid een
-  e-mailadres krijgt. Wijzigt het e-mailadres van een lid dat al een account
-  heeft, dan gebeurt er verder niets automatisch — geen nieuwe invite, geen
-  wijziging aan het gekoppelde auth-account. Bewust simpel gehouden voor MVP.
-- Een beheerder kan vanuit Ledenbeheer altijd handmatig een invite (opnieuw)
-  laten versturen — voor een lid dat de eerste mail miste, én voor
-  bestaande/geseede leden die nog nooit een invite kregen. Er is geen
-  automatische bulk-uitnodiging met terugwerkende kracht nodig: die leden
-  mogen later alsnog een link krijgen, pas op het moment dat de beheerder dat
-  triggert.
-- Koppeling `members`-rij ↔ `auth.users`-rij via een nullable veld (bv.
-  `members.auth_user_id`) — nullable omdat een lid zonder e-mail nooit een
-  account krijgt.
+- Een e-mailadres bij een lid is optioneel. Voor een `bardienst`- of
+  `beheerder`-lid met een ingevuld e-mailadres kan een beheerder vanuit
+  Ledenbeheer handmatig een magic-link-invite (opnieuw) laten versturen via
+  `supabase.auth.admin.inviteUserByEmail()` (server-side, secret key) — een
+  inloglink voor dit lid. **(Herzien, 2026-09-21, PR #62-review):** deze
+  link stelt geen wachtwoord in — er is geen wachtwoord-instelscherm (dat is
+  issue #17, niet gebouwd); de link logt het lid alleen in. Dit gebeurt
+  server-side vanuit `src/lib/supabase/admin.ts` — een derde, eigen bestand
+  naast
+  `client.ts`/`server.ts`, niet een uitbreiding van een van beide — per de
+  bestaande regel dat elk bestand onder `src/lib/supabase/` de Supabase SDK
+  mag importeren (geen vaste lijst van twee bestandsnamen meer). Zie [ADR
+  0006](adr/0006-privileged-auth-admin-calls-via-server-actie-naast-rpc.md)
+  voor waarom dit een eigen bestand is (service-role, omzeilt RLS volledig,
+  nooit vanuit een `"use client"`-bestand) en
+  `docs/features/lid-account-invite.md` voor de volledige flow
+  (`src/lib/inviteMember.ts`, `src/app/(bar)/beheer/invite/route.ts`).
+- **Uitsluitend een handmatige knop, geen automatisch gedrag bij het
+  opslaan van een (nieuw) e-mailadres.** Bewuste scope-verkleining t.o.v.
+  het oorspronkelijke, hier eerder beschreven plan ("automatisch bij de
+  allereerste keer opslaan") — Bram heeft dat bij de acceptatie van #24
+  ingeperkt tot een pure knop-trigger, zie
+  `docs/features/lid-account-invite.md` → "Besloten door Bram". Automatisch-
+  bij-opslaan blijft een mogelijke latere uitbreiding, geen afgesloten optie.
+- **Alleen `bardienst`/`beheerder`-leden zijn eligible, nooit `lid`.**
+  Portal-login (#15) bestaat nog niet, dus een `lid`-rol invite zou nergens
+  op een werkende afrondroute landen (`bardienst`/`beheerder` hebben die al:
+  `/beheer/callback`). `lid`-rol invites volgen pas met #15.
+- Een beheerder kan vanuit Ledenbeheer altijd (opnieuw) een invite laten
+  versturen zolang het doellid nog geen gekoppeld account heeft — voor een
+  lid dat de eerste mail miste, én voor bestaande/geseede leden die nog
+  nooit een invite kregen. Geen automatische bulk-uitnodiging met
+  terugwerkende kracht: die leden krijgen pas een link op het moment dat een
+  beheerder dat handmatig triggert.
+- Koppeling `members`-rij ↔ `auth.users`-rij via het nullable
+  `members.auth_user_id`-veld (nooit een directe tabel-write). **(Herzien,
+  2026-09-21, PR #62-review, Bug 1-fix):** vastgelegd door de RPC
+  `link_invited_member_account`, aangeroepen vanuit `/beheer/callback` met
+  de sessie van **het lid zelf**, op het moment dat het de uitnodiging
+  daadwerkelijk aanklikt en accepteert — niet meer bij het versturen (de
+  eerdere `mark_member_invited` zette `auth_user_id` al bij het versturen,
+  wat de hieronder genoemde tussenstaat onbereikbaar maakte). Het versturen
+  zelf zet voortaan alleen `members.invited_at` (RPC
+  `mark_member_invite_sent`, beheerder-actor, zelfde
+  `already_linked`-guard als voorheen). Zie
+  `docs/features/lid-account-invite.md` → RPC's voor de volledige
+  contracten en [ADR 0006](adr/0006-privileged-auth-admin-calls-via-server-actie-naast-rpc.md)
+  → Aanvulling voor het nieuwe actor-identificatiepatroon. Een los,
+  eveneens nullable `members.invited_at timestamptz`-veld onderscheidt "nog
+  niet uitgenodigd" van "uitgenodigd op [datum], nog geen account" in de
+  UI — die tussenstaat is met deze herziening ook daadwerkelijk bereikbaar.
 
-Implementatie-acceptatiecriteria: zie GitHub issue #24.
+**Gebouwd (#24, 2026-09-21)**: zie hieronder, changelog-entry na
+"Ledenbeheer" — de bullets hierboven beschrijven de daadwerkelijk gebouwde
+staat, niet meer een plan.
 
 **Ook de basis onder beheer-sessies (2026-08-26)**: dezelfde
 `auth_user_id`-koppeling is wat ADR
@@ -506,6 +538,15 @@ device-account hierboven, **handmatig geprovisioned** (Supabase
 Studio/CLI: een Auth-account aanmaken, `members.auth_user_id` handmatig
 koppelen) tot #15/#24 landen. Zelfde soort "prima handmatig voor nu,
 single-tenant, single-club"-afweging als bij het device-account.
+**#24 is inmiddels gebouwd** (zie hieronder) en dekt het geval "een bestaand
+`bardienst`/`beheerder`-lid met een e-mailadres krijgt alsnog zelf een
+account" — maar bouwt geen eigen provisioning-stap om een gloednieuw lid in
+één keer tot beheerder te promoveren met e-mailadres erbij; de eerste
+promotie naar `beheerder` (`set_member_role`, #13) plus het e-mailveld
+invullen (#57) blijven losse, beheerder-uitgevoerde stappen vóór de
+invite-knop iets te doen heeft. Handmatige Studio/CLI-provisioning blijft dus
+relevant voor het allereerste beheerder-account op een verse omgeving (er is
+dan nog geen bestaande beheerder om de knop te bedienen).
 
 **Assortimentbeheer (gebouwd en gemerged, #14, PR #45, 2026-08-27)**: #14 is
 op `main` — producten aanmaken/bewerken en prijzen wijzigen via `/beheer`
@@ -610,6 +651,37 @@ toekomstige beheerder-only RPC die tegen de eigen `members`-rij van de
 aanroeper kan schrijven, volgt dit patroon (`docs/features/ledenbeheer.md` →
 Randgevallen voor de volledige redenering, inclusief de bewuste keuze om
 géén "laatste beheerder"-telling te bouwen).
+
+**Lid-account invite via handmatige knop (gebouwd, #24, 2026-09-21)**: een
+"Invite (opnieuw) versturen"-knop in `LidBeherenOverlay.tsx`'s bestaande
+"Inloggegevens"-blok, voor een `bardienst`- of `beheerder`-lid met een
+e-mailadres en zonder gekoppeld account
+(`docs/features/lid-account-invite.md`). Introduceert het derde bestand
+onder `src/lib/supabase/`: `admin.ts`, een geïsoleerde, server-only
+service-role-client die alleen `SUPABASE_SECRET_KEY` leest — nooit vanuit
+een `"use client"`-bestand — voor de eerste `supabase.auth.admin.*`-aanroep
+in deze codebase (`inviteUserByEmail`). Zie [ADR
+0006](adr/0006-privileged-auth-admin-calls-via-server-actie-naast-rpc.md)
+voor het patroon: `inviteUserByEmail()` is geen SQL en kan dus nooit in een
+`SECURITY DEFINER`-RPC zitten, dus loopt de uitvoering via een server-only
+actie (`src/lib/inviteMember.ts`, aangeroepen vanuit
+`src/app/(bar)/beheer/invite/route.ts`, zelf weer aangeroepen door
+`useSendMemberInvite()`) die zichzelf, onafhankelijk van elke eerdere
+RPC-call, opnieuw verifieert via de sessie-gebonden client vóór de
+service-role-client gebruikt wordt. De enige databaseschrijving
+(`members.auth_user_id`/`invited_at` koppelen) gaat terug via een nieuwe
+RPC, `mark_member_invited` (`supabase/migrations/
+0012_lid_account_uitnodigen.sql`, ADR-0002-actorcheckvorm,
+`already_linked`-guard tegen dubbele koppeling, `pin_hash`-scrub zoals de
+andere `returns members`-RPC's), aangeroepen met de sessie-gebonden client
+— nooit de service-role-client, want die heeft geen `auth.uid()`.
+Uitsluitend een handmatige trigger, geen automatische invite bij het
+opslaan van een e-mailadres (bewuste scope-verkleining, zie de feature-spec
+→ "Besloten door Bram"); alleen `bardienst`/`beheerder`-leden zijn
+eligible, nooit `lid` (portal-login, #15, bestaat nog niet). `db:test`
+dekt `mark_member_invited`'s actorcheck/guards (13 nieuwe assertions,
+`supabase/tests/ledenbeheer.test.sql`), niet de `inviteUserByEmail()`-call
+zelf — dat blijft een pgTAP-gat, zoals ADR 0006 → Gevolgen al voorzag.
 
 ## Wat het prototype deed maar hier nog niet is besloten
 
