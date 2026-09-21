@@ -84,6 +84,10 @@ export function useUpdateMemberEmail() {
           hasAccount: data.auth_user_id !== null,
           hasPin: data.has_pin as boolean,
           email: data.email as string | null,
+          // update_member_email raakt invited_at nooit — meegeven vanuit de
+          // teruggegeven rij, zelfde reden als hasAccount/hasPin hierboven
+          // (0012_lid_account_uitnodigen.sql).
+          invitedAt: data.invited_at as string | null,
         },
         errorCode: null,
       };

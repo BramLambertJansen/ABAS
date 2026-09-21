@@ -18,9 +18,14 @@ import {
   useSetMemberArchived,
   type SetMemberArchivedErrorCode,
 } from "@/hooks/queries/useSetMemberArchived";
+import {
+  useSendMemberInvite,
+  type SendMemberInviteErrorCode,
+} from "@/hooks/queries/useSendMemberInvite";
 import type { LedenbeheerLid } from "@/hooks/queries/useAlleLeden";
 import { formatCents } from "@/lib/money";
 import { isValidEmailFormat } from "@/lib/email";
+import { formatDate } from "@/lib/date";
 
 const TOAST_DURATION_MS = 3500;
 
@@ -92,6 +97,40 @@ function archiveErrorMessage(code: SetMemberArchivedErrorCode): string {
   }
 }
 
+/** Copy exact overgenomen uit docs/features/lid-account-invite.md →
+ *  Architect-beslissingen → Copy. `actor_not_found`/`no_admin_role`/
+ *  `member_not_found` zijn letterlijk hergebruikt van de andere drie acties
+ *  hierboven; `already_linked`/`email_already_registered`/`rate_limited`
+ *  zijn nieuw voor dit ticket. */
+function inviteErrorMessage(code: SendMemberInviteErrorCode): string {
+  switch (code) {
+    case "actor_not_found":
+      return "dit account is niet gekoppeld aan een lid — vraag een beheerder";
+    case "no_admin_role":
+      return "dit account kan leden niet beheren — vraag een beheerder";
+    case "member_not_found":
+      return "dit lid bestaat niet meer — de lijst is bijgewerkt";
+    case "already_linked":
+      return "dit lid heeft inmiddels al een account — de lijst is bijgewerkt";
+    case "email_already_registered":
+      return "dit e-mailadres is al gekoppeld aan een ander account — controleer of dit bij een ander lid hoort";
+    case "rate_limited":
+      return "te veel pogingen — probeer het over een paar minuten opnieuw";
+    case "unknown":
+      return "er ging iets mis, probeer het opnieuw";
+  }
+}
+
+/** Drie standen (docs/features/lid-account-invite.md → Datamodel/Schermflow
+ *  stap 1): "account gekoppeld" wint van alles, anders "nog niet
+ *  uitgenodigd"/"uitgenodigd op [datum], nog geen account" op basis van
+ *  invitedAt. */
+function accountStatusText(member: LedenbeheerLid): string {
+  if (member.hasAccount) return "account gekoppeld";
+  if (member.invitedAt === null) return "nog niet uitgenodigd";
+  return `uitgenodigd op ${formatDate(member.invitedAt)}, nog geen account`;
+}
+
 /**
  * "Lid beheren"-overlay: naam wijzigen, barrechten en archiveren/
  * terugzetten — drie onafhankelijke schrijfacties in dezelfde
@@ -126,7 +165,7 @@ export function LidBeherenOverlay({
     initialMember.role
   );
   const [lastAction, setLastAction] = useState<
-    "name" | "email" | "role" | "archive" | null
+    "name" | "email" | "role" | "archive" | "invite" | null
   >(null);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -134,6 +173,7 @@ export function LidBeherenOverlay({
   const emailMutation = useUpdateMemberEmail();
   const roleMutation = useSetMemberRole();
   const archiveMutation = useSetMemberArchived();
+  const inviteMutation = useSendMemberInvite();
 
   const nameId = useId();
   const emailId = useId();
@@ -227,6 +267,30 @@ export function LidBeherenOverlay({
     }
   }
 
+  /** Alleen zichtbaar bij `member.email !== null` (spec → Schermflow stap
+   *  2) — geen e-mailadres, geen invite-mogelijkheid. Disabled zodra
+   *  `member.hasAccount` (spec → Architect-beslissingen → Zichtbaarheid). */
+  async function sendInvite() {
+    if (member.hasAccount || inviteMutation.status === "pending") return;
+    setLastAction("invite");
+    const result = await inviteMutation.sendInvite(member.id);
+    if (result.errorCode === null) {
+      if (result.invited) {
+        setMember({ ...member, invitedAt: result.invitedAt, hasAccount: true });
+        onChanged();
+        showToast("Uitnodiging verstuurd");
+      }
+      // invited: false (niet eligible, spec → RPC's punt 2.3) is met de
+      // huidige UI-gating (email !== null, sectie al role-gated) niet
+      // bereikbaar buiten een race — geen toast/foutmelding hiervoor
+      // gespecificeerd.
+      return;
+    }
+    if (result.errorCode === "member_not_found" || result.errorCode === "already_linked") {
+      onChanged();
+    }
+  }
+
   const errorMessage =
     lastAction === "name" && nameMutation.errorCode
       ? nameErrorMessage(nameMutation.errorCode)
@@ -236,7 +300,9 @@ export function LidBeherenOverlay({
           ? roleErrorMessage(roleMutation.errorCode)
           : lastAction === "archive" && archiveMutation.errorCode
             ? archiveErrorMessage(archiveMutation.errorCode)
-            : null;
+            : lastAction === "invite" && inviteMutation.errorCode
+              ? inviteErrorMessage(inviteMutation.errorCode)
+              : null;
 
   return (
     <Overlay
@@ -354,7 +420,7 @@ export function LidBeherenOverlay({
           <div className="flex flex-col gap-0.5">
             <span className="text-sm font-bold text-white">Inloggegevens</span>
             <span className="text-xs font-medium text-rail-muted">
-              alleen-lezen — dit lid beheert de eigen pincode zelf via &quot;Mijn account&quot;
+              pincode is alleen-lezen — dit lid beheert &apos;m zelf via &quot;Mijn account&quot;
             </span>
           </div>
           <div className="flex items-center justify-between rounded-control bg-rail px-3.5 py-3">
@@ -362,7 +428,7 @@ export function LidBeherenOverlay({
               Wachtwoordaccount
             </span>
             <span className="text-sm font-extrabold text-white">
-              {member.hasAccount ? "gekoppeld" : "niet gekoppeld"}
+              {accountStatusText(member)}
             </span>
           </div>
           <div className="flex items-center justify-between rounded-control bg-rail px-3.5 py-3">
@@ -373,6 +439,25 @@ export function LidBeherenOverlay({
               {member.hasPin ? "ingesteld" : "niet ingesteld"}
             </span>
           </div>
+          {member.email !== null && (
+            <div className="flex flex-col gap-1.5">
+              <button
+                type="button"
+                disabled={member.hasAccount || inviteMutation.status === "pending"}
+                onClick={sendInvite}
+                className="flex h-11 w-full items-center justify-center rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:opacity-50"
+              >
+                {member.invitedAt === null ? "Invite versturen" : "Invite opnieuw versturen"}
+              </button>
+              <span className="text-xs font-medium text-rail-muted">
+                {member.hasAccount
+                  ? "dit lid heeft al een account — een nieuwe uitnodiging is niet nodig"
+                  : member.invitedAt === null
+                    ? "stuurt een e-mail met een inloglink waarmee dit lid zelf een wachtwoord instelt"
+                    : "stuurt de inloglink opnieuw — bijvoorbeeld als de vorige e-mail gemist is"}
+              </span>
+            </div>
+          )}
         </div>
       )}
 

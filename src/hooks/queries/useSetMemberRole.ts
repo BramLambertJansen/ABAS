@@ -79,6 +79,10 @@ export function useSetMemberRole() {
         hasAccount: data.auth_user_id !== null,
         hasPin: data.has_pin as boolean,
         email: data.email as string | null,
+        // set_member_role raakt invited_at nooit — meegeven vanuit de
+        // teruggegeven rij, zelfde reden als hasAccount/hasPin hierboven
+        // (0012_lid_account_uitnodigen.sql).
+        invitedAt: data.invited_at as string | null,
       };
     } catch (err) {
       setState({
