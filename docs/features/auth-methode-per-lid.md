@@ -333,7 +333,7 @@ geschreven; de daadwerkelijke PIN-mutatie is zelfbediening (zie RPC's).
 ## RPC's
 
 - **`set_own_pin(p_pin text)` — nieuwe RPC, zelfbediening, geen
-  beheerder-only actie.** Migratie `supabase/migrations/0008_pin_zelfbediening.sql`
+  beheerder-only actie.** Migratie `supabase/migrations/0014_pin_zelfbediening.sql`
   (opeenvolgend na `0007_ledenbeheer.sql`). Verifieert de aanroeper via
   `auth.uid()` — **niet** ADR 0002's beheerder-only actorcheckvorm (die
   eist `role = 'beheerder'`), maar een lichtere variant die alleen eist dat
@@ -663,7 +663,7 @@ dit ticket:
   `useUpdateMemberName.ts`, elk `data.pin_hash !== null`) voor het eerst
   daadwerkelijk *las*. De hash stond al in elke Network-tab sinds
   ledenbeheer werd gebouwd, alleen ongebruikt.
-- `set_own_pin` (`supabase/migrations/0008_pin_zelfbediening.sql`, wél #42)
+- `set_own_pin` (`supabase/migrations/0014_pin_zelfbediening.sql`, wél #42)
   is dezelfde vorm: `returns members`, dus retourneert ook de eigen
   zojuist-gezette hash aan de aanroeper zelf. Minder ernstig (de aanroeper
   kent de PIN al, die heeft 'm net getypt) maar dezelfde onnodige
@@ -717,7 +717,7 @@ Overwogen opties (zie opdracht):
 
 ### Migratie: nieuwe `supabase/migrations/0010_pin_hash_kolombeveiliging.sql`
 
-Nieuwe migratie, niet een wijziging van `0008_pin_zelfbediening.sql` —
+Nieuwe migratie, niet een wijziging van `0014_pin_zelfbediening.sql` —
 zelfde append-only-conventie als de rest van `supabase/migrations/` (zie
 bv. `0002_fix_start_shift_pgcrypto_search_path.sql`, dat ook een fix op
 `0001_init.sql` is via een nieuwe migratie, niet door 0001 te bewerken).
@@ -850,7 +850,7 @@ klopt.
      returning * into v_member;`).
    - `set_member_archived` (`0007_ledenbeheer.sql`, idem).
    - `set_member_role` (`0007_ledenbeheer.sql`, idem).
-   - `set_own_pin` (`0008_pin_zelfbediening.sql`) — **op allebei de
+   - `set_own_pin` (`0014_pin_zelfbediening.sql`) — **op allebei de
      `return`-punten**: zowel de `p_pin is null`-tak (PIN uitzetten) als de
      tak die `pin_hash = crypt(p_pin, gen_salt('bf'))` zet (PIN aan/wijzigen).
      `has_pin` (de generated column) reflecteert in beide gevallen automatisch

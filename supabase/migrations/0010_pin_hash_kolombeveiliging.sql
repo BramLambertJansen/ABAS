@@ -4,7 +4,7 @@
 -- (useAlleLeden.ts/useBeheerSession.ts) als via RPC's die de volledige
 -- `members`-rij teruggeven (create_member/update_member_name/
 -- set_member_archived/set_member_role uit 0007_ledenbeheer.sql, set_own_pin
--- uit 0008_pin_zelfbediening.sql, update_member_email uit
+-- uit 0014_pin_zelfbediening.sql, update_member_email uit
 -- 0008_ledenbeheer_email.sql — allemaal `returns members`, PostgREST
 -- serialiseert dan élke kolom). Zie
 -- docs/features/auth-methode-per-lid.md → "Beveiligingsfix na

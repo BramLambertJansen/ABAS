@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-/** Error codes `set_own_pin` (0008_pin_zelfbediening.sql) actually raises.
+/** Error codes `set_own_pin` (0014_pin_zelfbediening.sql) actually raises.
  *  Anything else valt terug op "unknown". `actor_not_found`/`no_bar_role`
  *  should never actually surface from "Mijn account" in practice (you can
  *  only reach that screen via an individual e-mail/wachtwoord-sessie that
