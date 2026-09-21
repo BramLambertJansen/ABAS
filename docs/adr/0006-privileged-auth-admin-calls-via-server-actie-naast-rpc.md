@@ -10,7 +10,12 @@ antwoorden op de spec (rolreikwijdte beperkt tot `bardienst`/`beheerder`,
 uitsluitend een handmatige trigger, geen automatische invite bij opslaan)
 raakten de scope van de feature, niet het patroon dat dit ADR vastlegt — het
 patroon hieronder bleef ongewijzigd van kracht tot en met de bouw. Vult ADR
-0002 en ADR 0004 aan, geen van beide vervangen.
+0002 en ADR 0004 aan, geen van beide vervangen. **Aangevuld (2026-09-21,
+geautomatiseerde PR #62-review, Bug 1-fix)** — zie "Aanvulling" hieronder
+voor een nieuw actor-identificatie-sub-patroon (`link_invited_member_
+account`, geen admin-call); het kernpatroon van dit ADR (service-role-call
+via een eigen server-only entrypoint, database-schrijvingen terug via een
+gewone RPC met de sessie-gebonden client) blijft ongewijzigd.
 
 ## Context
 
@@ -138,6 +143,62 @@ passen.
   niets" dat ADR 0002's eigen "Post-implementatie fix"-sectie al eerder
   beschreef voor een andere fout.
 
+## Aanvulling (2026-09-21) — zelfbediening-koppeling op basis van e-mail, geen admin-call
+
+Gevonden bij een herziening van `docs/features/lid-account-invite.md` naar
+aanleiding van een geautomatiseerde PR-review (Bug 1, P1): de oorspronkelijke
+`mark_member_invited(p_member_id, p_auth_user_id)` zette `auth_user_id` al
+bij het *versturen* van een invite (`inviteUserByEmail()` maakt de
+`auth.users`-rij meteen aan), niet bij het daadwerkelijk *aanklikken* ervan
+door het lid — waardoor de door de spec zelf beschreven tussenstaat
+("uitgenodigd, nog geen account") nooit bereikbaar was. De fix splitst die
+ene RPC in twee: `mark_member_invite_sent` (ongewijzigd patroon, beheerder
+als actor) en een nieuwe `link_invited_member_account` (aangeroepen door
+`/beheer/callback` met de sessie van **het lid zelf**, ná
+`exchangeCodeForSession()`).
+
+**Deze aanvulling gaat niet over het kernonderwerp van dit ADR.**
+`link_invited_member_account` is een gewone `SECURITY DEFINER`-RPC,
+aangeroepen met de sessie-gebonden client — geen service-role-call, geen
+`admin.ts` betrokken. Reden om 'm toch hier te documenteren, niet in een
+nieuw ADR-nummer: hij is onlosmakelijk onderdeel van dezelfde RPC-splitsing
+die dit ADR al beschrijft (Beslissing punt 3: "elke database-schrijving die
+uit de uitkomst volgt gaat terug via een gewone RPC, aangeroepen met de
+sessie-gebonden client"), en verdient geen eigen ADR voor precies één RPC
+binnen één feature.
+
+**Wat wél nieuw is: het actorcheck-patroon zelf.** Elke bestaande `SECURITY
+DEFINER`-RPC in deze codebase (ADR 0002) identificeert de aanroeper via
+`auth.uid()` → een **al bestaande** `members`-rij met dat `auth_user_id`.
+`link_invited_member_account` kan dat per definitie niet: op het moment van
+aanroepen bestaat die koppeling nog niet — dat is precies wat de RPC gaat
+leggen. In plaats daarvan identificeert de RPC de aanroeper via het
+e-mailadres van de sessie (`auth.email()`, Supabase's ingebouwde
+GUC-gebaseerde tegenhanger van `auth.uid()`, zelfde onderliggende mechanisme
+— geen nieuwe infrastructuur), gematcht tegen `members.email`, met
+`auth_user_id is null` en `invited_at is not null` als guards. Zie
+`docs/features/lid-account-invite.md` → RPC's punt 2 voor de volledige
+implementatie en de guards tegen e-mailcollisions/dubbele matches.
+
+**Karakter van deze RPC wijkt ook af op een tweede punt: geen rolcheck, geen
+foutcodes.** Dit is niet een beheerder die over een ander lid beslist — het
+is een lid dat zijn eigen, net-geaccepteerde uitnodiging afrondt. Er is dus
+geen `no_admin_role`-concept. En omdat deze RPC op *elke* geslaagde
+`/beheer/callback`-aanroep draait (ook gewone her-logins van een al
+gekoppeld lid, ADR 0002/0003), moet elke onzekere of mislukte match een
+stille no-op zijn (`return null`), nooit een `raise exception` — een fout
+hier zou de bestaande, ongerelateerde login-flow breken.
+
+**Reikwijdte van deze aanvulling.** Net als het kernpatroon hierboven is dit
+generiek bruikbaar: elke toekomstige feature die een self-service
+"eerste-koppeling-op-basis-van-e-mail"-stap nodig heeft (de meest
+waarschijnlijke kandidaat: issue #15's portal-invite-acceptatie, dezelfde
+vorm als hier maar voor `lid`-rol members) kan dit sub-patroon citeren in
+plaats van de afweging opnieuw te voeren — met dezelfde drie eisen: matchen
+op `auth.email()` (case-insensitief, zie de spec voor de motivatie), stille
+no-op bij 0 of >1 matches, geen foutcode-kanaal nodig omdat de aanroepende
+route toch altijd naar hetzelfde vervolgscherm redirect.
+
 ## Gevolgen
 
 - `docs/ARCHITECTURE.md` → "Lid-accounts" moet de zin "Dit gebeurt
@@ -163,3 +224,8 @@ passen.
   verificatie / een e2e-achtige check kan dekken, geen pgTAP-scenario. Zie
   `docs/features/lid-account-invite.md` → Randgevallen voor hoe dat ticket
   concreet met die beperking omgaat.
+- **(2026-09-21 aanvulling)** `link_invited_member_account` (zie
+  "Aanvulling" hierboven) is, in tegenstelling tot de rest van wat dit ADR
+  behandelt, wél volledig pgTAP-testbaar — geen Auth-Admin-API-afhankelijkheid
+  binnen de RPC zelf. Zie `docs/features/lid-account-invite.md` →
+  Randgevallen voor de concrete testgevallen.

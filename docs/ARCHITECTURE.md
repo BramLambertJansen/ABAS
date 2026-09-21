@@ -469,9 +469,12 @@ zonder dat er ooit een e-mailadres of portal-account bij hoort.
 - Een e-mailadres bij een lid is optioneel. Voor een `bardienst`- of
   `beheerder`-lid met een ingevuld e-mailadres kan een beheerder vanuit
   Ledenbeheer handmatig een magic-link-invite (opnieuw) laten versturen via
-  `supabase.auth.admin.inviteUserByEmail()` (server-side, secret key) — de
-  link waarmee het lid zelf een wachtwoord instelt. Dit gebeurt server-side
-  vanuit `src/lib/supabase/admin.ts` — een derde, eigen bestand naast
+  `supabase.auth.admin.inviteUserByEmail()` (server-side, secret key) — een
+  inloglink voor dit lid. **(Herzien, 2026-09-21, PR #62-review):** deze
+  link stelt geen wachtwoord in — er is geen wachtwoord-instelscherm (dat is
+  issue #17, niet gebouwd); de link logt het lid alleen in. Dit gebeurt
+  server-side vanuit `src/lib/supabase/admin.ts` — een derde, eigen bestand
+  naast
   `client.ts`/`server.ts`, niet een uitbreiding van een van beide — per de
   bestaande regel dat elk bestand onder `src/lib/supabase/` de Supabase SDK
   mag importeren (geen vaste lijst van twee bestandsnamen meer). Zie [ADR
@@ -498,11 +501,22 @@ zonder dat er ooit een e-mailadres of portal-account bij hoort.
   terugwerkende kracht: die leden krijgen pas een link op het moment dat een
   beheerder dat handmatig triggert.
 - Koppeling `members`-rij ↔ `auth.users`-rij via het nullable
-  `members.auth_user_id`-veld, vastgelegd door de RPC `mark_member_invited`
-  (nooit een directe tabel-write) zodra `inviteUserByEmail()` slaagt — nooit
-  overschreven zodra gezet (`already_linked`-guard). Een los, eveneens
-  nullable `members.invited_at timestamptz`-veld onderscheidt "nog niet
-  uitgenodigd" van "uitgenodigd op [datum], nog geen account" in de UI.
+  `members.auth_user_id`-veld (nooit een directe tabel-write). **(Herzien,
+  2026-09-21, PR #62-review, Bug 1-fix):** vastgelegd door de RPC
+  `link_invited_member_account`, aangeroepen vanuit `/beheer/callback` met
+  de sessie van **het lid zelf**, op het moment dat het de uitnodiging
+  daadwerkelijk aanklikt en accepteert — niet meer bij het versturen (de
+  eerdere `mark_member_invited` zette `auth_user_id` al bij het versturen,
+  wat de hieronder genoemde tussenstaat onbereikbaar maakte). Het versturen
+  zelf zet voortaan alleen `members.invited_at` (RPC
+  `mark_member_invite_sent`, beheerder-actor, zelfde
+  `already_linked`-guard als voorheen). Zie
+  `docs/features/lid-account-invite.md` → RPC's voor de volledige
+  contracten en [ADR 0006](adr/0006-privileged-auth-admin-calls-via-server-actie-naast-rpc.md)
+  → Aanvulling voor het nieuwe actor-identificatiepatroon. Een los,
+  eveneens nullable `members.invited_at timestamptz`-veld onderscheidt "nog
+  niet uitgenodigd" van "uitgenodigd op [datum], nog geen account" in de
+  UI — die tussenstaat is met deze herziening ook daadwerkelijk bereikbaar.
 
 **Gebouwd (#24, 2026-09-21)**: zie hieronder, changelog-entry na
 "Ledenbeheer" — de bullets hierboven beschrijven de daadwerkelijk gebouwde
