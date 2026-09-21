@@ -276,11 +276,17 @@ export function LidBeherenOverlay({
     const result = await inviteMutation.sendInvite(member.id);
     if (result.errorCode === null) {
       if (result.invited) {
-        setMember({ ...member, invitedAt: result.invitedAt, hasAccount: true });
+        // (Herzien, PR #62-review, Bug 1-fix): alleen `invitedAt` verversen
+        // — `hasAccount` blijft ongemoeid. Het lid heeft ná het versturen
+        // van een invite nog steeds geen gekoppeld account; dat gebeurt pas
+        // bij acceptatie (link_invited_member_account, /beheer/callback).
+        // Een beheerder ziet `hasAccount` pas `true` worden nadat het lid de
+        // link daadwerkelijk gebruikt heeft én de ledenlijst ververst wordt.
+        setMember({ ...member, invitedAt: result.invitedAt });
         onChanged();
         showToast("Uitnodiging verstuurd");
       }
-      // invited: false (niet eligible, spec → RPC's punt 2.3) is met de
+      // invited: false (niet eligible, spec → RPC's punt 3.3) is met de
       // huidige UI-gating (email !== null, sectie al role-gated) niet
       // bereikbaar buiten een race — geen toast/foutmelding hiervoor
       // gespecificeerd.
@@ -453,7 +459,7 @@ export function LidBeherenOverlay({
                 {member.hasAccount
                   ? "dit lid heeft al een account — een nieuwe uitnodiging is niet nodig"
                   : member.invitedAt === null
-                    ? "stuurt een e-mail met een inloglink waarmee dit lid zelf een wachtwoord instelt"
+                    ? "stuurt een e-mail met een inloglink voor dit lid"
                     : "stuurt de inloglink opnieuw — bijvoorbeeld als de vorige e-mail gemist is"}
               </span>
             </div>

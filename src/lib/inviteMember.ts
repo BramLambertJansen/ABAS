@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
  * Server-side invite-actie — docs/features/lid-account-invite.md → RPC's
- * punt 2, ADR 0006. Uitsluitend aangeroepen vanuit
+ * punt 3, ADR 0006. Uitsluitend aangeroepen vanuit
  * src/app/(bar)/beheer/invite/route.ts, nooit rechtstreeks vanuit een
  * client-hook (dit bestand importeert admin.ts, dat nooit vanuit
  * `"use client"`-code mag komen). Elke `.from()/.rpc()`/`.auth.admin.*`-
@@ -22,13 +22,14 @@ export type SendMemberInviteErrorCode =
   | "unknown";
 
 export type SendMemberInviteResult =
-  // `invitedAt` (het `invited_at` dat `mark_member_invited` zojuist zette)
-  // gaat mee zodat de aanroeper (LidBeherenOverlay.tsx, via
-  // useSendMemberInvite.ts) `member`/`invitedAt`/`hasAccount` kan verversen
-  // zonder een aparte refetch nodig te hebben (spec → Schermflow stap 3).
-  // `hasAccount` is bij `invited: true` altijd `true` —
-  // `mark_member_invited` koppelt `auth_user_id` in dezelfde update die
-  // `invited_at` zet.
+  // `invitedAt` (het `invited_at` dat `mark_member_invite_sent` zojuist
+  // zette) gaat mee zodat de aanroeper (LidBeherenOverlay.tsx, via
+  // useSendMemberInvite.ts) `member`/`invitedAt` kan verversen zonder een
+  // aparte refetch nodig te hebben (spec → Schermflow stap 3). **(Herzien,
+  // PR #62-review, Bug 1-fix): geen koppelingsinformatie meer** — het lid
+  // heeft ná dit succes nog steeds geen gekoppeld account, dat gebeurt pas
+  // bij acceptatie via `link_invited_member_account`
+  // (src/app/(bar)/beheer/callback/route.ts).
   | { ok: true; invited: true; invitedAt: string }
   | { ok: true; invited: false }
   | { ok: false; errorCode: SendMemberInviteErrorCode };
@@ -64,7 +65,7 @@ function toMarkErrorCode(message: string | undefined): SendMemberInviteErrorCode
 
 /**
  * Stuurt (opnieuw) een magic-link-invite voor `memberId`, of no-opt als het
- * lid daar niet voor eligible is. Zie spec → RPC's punt 2 voor de vijf
+ * lid daar niet voor eligible is. Zie spec → RPC's punt 3 voor de vijf
  * stappen hieronder — genummerd in dezelfde volgorde.
  */
 export async function sendMemberInvite(
@@ -102,7 +103,7 @@ export async function sendMemberInvite(
 
   // 2. Doellid lezen via de service-role-client — mag hier, stap 1 heeft de
   //    aanroeper al geautoriseerd; een gewone lezing, geen RLS-gevoelige
-  //    schrijving (spec → RPC's punt 2).
+  //    schrijving (spec → RPC's punt 3).
   const admin = createAdminClient();
   const { data: member, error: memberError } = await admin
     .from("members")
@@ -120,7 +121,7 @@ export async function sendMemberInvite(
 
   // 3. Eligibility: role in ('bardienst', 'beheerder') en auth_user_id is
   //    null en email is not null. Niet eligible -> geen fout, no-op (spec →
-  //    RPC's punt 2.3) — de role-voorwaarde is de server-side afdwinging van
+  //    RPC's punt 3.3) — de role-voorwaarde is de server-side afdwinging van
   //    Besloten-door-Bram-punt-1, onafhankelijk van wat de UI toont.
   const eligible =
     (member.role === "bardienst" || member.role === "beheerder") &&
@@ -146,20 +147,23 @@ export async function sendMemberInvite(
     return { ok: false, errorCode: "unknown" };
   }
 
-  // mark_member_invited via de sessie-gebonden client, nooit de
+  // mark_member_invite_sent via de sessie-gebonden client, nooit de
   // service-role-client — auth.uid() moet de echte beheerder-sessie zijn
-  // (RPC's punt 1, ADR 0006 → Beslissing punt 3).
+  // (RPC's punt 1, ADR 0006 → Beslissing punt 3). Geen p_auth_user_id meer
+  // (herzien, Bug 1-fix): het geretourneerde auth.users-id van
+  // inviteUserByEmail() wordt hier niet meer gebruikt — dat record-id komt
+  // terug via link_invited_member_account() bij acceptatie, niet hier.
   const { data: markData, error: markError } = await supabase.rpc(
-    "mark_member_invited",
-    { p_member_id: memberId, p_auth_user_id: authUserId }
+    "mark_member_invite_sent",
+    { p_member_id: memberId }
   );
 
   if (markError) {
     // Geaccepteerd risico: een geslaagde inviteUserByEmail() gevolgd door
-    // een mislukte mark_member_invited laat een auth.users-rij bestaan
-    // zonder gekoppelde members.auth_user_id — spec → Randgevallen
+    // een mislukte mark_member_invite_sent laat een auth.users-rij bestaan
+    // terwijl members.invited_at op null blijft staan — spec → Randgevallen
     // "Dubbele/gelijktijdige invite-afronding". Geen herstelpoging hier.
-    console.error("sendMemberInvite (mark_member_invited):", markError);
+    console.error("sendMemberInvite (mark_member_invite_sent):", markError);
     return { ok: false, errorCode: toMarkErrorCode(markError.message) };
   }
 
