@@ -24,7 +24,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(85);
+select plan(99);
 
 -- ── Fixtures ──────────────────────────────────────────────────────────
 
@@ -89,12 +89,20 @@ insert into members (id, name, role, pin_hash, balance_cents, archived, email) v
 insert into members (id, name, role, pin_hash, balance_cents, archived) values
   ('00000000-0000-0000-0000-0000000002a8', 'LB Pin Scrub Target', 'bardienst', crypt('4321', gen_salt('bf')), 0, false);
 
--- Fixtures voor mark_member_invited (#24,
--- docs/features/lid-account-invite.md, migratie 0012). Een extra auth.users
--- row die (nog) door geen enkele members-rij gebruikt wordt — dit simuleert
--- het auth.users-id dat een geslaagde (buiten pgTAP's bereik liggende, zie
--- spec → Randgevallen) inviteUserByEmail()-aanroep zou opleveren, en dat de
--- happy-path-test hieronder als eerste daadwerkelijk aan een lid koppelt.
+-- Fixtures voor mark_member_invite_sent/link_invited_member_account (#24,
+-- docs/features/lid-account-invite.md, migratie 0012, herzien — twee RPC's
+-- i.p.v. de oude, niet meer bestaande mark_member_invited). Twee extra
+-- auth.users-rijen die (nog) door geen enkele members-rij gebruikt worden:
+--   - (...284): het auth.uid() dat link_invited_member_account()'s
+--     happy-path-test hieronder daadwerkelijk aan een lid koppelt (simuleert
+--     de sessie van het uitgenodigde lid zelf, ná een geslaagde
+--     exchangeCodeForSession() — buiten pgTAP's bereik, zie spec →
+--     Randgevallen).
+--   - (...285): al gekoppeld aan een ánder lid (LB Link Already Linked
+--     Target hieronder) — nodig om de "e-mailadres matcht, maar auth_user_id
+--     is al gezet"-variant van link_invited_member_account te simuleren
+--     (members.auth_user_id heeft een unique-constraint, 0005_assortimentbeheer.sql,
+--     dus dit moet een eigen, ongebruikt auth.users-id zijn).
 insert into auth.users (
   id, instance_id, aud, role, email,
   encrypted_password, email_confirmed_at, created_at, updated_at,
@@ -103,15 +111,50 @@ insert into auth.users (
   ('00000000-0000-0000-0000-000000000284', '00000000-0000-0000-0000-000000000000',
    'authenticated', 'authenticated', 'lb-invite-linked-fixture@test.local',
    crypt('not-used', gen_salt('bf')), now(), now(), now(),
+   '{"provider":"email","providers":["email"]}', '{}'),
+  ('00000000-0000-0000-0000-000000000285', '00000000-0000-0000-0000-000000000000',
+   'authenticated', 'authenticated', 'lb-link-alreadylinked-fixture@test.local',
+   crypt('not-used', gen_salt('bf')), now(), now(), now(),
    '{"provider":"email","providers":["email"]}', '{}');
 
--- Target rij voor mark_member_invited's happy-path test: geen auth_user_id
--- (nog niet gekoppeld, dus invite-eligible), en een échte (niet-lege)
--- pin_hash — zelfde reden als "LB Pin Scrub Target" hierboven: een pin_hash
--- die toch al null was, zou de scrub-test laten slagen zonder dat de scrub
--- ooit iets deed (spec → RPC's: "Verplicht: zelfde pin_hash-scrub...").
+-- Target rij voor mark_member_invite_sent's happy-path test: geen
+-- auth_user_id (nog niet gekoppeld, dus invite-eligible), en een échte
+-- (niet-lege) pin_hash — zelfde reden als "LB Pin Scrub Target" hierboven:
+-- een pin_hash die toch al null was, zou de scrub-test laten slagen zonder
+-- dat de scrub ooit iets deed (spec → RPC's: "Verplicht: zelfde
+-- pin_hash-scrub...").
 insert into members (id, name, role, pin_hash, balance_cents, archived) values
   ('00000000-0000-0000-0000-0000000002a9', 'LB Invite Target', 'bardienst', crypt('9999', gen_salt('bf')), 0, false);
+
+-- Target rijen voor link_invited_member_account — elk een eigen
+-- email/invited_at/auth_user_id-combinatie, één per geval dat de spec →
+-- Randgevallen "db:test/pgTAP..." expliciet noemt.
+insert into members (id, name, role, pin_hash, balance_cents, archived, email, invited_at, auth_user_id) values
+  -- Happy path: precies één match. Gemengd hoofdlettergebruik in het
+  -- opgeslagen e-mailadres, bewust anders dan de sessie-claim hieronder
+  -- (lowercase) — bewijst de case-insensitieve match (lower(email) =
+  -- lower(auth.email())). Echte pin_hash zodat de scrub-assertion niet
+  -- vacuous is (zelfde reden als LB Pin Scrub Target/LB Invite Target).
+  ('00000000-0000-0000-0000-0000000002aa', 'LB Link Happy Target', 'bardienst',
+   crypt('1111', gen_salt('bf')), 0, false, 'Link-Happy@Test.Local', now(), null),
+  -- Geen match, variant 2: bestaat, e-mailadres matcht, maar auth_user_id is
+  -- al gezet (gewone her-login van een al gekoppeld lid) — gekoppeld aan
+  -- auth.users (...285) hierboven, een ander lid dan de sessie die
+  -- hieronder inlogt.
+  ('00000000-0000-0000-0000-0000000002ab', 'LB Link Already Linked Target', 'bardienst',
+   null, 0, false, 'link-alreadylinked@test.local', now(), '00000000-0000-0000-0000-000000000285'),
+  -- Geen match, variant 3: bestaat, e-mailadres matcht, maar nooit
+  -- uitgenodigd (invited_at is null) — de "extra, goedkope verdedigingslaag"
+  -- uit de RPC zelf (spec → RPC's punt 2).
+  ('00000000-0000-0000-0000-0000000002ac', 'LB Link Never Invited Target', 'bardienst',
+   null, 0, false, 'link-neverinvited@test.local', null, null),
+  -- E-mailcollision: twee leden met hetzelfde e-mailadres, allebei
+  -- eligible (auth_user_id null, invited_at gezet) — spec →
+  -- Randgevallen "E-mailcollision bij het koppelen".
+  ('00000000-0000-0000-0000-0000000002ad', 'LB Link Collision Target One', 'bardienst',
+   null, 0, false, 'link-collision@test.local', now(), null),
+  ('00000000-0000-0000-0000-0000000002ae', 'LB Link Collision Target Two', 'bardienst',
+   null, 0, false, 'link-collision@test.local', now(), null);
 
 -- ── create_member ─────────────────────────────────────────────────────
 
@@ -658,33 +701,33 @@ select is(
   'list_members_admin still reports has_pin = true for that member (migration 0011)'
 );
 
--- ── mark_member_invited (#24, docs/features/lid-account-invite.md,
---    migratie 0012) ────────────────────────────────────────────────────
+-- ── mark_member_invite_sent (#24, docs/features/lid-account-invite.md,
+--    migratie 0012, herzien — was mark_member_invited) ───────────────────
 --
--- Zelfde actorcheckvorm/fixtures als de rest van dit bestand. Anders dan
--- set_own_pin (dat een lid herhaaldelijk mag re-callen om een tweede veld
--- van het retourresultaat te lezen, zie set_own_pin.test.sql test 7-8) kan
--- mark_member_invited maar één keer succesvol tegen dezelfde target-rij
--- draaien — een tweede aanroep zou already_linked opleveren. De happy-path-
--- test hieronder roept de RPC daarom precies één keer aan en legt het volle
--- geretourneerde resultaat in een temp table vast, om zowel het
--- retourresultaat als de daadwerkelijk gepersisteerde rij te kunnen
--- controleren zonder een tweede aanroep nodig te hebben.
+-- Zelfde actorcheckvorm/fixtures als de rest van dit bestand. Herzien
+-- contract t.o.v. de oude mark_member_invited: geen p_auth_user_id-parameter
+-- meer, en de happy path bewijst nu expliciet dat auth_user_id ongewijzigd
+-- null blijft — dat is precies Bug 1's fix (de "uitgenodigd, nog geen
+-- account"-tussenstaat moet bereikbaar zijn/blijven, spec → herzieningsblok).
+-- Kan, net als de oude versie, maar één keer succesvol tegen dezelfde
+-- target-rij draaien (een tweede aanroep zou already_linked opleveren) — de
+-- happy-path-test roept de RPC daarom precies één keer aan en legt het volle
+-- geretourneerde resultaat in een temp table vast.
 
 -- 50) actor_not_found, variant A: auth.uid() matches no members row at all.
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000283', true);
 select throws_ok(
-  $$ select mark_member_invited('00000000-0000-0000-0000-0000000002a9', '00000000-0000-0000-0000-000000000284') $$,
+  $$ select mark_member_invite_sent('00000000-0000-0000-0000-0000000002a9') $$,
   'P0001', 'actor_not_found',
-  'mark_member_invited rejects a caller whose auth.uid() matches no members row'
+  'mark_member_invite_sent rejects a caller whose auth.uid() matches no members row'
 );
 
 -- 51) no_admin_role: caller resolves to a real, active member, but not beheerder.
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000281', true);
 select throws_ok(
-  $$ select mark_member_invited('00000000-0000-0000-0000-0000000002a9', '00000000-0000-0000-0000-000000000284') $$,
+  $$ select mark_member_invite_sent('00000000-0000-0000-0000-0000000002a9') $$,
   'P0001', 'no_admin_role',
-  'mark_member_invited rejects a caller whose role is bardienst, not beheerder'
+  'mark_member_invite_sent rejects a caller whose role is bardienst, not beheerder'
 );
 
 -- From here on, act as the admin fixture.
@@ -692,52 +735,47 @@ select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000280
 
 -- 52) member_not_found
 select throws_ok(
-  $$ select mark_member_invited('00000000-0000-0000-0000-0000000002ff', '00000000-0000-0000-0000-000000000284') $$,
+  $$ select mark_member_invite_sent('00000000-0000-0000-0000-0000000002ff') $$,
   'P0001', 'member_not_found',
-  'mark_member_invited rejects a member id that does not exist'
+  'mark_member_invite_sent rejects a member id that does not exist'
 );
 
 -- 53) already_linked: the target already has an auth_user_id (LB Staff
 -- Fixture, linked to auth.users ...281 in the Fixtures section above) — the
 -- guard against overwriting an existing link (spec → RPC's, "Guard tegen
--- dubbele koppeling").
+-- dubbele koppeling", behouden op expliciet verzoek van Bram bij Bug 1's fix).
 select throws_ok(
-  $$ select mark_member_invited('00000000-0000-0000-0000-000000000291', '00000000-0000-0000-0000-000000000284') $$,
+  $$ select mark_member_invite_sent('00000000-0000-0000-0000-000000000291') $$,
   'P0001', 'already_linked',
-  'mark_member_invited rejects a member that already has an auth_user_id'
+  'mark_member_invite_sent rejects a member that already has an auth_user_id'
 );
 
--- 54) happy path: links an eligible, unlinked member to a fresh auth.users
--- id, sets invited_at, and returns a row with pin_hash scrubbed to null
--- (spec → RPC's: "Verplicht: zelfde pin_hash-scrub als de andere zes
--- `returns members`-RPC's").
+-- 54) happy path: sets invited_at on an eligible, unlinked member, and
+-- returns a row with pin_hash scrubbed to null (spec → RPC's: "Verplicht:
+-- zelfde pin_hash-scrub als de andere `returns members`-RPC's") — and,
+-- expliciet (dit is de kern van de RPC-splitsing/Bug-1-fix): auth_user_id
+-- blijft null, zowel in het geretourneerde resultaat als op de tabel zelf.
 select lives_ok(
-  $$ create temp table lb_invite_result as
-     select * from mark_member_invited('00000000-0000-0000-0000-0000000002a9', '00000000-0000-0000-0000-000000000284') $$,
-  'mark_member_invited succeeds for a beheerder linking an eligible, unlinked member'
-);
-
-select is(
-  (select auth_user_id from lb_invite_result),
-  '00000000-0000-0000-0000-000000000284'::uuid,
-  'mark_member_invited returns the newly linked auth_user_id'
+  $$ create temp table lmis_result as
+     select * from mark_member_invite_sent('00000000-0000-0000-0000-0000000002a9') $$,
+  'mark_member_invite_sent succeeds for a beheerder sending an invite to an eligible, unlinked member'
 );
 
 select ok(
-  (select invited_at is not null from lb_invite_result),
-  'mark_member_invited returns a non-null invited_at'
+  (select invited_at is not null from lmis_result),
+  'mark_member_invite_sent returns a non-null invited_at'
 );
 
 select is(
-  (select pin_hash from lb_invite_result),
+  (select auth_user_id from lmis_result),
   null,
-  'mark_member_invited scrubs pin_hash to null in its returned row, even though the target member has a real pin set'
+  'mark_member_invite_sent returns auth_user_id = null (Bug 1 fix: sending an invite never links an account)'
 );
 
 select is(
-  (select auth_user_id from members where id = '00000000-0000-0000-0000-0000000002a9'),
-  '00000000-0000-0000-0000-000000000284'::uuid,
-  'the target member''s auth_user_id is persisted correctly'
+  (select pin_hash from lmis_result),
+  null,
+  'mark_member_invite_sent scrubs pin_hash to null in its returned row, even though the target member has a real pin set'
 );
 
 select ok(
@@ -746,9 +784,15 @@ select ok(
 );
 
 select is(
+  (select auth_user_id from members where id = '00000000-0000-0000-0000-0000000002a9'),
+  null,
+  'the target member''s auth_user_id stays null on the table (Bug 1 fix), only link_invited_member_account may set it'
+);
+
+select is(
   (select crypt('9999', pin_hash) = pin_hash from members where id = '00000000-0000-0000-0000-0000000002a9'),
   true,
-  'the target member''s real pin_hash on the table is untouched by mark_member_invited (only the returned row is scrubbed)'
+  'the target member''s real pin_hash on the table is untouched by mark_member_invite_sent (only the returned row is scrubbed)'
 );
 
 -- 55) regressie: de kolomtoevoeging in list_members_admin() (migratie 0012)
@@ -757,13 +801,141 @@ select is(
 -- daadwerkelijk teruggeven voor het lid dat hierboven zojuist uitgenodigd is.
 select ok(
   (select invited_at is not null from list_members_admin() where id = '00000000-0000-0000-0000-0000000002a9'),
-  'list_members_admin returns a non-null invited_at for the member linked by mark_member_invited (migration 0012)'
+  'list_members_admin returns a non-null invited_at for the member invited by mark_member_invite_sent (migration 0012)'
 );
 
 select is(
   (select pin_hash from list_members_admin() where id = '00000000-0000-0000-0000-0000000002a9'),
   null,
   'list_members_admin still scrubs pin_hash to null after the 0012 column addition (regression guard)'
+);
+
+-- ── link_invited_member_account (#24, docs/features/lid-account-invite.md,
+--    migratie 0012, nieuwe RPC) ───────────────────────────────────────────
+--
+-- Andere actor dan de rest van deze RPC-familie: geen beheerder-sessie, geen
+-- auth.uid() -> members-actorcheck. De "sessie" hier is die van het
+-- uitgenodigde lid zelf, geïdentificeerd via auth.email() (gematcht tegen
+-- members.email, case-insensitief) i.p.v. auth.uid() -> members.auth_user_id
+-- (spec → RPC's punt 2). De test-simulatie zet daarom, naast het bestaande
+-- request.jwt.claim.sub (voor auth.uid(), het id dat bij een match
+-- daadwerkelijk aan auth_user_id toegewezen wordt), ook
+-- request.jwt.claim.email (voor auth.email(), de matchsleutel) — zelfde
+-- GUC-gebaseerde simulatie als request.jwt.claim.sub elders in dit bestand,
+-- nu voor Postgres' auth.email()-implementatie
+-- (current_setting('request.jwt.claim.email', true)). Geen foutcodes voor
+-- deze RPC (spec → RPC's punt 2: "Geen foutcodes... stille no-op, nooit een
+-- fout") — elk niet-happy-path-geval hieronder gebruikt daarom lives_ok/
+-- is(... is null) i.p.v. throws_ok.
+
+-- 56) happy path: exact één match (case-insensitief — het opgeslagen
+-- e-mailadres LB Link Happy Target heeft gemengd hoofdlettergebruik, de
+-- sessie-claim hieronder is lowercase), auth_user_id null, invited_at
+-- gezet. Koppelt auth_user_id aan het session-uid en scrubt pin_hash in het
+-- geretourneerde resultaat.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000284', true);
+select set_config('request.jwt.claim.email', 'link-happy@test.local', true);
+select lives_ok(
+  $$ create temp table lima_happy_result as
+     select * from link_invited_member_account() $$,
+  'link_invited_member_account succeeds for a session whose email matches exactly one eligible member'
+);
+
+select is(
+  (select auth_user_id from lima_happy_result),
+  '00000000-0000-0000-0000-000000000284'::uuid,
+  'link_invited_member_account returns the newly linked auth_user_id (the session''s own auth.uid())'
+);
+
+select is(
+  (select pin_hash from lima_happy_result),
+  null,
+  'link_invited_member_account scrubs pin_hash to null in its returned row, even though the target member has a real pin set'
+);
+
+select is(
+  (select auth_user_id from members where id = '00000000-0000-0000-0000-0000000002aa'),
+  '00000000-0000-0000-0000-000000000284'::uuid,
+  'the target member''s auth_user_id is persisted correctly, matched case-insensitively on email'
+);
+
+select is(
+  (select crypt('1111', pin_hash) = pin_hash from members where id = '00000000-0000-0000-0000-0000000002aa'),
+  true,
+  'the target member''s real pin_hash on the table is untouched by link_invited_member_account (only the returned row is scrubbed)'
+);
+
+-- 57) geen match, variant 1: no members row has this email at all (never
+-- saved, unrelated address) — silent null, no error, no change to any row.
+select set_config('request.jwt.claim.email', 'link-nomatch@test.local', true);
+select is(
+  (select link_invited_member_account() is null),
+  true,
+  'link_invited_member_account returns null when no member has a matching email at all'
+);
+
+-- 58) geen match, variant 2: a member has this email, but is already linked
+-- (auth_user_id is not null) — the ordinary re-login case (spec →
+-- Randgevallen "Een al-gekoppeld lid logt gewoon opnieuw in").
+select set_config('request.jwt.claim.email', 'link-alreadylinked@test.local', true);
+select is(
+  (select link_invited_member_account() is null),
+  true,
+  'link_invited_member_account returns null when the matching member is already linked'
+);
+
+select is(
+  (select auth_user_id from members where id = '00000000-0000-0000-0000-0000000002ab'),
+  '00000000-0000-0000-0000-000000000285'::uuid,
+  'the already-linked member''s auth_user_id is unchanged by the no-op call'
+);
+
+-- 59) geen match, variant 3: a member has this email, is unlinked, but was
+-- never invited (invited_at is null) — the extra "invited_at is not null"
+-- defense-in-depth guard (spec → RPC's punt 2).
+select set_config('request.jwt.claim.email', 'link-neverinvited@test.local', true);
+select is(
+  (select link_invited_member_account() is null),
+  true,
+  'link_invited_member_account returns null when the matching member was never actually invited (invited_at is null)'
+);
+
+select is(
+  (select auth_user_id from members where id = '00000000-0000-0000-0000-0000000002ac'),
+  null,
+  'the never-invited member''s auth_user_id stays null after the no-op call'
+);
+
+-- 60) meerdere matches: an email collision (two eligible members share the
+-- same email) — silent null, no koppeling to either row (spec →
+-- Randgevallen "E-mailcollision bij het koppelen").
+select set_config('request.jwt.claim.email', 'link-collision@test.local', true);
+select is(
+  (select link_invited_member_account() is null),
+  true,
+  'link_invited_member_account returns null on an email collision (more than one eligible match)'
+);
+
+select is(
+  (select auth_user_id from members where id = '00000000-0000-0000-0000-0000000002ad'),
+  null,
+  'the first colliding member''s auth_user_id stays null after the no-op call'
+);
+
+select is(
+  (select auth_user_id from members where id = '00000000-0000-0000-0000-0000000002ae'),
+  null,
+  'the second colliding member''s auth_user_id stays null after the no-op call'
+);
+
+-- 61) geen e-mailclaim op de sessie: auth.email() resolves to null (spec →
+-- RPC's punt 2: defensief, "zou niet moeten voorkomen voor een geslaagde
+-- e-mail-login, maar defensief") — silent null, no error.
+select set_config('request.jwt.claim.email', '', true);
+select is(
+  (select link_invited_member_account() is null),
+  true,
+  'link_invited_member_account returns null when the session has no email claim at all'
 );
 
 -- ── column-level REVOKE op members.email (ADR 0004, migratie 0009) ──────
