@@ -3,6 +3,22 @@
 -- (wachtwoord verplicht, PIN optioneel en niet-exclusief, ADR 0003 →
 -- Beslissing 1 geamendeerd) → RPC's.
 --
+-- Hernummerd van 0008 naar 0014 (2026-09-21): dit bestand en
+-- 0008_ledenbeheer_email.sql claimden allebei versienummer 0008 — beide
+-- kregen dat nummer op hun eigen branch, en de botsing werd pas zichtbaar
+-- toen beide branches in main samenkwamen (PR #60), wat `supabase start`
+-- sindsdien op elke CI-run laat crashen met "duplicate key value violates
+-- unique constraint schema_migrations_pkey" (versie 0008 bestaat al).
+-- 0008_ledenbeheer_email.sql blijft op zijn nummer: die is ouder (#57,
+-- 2026-09-02, dit bestand komt uit #42, 2026-09-19) en
+-- 0009_ledenbeheer_email_rpc_gated_read.sql hangt al van zijn volgorde af.
+-- Dit bestand zelf heeft geen enkele migratie die er specifiek ná moet
+-- komen (0010/0011 doen allebei een volledige `create or replace function
+-- set_own_pin`, dus onafhankelijk van de exacte volgorde correct), dus dit
+-- is de veilige kant om te hernummeren. 0012/0013 zijn al in gebruik door
+-- een andere, nog niet gemergede branch (issue #24) — vandaar 0014, niet
+-- het eerstvolgende vrije nummer op main zelf.
+--
 -- Geen schemawijziging: geen nieuwe kolom, geen nieuw enum. `pin_hash is not
 -- null` is en blijft de volledige "heeft PIN"-vlag (0001_init.sql) — dit
 -- ticket voegt alleen een RPC toe die die kolom namens de ingelogde
