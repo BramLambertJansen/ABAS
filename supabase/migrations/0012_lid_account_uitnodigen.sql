@@ -147,7 +147,14 @@ begin
   -- anders nooit matchen met auth.email(). Eerste plek in deze codebase die
   -- e-mail vergelijkt voor gelijkheid, dus geen bestaand precedent om te
   -- breken.
-  select count(*), min(id) into v_match_count, v_member_id
+  --
+  -- Twee losse queries i.p.v. één met min(id): min() bestaat niet voor
+  -- uuid (Postgres kent geen totale ordening op dat type) -- de
+  -- oorspronkelijke `select count(*), min(id) into ...`-vorm faalde
+  -- daardoor op *elke* aanroep, ongeacht het aantal matches (Tester-
+  -- bevinding, PR #62). count(*) bepaalt of er precies één match is; de
+  -- tweede select haalt die ene rij pas op als dat al vaststaat.
+  select count(*) into v_match_count
   from members
   where lower(email) = lower(v_email)
     and auth_user_id is null
@@ -167,6 +174,12 @@ begin
   if v_match_count <> 1 then
     return null;
   end if;
+
+  select id into v_member_id
+  from members
+  where lower(email) = lower(v_email)
+    and auth_user_id is null
+    and invited_at is not null;
 
   update members
     set auth_user_id = auth.uid()
