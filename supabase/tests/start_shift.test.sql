@@ -11,7 +11,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(9);
+select plan(11);
 
 -- ── Fixtures ──────────────────────────────────────────────────────────
 insert into members (id, name, role, pin_hash, balance_cents, archived) values
@@ -19,6 +19,14 @@ insert into members (id, name, role, pin_hash, balance_cents, archived) values
   ('00000000-0000-0000-0000-000000000051', 'No Pin Set',    'bardienst', null,                          0, false),
   ('00000000-0000-0000-0000-000000000052', 'Just A Member', 'lid',       null,                          0, false),
   ('00000000-0000-0000-0000-000000000053', 'Archived Staff','bardienst', crypt('1234', gen_salt('bf')), 0, true);
+
+-- #18 (docs/features/activiteittypes.md): start_shift's third parameter,
+-- p_activity_type_id, is verplicht sinds 0015_activiteittypes.sql — every
+-- call below needs a real activity_types row to point at. Dedicated fixture
+-- rows, not the migration's own seed rows, same "don't depend on another
+-- migration's data" convention as the rest of this file's fixtures.
+insert into activity_types (id, name, archived) values
+  ('00000000-0000-0000-0000-0000000000b0', 'Test Activity Fixture', false);
 
 -- Regression fixture for docs/features/auth-methode-per-lid.md (#42) / ADR
 -- 0004: a bardienst member with BOTH a pin_hash AND a linked auth_user_id
@@ -46,9 +54,10 @@ insert into members (id, name, role, pin_hash, balance_cents, archived, auth_use
 select lives_ok(
   $$ select start_shift(
        '00000000-0000-0000-0000-000000000050'::uuid,
-       '1234'
+       '1234',
+       '00000000-0000-0000-0000-0000000000b0'::uuid
      ) $$,
-  'start_shift succeeds for a bar-role member with the correct PIN'
+  'start_shift succeeds for a bar-role member with the correct PIN and a valid activity type'
 );
 
 select is(
@@ -67,11 +76,21 @@ select is(
   'the sole roster member is the starter themselves'
 );
 
+-- #18: the chosen activity type is stored on the new shift — the whole
+-- point of this migration's change to start_shift.
+select is(
+  (select activity_type_id from shifts
+     where started_by = '00000000-0000-0000-0000-000000000050'),
+  '00000000-0000-0000-0000-0000000000b0'::uuid,
+  'the started shift stores the given activity_type_id'
+);
+
 -- ── 2) wrong PIN ────────────────────────────────────────────────────────
 select throws_ok(
   $$ select start_shift(
        '00000000-0000-0000-0000-000000000050'::uuid,
-       '9999'
+       '9999',
+       '00000000-0000-0000-0000-0000000000b0'::uuid
      ) $$,
   'P0001', 'invalid_pin',
   'start_shift rejects an incorrect PIN'
@@ -81,7 +100,8 @@ select throws_ok(
 select throws_ok(
   $$ select start_shift(
        '00000000-0000-0000-0000-000000000051'::uuid,
-       '1234'
+       '1234',
+       '00000000-0000-0000-0000-0000000000b0'::uuid
      ) $$,
   'P0001', 'invalid_pin',
   'start_shift rejects a member with no PIN set yet, not a null-pointer/500'
@@ -91,7 +111,8 @@ select throws_ok(
 select throws_ok(
   $$ select start_shift(
        '00000000-0000-0000-0000-000000000052'::uuid,
-       '1234'
+       '1234',
+       '00000000-0000-0000-0000-0000000000b0'::uuid
      ) $$,
   'P0001', 'no_bar_role',
   'start_shift rejects a lid even if a PIN happened to be set'
@@ -101,7 +122,8 @@ select throws_ok(
 select throws_ok(
   $$ select start_shift(
        '00000000-0000-0000-0000-000000000053'::uuid,
-       '1234'
+       '1234',
+       '00000000-0000-0000-0000-0000000000b0'::uuid
      ) $$,
   'P0001', 'member_not_found',
   'start_shift rejects an archived member even with the correct PIN'
@@ -113,7 +135,8 @@ select throws_ok(
 select lives_ok(
   $$ select start_shift(
        '00000000-0000-0000-0000-000000000054'::uuid,
-       '1234'
+       '1234',
+       '00000000-0000-0000-0000-0000000000b0'::uuid
      ) $$,
   'start_shift succeeds via PIN for a member who also has a linked auth_user_id (both mechanisms coexist, ADR 0005)'
 );
@@ -124,6 +147,22 @@ select is(
      where s.started_by = '00000000-0000-0000-0000-000000000054'),
   1,
   'the starter with both a pin_hash and an auth_user_id lands in the roster as its only member'
+);
+
+-- ── 7) #18: activiteittype is verplicht — a null p_activity_type_id is
+-- rejected (docs/features/activiteittypes.md → "Beantwoorde vraag", the one
+-- previously open question, now settled as "verplicht"). Negatieve dekking
+-- voor activity_type_not_found/activity_type_archived (de race-conditie-
+-- randgevallen) is nog niet toegevoegd hier — dat is aan de Tester-stap,
+-- zie de PR-omschrijving.
+select throws_ok(
+  $$ select start_shift(
+       '00000000-0000-0000-0000-000000000050'::uuid,
+       '1234',
+       null
+     ) $$,
+  'P0001', 'invalid_activity_type',
+  'start_shift rejects a null activity type — verplicht, zie #18'
 );
 
 select * from finish();

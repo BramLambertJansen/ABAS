@@ -44,6 +44,15 @@ export function DienstActief({
         <p className="max-w-xs text-sm font-medium text-rail-muted">
           Gestart door {shift.startedByName} om {formatStartedAt(shift.startedAt)}.
         </p>
+        {/* Alleen null voor een dienst gestart vóór 0015_activiteittypes.sql
+            — zie useOpenShift.ts. Geen apart "historische dienst"-onderscheid
+            nodig hier, dit scherm toont per definitie alleen de huidige, open
+            dienst (docs/features/activiteittypes.md → Schermflow §3). */}
+        {shift.activityTypeName && (
+          <p className="max-w-xs text-sm font-medium text-rail-muted">
+            Activiteit: {shift.activityTypeName}
+          </p>
+        )}
       </div>
 
       <div className="flex w-full flex-col items-center gap-3 rounded-2xl border border-rail-border bg-rail-card p-4">

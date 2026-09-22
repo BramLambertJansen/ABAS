@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useId, useState } from "react";
 import { ProductenLijst } from "./ProductenLijst";
 import { NegatieveLimietInstellingen } from "./NegatieveLimietInstellingen";
+import { ActiviteitstypesInstellingen } from "./ActiviteitstypesInstellingen";
 import { LedenLijst } from "../ledenbeheer/LedenLijst";
 
 type Tab = "assortiment" | "leden" | "instellingen";
@@ -144,9 +145,13 @@ export function BeheerTabs({
           id="instellingen-panel"
           role="tabpanel"
           aria-labelledby={instellingenTabId}
-          className="flex min-h-0 flex-1 flex-col gap-5"
+          className="flex min-h-0 flex-1 flex-wrap items-start gap-5"
         >
           <NegatieveLimietInstellingen />
+          {/* Nieuwe kaart naast (niet in plaats van) NegatieveLimietInstellingen
+              — responsief, scrollbaar raster (issue #18, chat37.md), geen
+              vierde tab. Zie docs/features/activiteittypes.md → Schermflow §1. */}
+          <ActiviteitstypesInstellingen />
         </div>
       )}
     </main>
