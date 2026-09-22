@@ -21,7 +21,7 @@ insert into members (id, name, role, pin_hash, balance_cents, archived) values
   ('00000000-0000-0000-0000-000000000053', 'Archived Staff','bardienst', crypt('1234', gen_salt('bf')), 0, true);
 
 -- #18 (docs/features/activiteittypes.md): start_shift's third parameter,
--- p_activity_type_id, is verplicht sinds 0015_activiteittypes.sql — every
+-- p_activity_type_id, is verplicht sinds 0019_activiteittypes.sql — every
 -- call below needs a real activity_types row to point at. Dedicated fixture
 -- rows, not the migration's own seed rows, same "don't depend on another
 -- migration's data" convention as the rest of this file's fixtures.

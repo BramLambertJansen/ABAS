@@ -15,7 +15,7 @@ export type OpenShift = {
   startedAt: string;
   /** Naam van het gekoppelde activiteittype (docs/features/activiteittypes.md
    *  → Schermflow §3). `null` alleen voor een dienst gestart vóór
-   *  0015_activiteittypes.sql (`shifts.activity_type_id` is nullable op
+   *  0019_activiteittypes.sql (`shifts.activity_type_id` is nullable op
    *  schemaniveau, zie die migratie) — in de praktijk raakt dat geen
    *  vandaag open dienst, want elke nieuwe dienst kiest verplicht een type. */
   activityTypeName: string | null;

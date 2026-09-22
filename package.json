@@ -8,12 +8,13 @@
     "start": "next start",
     "lint": "next lint --max-warnings=0",
     "typecheck": "tsc --noEmit",
+    "test": "node --test \"test/**/*.test.ts\"",
     "check:arch": "node scripts/check-arch.mjs",
     "check:policy": "node scripts/check-policy.mjs",
     "check:rls": "node scripts/check-rls.mjs",
     "check:a11y": "playwright test",
     "db:test": "supabase test db",
-    "check:all": "npm run lint && npm run typecheck && npm run build && npm run check:arch && npm run check:policy && npm run check:rls && npm run check:a11y && npm run db:test",
+    "check:all": "npm run lint && npm run typecheck && npm run test && npm run build && npm run check:arch && npm run check:policy && npm run check:rls && npm run check:a11y && npm run db:test",
     "prepare": "node .husky/install.mjs"
   },
   "dependencies": {

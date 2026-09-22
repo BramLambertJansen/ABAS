@@ -44,7 +44,7 @@ export function DienstActief({
         <p className="max-w-xs text-sm font-medium text-rail-muted">
           Gestart door {shift.startedByName} om {formatStartedAt(shift.startedAt)}.
         </p>
-        {/* Alleen null voor een dienst gestart vóór 0015_activiteittypes.sql
+        {/* Alleen null voor een dienst gestart vóór 0019_activiteittypes.sql
             — zie useOpenShift.ts. Geen apart "historische dienst"-onderscheid
             nodig hier, dit scherm toont per definitie alleen de huidige, open
             dienst (docs/features/activiteittypes.md → Schermflow §3). */}

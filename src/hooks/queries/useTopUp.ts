@@ -11,6 +11,7 @@ export type TopUpErrorCode =
   | "shift_not_open"
   | "served_by_not_on_shift"
   | "invalid_amount"
+  | "amount_exceeds_max"
   | "member_not_found"
   | "unknown";
 
@@ -18,6 +19,10 @@ const KNOWN_CODES: TopUpErrorCode[] = [
   "shift_not_open",
   "served_by_not_on_shift",
   "invalid_amount",
+  // 0016_top_up_maximumbedrag.sql — bedrag boven de harde €500-grens.
+  // Apart van invalid_amount gehouden omdat de UI de grens moet kunnen
+  // noemen, zie src/features/opwaarderen/messages.ts.
+  "amount_exceeds_max",
   "member_not_found",
 ];
 

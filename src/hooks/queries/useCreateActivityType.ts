@@ -4,7 +4,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { AlleActiviteitType } from "./useAlleActiviteitTypes";
 
-/** Foutcodes die `create_activity_type` (0015_activiteittypes.sql)
+/** Foutcodes die `create_activity_type` (0019_activiteittypes.sql)
  *  daadwerkelijk raiset. Al het andere valt terug op "unknown", zelfde
  *  patroon als useCreateProduct.ts → CreateProductErrorCode. */
 export type CreateActivityTypeErrorCode =

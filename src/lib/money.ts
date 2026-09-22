@@ -1,5 +1,8 @@
 /**
- * Cents → Dutch euro display string ("€ 4,53", "-€ 1,00"). Display-only
+ * Cents → Dutch euro display string ("€ 4,53", "€ -1,00" — Intl's nl-NL
+ * currency format zet het minteken ná het euroteken, niet ervoor; deze
+ * docstring beweerde het omgekeerde tot de app-review van 2026-09-21, zie
+ * test/money.test.ts waar het nu vastligt). Display-only
  * formatting, shared by every screen that shows a price/saldo/total —
  * never used to *compute* an amount. Money itself is only ever computed
  * server-side inside an RPC (CLAUDE.md → Architectuurbeslissingen); this

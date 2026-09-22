@@ -233,6 +233,49 @@ future decision on whether/how to persist it.
   a valid setting and behaves as "never negative" — but that's a chosen
   value, not a hardcoded rule. Separately, a €10 "low balance" warning
   threshold is fixed/systemwide (not a beheerder setting).
+- A cash top-up is capped at €500 per booking, enforced inside `top_up`
+  (`amount_exceeds_max`), with a client-side confirmation step above €100.
+  Settled 2026-09-21, see ADR-less product decision in
+  `docs/features/opwaarderen.md` → "Besloten: bovengrens en
+  bevestigingsstap". Deliberately a guard on the cash-desk RPC and not a
+  check-constraint on `top_ups.amount_cents` — #23's payment-provider path
+  has an actual payment as proof and shouldn't inherit this limit.
+
+**RPC-grens gold niet voor sessieloze aanroepers (opgelost, 2026-09-22)**:
+gevonden bij het bijwerken van de gehoste omgeving. Postgres geeft bij
+`create function` standaard `EXECUTE` aan `PUBLIC`, en Supabase's
+platform-brede default privileges geven daarnaast een expliciete grant aan
+`anon`. Geen enkele migratie had een van beide ooit ingetrokken, dus de
+`grant execute ... to authenticated` in `0001_init.sql` en later *las* als
+de poort maar wás het niet: **elke RPC was aanroepbaar met alleen de
+publishable key, zonder sessie**. Voor `place_order`/`top_up` betekende dat
+concreet dat iedereen tijdens een open dienst saldo kon afschrijven of
+bijschrijven; `start_shift` was zonder account brute-forcebaar, wat de
+"geen lockout in de MVP"-afweging hieronder ondergroef (die ging uit van
+een ingelogde aanroeper). De beheerder-RPC's waren niet kwetsbaar — hun
+ADR-0002-actorcheck geeft `actor_not_found` zonder `auth.uid()`.
+Empirisch bevestigd door de aanval lokaal uit te voeren: als `anon`, met
+`auth.uid()` op null, een bestelling geboekt én saldo bijgeschreven.
+Dichtgezet in `0018_rpc_execute_alleen_authenticated.sql` (intrekking voor
+alle bestaande functies plus `alter default privileges` voor nieuwe), met
+`supabase/tests/rpc_execute_grants.test.sql` als blijvende bewaking — die
+toetst de invariant over *élke* functie in `public`, niet over een
+handgetypte lijst. Die test vult meteen een blinde vlek in de suite: elke
+andere test draait als `authenticated`, dus niemand keek ooit naar wat een
+sessieloze aanroeper mag.
+
+**Leestoegang per rol (settled, 2026-09-21)**: ADR
+[0007](adr/0007-rol-lid-leest-alleen-eigen-rijen.md) — the blanket
+`for select to authenticated using (true)` from `0001_init.sql` now only
+applies to bar/beheer sessions and the shared device session. A session that
+resolves to a `members` row with role `lid` sees only its own rows in
+`members`/`orders`/`order_lines`/`top_ups`
+(`0015_lid_leest_alleen_eigen_rijen.sql`); `shifts`/`shift_members`/
+`products`/`app_settings` stay readable for everyone, deliberately. Strictly
+narrowing: no existing session type changed behaviour, which
+`supabase/tests/rls_lid_eigen_rijen.test.sql` asserts explicitly rather than
+assumes. This is *not* the device-session hardening — that still belongs to
+#15, together with the cookie-scoping item below.
 
 **Settled (2026-08-24)**:
 - **Single organization.** ABAS is for Aurora only — no `org_id`, no
@@ -572,6 +615,13 @@ DEFINER`-RPC met de ADR-0002-actorcheck gelezen** — zelfde structuur als
 (`list_members_admin`, migratie `0009`) voor het volledige patroon en de
 motivatie; dit patroon geldt voor elke toekomstige PII-kolom op `members`,
 niet met terugwerkende kracht voor `name`/`role`/`balance_cents`/`archived`.
+*(Aanvulling 2026-09-21: `balance_cents` en de rest van de rij blijven
+inderdaad buiten ADR 0004's kolompatroon, maar zijn sinds ADR 0007 wél
+rij-niveau afgeschermd voor een `lid`-sessie — zie "Leestoegang per rol"
+hierboven. Twee verschillende grenzen om twee verschillende redenen: ADR
+0004 schermt één kolom af die zelfs de bar-sessie niet mag zien, ADR 0007
+schermt hele rijen af waarvan de zichtbaarheid van de rol van de aanroeper
+afhangt.)*
 
 **Saldo opwaarderen (gebouwd, #10, 2026-08-29)**: contant opwaarderen vanuit
 het verkoopscherm (`docs/features/opwaarderen.md`,

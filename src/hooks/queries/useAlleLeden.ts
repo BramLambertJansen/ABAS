@@ -49,6 +49,27 @@ type State =
   | { status: "error"; message: string }
   | { status: "ready"; members: LedenbeheerLid[] };
 
+/** Foutcodes die `list_members_admin()` zelf gooit (0009/0011/0012) —
+ *  dezelfde twee die elke andere ADR-0002-actorcheck in deze codebase
+ *  gebruikt. Zonder deze mapping viel een rechtenweigering samen met een
+ *  netwerkfout in één generieke "controleer de verbinding"-melding, wat de
+ *  verkeerde oorzaak aanwijst: een bardienst-lid dat via ModusKeuze op de
+ *  Beheer-tegel klikt (ADR 0003 → Beslissing 4 filtert die tegel bewust
+ *  niet op rol) komt hier gegarandeerd op `no_admin_role` uit, en ging op
+ *  die melding zijn wifi controleren. De schrijf-hooks in deze map mapten
+ *  deze codes al wél — zie useUpdateMemberName.ts e.a., en
+ *  LidBeherenOverlay.tsx voor dezelfde copy. */
+function errorMessageFor(rpcErrorMessage: string | undefined): string {
+  switch (rpcErrorMessage) {
+    case "no_admin_role":
+      return "dit account kan leden niet beheren — vraag een beheerder";
+    case "actor_not_found":
+      return "dit account is niet gekoppeld aan een lid — vraag een beheerder";
+    default:
+      return "Kan de ledenlijst niet laden. Controleer de verbinding.";
+  }
+}
+
 /** Elk lid (archived of niet — anders is een gearchiveerd lid niet terug te
  *  vinden om terug te zetten), alfabetisch op naam. Writes gaan via
  *  create_member/update_member_name/set_member_archived/set_member_role,
@@ -64,15 +85,15 @@ type State =
  *  teruggeven. De RPC draait `security definer` met een beheerder-
  *  actorcheck en sorteert zelf al op naam.
  *
- *  Let op — bekende restbeperking (gemeld in de PR, niet hier stilletjes
- *  opgelost): `list_members_admin()` doet zelf `select * from members`
- *  zonder de rij te scrubben, dus de ruwe RPC-respons bevat nog steeds de
- *  echte `pin_hash`-kolomwaarde (column-level REVOKEs op `members` gelden
- *  niet voor wat een `security definer`-functie zelf teruggeeft — vandaar
- *  dat de vijf schrijf-RPC's hieronder hun eigen `v_member.pin_hash := null`
- *  hebben, zie 0010_pin_hash_kolombeveiliging.sql). Deze hook mapt dat veld
- *  simpelweg niet door naar `LedenbeheerLid`, wat de UI beschermt, maar de
- *  ruwe network-response naar een ingelogde beheerder-sessie niet. */
+ *  `pin_hash` komt niet mee in de respons: `list_members_admin()` selecteert
+ *  sinds 0011_list_members_admin_pin_hash_scrub.sql een expliciete
+ *  kolommenlijst met `null::text as pin_hash` op die positie. Dat wás een
+ *  restbeperking — een `security definer`-functie is niet onderhevig aan de
+ *  column-level REVOKEs uit 0009/0010, dus het oorspronkelijke `select *
+ *  from members` gaf de ruwe bcrypt-hash terug aan elke beheerder-sessie die
+ *  de Ledentab opende. Sinds 0011 is dat aan de bron dicht, niet alleen in
+ *  de mapping hieronder. (Deze alinea beschreef die restbeperking nog als
+ *  open; gecorrigeerd bij de app-review van 2026-09-21.) */
 export function useAlleLeden(): State & { refetch: () => void } {
   const [state, setState] = useState<State>({ status: "loading" });
   const [tick, setTick] = useState(0);
@@ -83,7 +104,17 @@ export function useAlleLeden(): State & { refetch: () => void } {
       const supabase = createClient();
       const { data, error } = await supabase.rpc("list_members_admin");
 
-      if (error) throw error;
+      if (error) {
+        // Niet `throw error`: een PostgrestError is een plain object, geen
+        // Error-instantie, dus in de catch hieronder zou `err.message`
+        // (en daarmee de foutcode) niet meer typeveilig te bereiken zijn
+        // en zou elke rechtenweigering als verbindingsfout eindigen.
+        // Zelfde vorm als de schrijf-hooks in deze map, die de
+        // `error`-tak ook naast de catch afhandelen.
+        console.error("useAlleLeden:", error);
+        setState({ status: "error", message: errorMessageFor(error.message) });
+        return;
+      }
 
       const members: LedenbeheerLid[] = (data ?? []).map((row: Record<string, unknown>) => ({
         id: row.id as string,
@@ -99,13 +130,15 @@ export function useAlleLeden(): State & { refetch: () => void } {
 
       setState({ status: "ready", members });
     } catch (err) {
-      // Nooit de rauwe fout tonen op een bar-tablet — loggen voor wie
-      // debugt, vaste Nederlandse boodschap, zelfde patroon als
+      // Alles wat hier belandt is een echte throw (createClient() zonder
+      // Supabase-config, netwerkfout) — geen RPC-foutcode, die is hierboven
+      // al afgehandeld. Nooit de rauwe fout tonen op een bar-tablet: loggen
+      // voor wie debugt, vaste Nederlandse boodschap, zelfde patroon als
       // useMembers/useAlleProducten.
       console.error("useAlleLeden:", err);
       setState({
         status: "error",
-        message: "Kan de ledenlijst niet laden. Controleer de verbinding.",
+        message: errorMessageFor(undefined),
       });
     }
   }, []);

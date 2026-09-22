@@ -1,13 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Overlay } from "@/components/Overlay";
 import { StatCard } from "@/components/StatCard";
 import { formatCents, parseEuroToCents } from "@/lib/money";
 import { useTopUp, type TopUpErrorCode } from "@/hooks/queries/useTopUp";
 import type { MemberOption } from "@/hooks/queries/useMembers";
 import type { ShiftMember } from "@/hooks/queries/useShiftMembers";
-import { AMOUNT_CHIPS_CENTS, topUpErrorMessage } from "./messages";
+import {
+  AMOUNT_CHIPS_CENTS,
+  TOP_UP_CONFIRM_THRESHOLD_CENTS,
+  TOP_UP_MAX_CENTS,
+  topUpAmountTooHighMessage,
+  topUpConfirmQuestion,
+  topUpErrorMessage,
+} from "./messages";
 
 /**
  * Opwaardeer-overlay (modal, `src/components/Overlay.tsx` — de derde
@@ -39,12 +46,19 @@ export function OpwaarderenOverlay({
   onRefetchShiftMembers: () => void;
 }) {
   const topUpMutation = useTopUp();
+  const amountLimitId = useId();
   const [servedBy, setServedBy] = useState<string | null>(null);
   const [selectedChipCents, setSelectedChipCents] = useState<number | null>(null);
   const [customAmount, setCustomAmount] = useState("");
   const [submitErrorCode, setSubmitErrorCode] = useState<TopUpErrorCode | null>(
     null
   );
+  // Bevestigingsstap boven TOP_UP_CONFIRM_THRESHOLD_CENTS (app-review
+  // 2026-09-21). Bewust een state-vlag binnen déze overlay en geen tweede,
+  // gestapelde Overlay: een dialog bovenop een dialog zou de focus-trap van
+  // Overlay.tsx dubbel opzetten (twee keydown-listeners die allebei op
+  // Escape sluiten), en er is niets te tonen wat niet in deze dialog past.
+  const [confirming, setConfirming] = useState(false);
 
   const needsPicker = crew.length >= 2;
   const effectiveServedBy = crew.length === 1 ? crew[0].id : servedBy;
@@ -56,13 +70,24 @@ export function OpwaarderenOverlay({
     customAmount.trim() === "" ? null : parseEuroToCents(customAmount);
   const amountCents = customAmount.trim() !== "" ? customAmountCents : selectedChipCents;
   const hasValidAmount = amountCents !== null && amountCents > 0;
+  // Boven de harde grens: knop uit, inline uitleg. `top_up` weigert dit ook
+  // server-side met `amount_exceeds_max` (0016_top_up_maximumbedrag.sql) —
+  // dit is de UX-helft, niet de afdwinging.
+  const amountTooHigh = amountCents !== null && amountCents > TOP_UP_MAX_CENTS;
+  const amountBookable = hasValidAmount && !amountTooHigh;
+  const needsConfirmation =
+    amountCents !== null && amountCents > TOP_UP_CONFIRM_THRESHOLD_CENTS;
 
   const pending = topUpMutation.status === "pending";
-  const bookDisabled = !hasValidAmount || !effectiveServedBy || pending;
+  const bookDisabled = !amountBookable || !effectiveServedBy || pending;
 
+  // Elke bedragswijziging trekt een openstaande bevestiging in: anders zou
+  // een bevestigd bedrag blijven staan terwijl er inmiddels een ander bedrag
+  // geboekt zou worden — precies de vergissing die deze stap moet vangen.
   function chooseChip(cents: number) {
     setSelectedChipCents(cents);
     setCustomAmount("");
+    setConfirming(false);
   }
 
   // Zelfde reden als AfrekenenOverlay.tsx: Escape/backdrop-click/
@@ -75,7 +100,15 @@ export function OpwaarderenOverlay({
   }
 
   async function handleBook() {
-    if (!hasValidAmount || !effectiveServedBy || pending) return;
+    if (!amountBookable || !effectiveServedBy || pending) return;
+
+    // Eerste tik op een groot bedrag boekt niet, maar vraagt na. Pas de
+    // tweede tik ("ja, … boeken") komt hier voorbij.
+    if (needsConfirmation && !confirming) {
+      setConfirming(true);
+      setSubmitErrorCode(null);
+      return;
+    }
 
     const result = await topUpMutation.topUp(
       shiftId,
@@ -151,9 +184,21 @@ export function OpwaarderenOverlay({
           onChange={(e) => {
             setCustomAmount(e.target.value);
             setSelectedChipCents(null);
+            setConfirming(false);
           }}
+          aria-describedby={amountTooHigh ? amountLimitId : undefined}
+          aria-invalid={amountTooHigh || undefined}
           className="h-12 rounded-xl border border-border px-3 text-sm font-semibold text-ink outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
         />
+        {amountTooHigh && (
+          <p
+            id={amountLimitId}
+            className="text-xs font-bold text-rail-error"
+            role="alert"
+          >
+            {topUpAmountTooHighMessage()}
+          </p>
+        )}
       </div>
 
       {needsPicker && (
@@ -186,14 +231,27 @@ export function OpwaarderenOverlay({
         </fieldset>
       )}
 
+      {confirming && amountCents !== null && (
+        <p
+          className="rounded-xl bg-warning-bg px-3 py-2 text-xs font-bold text-warning-fg"
+          role="status"
+        >
+          {topUpConfirmQuestion(amountCents, member.name)}
+        </p>
+      )}
+
       <div className="mt-0.5 flex gap-2.5">
         <button
           type="button"
           disabled={pending}
-          onClick={handleClose}
+          // In de bevestigingsstap is dit "terug" naar het bedrag, niet
+          // "annuleren" van de hele overlay — anders is een verkeerd
+          // ingetikt bedrag corrigeren alleen mogelijk door opnieuw te
+          // beginnen, precies op het moment dat de operator al twijfelt.
+          onClick={confirming ? () => setConfirming(false) : handleClose}
           className="flex h-[50px] flex-1 items-center justify-center rounded-2xl border border-rail-border bg-rail text-sm font-bold text-white transition-colors hover:border-accent disabled:cursor-not-allowed disabled:opacity-50"
         >
-          annuleren
+          {confirming ? "terug" : "annuleren"}
         </button>
         <button
           type="button"
@@ -201,7 +259,11 @@ export function OpwaarderenOverlay({
           onClick={handleBook}
           className="flex h-[50px] flex-1 items-center justify-center rounded-2xl bg-accent-active text-sm font-bold text-white transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {pending ? "bezig…" : "boeken"}
+          {pending
+            ? "bezig…"
+            : confirming && amountCents !== null
+              ? `ja, ${formatCents(amountCents)} boeken`
+              : "boeken"}
         </button>
       </div>
     </Overlay>

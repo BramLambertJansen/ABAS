@@ -4,7 +4,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { AlleActiviteitType } from "./useAlleActiviteitTypes";
 
-/** Foutcodes die `set_activity_type_archived` (0015_activiteittypes.sql)
+/** Foutcodes die `set_activity_type_archived` (0019_activiteittypes.sql)
  *  daadwerkelijk raiset. */
 export type SetActivityTypeArchivedErrorCode =
   | "activity_type_not_found"

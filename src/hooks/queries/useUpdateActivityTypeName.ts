@@ -4,7 +4,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { AlleActiviteitType } from "./useAlleActiviteitTypes";
 
-/** Foutcodes die `update_activity_type_name` (0015_activiteittypes.sql)
+/** Foutcodes die `update_activity_type_name` (0019_activiteittypes.sql)
  *  daadwerkelijk raiset. Geen eis dat het type niet gearchiveerd is — zie
  *  de migratie zelf. */
 export type UpdateActivityTypeNameErrorCode =

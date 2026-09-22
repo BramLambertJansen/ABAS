@@ -4,7 +4,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 /** Error codes `start_shift` (0001_init.sql, uitgebreid in
- *  0015_activiteittypes.sql met een verplichte p_activity_type_id) actually
+ *  0019_activiteittypes.sql met een verplichte p_activity_type_id) actually
  *  raises. Anything else (network failure, unexpected server error) falls
  *  through to "unknown". The three activity_type_*-codes are handled
  *  separately from the rest by the one caller (DienstStarten.tsx, see
@@ -36,10 +36,6 @@ type State =
   | { status: "pending" }
   | { status: "error"; code: StartShiftErrorCode };
 
-type StartShiftResult =
-  | { ok: true }
-  | { ok: false; code: StartShiftErrorCode };
-
 function toErrorCode(message: string | undefined): StartShiftErrorCode {
   if (
     message === "invalid_pin" ||
@@ -54,15 +50,20 @@ function toErrorCode(message: string | undefined): StartShiftErrorCode {
   return "unknown";
 }
 
+/** Discriminated result in plaats van een kale boolean, om dezelfde reden
+ *  als usePlaceOrder.ts → PlaceOrderResult: de aanroeper heeft de foutcode
+ *  meteen nodig, niet pas een render later. `errorCode` hieronder is
+ *  React-state en is binnen dezelfde tick na `await startShift(...)` nog de
+ *  waarde van de vorige render — wie erop reageert (DienstStarten.tsx
+ *  ververst de stafkeuze bij `no_bar_role`/`member_not_found`) moet de code
+ *  uit het resultaat lezen, niet uit de hook. */
+export type StartShiftResult =
+  | { ok: true }
+  | { ok: false; code: StartShiftErrorCode };
+
 export function useStartShift() {
   const [state, setState] = useState<State>({ status: "idle" });
 
-  /** Geeft het resultaat rechtstreeks terug (niet alleen een boolean) —
-   *  DienstStarten.tsx moet meteen na de aanroep kunnen zien of een
-   *  activity_type_*-foutcode terugkwam, om terug te navigeren naar de
-   *  activiteitkeuze-stap. `startShiftMutation.errorCode` (via de hook-state)
-   *  is daarvoor niet bruikbaar: dat weerspiegelt pas de bijgewerkte state ná
-   *  een volgende render, niet meteen na deze `await`. */
   async function startShift(
     memberId: string,
     pin: string,

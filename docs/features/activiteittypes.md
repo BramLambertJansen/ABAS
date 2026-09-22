@@ -127,8 +127,10 @@ nieuw scherm:
 
 ## Datamodel
 
-Nieuwe migratie `supabase/migrations/0015_activiteittypes.sql` (opeenvolgend
-na `0014_pin_zelfbediening.sql`, de hoogste bestaande op dit moment).
+Nieuwe migratie `supabase/migrations/0019_activiteittypes.sql` (oorspronkelijk
+opeenvolgend na `0014_pin_zelfbediening.sql` genummerd als `0015`, herzien naar
+`0019` bij het mergen met main — `0015` t/m `0018` zijn intussen elders
+vergeven, zie `0018_rpc_execute_alleen_authenticated.sql`).
 `0001_init.sql` zelf wordt niet aangepast, zelfde patroon als alle eerdere
 migraties.
 

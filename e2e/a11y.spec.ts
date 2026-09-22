@@ -156,7 +156,7 @@ test.describe("beheer ingelogde staat (a11y)", () => {
    * `NegatieveLimietInstellingen`, `BeheerTabs.tsx`) — the scenario the spec
    * explicitly calls out as still missing is the inline-bewerkveld state,
    * opened via a row's "bewerken"-knop. Uses "Training", one of the four
-   * seed rows from `0015_activiteittypes.sql` (`supabase/seed.sql` doesn't
+   * seed rows from `0019_activiteittypes.sql` (`supabase/seed.sql` doesn't
    * override `activity_types`).
    */
   test("beheer (/beheer) Activiteitstypes-kaart met geopend inline-bewerkveld has no WCAG2A/AA violations", async ({
@@ -383,7 +383,7 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
    *  activiteitkeuze-stap (ActiviteitKeuze.tsx) between the staff picker and
    *  the PIN pad — tapping the staff button no longer lands directly on
    *  PinPad. "Training" is one of the four seed rows
-   *  (0015_activiteittypes.sql; supabase/seed.sql doesn't override them).
+   *  (0019_activiteittypes.sql; supabase/seed.sql doesn't override them).
    *  Without this step the PIN digits below would be typed into a screen
    *  that doesn't exist yet, and every test using this helper would time
    *  out waiting for the Verkoop tab. */
@@ -512,6 +512,96 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
     // uit — geen dead end.
     await activitySelectAgain.selectOption({ label: "Training" });
     await digit1.waitFor({ state: "visible", timeout: 15_000 });
+  });
+
+  /**
+   * The inverse of `ensureShiftStarted()`: leaves the shared session with
+   * *no* open shift, so `/` renders the stafkeuze/PIN-entry screen rather
+   * than DienstTabs. Only the pincode-invoer scenario below needs this —
+   * that screen is unreachable while a shift is open, and on a Playwright
+   * retry in CI (`retries: 1`) the previous attempt's shift is still open
+   * against the same local Postgres.
+   *
+   * Closes the shift through the real "Dienst afsluiten"-flow rather than
+   * touching the database directly: it's the same path a bardienst takes
+   * (docs/features/dienst-afsluiten.md), so this helper can't drift away
+   * from the app's own behaviour. The scan below re-starts nothing — the
+   * next test in this block calls `ensureShiftStarted()` as usual.
+   */
+  async function ensureNoOpenShift(page: Page) {
+    await page.goto("/");
+
+    const verkoopTab = page.getByRole("tab", { name: "Verkoop" });
+    const staffButton = page.getByRole("button", { name: /Tom Willems/i });
+
+    // Same "race both landing states rather than pre-guessing which one
+    // shows first" reasoning as ensureShiftStarted() above.
+    await Promise.race([
+      verkoopTab.waitFor({ state: "visible", timeout: 15_000 }),
+      staffButton.waitFor({ state: "visible", timeout: 15_000 }),
+    ]);
+
+    if (await staffButton.isVisible()) return;
+
+    await page.getByRole("tab", { name: "Dienst" }).click();
+    await page
+      .getByRole("heading", { name: "Dienst actief" })
+      .waitFor({ state: "visible", timeout: 15_000 });
+    await page.getByRole("button", { name: "Dienst afsluiten" }).click();
+
+    // Scope the confirm to the dialog: the trigger button behind it has
+    // the same accessible name, and Playwright's name matching ignores
+    // case, so an unscoped locator would be a strict-mode violation.
+    const dialog = page.getByRole("dialog", { name: "Dienst afsluiten" });
+    await dialog.waitFor({ state: "visible" });
+    await dialog.getByRole("button", { name: "dienst afsluiten" }).click();
+
+    await staffButton.waitFor({ state: "visible", timeout: 15_000 });
+  }
+
+  /**
+   * docs/features/dienst-starten.md (#6) → the PIN-entry screen
+   * (PinPad.tsx). Added at the app-review of 2026-09-21: this was the only
+   * interactive screen in the app with no axe coverage at all. The routes
+   * loop at the top of this file scans `/`, but that lands on the
+   * stafkeuze — the numpad only renders after picking a bardienst, and
+   * `ensureShiftStarted()` clicks straight through it without scanning.
+   *
+   * Scans the pad in its empty, pre-entry state and deliberately enters no
+   * digits: a fourth digit submits (see DienstStarten.tsx → pressDigit),
+   * which would start a shift as a side effect of an a11y scan. The pad's
+   * non-obvious a11y affordances are all present in this state anyway —
+   * the `aria-hidden` dot row with its `sr-only` `role="status"`
+   * counterpart, the per-key `aria-label`s ("Cijfer 3", "Wis laatste
+   * cijfer"), and the `role="alert"` error line.
+   *
+   * Updated for #18 (docs/features/activiteittypes.md): a staff pick no
+   * longer lands on PinPad directly — the new activiteitkeuze-stap sits in
+   * between (same as `ensureShiftStarted()` above) — so an activity has to
+   * be selected first, otherwise the "Cijfer 1"-wait below would time out
+   * against a `<select>` that isn't PinPad.
+   */
+  test("bar shell (/) pincode-invoer has no WCAG2A/AA violations", async ({
+    page,
+  }) => {
+    await ensureNoOpenShift(page);
+
+    await page.getByRole("button", { name: /Tom Willems/i }).click();
+
+    const activitySelect = page.getByLabel("Activiteit");
+    await activitySelect.waitFor({ state: "visible", timeout: 15_000 });
+    await activitySelect.selectOption({ label: "Training" });
+
+    await page
+      .getByRole("button", { name: "Cijfer 1" })
+      .waitFor({ state: "visible", timeout: 15_000 });
+
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+
+    expect(results.violations, JSON.stringify(results.violations, null, 2))
+      .toEqual([]);
   });
 
   /**

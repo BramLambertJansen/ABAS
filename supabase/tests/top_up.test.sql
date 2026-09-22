@@ -8,11 +8,19 @@
 -- same "elke geïdentificeerde weigergrond" mandate as place_order.test.sql's
 -- extension for #8. top_up itself didn't change for #10 — it already had
 -- these guards, just not proven here yet.
+--
+-- Extended again for 0016_top_up_maximumbedrag.sql (App-review 2026-09-21):
+-- the new `amount_exceeds_max` guard is the first weigergrond in this RPC
+-- that has a boundary rather than a sign — so it gets both sides of that
+-- boundary (exactly at the cap must still succeed, one cent over must not),
+-- not just the rejecting half. An off-by-one here would either block a
+-- legitimate €500 opwaardering or let the guard start one cent too late,
+-- and neither is visible from the rejecting case alone.
 
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(7);
+select plan(10);
 
 insert into members (id, name, role, pin_hash, balance_cents, archived) values
   ('00000000-0000-0000-0000-000000000030', 'Shift Starter', 'bardienst', crypt('1234', gen_salt('bf')), 0, false),
@@ -117,6 +125,41 @@ select throws_ok(
      ) $$,
   'P0001', 'shift_not_open',
   'top_up rejects a top-up against a shift that has already ended'
+);
+
+-- 7) exactly at the cap — must still succeed
+-- €500 (50000 cents) is the highest amount 0016_top_up_maximumbedrag.sql
+-- allows, not the first one it refuses. Proving this side of the boundary
+-- is what keeps the guard from silently becoming "< €500" later.
+select lives_ok(
+  $$ select top_up(
+       '00000000-0000-0000-0000-000000000040'::uuid,
+       '00000000-0000-0000-0000-000000000032'::uuid,
+       50000, 'cash',
+       '00000000-0000-0000-0000-000000000030'::uuid
+     ) $$,
+  'top_up accepts an amount exactly at the €500 cap'
+);
+
+select is(
+  (select balance_cents from members where id = '00000000-0000-0000-0000-000000000032'),
+  50500,
+  'balance incremented by the capped-maximum top-up (500 from case 1 + 50000)'
+);
+
+-- 8) one cent over the cap
+-- The actual typefout this guard exists for is an order of magnitude worse
+-- ("5000" instead of "50,00" = €5.000), but testing at cap+1 proves the
+-- boundary rather than merely that some very large number is refused.
+select throws_ok(
+  $$ select top_up(
+       '00000000-0000-0000-0000-000000000040'::uuid,
+       '00000000-0000-0000-0000-000000000032'::uuid,
+       50001, 'cash',
+       '00000000-0000-0000-0000-000000000030'::uuid
+     ) $$,
+  'P0001', 'amount_exceeds_max',
+  'top_up rejects an amount one cent above the €500 cap'
 );
 
 select * from finish();
