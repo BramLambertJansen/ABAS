@@ -193,11 +193,17 @@ export function ActiviteitstypesInstellingen() {
                     }
                     className="h-10 flex-1 min-w-0 rounded-control border border-border px-3 text-sm font-semibold text-ink outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
                   />
+                  {/* Geen hover:bg-accent-hover — die shade is alleen
+                      4.5:1-compliant voor wit/licht tekst (tailwind.config.ts
+                      → accent), niet voor text-rail. Playwright's cursor
+                      blijft na het klikken op "bewerken" op deze plek staan,
+                      dus axe scant deze knop in :hover-staat (echt
+                      reproduceerbaar voor een muisgebruiker, geen testartefact). */}
                   <button
                     type="button"
                     disabled={renaming || editing.name.trim() === ""}
                     onClick={saveEdit}
-                    className="flex h-10 flex-none items-center justify-center rounded-control bg-accent px-3 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex h-10 flex-none items-center justify-center rounded-control bg-accent px-3 text-sm font-bold text-rail transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Opslaan
                   </button>
@@ -280,7 +286,7 @@ export function ActiviteitstypesInstellingen() {
             type="button"
             disabled={creating || newName.trim() === ""}
             onClick={createType}
-            className="flex h-11 flex-none items-center gap-1.5 rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-11 flex-none items-center gap-1.5 rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors disabled:cursor-not-allowed disabled:opacity-50"
           >
             <span aria-hidden="true" className="text-base leading-none">
               +
