@@ -11,6 +11,7 @@ export function PinPad({
   onDigit,
   onBackspace,
   onBack,
+  backLabel = "← andere bardienst",
 }: {
   staffName: string;
   pin: string;
@@ -19,6 +20,7 @@ export function PinPad({
   onDigit: (digit: string) => void;
   onBackspace: () => void;
   onBack: () => void;
+  backLabel?: string;
 }) {
   return (
     <div className="flex w-full max-w-[280px] flex-col items-center gap-5">
@@ -71,7 +73,7 @@ export function PinPad({
         onClick={onBack}
         className="text-xs font-semibold text-rail-muted hover:text-white disabled:opacity-50"
       >
-        ← andere bardienst
+        {backLabel}
       </button>
     </div>
   );

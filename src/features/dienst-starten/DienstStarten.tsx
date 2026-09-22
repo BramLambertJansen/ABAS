@@ -279,6 +279,7 @@ export function DienstStarten() {
               onDigit={pressDigit}
               onBackspace={backspace}
               onBack={backToActivityKeuze}
+              backLabel="← andere activiteit"
             />
           )}
         </>

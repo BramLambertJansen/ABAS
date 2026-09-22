@@ -458,24 +458,26 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
   });
 
   /**
-   * docs/features/activiteittypes.md (#18), task item 5 (Reviewer note,
-   * explicitly flagged as non-blocking, not a bug to fix here): going back
-   * from the PIN-stap to the activiteitkeuze-stap
-   * (`backToActivityKeuze()`/PinPad's "← andere bardienst"-knop,
+   * docs/features/activiteittypes.md (#18), task item 5: going back from
+   * the PIN-stap to the activiteitkeuze-stap (`backToActivityKeuze()`,
    * DienstStarten.tsx) clears `pin`/foutstatus but deliberately does NOT
    * clear `selectedActivityType` in React state (spec → Schermflow §2 stap
    * 3: "`selectedStaff` blijft daarbij behouden" — the same is true in the
-   * implementation for `selectedActivityType`, see DienstStarten.tsx's
-   * `backToActivityKeuze`). ActiviteitKeuze.tsx's own `<select>` always
-   * renders `value=""` though (hardcoded, never bound to
+   * implementation for `selectedActivityType`). ActiviteitKeuze.tsx's own
+   * `<select>` always renders `value=""` though (hardcoded, never bound to
    * `selectedActivityType`), so the dropdown visually resets to the
    * placeholder while the internal state still holds the earlier choice —
    * a UI/state mismatch, not a functional break: the user has to interact
    * with the `<select>` again regardless (`onSelect` only fires on a real
    * `onChange`), and doing so immediately overwrites the stale state before
    * it can be submitted anywhere. This test locks down that this is the
-   * CURRENT behaviour, not a statement that it's the correct one — see the
-   * Tester's handback report for whether it should be revisited.
+   * CURRENT behaviour, not a statement that it's the correct one.
+   *
+   * The PIN-stap's back button now has its own label ("← andere
+   * activiteit", `PinPad`'s `backLabel` prop) distinct from
+   * ActiviteitKeuze's own "← andere bardienst" — fixed after the Tester
+   * flagged the copy as misleading (PinPad's back button went to the
+   * activiteitkeuze-stap, not back to staff selection).
    *
    * Placed second in this block (after the a11y-only scan above, before
    * `ensureShiftStarted()`'s own tests), same "no shift open yet"
@@ -495,15 +497,11 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
     await activitySelect.selectOption({ label: "Training" });
 
     // Auto-advances to the PIN-stap once an activity is picked (spec →
-    // Schermflow §2 stap 2) — geen aparte "volgende"-knop. Wait for a
-    // PIN-stap-specific element before looking for the (identically
-    // labelled) back button, so this doesn't accidentally click
-    // ActiviteitKeuze's own "← andere bardienst"-knop before the
-    // transition has happened.
+    // Schermflow §2 stap 2) — geen aparte "volgende"-knop.
     const digit1 = page.getByRole("button", { name: "Cijfer 1" });
     await digit1.waitFor({ state: "visible", timeout: 15_000 });
 
-    await page.getByRole("button", { name: "← andere bardienst" }).click();
+    await page.getByRole("button", { name: "← andere activiteit" }).click();
 
     const activitySelectAgain = page.getByLabel("Activiteit");
     await activitySelectAgain.waitFor({ state: "visible", timeout: 15_000 });
