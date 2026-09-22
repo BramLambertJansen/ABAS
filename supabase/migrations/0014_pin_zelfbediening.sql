@@ -14,9 +14,18 @@
 -- 0009_ledenbeheer_email_rpc_gated_read.sql hangt al van zijn volgorde af.
 -- Dit bestand zelf heeft geen enkele migratie die er specifiek ná moet
 -- komen (0011 raakt set_own_pin niet), dus dit is de veilige kant om te
--- hernummeren. 0012/0013 zijn al in gebruik door een andere, nog niet
--- gemergede branch (issue #24) — vandaar 0014, niet het eerstvolgende vrije
--- nummer op main zelf.
+-- hernummeren. 0012/0013 waren op dat moment geclaimd door een andere, nog
+-- niet gemergede branch (issue #24) — vandaar 0014, niet het eerstvolgende
+-- vrije nummer op main zelf.
+--
+-- Nagekomen (app-review 2026-09-21): van die twee is uiteindelijk alleen
+-- 0012_lid_account_uitnodigen.sql gemerged. **0013 bestaat niet en heeft
+-- nooit bestaan** — het is een gereserveerd nummer dat nooit is opgehaald,
+-- geen verdwenen of teruggedraaide migratie. De Supabase-CLI vereist geen
+-- aaneengesloten reeks, dus het gat blijft staan: hernummeren van
+-- gemergede migraties zou een tweede versiebotsing veroorzaken op elke
+-- database die 0014 al heeft toegepast — precies de fout die deze kop
+-- hierboven beschrijft.
 --
 -- Correctie (Codex-review op deze PR, direct na de hernummering): dit
 -- bestand draaide origineel vóór 0010_pin_hash_kolombeveiliging.sql, dat

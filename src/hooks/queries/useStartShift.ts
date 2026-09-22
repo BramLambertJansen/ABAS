@@ -27,10 +27,24 @@ function toErrorCode(message: string | undefined): StartShiftErrorCode {
   return "unknown";
 }
 
+/** Discriminated result in plaats van een kale boolean, om dezelfde reden
+ *  als usePlaceOrder.ts → PlaceOrderResult: de aanroeper heeft de foutcode
+ *  meteen nodig, niet pas een render later. `errorCode` hieronder is
+ *  React-state en is binnen dezelfde tick na `await startShift(...)` nog de
+ *  waarde van de vorige render — wie erop reageert (DienstStarten.tsx
+ *  ververst de stafkeuze bij `no_bar_role`/`member_not_found`) moet de code
+ *  uit het resultaat lezen, niet uit de hook. */
+export type StartShiftResult =
+  | { ok: true }
+  | { ok: false; code: StartShiftErrorCode };
+
 export function useStartShift() {
   const [state, setState] = useState<State>({ status: "idle" });
 
-  async function startShift(memberId: string, pin: string): Promise<boolean> {
+  async function startShift(
+    memberId: string,
+    pin: string
+  ): Promise<StartShiftResult> {
     setState({ status: "pending" });
     try {
       const supabase = createClient();
@@ -39,17 +53,16 @@ export function useStartShift() {
         p_pin: pin,
       });
       if (error) {
-        setState({ status: "error", code: toErrorCode(error.message) });
-        return false;
+        const code = toErrorCode(error.message);
+        setState({ status: "error", code });
+        return { ok: false, code };
       }
       setState({ status: "idle" });
-      return true;
+      return { ok: true };
     } catch (err) {
-      setState({
-        status: "error",
-        code: toErrorCode(err instanceof Error ? err.message : undefined),
-      });
-      return false;
+      const code = toErrorCode(err instanceof Error ? err.message : undefined);
+      setState({ status: "error", code });
+      return { ok: false, code };
     }
   }
 

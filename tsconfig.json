@@ -11,6 +11,11 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
+    // test/ draait op Node's ingebouwde runner met native
+    // type-stripping, die geen extensieloze TS-imports oplost — de
+    // testbestanden importeren daarom "../src/....ts" letterlijk.
+    // Alleen toegestaan naast noEmit, wat hierboven al staat.
+    "allowImportingTsExtensions": true,
     "jsx": "preserve",
     "incremental": true,
     "plugins": [{ "name": "next" }],

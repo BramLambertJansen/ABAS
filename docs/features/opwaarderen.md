@@ -168,7 +168,11 @@ de open/close-levenscyclus (zelfde verdeling als `onOpenCheckout`).
   patroon te breken — geen wijziging hier nodig om dat mogelijk te houden.
 - **Saldocorrectie** (het naastliggende `correctionOpen`-modal in het
   ontwerp, voor foutief geboekte tikken) — hoort bij #13, niet bij dit
-  ticket.
+  ticket. *(Nagekomen, app-review 2026-09-21: dat dit ontbreekt is precies
+  de reden dat er inmiddels wél een bovengrens en een bevestigingsstap zijn
+  — zie "Besloten: bovengrens en bevestigingsstap" onderaan. Die twee zijn
+  geen vervanging van saldocorrectie, alleen een rem op de vergissing die
+  het duurst is om zonder correctiepad te maken.)*
 - **Methode-toggle/meerdere betaalmethodes** — client stuurt hardcoded
   `"cash"`; zie Besloten.
 - **Server-side afdwinging van `method`** (check-constraint op
@@ -239,3 +243,62 @@ toegepast — alle assertions slagen. `check:a11y` (Playwright, vereist de
 draaiende app + een volledige Supabase-auth-stack) kon in die omgeving niet
 end-to-end gedraaid worden; een reguliere CI-run (met Docker-toegang) moet
 dit alsnog bevestigen vóór merge.
+
+## Besloten: bovengrens en bevestigingsstap (2026-09-21, app-review)
+
+Bevinding bij de app-review: `top_up` controleerde alleen
+`p_amount_cents > 0`, en het vrije invoerveld accepteerde elk bedrag dat
+`parseEuroToCents()` slikt. Een bardienst die "5000" tikt in plaats van
+"50,00" boekte daarmee €5.000 zonder enige tussenstap. In combinatie met het
+ontbreken van saldocorrectie (zie Expliciet buiten scope) is zo'n vergissing
+alleen met directe databasetoegang terug te draaien.
+
+Bram heeft gekozen voor **twee lagen**:
+
+- **Bevestigingsstap boven €100** (`TOP_UP_CONFIRM_THRESHOLD_CENTS`,
+  `src/features/opwaarderen/messages.ts`). De eerste tik op "boeken" boekt
+  niet maar vraagt na: "Je waardeert {bedrag} op bij {naam}. Klopt dat?",
+  met "terug" en "ja, {bedrag} boeken". Elke wijziging van het bedrag
+  (chip of invoerveld) trekt een openstaande bevestiging weer in — anders
+  zou een bevestigd bedrag blijven staan terwijl er inmiddels een ander
+  bedrag geboekt wordt, precies de vergissing die de stap moet vangen.
+- **Harde grens van €500** (`TOP_UP_MAX_CENTS` client-side,
+  `0016_top_up_maximumbedrag.sql` server-side). Boven die grens staat de
+  boeken-knop uit met de inline uitleg "maximaal € 500,00 per opwaardering";
+  komt er toch een aanroep doorheen, dan weigert de RPC met de nieuwe
+  foutcode `amount_exceeds_max`.
+
+De verdeling tussen de twee: de bevestiging is er voor de legitieme maar
+ongebruikelijke grote opwaardering (bardienst bevestigt bewust), de cap voor
+de typefout van drie nullen (nooit bevestigbaar).
+
+**Geen check-constraint op `top_ups.amount_cents`**, om dezelfde reden als
+de `method`-kolom er geen kreeg (zie Besloten, 2026-08-29): dit is een
+kassa-guard voor de contante balie, geen eigenschap van de tabel. Online
+opwaarderen (#23) landt straks als tweede schrijfpad naast deze RPC en heeft
+een iDEAL-betaling als bewijs — daar is €500 geen zinvolle grens, en een
+tabel-constraint zou die route meebeperken zonder dat daar ooit over
+besloten is.
+
+**Eigen foutcode, niet `invalid_amount`**: "vul een geldig bedrag in" is het
+verkeerde antwoord op een bedrag dat prima geldig is maar te hoog — de
+melding moet de grens noemen. Zelfde reden waarom `start_shift`
+`no_bar_role` en `invalid_pin` uit elkaar houdt.
+
+### Aanvulling op de randgevallentabel
+
+| Code | Wanneer bereikbaar via deze UI | Melding | UI-actie |
+|---|---|---|---|
+| `amount_exceeds_max` | Server-fallback; de client-guard zet de boeken-knop al uit boven €500 | "maximaal € 500,00 per opwaardering" | overlay blijft open, invoerveld blijft bewerkbaar |
+
+### Testdekking
+
+- `supabase/tests/top_up.test.sql` — beide zijden van de grens: exact €500
+  (50000 cent) moet nog slagen, €500,01 moet `amount_exceeds_max` gooien.
+  Bewust beide, niet alleen de weigerende helft: een off-by-one zou anders
+  ofwel een legitieme €500-opwaardering blokkeren ofwel de guard één cent te
+  laat laten beginnen, en geen van beide is zichtbaar vanuit één assertie.
+- De bevestigingsstap zelf heeft geen eigen e2e-scenario. De bestaande
+  axe-scan van deze overlay (`e2e/a11y.spec.ts`) opent 'm zonder bedrag en
+  raakt de stap dus niet — de stap is opgebouwd uit dezelfde elementen
+  (`role="status"`-tekst, twee knoppen) die die scan al dekt.

@@ -174,9 +174,12 @@ export function VerkoopScherm({ shift }: { shift: OpenShift }) {
   // docs/features/opwaarderen.md → Randgevallen, "Bezetting = 0").
   const topupDisabled = rosterEmpty || rosterUnavailable;
 
-  function addOne(productId: string) {
-    setCartLines((prev) => applyDelta(prev, productId, 1));
-  }
+  // Eén functie voor beide oproepplekken: tikken op een product in het
+  // assortiment (`onAdd`) en de +-stepper op een bestaande mandjeregel
+  // (`onInc`) doen letterlijk hetzelfde — applyDelta() maakt zelf al geen
+  // onderscheid tussen "regel bestaat nog niet" en "regel ophogen". Stonden
+  // hiervoor als twee identieke functies naast elkaar (app-review
+  // 2026-09-21).
   function inc(productId: string) {
     setCartLines((prev) => applyDelta(prev, productId, 1));
   }
@@ -267,7 +270,7 @@ export function VerkoopScherm({ shift }: { shift: OpenShift }) {
           </p>
         )}
         {products.status === "ready" && (
-          <Assortiment products={productList} cart={cartLines} onAdd={addOne} />
+          <Assortiment products={productList} cart={cartLines} onAdd={inc} />
         )}
 
         <Mandje
