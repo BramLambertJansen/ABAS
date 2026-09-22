@@ -1,17 +1,27 @@
--- Minimale/happy-path pgTAP-dekking voor #18
--- (docs/features/activiteittypes.md): create_activity_type/
--- update_activity_type_name/set_activity_type_archived (ADR 0002's
--- auth.uid()-actorcheck, 1-op-1 gekopieerd van
+-- pgTAP-dekking voor #18 (docs/features/activiteittypes.md):
+-- create_activity_type/update_activity_type_name/set_activity_type_archived
+-- (ADR 0002's auth.uid()-actorcheck, 1-op-1 gekopieerd van
 -- assortimentbeheer.test.sql's create_product/update_product_price/
 -- set_product_archived-dekking), plus de belt-and-braces REVOKE op
--- `activity_types`. Dit is de Developer-stap, niet de Tester-stap — deze
--- file dekt actor_not_found/no_admin_role/happy path per RPC, maar NIET de
--- volledige negatieve matrix (bv. dubbele archiveer-idempotentie,
--- gearchiveerd-blijft-price/naam-bewerkbaar-randgevallen zoals
--- assortimentbeheer.test.sql die wel heeft). Zie de PR-omschrijving voor
--- wat nog aan de Tester is, inclusief start_shift's
--- activity_type_not_found/activity_type_archived-randgevallen
--- (start_shift.test.sql dekt alleen de "verplicht"-hoofdregel, test 7).
+-- `activity_types`. De Developer-stap dekte alleen actor_not_found/
+-- no_admin_role/happy path per RPC; de Tester-stap (dit bestand, sindsdien
+-- uitgebreid) vult de volledige negatieve matrix aan die
+-- assortimentbeheer.test.sql voor producten al had: dubbele
+-- archiveer-idempotentie (test 18-20) en het "gearchiveerd blijft
+-- hernoembaar"-randgeval (test 21-23), zie de bijbehorende commentaren
+-- hieronder. start_shift's activity_type_not_found/activity_type_archived-
+-- randgevallen staan in start_shift.test.sql (tests 8-9 daar), niet hier —
+-- dat raakt start_shift zelf, niet deze drie RPC's.
+--
+-- RLS: de REVOKE-block onderaan dit bestand (insert/update/delete geblokkeerd
+-- voor `authenticated`) is de enige negatieve RLS-dekking die dit repo voor
+-- een lookup-tabel als deze kent — zelfde patroon als products'
+-- (assortimentbeheer.test.sql) en members' (rls_write_protection.test.sql)
+-- REVOKE-blokken. Er is bewust geen negatieve SELECT-test: de
+-- activity_types_select-policy staat lezen toe aan élke authenticated-sessie
+-- (single-tenant, spec → Rolzichtbaarheid → "Lezen"), dus er is geen
+-- toegangsbeperking om als negatief geval te bewijzen — dat zou een
+-- happy-path-test in vermomming zijn, geen negatieve.
 --
 -- Run met `npm run db:test` (= `supabase test db`, needs `supabase start` /
 -- Docker locally). Niet lokaal tegen een echte Postgres gedraaid vanuit
@@ -21,7 +31,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(20);
+select plan(26);
 
 -- ── Fixtures ──────────────────────────────────────────────────────────
 
@@ -179,6 +189,50 @@ select is(
   (select archived from activity_types where id = '00000000-0000-0000-0000-0000000000e0'),
   false,
   'the activity type is no longer archived'
+);
+
+-- 18-20) idempotent: sending p_archived = true twice on an already-archived
+-- activity type does not fail (spec → RPC's: "Client stuurt de expliciete
+-- eindstaat, idempotent" — zelfde tolerantie als set_product_archived,
+-- assortimentbeheer.test.sql test 21).
+select lives_ok(
+  $$ select set_activity_type_archived('00000000-0000-0000-0000-0000000000e0', true) $$,
+  'set_activity_type_archived archives the fixture activity type (setup for the idempotence check below)'
+);
+
+select lives_ok(
+  $$ select set_activity_type_archived('00000000-0000-0000-0000-0000000000e0', true) $$,
+  'set_activity_type_archived on an already-archived activity type (p_archived=true again) does not fail'
+);
+
+select is(
+  (select archived from activity_types where id = '00000000-0000-0000-0000-0000000000e0'),
+  true,
+  'the already-archived activity type stays archived after the idempotent call'
+);
+
+-- 21-23) randgeval: a gearchiveerd activiteittype blijft hernoembaar via
+-- update_activity_type_name. De migratie-commentaar bij die RPC zegt dit
+-- met zoveel woorden ("Geen eis dat het type niet gearchiveerd is — zelfde
+-- redenering als update_product_price op een gearchiveerd product"), maar
+-- dat commentaar is geen bewijs — deze test toetst het gedrag zelf i.p.v.
+-- het aan te nemen (opdracht Tester, #18), inclusief dat hernoemen het
+-- archived-veld niet als bijeffect terugzet.
+select lives_ok(
+  $$ select update_activity_type_name('00000000-0000-0000-0000-0000000000e0', 'Test Kroegentocht Gearchiveerd Hernoemd') $$,
+  'update_activity_type_name succeeds even when the activity type is archived'
+);
+
+select is(
+  (select name from activity_types where id = '00000000-0000-0000-0000-0000000000e0'),
+  'Test Kroegentocht Gearchiveerd Hernoemd',
+  'the archived activity type''s name is updated too'
+);
+
+select is(
+  (select archived from activity_types where id = '00000000-0000-0000-0000-0000000000e0'),
+  true,
+  'renaming an archived activity type does not un-archive it as a side effect'
 );
 
 -- ── REVOKE op activity_types (belt-and-braces, spec → Datamodel) ────────

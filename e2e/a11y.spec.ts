@@ -148,6 +148,41 @@ test.describe("beheer ingelogde staat (a11y)", () => {
   });
 
   /**
+   * docs/features/activiteittypes.md (#18) → Randgevallen → "A11y van de
+   * nieuwe Instellingen-kaart (inline bewerken) en de nieuwe
+   * activiteitkeuze-stap in dienst-starten": the closed/default state of
+   * `ActiviteitstypesInstellingen.tsx` is already scanned incidentally by
+   * the Instellingen-tab test above (it renders alongside
+   * `NegatieveLimietInstellingen`, `BeheerTabs.tsx`) — the scenario the spec
+   * explicitly calls out as still missing is the inline-bewerkveld state,
+   * opened via a row's "bewerken"-knop. Uses "Training", one of the four
+   * seed rows from `0015_activiteittypes.sql` (`supabase/seed.sql` doesn't
+   * override `activity_types`).
+   */
+  test("beheer (/beheer) Activiteitstypes-kaart met geopend inline-bewerkveld has no WCAG2A/AA violations", async ({
+    page,
+  }) => {
+    await loginAsBeheerder(page);
+
+    await page.getByRole("tab", { name: "Instellingen" }).click();
+    await page
+      .getByRole("heading", { name: "Activiteitstypes" })
+      .waitFor({ state: "visible", timeout: 15_000 });
+
+    await page.getByRole("button", { name: "Training bewerken" }).click();
+    await page
+      .getByLabel("Naam van Training")
+      .waitFor({ state: "visible", timeout: 15_000 });
+
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+
+    expect(results.violations, JSON.stringify(results.violations, null, 2))
+      .toEqual([]);
+  });
+
+  /**
    * docs/features/auth-methode-per-lid.md (#42) → Randgevallen → "A11y" (a):
    * the modus-keuzestaat op `/beheer` — after a successful e-mail/wachtwoord-
    * login, before Bar or Beheer is chosen (`ModusKeuze.tsx`). Not part of the
@@ -341,7 +376,17 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
    *  closes one, so a shift left open by an earlier test in this block is
    *  still the expected/reused case here, not a stale assumption. Lands on
    *  the Verkoop tab either way (docs/features/verkoop.md → Navigatie:
-   *  Verkoop is the default tab after start / on an already-open shift). */
+   *  Verkoop is the default tab after start / on an already-open shift).
+   *
+   *  Updated for #18 (docs/features/activiteittypes.md): `start_shift` now
+   *  requires an activity type, and DienstStarten.tsx inserted a new
+   *  activiteitkeuze-stap (ActiviteitKeuze.tsx) between the staff picker and
+   *  the PIN pad — tapping the staff button no longer lands directly on
+   *  PinPad. "Training" is one of the four seed rows
+   *  (0015_activiteittypes.sql; supabase/seed.sql doesn't override them).
+   *  Without this step the PIN digits below would be typed into a screen
+   *  that doesn't exist yet, and every test using this helper would time
+   *  out waiting for the Verkoop tab. */
   async function ensureShiftStarted(page: Page) {
     await page.goto("/");
 
@@ -364,6 +409,10 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
     if (await staffButton.isVisible()) {
       await staffButton.click();
 
+      const activitySelect = page.getByLabel("Activiteit");
+      await activitySelect.waitFor({ state: "visible", timeout: 15_000 });
+      await activitySelect.selectOption({ label: "Training" });
+
       for (const digit of ["1", "2", "3", "4"]) {
         await page.getByRole("button", { name: `Cijfer ${digit}` }).click();
       }
@@ -371,6 +420,101 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
       await verkoopTab.waitFor({ state: "visible", timeout: 15_000 });
     }
   }
+
+  /**
+   * docs/features/activiteittypes.md (#18) → Randgevallen → "A11y van de
+   * nieuwe Instellingen-kaart ... en de nieuwe activiteitkeuze-stap in
+   * dienst-starten": ActiviteitKeuze.tsx, the new step between StaffPicker
+   * and PinPad (DienstStarten.tsx → step "activity"). Deliberately the
+   * *first* test in this `describe.serial` block, before
+   * `ensureShiftStarted()` runs anywhere else in the file — that helper is
+   * the only place a shift gets started on this shared bar-tablet session,
+   * so running first (same worker, in declaration order, per
+   * `.serial()`'s own guarantee) is what keeps the staff picker — and this
+   * step right after it — reachable rather than already replaced by
+   * DienstTabs. Doesn't pick an activity or type a PIN (that would start a
+   * shift as a side effect of an a11y-only scan, same reasoning as the
+   * dienst-afsluiten-overlay test below not clicking its own confirm
+   * button).
+   */
+  test("bar shell (/) activiteitkeuze-stap (dienst starten) has no WCAG2A/AA violations", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    const staffButton = page.getByRole("button", { name: /Tom Willems/i });
+    await staffButton.waitFor({ state: "visible", timeout: 15_000 });
+    await staffButton.click();
+
+    const activitySelect = page.getByLabel("Activiteit");
+    await activitySelect.waitFor({ state: "visible", timeout: 15_000 });
+
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+
+    expect(results.violations, JSON.stringify(results.violations, null, 2))
+      .toEqual([]);
+  });
+
+  /**
+   * docs/features/activiteittypes.md (#18), task item 5 (Reviewer note,
+   * explicitly flagged as non-blocking, not a bug to fix here): going back
+   * from the PIN-stap to the activiteitkeuze-stap
+   * (`backToActivityKeuze()`/PinPad's "← andere bardienst"-knop,
+   * DienstStarten.tsx) clears `pin`/foutstatus but deliberately does NOT
+   * clear `selectedActivityType` in React state (spec → Schermflow §2 stap
+   * 3: "`selectedStaff` blijft daarbij behouden" — the same is true in the
+   * implementation for `selectedActivityType`, see DienstStarten.tsx's
+   * `backToActivityKeuze`). ActiviteitKeuze.tsx's own `<select>` always
+   * renders `value=""` though (hardcoded, never bound to
+   * `selectedActivityType`), so the dropdown visually resets to the
+   * placeholder while the internal state still holds the earlier choice —
+   * a UI/state mismatch, not a functional break: the user has to interact
+   * with the `<select>` again regardless (`onSelect` only fires on a real
+   * `onChange`), and doing so immediately overwrites the stale state before
+   * it can be submitted anywhere. This test locks down that this is the
+   * CURRENT behaviour, not a statement that it's the correct one — see the
+   * Tester's handback report for whether it should be revisited.
+   *
+   * Placed second in this block (after the a11y-only scan above, before
+   * `ensureShiftStarted()`'s own tests), same "no shift open yet"
+   * ordering-dependency as that first test.
+   */
+  test("bar shell (/) activiteitkeuze toont na 'terug' vanaf de PIN-stap weer de placeholder", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    const staffButton = page.getByRole("button", { name: /Tom Willems/i });
+    await staffButton.waitFor({ state: "visible", timeout: 15_000 });
+    await staffButton.click();
+
+    const activitySelect = page.getByLabel("Activiteit");
+    await activitySelect.waitFor({ state: "visible", timeout: 15_000 });
+    await activitySelect.selectOption({ label: "Training" });
+
+    // Auto-advances to the PIN-stap once an activity is picked (spec →
+    // Schermflow §2 stap 2) — geen aparte "volgende"-knop. Wait for a
+    // PIN-stap-specific element before looking for the (identically
+    // labelled) back button, so this doesn't accidentally click
+    // ActiviteitKeuze's own "← andere bardienst"-knop before the
+    // transition has happened.
+    const digit1 = page.getByRole("button", { name: "Cijfer 1" });
+    await digit1.waitFor({ state: "visible", timeout: 15_000 });
+
+    await page.getByRole("button", { name: "← andere bardienst" }).click();
+
+    const activitySelectAgain = page.getByLabel("Activiteit");
+    await activitySelectAgain.waitFor({ state: "visible", timeout: 15_000 });
+    await expect(activitySelectAgain).toHaveValue("");
+
+    // Functioneel onschadelijk (Reviewer's beoordeling): opnieuw kiezen
+    // (ook dezelfde activiteit) werkt gewoon en komt weer op de PIN-stap
+    // uit — geen dead end.
+    await activitySelectAgain.selectOption({ label: "Training" });
+    await digit1.waitFor({ state: "visible", timeout: 15_000 });
+  });
 
   /**
    * docs/features/bezetting-beheren.md (#7) → Randgevallen → "A11y-dekking

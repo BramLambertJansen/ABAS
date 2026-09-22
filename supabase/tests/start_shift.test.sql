@@ -11,7 +11,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(11);
+select plan(13);
 
 -- ── Fixtures ──────────────────────────────────────────────────────────
 insert into members (id, name, role, pin_hash, balance_cents, archived) values
@@ -26,7 +26,8 @@ insert into members (id, name, role, pin_hash, balance_cents, archived) values
 -- rows, not the migration's own seed rows, same "don't depend on another
 -- migration's data" convention as the rest of this file's fixtures.
 insert into activity_types (id, name, archived) values
-  ('00000000-0000-0000-0000-0000000000b0', 'Test Activity Fixture', false);
+  ('00000000-0000-0000-0000-0000000000b0', 'Test Activity Fixture', false),
+  ('00000000-0000-0000-0000-0000000000b1', 'Archived Activity Fixture', true);
 
 -- Regression fixture for docs/features/auth-methode-per-lid.md (#42) / ADR
 -- 0004: a bardienst member with BOTH a pin_hash AND a linked auth_user_id
@@ -151,10 +152,7 @@ select is(
 
 -- ── 7) #18: activiteittype is verplicht — a null p_activity_type_id is
 -- rejected (docs/features/activiteittypes.md → "Beantwoorde vraag", the one
--- previously open question, now settled as "verplicht"). Negatieve dekking
--- voor activity_type_not_found/activity_type_archived (de race-conditie-
--- randgevallen) is nog niet toegevoegd hier — dat is aan de Tester-stap,
--- zie de PR-omschrijving.
+-- previously open question, now settled as "verplicht").
 select throws_ok(
   $$ select start_shift(
        '00000000-0000-0000-0000-000000000050'::uuid,
@@ -163,6 +161,33 @@ select throws_ok(
      ) $$,
   'P0001', 'invalid_activity_type',
   'start_shift rejects a null activity type — verplicht, zie #18'
+);
+
+-- ── 8) #18: activity_type_not_found — an id that does not point at any
+-- activity_types row (spec → Randgevallen: "puur defensief, geen realistisch
+-- pad" — there's no delete, only archive, but start_shift still guards it).
+select throws_ok(
+  $$ select start_shift(
+       '00000000-0000-0000-0000-000000000050'::uuid,
+       '1234',
+       '00000000-0000-0000-0000-0000000000ff'::uuid
+     ) $$,
+  'P0001', 'activity_type_not_found',
+  'start_shift rejects an activity type id that does not exist'
+);
+
+-- ── 9) #18: activity_type_archived — a real but archived activity type
+-- (spec → Randgevallen: the "archived between choosing and confirming the
+-- PIN" race — this proves the guard itself, independent of the UI-level
+-- recovery DienstStarten.tsx does when it sees this error code).
+select throws_ok(
+  $$ select start_shift(
+       '00000000-0000-0000-0000-000000000050'::uuid,
+       '1234',
+       '00000000-0000-0000-0000-0000000000b1'::uuid
+     ) $$,
+  'P0001', 'activity_type_archived',
+  'start_shift rejects an archived activity type'
 );
 
 select * from finish();
