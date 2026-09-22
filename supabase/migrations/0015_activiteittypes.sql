@@ -196,6 +196,13 @@ grant execute on function create_activity_type, update_activity_type_name, set_a
 -- automatisch — die krijgt hieronder een eigen, expliciete grant.
 drop function if exists start_shift(uuid, text);
 
+-- search_path = public, extensions — niet public alleen: dit rewrite van
+-- start_shift roept nog steeds crypt() aan (pgcrypto, hieronder), en
+-- pgcrypto leeft in het extensions-schema, niet public. Zelfde vereiste,
+-- zelfde reden als 0002_fix_start_shift_pgcrypto_search_path.sql en
+-- 0014_pin_zelfbediening.sql's set_own_pin — hier opnieuw nodig omdat deze
+-- create-or-replace de search_path-clause van de functie herhaalt in
+-- plaats van overneemt.
 create or replace function start_shift(
   p_member_id uuid,
   p_pin text,
@@ -204,7 +211,7 @@ create or replace function start_shift(
 returns shifts
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare
   v_member members;
