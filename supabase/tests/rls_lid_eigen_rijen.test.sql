@@ -27,6 +27,18 @@
 -- sessie afschermen. Die houdt volle leestoegang (dat is precies wat het
 -- "orphan session"-blok onderaan vastlegt als gewenst gedrag, niet als gat)
 -- — zie 0015's kop en docs/adr/0007. Het dichtzetten daarvan hangt aan #15.
+--
+-- **Geen absolute rij-aantallen in dit bestand.** De eerste versie hiervan
+-- assereerde "een bardienst ziet 4 leden" en dergelijke, wat lokaal tegen
+-- een lege database klopte maar in CI faalde (run 35696784506): `db:test`
+-- draait daar tegen een database die `supabase start` al met
+-- `supabase/seed.sql` heeft gevuld (5 leden) én waar `check:a11y` vlak
+-- daarvoor doorheen is gelopen — die start echte diensten, dus `shifts` en
+-- `shift_members` zijn dan ook niet leeg. Elke "ziet alles"-assertie
+-- vergelijkt daarom met het werkelijke tabeltotaal, vastgelegd als
+-- superuser vóór de rolwissel. Dat is bovendien een sterkere bewering dan
+-- een hardgecodeerd getal: hij zegt letterlijk "deze sessie ziet de hele
+-- tabel", niet "deze sessie ziet er toevallig vier".
 
 create extension if not exists pgtap with schema extensions;
 
@@ -94,6 +106,29 @@ insert into top_ups (shift_id, member_id, amount_cents, method, served_by) value
   ('00000000-0000-0000-0000-0000000002d0', '00000000-0000-0000-0000-0000000002b0', 1000, 'cash', '00000000-0000-0000-0000-0000000002b2'),
   ('00000000-0000-0000-0000-0000000002d0', '00000000-0000-0000-0000-0000000002b1', 2000, 'cash', '00000000-0000-0000-0000-0000000002b2');
 
+-- ── Referentietotalen (als superuser, vóór de rolwissel) ─────────────────
+--
+-- RLS geldt niet voor een superuser, dus dit zijn de werkelijke aantallen
+-- in de tabel — inclusief wat seed.sql en een eerdere check:a11y-run
+-- hebben achtergelaten. Transactie-lokale GUC's (`set_config(..., true)`),
+-- dus ze verdwijnen met de rollback en overleven de rolwissels hieronder.
+select set_config('abas.n_members',       (select count(*)::text from members),       true);
+select set_config('abas.n_orders',        (select count(*)::text from orders),        true);
+select set_config('abas.n_top_ups',       (select count(*)::text from top_ups),       true);
+select set_config('abas.n_shifts',        (select count(*)::text from shifts),        true);
+select set_config('abas.n_shift_members', (select count(*)::text from shift_members), true);
+
+-- De rijen die lid A toebehoren — waartegen de beperkte kant gemeten wordt.
+-- Ook dit als referentie in plaats van een vast getal, zodat dit bestand
+-- niet stilletjes verkeerd wordt als seed.sql ooit een bestelling toevoegt.
+select set_config('abas.n_orders_lid_a', (
+  select count(*)::text from orders where member_id = '00000000-0000-0000-0000-0000000002b0'), true);
+select set_config('abas.n_order_lines_lid_a', (
+  select count(*)::text from order_lines ol join orders o on o.id = ol.order_id
+   where o.member_id = '00000000-0000-0000-0000-0000000002b0'), true);
+select set_config('abas.n_top_ups_lid_a', (
+  select count(*)::text from top_ups where member_id = '00000000-0000-0000-0000-0000000002b0'), true);
+
 -- ── Blok 1: als lid A ────────────────────────────────────────────────────
 
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000002a0', true);
@@ -102,7 +137,7 @@ set local role authenticated;
 select is(
   (select count(*)::integer from members),
   1,
-  'een lid ziet precies één members-rij (de eigen), niet alle vier'
+  'een lid ziet precies één members-rij (de eigen), ongeacht hoeveel er zijn'
 );
 
 select is(
@@ -119,8 +154,8 @@ select is(
 
 select is(
   (select count(*)::integer from orders),
-  1,
-  'een lid ziet alleen de eigen bestelling, niet die van lid B en niet de gastverkoop'
+  current_setting('abas.n_orders_lid_a')::integer,
+  'een lid ziet precies de eigen bestellingen, niet die van lid B en niet de gastverkoop'
 );
 
 select is(
@@ -131,13 +166,13 @@ select is(
 
 select is(
   (select count(*)::integer from order_lines),
-  1,
-  'een lid ziet alleen de orderregels van de eigen bestelling'
+  current_setting('abas.n_order_lines_lid_a')::integer,
+  'een lid ziet alleen de orderregels van de eigen bestellingen'
 );
 
 select is(
   (select count(*)::integer from top_ups),
-  1,
+  current_setting('abas.n_top_ups_lid_a')::integer,
   'een lid ziet alleen de eigen opwaarderingen'
 );
 
@@ -148,14 +183,14 @@ select is(
 -- geen stille regressie van deze migratie.
 select is(
   (select count(*)::integer from shifts),
-  1,
-  'shifts blijft leesbaar voor een lid (bewuste reikwijdte, niet beperkt door 0015)'
+  current_setting('abas.n_shifts')::integer,
+  'shifts blijft volledig leesbaar voor een lid (bewuste reikwijdte, niet beperkt door 0015)'
 );
 
 select is(
   (select count(*)::integer from shift_members),
-  1,
-  'shift_members blijft leesbaar voor een lid (bewuste reikwijdte, niet beperkt door 0015)'
+  current_setting('abas.n_shift_members')::integer,
+  'shift_members blijft volledig leesbaar voor een lid (bewuste reikwijdte, niet beperkt door 0015)'
 );
 
 reset role;
@@ -171,19 +206,19 @@ set local role authenticated;
 
 select is(
   (select count(*)::integer from members),
-  4,
+  current_setting('abas.n_members')::integer,
   'een bardienst-sessie ziet nog steeds alle leden'
 );
 
 select is(
   (select count(*)::integer from orders),
-  3,
+  current_setting('abas.n_orders')::integer,
   'een bardienst-sessie ziet nog steeds alle bestellingen, inclusief de gastverkoop'
 );
 
 select is(
   (select count(*)::integer from top_ups),
-  2,
+  current_setting('abas.n_top_ups')::integer,
   'een bardienst-sessie ziet nog steeds alle opwaarderingen'
 );
 
@@ -201,13 +236,13 @@ set local role authenticated;
 
 select is(
   (select count(*)::integer from members),
-  4,
+  current_setting('abas.n_members')::integer,
   'de gedeelde device-sessie (geen gekoppeld lid) ziet nog steeds alle leden'
 );
 
 select is(
   (select count(*)::integer from orders),
-  3,
+  current_setting('abas.n_orders')::integer,
   'de gedeelde device-sessie ziet nog steeds alle bestellingen'
 );
 
