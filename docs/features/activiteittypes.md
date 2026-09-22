@@ -3,10 +3,24 @@
 Spec voor [issue #18](https://github.com/BramLambertJansen/ABAS/issues/18)
 ("[Beslissing nodig] Activiteittypes per dienst (Training/Wedstrijddag)").
 
-**Status: goedgekeurd door Bram, klaar voor de Developer (2026-09-22).** De
-ene openstaande vraag (verplicht of optioneel kiezen bij dienst starten, zie
-"Openstaande vraag voor Bram" hieronder) is beantwoord: **verplicht** — de
-Architect-aanbeveling die deze spec al volledig uitwerkte. Er staat in dit
+**Status: gebouwd (2026-09-22) — [PR #65](https://github.com/BramLambertJansen/ABAS/pull/65),
+CI groen, geen merge-conflict, klaar voor Bram's merge (nog niet
+gemerged).** De rest van dit document beschrijft de daadwerkelijk gebouwde
+staat, niet langer alleen een plan. Op een paar punten week de bouw af van
+de letterlijke spec-schets hieronder — elk zo'n punt is inline gemarkeerd
+met **"(bouw)"** en heeft een eigen motivatie: Datamodel (het
+migratienummer), RPC's (`search_path`, expliciete `revoke execute`),
+Schermflow §1 (twee WCAG-contrastfixes, met een verwijzing naar
+[issue #66](https://github.com/BramLambertJansen/ABAS/issues/66) voor de
+bredere, nog openstaande variant van die bug) en Schermflow §2
+(`PinPad`'s nieuwe `backLabel`-prop). Geen van deze afwijkingen wijzigt een
+RPC-contract, foutcode of gedrag dat hieronder al beschreven stond — stuk
+voor stuk correcties/aanvullingen die pas tijdens het bouwen aan het licht
+kwamen, geen scopewijziging.
+
+De ene openstaande vraag (verplicht of optioneel kiezen bij dienst starten)
+is beantwoord: **verplicht** — de Architect-aanbeveling die deze spec al
+volledig uitwerkte, zie "Beantwoorde vraag" onderaan. Er staat in dit
 document geen open vraag meer.
 
 Was tot dit ticket expliciet niet-besloten scope: `docs/ARCHITECTURE.md` →
@@ -54,8 +68,9 @@ Randvoorwaarden:
   Deze chats zijn volgens `docs/ARCHITECTURE.md` "useful for *why*, not
   binding on *what we build*" — ze bepalen dus niet automatisch het gedrag,
   maar zijn wél het enige directe bewijs van Bram's eigen intentie toen dit
-  voor het eerst ontworpen werd. Zie "Openstaande vraag voor Bram" voor
-  waarom dit ondanks dat bewijs geen aanname wordt.
+  voor het eerst ontworpen werd. Zie "Beantwoorde vraag" onderaan voor
+  waarom dit ondanks dat bewijs destijds niet als aanname gebouwd is, maar
+  eerst aan Bram voorgelegd.
 - **Bestaande code** (`docs/features/dienst-starten.md`,
   `bezetting-beheren.md`, `assortimentbeheer.md`,
   `negatieve-saldolimiet.md`, en de bijbehorende bestanden onder
@@ -127,12 +142,13 @@ nieuw scherm:
 
 ## Datamodel
 
-Nieuwe migratie `supabase/migrations/0019_activiteittypes.sql` (oorspronkelijk
-opeenvolgend na `0014_pin_zelfbediening.sql` genummerd als `0015`, herzien naar
-`0019` bij het mergen met main — `0015` t/m `0018` zijn intussen elders
-vergeven, zie `0018_rpc_execute_alleen_authenticated.sql`).
-`0001_init.sql` zelf wordt niet aangepast, zelfde patroon als alle eerdere
-migraties.
+**(bouw)** Nieuwe migratie `supabase/migrations/0019_activiteittypes.sql`
+(oorspronkelijk opeenvolgend na `0014_pin_zelfbediening.sql` genummerd als
+`0015`, herzien naar `0019` bij het mergen met main — `0015` t/m `0018` zijn
+intussen elders vergeven door [PR #64](https://github.com/BramLambertJansen/ABAS/pull/64),
+zie `0018_rpc_execute_alleen_authenticated.sql`). Puur een
+migratienummer-botsing, geen inhoudelijke wijziging — `0001_init.sql` zelf
+wordt niet aangepast, zelfde patroon als alle eerdere migraties.
 
 **Nieuwe tabel `activity_types`**, 1-op-1 het `products`-patroon maar zonder
 `category`/`price_cents` (die velden bestaan niet in het ontwerp voor dit
@@ -161,9 +177,9 @@ revoke insert, update, delete on activity_types from authenticated;
 `supabase/seed.sql`-fixture).** Anders dan `products` (dat leeg start —
 een lege productlijst is onschuldig, het verkoopscherm toont gewoon "nog
 geen producten") kán een lege `activity_types`-lijst het starten van een
-dienst blokkeren zodra dat verplicht is (zie "Openstaande vraag voor Bram").
-Om Aurora niet met een leeg systeem te laten starten, seedt de migratie de
-vier typen die het ontwerp zelf als startset gebruikte
+dienst blokkeren — "verplicht" is het gebouwde gedrag (zie "Beantwoorde
+vraag" onderaan). Om Aurora niet met een leeg systeem te laten starten,
+seedt de migratie de vier typen die het ontwerp zelf als startset gebruikte
 (`designs/Bar App.dc.html` regel 1580–1585, `ACTIVITY_TYPES`):
 
 ```sql
@@ -359,6 +375,19 @@ grant execute on function create_activity_type, update_activity_type_name, set_a
   to authenticated;
 ```
 
+**(bouw) Elke van deze drie functies kreeg daarnaast een expliciete
+`revoke execute ... from public`/`from anon`**, niet in de spec-schets
+hierboven. Vereist sinds [PR #64](https://github.com/BramLambertJansen/ABAS/pull/64)
+(`0018_rpc_execute_alleen_authenticated.sql`, CLAUDE.md →
+Architectuurbeslissingen: "een nieuwe functie krijgt van Postgres standaard
+`EXECUTE` voor `PUBLIC`... dat moet elke migratie die er een toevoegt
+expliciet intrekken") — deze spec dateert van vóór die regel. De Developer
+paste 'm alsnog toe voor alle vier nieuwe/herschapen functies in deze
+migratie (deze drie, plus `start_shift` hieronder);
+`supabase/tests/rpc_execute_grants.test.sql` bewaakt dit inmiddels per
+functie en blokkeerde de eerste PR-push toen dit nog ontbrak (commit
+`f73708d`).
+
 ### Wijziging aan een bestaande, al gemergede RPC: `start_shift`
 
 Dit is de enige RPC-wijziging die een al gebouwd contract raakt — met naam
@@ -388,7 +417,7 @@ create or replace function start_shift(
 returns shifts
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare
   v_member members;
@@ -406,10 +435,8 @@ begin
     raise exception 'invalid_pin' using errcode = 'P0001';
   end if;
 
-  -- Zie "Openstaande vraag voor Bram": onderstaande null-check dwingt
-  -- "verplicht" af. Wordt het antwoord "optioneel", vervalt uitsluitend dit
-  -- ene blok (drie regels) — de rest van deze RPC/migratie blijft
-  -- ongewijzigd.
+  -- Zie "Beantwoorde vraag" onderaan: onderstaande null-check dwingt
+  -- "verplicht" af.
   if p_activity_type_id is null then
     raise exception 'invalid_activity_type' using errcode = 'P0001';
   end if;
@@ -433,8 +460,32 @@ end;
 $$;
 ```
 
-`grant execute` hoeft niet opnieuw (`create or replace function` behoudt de
-bestaande grant, zelfde als de `remove_shift_member`-fix in #7).
+**(bouw) De spec-zin hierboven ("`grant execute` hoeft niet opnieuw…") klopte
+niet en is niet zo gebouwd.** Ze was gemodelleerd naar de
+`remove_shift_member`-fix in #7, maar dat was een bugfix met dezelfde naam
+én parameterlijst; dit ticket voegt `start_shift` een derde parameter toe.
+Postgres identificeert een functie op naam *én* parameterlijst samen —
+`create or replace function start_shift(p_member_id uuid, p_pin text,
+p_activity_type_id uuid)` vervangt de bestaande 2-parameter-functie dus
+niet, het voegt een nieuwe, overloaded functie ernaast toe. Gebouwd:
+
+- `drop function if exists start_shift(uuid, text);` vóór de
+  `create or replace` hierboven — zonder deze drop zou de oude
+  2-parameter `start_shift` (zonder de "verplicht"-afdwinging) gewoon
+  blijven bestaan en aanroepbaar blijven, wat deze hele wijziging zou
+  omzeilen.
+- Een eigen, expliciete `grant execute on function start_shift(uuid, text,
+  uuid) to authenticated;` — de bestaande grant uit `0001_init.sql` (die
+  tegen de toen enige, 2-parameter-signatuur resolvede) dekt de nieuwe
+  3-parameter-functie niet automatisch.
+- **(bouw)** Een eigen, expliciete `revoke execute ... from public`/`from
+  anon` op die nieuwe 3-parameter-functie (zie ook de RPC's-sectie
+  hierboven) — hetzelfde "nieuw functie-object, opnieuw Postgres-default
+  `EXECUTE` voor `PUBLIC`"-argument geldt hier evengoed.
+
+Zie `supabase/migrations/0019_activiteittypes.sql`'s eigen commentaar voor
+de volledige uitleg; gevonden en gecorrigeerd tijdens het bouwen, niet
+tijdens de Architect-fase.
 
 ## Schermflow
 
@@ -476,6 +527,37 @@ staan nu in een responsief, scrollbaar raster"), geen tabbalk-uitbreiding
   dienst-starten-stap die daadwerkelijk geraakt wordt (Schermflow §2,
   Randgevallen), niet hier nogmaals gebouwd.
 
+**(bouw) Twee WCAG-contrastfixes op de "Opslaan"/"toevoegen"-knoppen, niet
+in de spec-schets hierboven.** `check:a11y` op CI vond, ná de eerste push:
+
+1. De "Opslaan"-knop gebruikte `text-xs` op de standaard
+   `bg-accent`/`text-rail`-kleurcombinatie — 4.25:1 contrast, maar bij die
+   tekstgrootte (12px) eist WCAG-AA 4.5:1. Elke andere `bg-accent`/
+   `text-rail`-knop in de codebase (Leden, Producten, Beheer-login, enz.)
+   gebruikt `text-sm` (14px): bij 14px+bold valt een knop onder WCAG's
+   "grote tekst"-drempel (3:1). Fix: `text-xs` → `text-sm`, het overal al
+   gebruikte patroon gevolgd (commit `b32d4dc`).
+2. De eigenlijke oorzaak, pas hierna gevonden: `hover:bg-accent-hover` op
+   diezelfde `text-rail`-knoppen. `tailwind.config.ts`'s eigen commentaar
+   bij de `accent`-kleur documenteert dit al — `accent.hover`/`.active` zijn
+   alleen 4.5:1-compliant voor wit/licht tekst, niet voor `text-rail` (donker)
+   tekst. Playwright's cursor blijft na een klik op "bewerken" op de plek van
+   de nieuwe knop staan, dus `axe` scant 'm in `:hover`-staat — reproduceerbaar
+   voor een echte muisgebruiker, geen testartefact. Fix: `hover:bg-accent-hover`
+   verwijderd van de twee `text-rail`-knoppen in dit nieuwe bestand ("Opslaan",
+   "toevoegen"); ze vallen terug op de altijd-compliante `DEFAULT`-kleur, geen
+   nieuwe hoverstijl (commit `989774c`).
+
+**Niet meegenomen in #18, bewust:** dezelfde `hover:bg-accent-hover`/
+`text-rail`-combinatie zit op minstens 9 andere, bestaande knoppen elders in
+de app (`LedenLijst`, `NieuwLidOverlay`, `LidBeherenOverlay`, `BeheerLogin`,
+`NegatieveLimietInstellingen`, `NieuwProductOverlay`, `ProductenLijst`,
+`ProductBeherenOverlay`, `MijnAccountOverlay`) — dezelfde latente bug, alleen
+nog niet gevangen omdat geen bestaande a11y-test daar toevallig een echte
+hover triggert. Vastgelegd als [issue #66](https://github.com/BramLambertJansen/ABAS/issues/66),
+niet hier meegefixt om deze PR niet te verbreden. Zie ook
+`docs/ARCHITECTURE.md` → Design reference.
+
 ### 2. Dienst starten — nieuwe stap tussen stafkeuze en PIN
 
 `DienstStarten.tsx`, tussen de bestaande stappen "Wie start de dienst?"
@@ -493,12 +575,19 @@ het bestaande `selectedStaff`/`pin`.
    type gekozen is: automatisch door naar stap 3 (`PinPad`) — zelfde
    "auto-doorschakelen zodra de invoer compleet is"-stijl als de PIN-invoer
    zelf, geen aparte "volgende"-knop nodig voor een enkele dropdown-keuze.
-3. **PIN-invoer** (ongewijzigd qua UI/gedrag): "terug" gaat nu naar de
-   activiteitkeuze van stap 2 (niet meer direct naar de stafkeuze) —
+3. **PIN-invoer** (grotendeels ongewijzigd qua UI/gedrag): "terug" gaat nu
+   naar de activiteitkeuze van stap 2 (niet meer direct naar de stafkeuze) —
    `selectedStaff` blijft daarbij behouden, alleen `pin`/foutstatus wordt
    gewist, zelfde detail-niveau als de bestaande `backToStaffPicker()`. Bij
    de 4e cijferinvoer: `startShiftMutation.startShift(selectedStaff.id, pin,
-   selectedActivityType.id)`.
+   selectedActivityType.id)`. **(bouw)** Één kleine copy-aanpassing, niet in
+   de spec-schets: `PinPad.tsx` toonde altijd de vaste terugknop-tekst "←
+   andere bardienst", wat niet meer klopte zodra "terug" hier naar de
+   activiteitkeuze gaat in plaats van de stafkeuze. `PinPad` kreeg een
+   optionele `backLabel`-prop (default ongewijzigd, `"← andere bardienst"`,
+   dus elke andere aanroeper blijft ongemoeid); deze stap geeft
+   `backLabel="← andere activiteit"` mee. Kleine, binnen dit ticket
+   opgepakte copy-fix (commit `d18b7bc`), geen nieuw gedrag.
 4. **Succes** → zoals vandaag, `openShift.refetch()`, dienst is open,
    `DienstTabs` neemt het over.
 5. **Fout** (`invalid_activity_type`/`activity_type_not_found`/
@@ -608,43 +697,20 @@ overal elders, zonder een eerste concrete consument.
 **Was: is het kiezen van een activiteittype bij het starten van een dienst
 verplicht (blokkeert het starten tot er iets gekozen is) of optioneel (mag
 worden overgeslagen, dienst start dan zonder activiteittype)? Antwoord:
-verplicht.** Geen wijziging aan de rest van deze spec nodig — verplicht was
-al de uitgewerkte aanname.
+verplicht.** Zo gebouwd — verplicht was al de uitgewerkte aanname, geen
+wijziging aan de rest van deze spec nodig geweest.
 
-Onderzoek (zie "Onderzocht in /designs/") wijst sterk richting **verplicht**:
+Onderzoek (zie "Onderzocht in /designs/") wees sterk richting **verplicht**:
 Bram's eigen woorden in `chat36.md` ("een dienst *moet* gekoppeld zitten aan
 een activiteit … bij het starten van een dienst *moet* je aangeven voor welke
-activiteit het is") en het gebouwde ontwerp zelf, dat de bevestigknop
-functioneel blokkeert tot er een keuze is. Deze spec is dan ook volledig
-uitgewerkt voor "verplicht" (zie RPC's, Schermflow §2, Randgevallen) en
-**dat is de aanbeveling van de Architect.**
+activiteit het is") en het ontwerp zelf, dat de bevestigknop functioneel
+blokkeerde tot er een keuze was. Deze spec was dan ook volledig uitgewerkt
+voor "verplicht" en dat was de aanbeveling van de Architect.
 
-Toch expliciet aan Bram voorgelegd, niet als aanname gebouwd: die chats zijn
-volgens `docs/ARCHITECTURE.md` zelf "useful for *why*, not binding on *what
-we build*", dit ticket verandert het gedrag van een al gebouwd, dagelijks
-gebruikt scherm (dienst-starten, #6), en CLAUDE.md → Werkstraat is expliciet
-dat "gedrag bij een edge case" — en dit is meer dan een edge case, het raakt
-de hoofdroute van elke dienststart — een vraag aan Bram is, geen
-Architect-aanname.
-
-**Impact als het antwoord "optioneel" wordt** (kleine, lokale aanpassing, geen
-herziening van de rest van deze spec):
-
-- RPC's → `start_shift`: het `if p_activity_type_id is null then raise
-  exception 'invalid_activity_type' …` blok (drie regels) vervalt. De
-  overige validatie (bestaat het type, is het niet gearchiveerd — alleen
-  wanneer een waarde wél meegegeven is) blijft ongewijzigd.
-- Schermflow §2: de nieuwe activiteitkeuze-stap krijgt een "overslaan"-optie
-  naast de dropdown; `selectedActivityType` mag `null` blijven bij het
-  doorgaan naar de PIN-stap.
-- Schermflow §3/Randgevallen: `DienstActief` toont "—" voor een dienst zonder
-  gekozen activiteittype, ook voor een net-gestarte dienst (niet alleen
-  historische) — dezelfde weergave die bij "verplicht" al voor historische
-  diensten gold.
-- Randgevallen "geen actieve activiteittypes beschikbaar": wordt minder
-  urgent (de gebruiker kan gewoon overslaan) maar de rij blijft relevant voor
-  de UX-tekst.
-
-Geen enkele andere sectie van deze spec (Datamodel, de drie nieuwe
-beheerder-RPC's, Schermflow §1, Rolzichtbaarheid) is van dit antwoord
-afhankelijk.
+Toch destijds expliciet aan Bram voorgelegd, niet als aanname gebouwd: die
+chats zijn volgens `docs/ARCHITECTURE.md` zelf "useful for *why*, not
+binding on *what we build*", dit ticket veranderde het gedrag van een al
+gebouwd, dagelijks gebruikt scherm (dienst-starten, #6), en CLAUDE.md →
+Werkstraat is expliciet dat "gedrag bij een edge case" — en dit was meer dan
+een edge case, het raakt de hoofdroute van elke dienststart — een vraag aan
+Bram was, geen Architect-aanname.
