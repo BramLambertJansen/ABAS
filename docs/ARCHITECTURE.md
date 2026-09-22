@@ -241,6 +241,29 @@ future decision on whether/how to persist it.
   check-constraint on `top_ups.amount_cents` — #23's payment-provider path
   has an actual payment as proof and shouldn't inherit this limit.
 
+**RPC-grens gold niet voor sessieloze aanroepers (opgelost, 2026-09-22)**:
+gevonden bij het bijwerken van de gehoste omgeving. Postgres geeft bij
+`create function` standaard `EXECUTE` aan `PUBLIC`, en Supabase's
+platform-brede default privileges geven daarnaast een expliciete grant aan
+`anon`. Geen enkele migratie had een van beide ooit ingetrokken, dus de
+`grant execute ... to authenticated` in `0001_init.sql` en later *las* als
+de poort maar wás het niet: **elke RPC was aanroepbaar met alleen de
+publishable key, zonder sessie**. Voor `place_order`/`top_up` betekende dat
+concreet dat iedereen tijdens een open dienst saldo kon afschrijven of
+bijschrijven; `start_shift` was zonder account brute-forcebaar, wat de
+"geen lockout in de MVP"-afweging hieronder ondergroef (die ging uit van
+een ingelogde aanroeper). De beheerder-RPC's waren niet kwetsbaar — hun
+ADR-0002-actorcheck geeft `actor_not_found` zonder `auth.uid()`.
+Empirisch bevestigd door de aanval lokaal uit te voeren: als `anon`, met
+`auth.uid()` op null, een bestelling geboekt én saldo bijgeschreven.
+Dichtgezet in `0018_rpc_execute_alleen_authenticated.sql` (intrekking voor
+alle bestaande functies plus `alter default privileges` voor nieuwe), met
+`supabase/tests/rpc_execute_grants.test.sql` als blijvende bewaking — die
+toetst de invariant over *élke* functie in `public`, niet over een
+handgetypte lijst. Die test vult meteen een blinde vlek in de suite: elke
+andere test draait als `authenticated`, dus niemand keek ooit naar wat een
+sessieloze aanroeper mag.
+
 **Leestoegang per rol (settled, 2026-09-21)**: ADR
 [0007](adr/0007-rol-lid-leest-alleen-eigen-rijen.md) — the blanket
 `for select to authenticated using (true)` from `0001_init.sql` now only

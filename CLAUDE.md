@@ -72,7 +72,12 @@ zelf inloggen. Zie Architectuurbeslissingen voor hoe attributie daaruit werkt.
 controleren saldo (inclusief de ingestelde negatieflimiet) en schrijven de
 transactie in één statement. De client stuurt alleen product-ids, aantallen of
 een bedrag mee — nooit een berekend totaal (het `REVOKE` op geldtabellen dat
-dit ook technisch afdwingt staat onder Verificatie → `check:rls`).
+dit ook technisch afdwingt staat onder Verificatie → `check:rls`). Die RPC's
+zijn uitsluitend uitvoerbaar voor `authenticated`: een nieuwe functie krijgt
+van Postgres standaard `EXECUTE` voor `PUBLIC`, en dat moet elke migratie die
+er een toevoegt expliciet intrekken (zie `0018` en
+`supabase/tests/rpc_execute_grants.test.sql`, dat het voor élke functie
+bewaakt).
 
 **`served_by` komt uit de bezetting, niet uit een PIN.** Eén bardienst-tablet,
 één Supabase-sessie, wisselende medewerkers. De client stuurt welk lid uit de
