@@ -197,7 +197,7 @@ export function ActiviteitstypesInstellingen() {
                     type="button"
                     disabled={renaming || editing.name.trim() === ""}
                     onClick={saveEdit}
-                    className="flex h-10 flex-none items-center justify-center rounded-control bg-accent px-3 text-xs font-bold text-rail transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex h-10 flex-none items-center justify-center rounded-control bg-accent px-3 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Opslaan
                   </button>
