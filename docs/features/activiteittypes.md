@@ -3,11 +3,11 @@
 Spec voor [issue #18](https://github.com/BramLambertJansen/ABAS/issues/18)
 ("[Beslissing nodig] Activiteittypes per dienst (Training/Wedstrijddag)").
 
-**Status: concept, wacht op Bram's akkoord — bevat één openstaande vraag,
-zie "Openstaande vraag voor Bram" hieronder. De rest van deze spec is
-volledig uitgewerkt en niet van die vraag afhankelijk voor de datalaag; de
-vraag raakt alleen het gedrag van één stap in Schermflow §2 (verplicht kiezen
-of overslaan mogen).**
+**Status: goedgekeurd door Bram, klaar voor de Developer (2026-09-22).** De
+ene openstaande vraag (verplicht of optioneel kiezen bij dienst starten, zie
+"Openstaande vraag voor Bram" hieronder) is beantwoord: **verplicht** — de
+Architect-aanbeveling die deze spec al volledig uitwerkte. Er staat in dit
+document geen open vraag meer.
 
 Was tot dit ticket expliciet niet-besloten scope: `docs/ARCHITECTURE.md` →
 "Wat het prototype deed maar hier nog niet is besloten" noemde "Activity
@@ -601,11 +601,13 @@ geen overlay, geen grid dat `useShell().columns` nodig heeft (één dropdown,
 geen lijst kandidaten om in kolommen te leggen). `density` blijft, zoals
 overal elders, zonder een eerste concrete consument.
 
-## Openstaande vraag voor Bram
+## Beantwoorde vraag (Bram, 2026-09-22)
 
-**Is het kiezen van een activiteittype bij het starten van een dienst
+**Was: is het kiezen van een activiteittype bij het starten van een dienst
 verplicht (blokkeert het starten tot er iets gekozen is) of optioneel (mag
-worden overgeslagen, dienst start dan zonder activiteittype)?**
+worden overgeslagen, dienst start dan zonder activiteittype)? Antwoord:
+verplicht.** Geen wijziging aan de rest van deze spec nodig — verplicht was
+al de uitgewerkte aanname.
 
 Onderzoek (zie "Onderzocht in /designs/") wijst sterk richting **verplicht**:
 Bram's eigen woorden in `chat36.md` ("een dienst *moet* gekoppeld zitten aan
