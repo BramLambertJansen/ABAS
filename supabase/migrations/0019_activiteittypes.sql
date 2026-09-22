@@ -179,6 +179,19 @@ $$;
 grant execute on function create_activity_type, update_activity_type_name, set_activity_type_archived
   to authenticated;
 
+-- CLAUDE.md → Architectuurbeslissingen: een nieuwe functie krijgt van
+-- Postgres standaard EXECUTE voor PUBLIC (en Supabase geeft anon een eigen
+-- expliciete grant) — 0018_rpc_execute_alleen_authenticated.sql's `alter
+-- default privileges` is belt-and-braces, geen vervanging (werkt alleen
+-- tegen defaults gezet door dezelfde rol, platformdetail dat kan
+-- wijzigen). Elke migratie die een functie toevoegt moet dit dus zelf
+-- expliciet intrekken — supabase/tests/rpc_execute_grants.test.sql bewaakt
+-- precies dit voor élke functie in public.
+revoke execute on function create_activity_type, update_activity_type_name, set_activity_type_archived
+  from public;
+revoke execute on function create_activity_type, update_activity_type_name, set_activity_type_archived
+  from anon;
+
 -- ── start_shift: nieuwe verplichte parameter p_activity_type_id ──────────
 -- Anders dan remove_shift_member's eerdere fix (0003_...sql, zelfde naam +
 -- signatuur behouden) verandert dit de parameterlijst van start_shift: van
@@ -252,3 +265,11 @@ end;
 $$;
 
 grant execute on function start_shift(uuid, text, uuid) to authenticated;
+
+-- Zelfde reden als hierboven (create_activity_type e.a.): de drop/create-
+-- or-replace hierboven maakt in Postgres-termen een nieuw functie-object,
+-- dat opnieuw standaard EXECUTE voor PUBLIC/anon krijgt — 0018's
+-- migratie-brede intrekking dekte dit niet (die liep vóór deze functie
+-- opnieuw werd aangemaakt).
+revoke execute on function start_shift(uuid, text, uuid) from public;
+revoke execute on function start_shift(uuid, text, uuid) from anon;
