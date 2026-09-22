@@ -21,6 +21,12 @@ jobs:
       - run: npm run lint
       - run: npm run typecheck
 
+      # Node's ingebouwde testrunner (geen testframework als dependency,
+      # zie test/money.test.ts). Draait bewust vóór `supabase start`: deze
+      # suite raakt geen database en hoort dus in de goedkope, snelle helft
+      # van de pijplijn, naast lint/typecheck.
+      - run: npm test
+
       - uses: supabase/setup-cli@v1
         with:
           version: latest

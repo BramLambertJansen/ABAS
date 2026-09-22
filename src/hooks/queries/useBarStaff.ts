@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 export type BarStaffMember = {
@@ -27,43 +27,53 @@ type State =
  *  — `pin_hash` is column-level REVOKEd for `authenticated`
  *  (0010_pin_hash_kolombeveiliging.sql), so referencing it in a filter
  *  would fail with a permission error. */
-export function useBarStaff(): State {
+export function useBarStaff(): State & { refetch: () => void } {
   const [state, setState] = useState<State>({ status: "loading" });
+  const [tick, setTick] = useState(0);
+
+  const load = useCallback(async (): Promise<void> => {
+    setState({ status: "loading" });
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("members")
+        .select("id, name, role")
+        .in("role", ["bardienst", "beheerder"])
+        .eq("archived", false)
+        .eq("has_pin", true)
+        .order("name", { ascending: true });
+
+      if (error) throw error;
+
+      setState({ status: "ready", staff: (data ?? []) as BarStaffMember[] });
+    } catch (err) {
+      // Same rule as useOpenShift: never show the raw error on the
+      // tablet, log it for debugging instead.
+      console.error("useBarStaff:", err);
+      setState({
+        status: "error",
+        message: "Kan de bardienst-lijst niet laden. Controleer de verbinding.",
+      });
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
-
-    (async () => {
-      try {
-        const supabase = createClient();
-        const { data, error } = await supabase
-          .from("members")
-          .select("id, name, role")
-          .in("role", ["bardienst", "beheerder"])
-          .eq("archived", false)
-          .eq("has_pin", true)
-          .order("name", { ascending: true });
-
-        if (cancelled) return;
-        if (error) throw error;
-
-        setState({ status: "ready", staff: (data ?? []) as BarStaffMember[] });
-      } catch (err) {
-        if (cancelled) return;
-        // Same rule as useOpenShift: never show the raw error on the
-        // tablet, log it for debugging instead.
-        console.error("useBarStaff:", err);
-        setState({
-          status: "error",
-          message: "Kan de bardienst-lijst niet laden. Controleer de verbinding.",
-        });
+    load().catch(() => {
+      if (!cancelled) {
+        setState({ status: "error", message: "Onbekende fout." });
       }
-    })();
-
+    });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [tick, load]);
 
-  return state;
+  // Toegevoegd bij de app-review van 2026-09-21: dit was de enige leeshook
+  // in deze map zonder refetch, terwijl er wél een geval is waarin de lijst
+  // aantoonbaar verouderd is — `start_shift` dat `no_bar_role`/
+  // `member_not_found` teruggeeft betekent per definitie dat de rol of
+  // archivering van dit lid veranderd is ná het laden van deze lijst (zie
+  // DienstStarten.tsx). Zelfde tick-vorm als useOpenShift/useMembers.
+  return { ...state, refetch: () => setTick((t) => t + 1) };
 }

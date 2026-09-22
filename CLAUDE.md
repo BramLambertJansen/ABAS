@@ -20,11 +20,20 @@ dit; CI draait het opnieuw. Bypassen is geen normale werkwijze.
 
 | Gate | Bewaakt |
 |---|---|
-| `check:arch` | shells geïsoleerd, features shell-onwetend, Supabase-client privé |
-| `check:policy` | geen queries buiten de datalaag, geen client-side geld, geen device-sniffing, geen ongevalideerde attributie (`served_by` moet serverside tegen de actieve bezetting gecontroleerd worden) |
+| `check:arch` | shells geïsoleerd, features shell-onwetend, Supabase-client privé, service-role-client nooit vanuit client-code |
+| `check:policy` | geen queries buiten de datalaag, geen device-sniffing |
 | `check:rls` | elke tabel RLS, elke policy een negatieve test, geldtabellen REVOKED |
 | `check:a11y` | WCAG-AA (axe-core, elk shell-entrypoint) + `eslint-plugin-jsx-a11y`, `lint` faalt op warnings |
+| `test` | de pure client-logica (`src/lib/money.ts`, mandjelogica) |
 | `db:test` | de negatieve tests zelf, tegen een echte database |
+
+Wat géén gate afdwingt, en dus reviewwerk blijft: dat de client nooit een
+bedrag berekent, en dat `served_by` serverside tegen de actieve bezetting
+gecontroleerd wordt. Het eerste is niet betrouwbaar uit broncode te lezen,
+het tweede is een database-eigenschap — `supabase/tests/` bewijst het, geen
+scanner. Beide stonden hier tot 2026-09-21 als `check:policy`-regel vermeld
+terwijl dat script ze nooit heeft gecontroleerd; de regels zelf staan waar
+ze horen, onder Architectuurbeslissingen.
 
 ## Domein
 
@@ -45,9 +54,13 @@ prijs op het moment van bestellen.
 
 **Opwaarderen (MVP):** alleen contant, door bardienst, met dezelfde
 bezettings-attributie als `place_order` (zie hieronder) — `top_up` is een RPC,
-geen tabel-write. Online opwaarderen (iDEAL, vanuit de portal) is een latere
-fase; de RPC-grens moet nu al zo staan dat een betaalprovider-webhook er later
-naast kan zonder het patroon (geld alleen via RPC) te breken.
+geen tabel-write. Maximaal €500 per opwaardering, boven €100 vraagt de app
+eerst om bevestiging: er is geen saldocorrectie in de app, dus een typefout is
+alleen met directe databasetoegang terug te draaien. Online opwaarderen
+(iDEAL, vanuit de portal) is een latere fase; de RPC-grens moet nu al zo staan
+dat een betaalprovider-webhook er later naast kan zonder het patroon (geld
+alleen via RPC) te breken — en zonder die €500, die een kassa-guard is en geen
+eigenschap van de tabel.
 
 **Dienst & bezetting.** Wie een dienst start doet dat met de eigen PIN en
 stelt daarna de bezetting samen — andere leden die meewerken, zonder dat zij

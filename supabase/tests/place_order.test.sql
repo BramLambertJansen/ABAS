@@ -18,7 +18,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(10);
+select plan(13);
 
 -- ── Fixtures ──────────────────────────────────────────────────────────
 -- Pin the negative limit explicitly rather than relying on the migration's
@@ -174,6 +174,57 @@ select throws_ok(
      ) $$,
   'P0001', 'member_not_found',
   'place_order rejects an order for an archived member'
+);
+
+-- ── 9) totaal en regels komen uit dezelfde prijslezing ───────────────────
+-- Vastgelegd voor 0017_place_order_prijs_snapshot.sql (App-review
+-- 2026-09-21). Tot die migratie las place_order elke productprijs twee keer
+-- — één keer om `orders.total_cents` te berekenen, en ná de insert opnieuw
+-- om `order_lines.unit_cents` te vullen. Onder READ COMMITTED krijgt elk
+-- statement een verse snapshot, dus een `update_product_price` die tussen
+-- die twee lezingen commit liet het ordertotaal en de orderregels
+-- uiteenlopen.
+--
+-- Die race zelf is niet deterministisch na te bootsen binnen één pgTAP-
+-- transactie (er is geen tweede, gelijktijdige sessie om de prijs tussen de
+-- twee lezingen in te wijzigen). Wat hier wél vastligt is de invariant die
+-- de race brak, over meerdere regels én meerdere producten heen:
+-- `orders.total_cents` moet exact de som van zijn eigen regels zijn. Zolang
+-- de RPC één lezing doet kan dat niet anders; zou iemand de tweede lezing
+-- ooit opnieuw introduceren, dan is dit de assertie die de bedoeling
+-- documenteert.
+insert into products (id, name, category, price_cents, archived) values
+  ('00000000-0000-0000-0000-000000000003', 'Test Fris', 'Fris', 175, false);
+
+insert into members (id, name, role, pin_hash, balance_cents, archived) values
+  ('00000000-0000-0000-0000-000000000014', 'Multiline Buyer', 'lid', null, 10000, false);
+
+select lives_ok(
+  $$ select place_order(
+       '00000000-0000-0000-0000-000000000020'::uuid,
+       '00000000-0000-0000-0000-000000000014'::uuid,
+       '[{"product_id":"00000000-0000-0000-0000-000000000001","qty":2},
+         {"product_id":"00000000-0000-0000-0000-000000000003","qty":3}]'::jsonb,
+       '00000000-0000-0000-0000-000000000010'::uuid
+     ) $$,
+  'place_order accepts a multi-line order across two products'
+);
+
+select is(
+  (select count(*)::integer from order_lines ol
+     join orders o on o.id = ol.order_id
+     where o.member_id = '00000000-0000-0000-0000-000000000014'),
+  2,
+  'both lines of the multi-line order were written'
+);
+
+select is(
+  (select o.total_cents from orders o
+     where o.member_id = '00000000-0000-0000-0000-000000000014'),
+  (select sum(ol.qty * ol.unit_cents)::integer from order_lines ol
+     join orders o on o.id = ol.order_id
+     where o.member_id = '00000000-0000-0000-0000-000000000014'),
+  'orders.total_cents equals the sum of its own order_lines (2x250 + 3x175 = 1025)'
 );
 
 select * from finish();

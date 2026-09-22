@@ -373,6 +373,86 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
   }
 
   /**
+   * The inverse of `ensureShiftStarted()`: leaves the shared session with
+   * *no* open shift, so `/` renders the stafkeuze/PIN-entry screen rather
+   * than DienstTabs. Only the pincode-invoer scenario below needs this —
+   * that screen is unreachable while a shift is open, and on a Playwright
+   * retry in CI (`retries: 1`) the previous attempt's shift is still open
+   * against the same local Postgres.
+   *
+   * Closes the shift through the real "Dienst afsluiten"-flow rather than
+   * touching the database directly: it's the same path a bardienst takes
+   * (docs/features/dienst-afsluiten.md), so this helper can't drift away
+   * from the app's own behaviour. The scan below re-starts nothing — the
+   * next test in this block calls `ensureShiftStarted()` as usual.
+   */
+  async function ensureNoOpenShift(page: Page) {
+    await page.goto("/");
+
+    const verkoopTab = page.getByRole("tab", { name: "Verkoop" });
+    const staffButton = page.getByRole("button", { name: /Tom Willems/i });
+
+    // Same "race both landing states rather than pre-guessing which one
+    // shows first" reasoning as ensureShiftStarted() above.
+    await Promise.race([
+      verkoopTab.waitFor({ state: "visible", timeout: 15_000 }),
+      staffButton.waitFor({ state: "visible", timeout: 15_000 }),
+    ]);
+
+    if (await staffButton.isVisible()) return;
+
+    await page.getByRole("tab", { name: "Dienst" }).click();
+    await page
+      .getByRole("heading", { name: "Dienst actief" })
+      .waitFor({ state: "visible", timeout: 15_000 });
+    await page.getByRole("button", { name: "Dienst afsluiten" }).click();
+
+    // Scope the confirm to the dialog: the trigger button behind it has
+    // the same accessible name, and Playwright's name matching ignores
+    // case, so an unscoped locator would be a strict-mode violation.
+    const dialog = page.getByRole("dialog", { name: "Dienst afsluiten" });
+    await dialog.waitFor({ state: "visible" });
+    await dialog.getByRole("button", { name: "dienst afsluiten" }).click();
+
+    await staffButton.waitFor({ state: "visible", timeout: 15_000 });
+  }
+
+  /**
+   * docs/features/dienst-starten.md (#6) → the PIN-entry screen
+   * (PinPad.tsx). Added at the app-review of 2026-09-21: this was the only
+   * interactive screen in the app with no axe coverage at all. The routes
+   * loop at the top of this file scans `/`, but that lands on the
+   * stafkeuze — the numpad only renders after picking a bardienst, and
+   * `ensureShiftStarted()` clicks straight through it without scanning.
+   *
+   * Scans the pad in its empty, pre-entry state and deliberately enters no
+   * digits: a fourth digit submits (see DienstStarten.tsx → pressDigit),
+   * which would start a shift as a side effect of an a11y scan. The pad's
+   * non-obvious a11y affordances are all present in this state anyway —
+   * the `aria-hidden` dot row with its `sr-only` `role="status"`
+   * counterpart, the per-key `aria-label`s ("Cijfer 3", "Wis laatste
+   * cijfer"), and the `role="alert"` error line.
+   */
+  test("bar shell (/) pincode-invoer has no WCAG2A/AA violations", async ({
+    page,
+  }) => {
+    await ensureNoOpenShift(page);
+
+    await page.getByRole("button", { name: /Tom Willems/i }).click();
+
+    await page
+      .getByRole("button", { name: "Cijfer 1" })
+      .waitFor({ state: "visible", timeout: 15_000 });
+
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+
+    expect(results.violations, JSON.stringify(results.violations, null, 2))
+      .toEqual([]);
+  });
+
+  /**
    * docs/features/bezetting-beheren.md (#7) → Randgevallen → "A11y-dekking
    * van de overlay zelf": this app's first real interactive overlay
    * (src/components/Overlay.tsx — role="dialog", aria-modal, focus-trap,

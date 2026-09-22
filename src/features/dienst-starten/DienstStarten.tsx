@@ -75,9 +75,20 @@ export function DienstStarten() {
     setPin(next);
 
     if (next.length === PIN_LENGTH && selectedStaff) {
-      const ok = await startShiftMutation.startShift(selectedStaff.id, next);
-      if (ok) {
+      const result = await startShiftMutation.startShift(selectedStaff.id, next);
+      if (result.ok) {
         openShift.refetch();
+        return;
+      }
+      // `no_bar_role`/`member_not_found` kan alleen als de rol of
+      // archivering van dit lid veranderd is ná het laden van de
+      // stafkeuze — de lijst filtert daar juist op (useBarStaff.ts). De
+      // getoonde melding zegt al "dit account kan geen dienst starten";
+      // deze refetch zorgt dat de tegel ook echt uit de keuze verdwijnt
+      // in plaats van te blijven staan tot een herlaadactie. `invalid_pin`
+      // blijft bewust ongemoeid: dat zegt niets over de lijst.
+      if (result.code === "no_bar_role" || result.code === "member_not_found") {
+        barStaff.refetch();
       }
     }
   }
