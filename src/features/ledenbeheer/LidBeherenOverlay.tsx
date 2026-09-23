@@ -26,6 +26,7 @@ import type { LedenbeheerLid } from "@/hooks/queries/useAlleLeden";
 import { formatCents } from "@/lib/money";
 import { isValidEmailFormat } from "@/lib/email";
 import { formatDate } from "@/lib/date";
+import { RATE_LIMITED_MESSAGE } from "@/lib/authErrors";
 
 const TOAST_DURATION_MS = 3500;
 
@@ -115,7 +116,7 @@ function inviteErrorMessage(code: SendMemberInviteErrorCode): string {
     case "email_already_registered":
       return "dit e-mailadres is al gekoppeld aan een ander account — controleer of dit bij een ander lid hoort";
     case "rate_limited":
-      return "te veel pogingen — probeer het over een paar minuten opnieuw";
+      return RATE_LIMITED_MESSAGE;
     case "unknown":
       return "er ging iets mis, probeer het opnieuw";
   }

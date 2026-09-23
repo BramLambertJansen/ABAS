@@ -67,6 +67,7 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
   const emailRef = useRef<HTMLInputElement>(null);
   const forgotHeadingRef = useRef<HTMLHeadingElement>(null);
   const forgotSentRef = useRef<HTMLParagraphElement>(null);
+  const magicLinkSentRef = useRef<HTMLParagraphElement>(null);
   // Alleen na een wissel door de gebruiker, niet bij de eerste render.
   const focusAfterSwitch = useRef(false);
 
@@ -83,16 +84,22 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
     }
   }, []);
 
+  const magicLinkSent = login.status === "magic_link_sent";
+
   useEffect(() => {
     if (!focusAfterSwitch.current) return;
     if (view === "login") {
-      emailRef.current?.focus();
+      if (magicLinkSent) {
+        magicLinkSentRef.current?.focus();
+      } else {
+        emailRef.current?.focus();
+      }
     } else if (resetRequest.status === "sent") {
       forgotSentRef.current?.focus();
     } else {
       forgotHeadingRef.current?.focus();
     }
-  }, [view, resetRequest.status]);
+  }, [view, resetRequest.status, magicLinkSent]);
 
   function openForgot() {
     focusAfterSwitch.current = true;
@@ -116,13 +123,17 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
     if (method === "magic_link") {
+      focusAfterSwitch.current = true;
       await login.signInWithMagicLink(email);
     } else {
       await login.signInWithPassword(email, password);
     }
   }
 
-  const magicLinkSent = login.status === "magic_link_sent";
+  function otherLoginMethod() {
+    focusAfterSwitch.current = true;
+    login.reset();
+  }
 
   return (
     <main className="flex min-h-screen w-full flex-col items-center justify-center gap-8 bg-canvas px-6 py-10 font-sans text-ink">
@@ -227,7 +238,12 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
         )
       ) : magicLinkSent ? (
         <div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-2xl border border-border bg-white p-6 text-center">
-          <p className="text-sm font-bold text-ink" role="status">
+          <p
+            ref={magicLinkSentRef}
+            tabIndex={-1}
+            className="text-sm font-bold text-ink outline-none"
+            role="status"
+          >
             We hebben een inloglink gestuurd naar {login.magicLinkSentTo}.
           </p>
           <p className="text-xs font-medium text-muted">
@@ -235,7 +251,7 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
           </p>
           <button
             type="button"
-            onClick={() => login.reset()}
+            onClick={otherLoginMethod}
             className="text-xs font-semibold text-muted underline hover:text-ink"
           >
             Andere inlogmethode

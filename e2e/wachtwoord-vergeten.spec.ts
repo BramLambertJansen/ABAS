@@ -73,10 +73,12 @@ type AuthMock = {
   updateUser: Array<Record<string, unknown>>;
   logout: number;
   recover: Array<{ url: string; body: Record<string, unknown> }>;
+  otp: Array<Record<string, unknown>>;
 };
 
 /**
- * Onderschept de vier auth-calls van deze feature. Elke `respond*` krijgt
+ * Onderschept de auth-calls van deze feature (plus `otp`, de magic link van
+ * het inlogformulier zelf). Elke `respond*` krijgt
  * het volgnummer van de aanroep (0, 1, ...), zodat een test een eerste
  * poging kan laten falen en een tweede laten slagen.
  */
@@ -89,7 +91,7 @@ async function mockAuth(
     logoutStatus?: number;
   } = {}
 ): Promise<AuthMock> {
-  const calls: AuthMock = { verify: [], updateUser: [], logout: 0, recover: [] };
+  const calls: AuthMock = { verify: [], updateUser: [], logout: 0, recover: [], otp: [] };
 
   await page.route(/\/auth\/v1\/verify(\?|$)/, async (route) => {
     if (route.request().method() !== "POST") return route.fallback();
@@ -120,6 +122,11 @@ async function mockAuth(
     const result = handlers.recover?.(n) ?? [200, {}];
     if (result === "abort") return route.abort("connectionfailed");
     return json(route, result[0], result[1]);
+  });
+
+  await page.route(/\/auth\/v1\/otp(\?|$)/, async (route) => {
+    calls.otp.push(route.request().postDataJSON());
+    return json(route, 200, {});
   });
 
   return calls;
@@ -582,4 +589,19 @@ test("focus volgt het wisselen tussen inloggen, vergeten en verstuurd", async ({
   await page.getByLabel("E-mailadres").fill("femke.bos@aurora.local");
   await page.getByRole("button", { name: "Stuur herstellink" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Als er een account" })).toBeFocused();
+});
+
+// #72 — hetzelfde focuspatroon op de magic-link-weergaven van het formulier.
+test("focus volgt 'Stuur inloglink' en 'Andere inlogmethode'", async ({ page }) => {
+  const calls = await mockAuth(page);
+  await page.goto("/beheer");
+  await page.locator('input[type="email"]').waitFor({ state: "visible", timeout: 15_000 });
+
+  await page.getByLabel("E-mailadres").fill("femke.bos@aurora.local");
+  await page.getByRole("button", { name: "Stuur inloglink" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "We hebben een inloglink gestuurd" })).toBeFocused();
+  expect(calls.otp).toHaveLength(1);
+
+  await page.getByRole("button", { name: "Andere inlogmethode" }).click();
+  await expect(page.getByLabel("E-mailadres")).toBeFocused();
 });
