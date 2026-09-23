@@ -1,9 +1,14 @@
 # 0008 — Auth-maillinks werken via `token_hash`, niet via PKCE
 
-Status: **geaccepteerd** (Bram, 2026-09-23; voorgesteld door de Architect
-bij `docs/features/wachtwoord-vergeten.md`). Gebouwd in PR #69
-(`src/app/(bar)/beheer/callback/route.ts` en
-`/beheer/wachtwoord-herstellen`).
+Status: **geïmplementeerd** (PR #69, gemerged 2026-09-23:
+`src/app/(bar)/beheer/callback/route.ts` accepteert `?token_hash=` met
+`type` `email`/`magiclink`/`invite` naast `?code=`;
+`/beheer/wachtwoord-herstellen` wisselt `type=recovery` pas bij verzenden
+in; tests in `test/beheerCallback.test.ts` en
+`e2e/wachtwoord-vergeten.spec.ts`). Geaccepteerd door Bram, 2026-09-23;
+voorgesteld door de Architect bij `docs/features/wachtwoord-vergeten.md`.
+De mailtemplates onder "Dashboardstappen" zijn repo-extern — of die al
+omgezet zijn, is hier niet vast te stellen.
 
 ## Context
 
