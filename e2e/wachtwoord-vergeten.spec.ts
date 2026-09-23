@@ -164,8 +164,8 @@ test.describe("wachtwoord herstellen — link ongeldig zonder de server te raken
     await page.goto("/beheer/wachtwoord-herstellen");
     await page.getByRole("link", { name: "Nieuwe link aanvragen" }).click();
 
-    await expect(page).toHaveURL(/\/beheer\?wachtwoord=vergeten$/);
     await expect(page.getByRole("heading", { name: "Wachtwoord vergeten" })).toBeVisible();
+    await expect(page).toHaveURL(/\/beheer$/);
     await expect(page.getByRole("button", { name: "Stuur herstellink" })).toBeVisible();
   });
 });
@@ -251,7 +251,12 @@ test("happy path: verifyOtp → updateUser → signOut → /beheer?wachtwoord=ge
   await fillPasswords(page, VALID_PASSWORD);
   await page.getByRole("button", { name: "Wachtwoord opslaan" }).click();
 
-  await expect(page).toHaveURL(/\/beheer\?wachtwoord=gewijzigd$/, { timeout: 15_000 });
+  // De ?wachtwoord=gewijzigd-param wordt na het lezen uit de URL gehaald
+  // (Reviewer B1), dus de melding is het bewijs dat hij aankwam.
+  await expect(
+    page.getByRole("status").filter({ hasText: "Je wachtwoord is gewijzigd." })
+  ).toBeVisible({ timeout: 15_000 });
+  await expect(page).toHaveURL(/\/beheer$/);
 
   expect(calls.verify).toEqual([
     expect.objectContaining({ token_hash: "hash-uit-mail", type: "recovery" }),
@@ -278,7 +283,12 @@ test("signOut faalt serverside → toch terug naar het inlogscherm met de meldin
   await fillPasswords(page, VALID_PASSWORD);
   await page.getByRole("button", { name: "Wachtwoord opslaan" }).click();
 
-  await expect(page).toHaveURL(/\/beheer\?wachtwoord=gewijzigd$/, { timeout: 15_000 });
+  // De ?wachtwoord=gewijzigd-param wordt na het lezen uit de URL gehaald
+  // (Reviewer B1), dus de melding is het bewijs dat hij aankwam.
+  await expect(
+    page.getByRole("status").filter({ hasText: "Je wachtwoord is gewijzigd." })
+  ).toBeVisible({ timeout: 15_000 });
+  await expect(page).toHaveURL(/\/beheer$/);
   expect(calls.logout).toBe(1);
   await expect(
     page.getByRole("status").filter({ hasText: "Je wachtwoord is gewijzigd." })
@@ -323,7 +333,12 @@ test("verifyOtp lukt, updateUser faalt → foutmelding; tweede poging slaat veri
   expect(calls.logout).toBe(0);
 
   await opslaan.click();
-  await expect(page).toHaveURL(/\/beheer\?wachtwoord=gewijzigd$/, { timeout: 15_000 });
+  // De ?wachtwoord=gewijzigd-param wordt na het lezen uit de URL gehaald
+  // (Reviewer B1), dus de melding is het bewijs dat hij aankwam.
+  await expect(
+    page.getByRole("status").filter({ hasText: "Je wachtwoord is gewijzigd." })
+  ).toBeVisible({ timeout: 15_000 });
+  await expect(page).toHaveURL(/\/beheer$/);
   expect(calls.verify, "tweede poging mag het verbruikte token niet opnieuw proberen").toHaveLength(1);
   expect(calls.updateUser).toHaveLength(2);
   expect(calls.logout).toBe(1);
@@ -519,4 +534,49 @@ test("/beheer zonder of met onbekende ?wachtwoord= toont geen van beide", async 
     await expect(page.getByRole("heading", { name: "Wachtwoord vergeten" })).toHaveCount(0);
     await expect(page.locator('input[value="magic_link"]')).toBeChecked();
   }
+});
+
+/**
+ * Reviewer B1 (PR #69): de ?wachtwoord=-param bleef in de URL staan, dus een
+ * latere remount van BeheerLogin (bv. na Uitloggen) toonde de melding of de
+ * aanvraagweergave opnieuw. Een herlaadactie simuleert die remount.
+ */
+for (const param of ["gewijzigd", "vergeten"]) {
+  test(`?wachtwoord=${param} wordt uit de URL gehaald en komt na herladen niet terug`, async ({
+    page,
+  }) => {
+    await mockAuth(page);
+    await page.goto(`/beheer?wachtwoord=${param}`);
+    const signaal =
+      param === "gewijzigd"
+        ? page.getByRole("status").filter({ hasText: "Je wachtwoord is gewijzigd." })
+        : page.getByRole("heading", { name: "Wachtwoord vergeten" });
+    await expect(signaal).toBeVisible({ timeout: 15_000 });
+    await expect(page).toHaveURL(/\/beheer$/);
+
+    await page.reload();
+    await page.locator('input[type="email"]').waitFor({ state: "visible", timeout: 15_000 });
+    await expect(signaal).toHaveCount(0);
+  });
+}
+
+/**
+ * Reviewer B2 (PR #69): bij het wisselen van weergave verdween de aangeklikte
+ * knop en viel de focus terug op <body> (WCAG 2.4.3).
+ */
+test("focus volgt het wisselen tussen inloggen, vergeten en verstuurd", async ({ page }) => {
+  await mockAuth(page);
+  await page.goto("/beheer");
+  await page.getByText("Wachtwoord", { exact: true }).click();
+
+  await page.getByRole("button", { name: "Wachtwoord vergeten?" }).click();
+  await expect(page.getByRole("heading", { name: "Wachtwoord vergeten" })).toBeFocused();
+
+  await page.getByRole("button", { name: "← terug naar inloggen" }).click();
+  await expect(page.getByLabel("E-mailadres")).toBeFocused();
+
+  await page.getByRole("button", { name: "Wachtwoord vergeten?" }).click();
+  await page.getByLabel("E-mailadres").fill("femke.bos@aurora.local");
+  await page.getByRole("button", { name: "Stuur herstellink" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Als er een account" })).toBeFocused();
 });

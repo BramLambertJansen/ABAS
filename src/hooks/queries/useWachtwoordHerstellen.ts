@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { isRateLimitedMessage } from "@/lib/authErrors";
 import { createClient } from "@/lib/supabase/client";
 
 /**
@@ -9,11 +10,6 @@ import { createClient } from "@/lib/supabase/client";
  * een nieuw wachtwoord instellen (/beheer/wachtwoord-herstellen). Alleen
  * Supabase Auth-calls, geen tabel of RPC.
  */
-
-function isRateLimited(message: string | undefined): boolean {
-  const normalized = (message ?? "").toLowerCase();
-  return normalized.includes("rate limit") || normalized.includes("too many");
-}
 
 type RequestState =
   | { status: "idle" }
@@ -38,7 +34,7 @@ export function useWachtwoordResetAanvragen() {
         redirectTo: `${window.location.origin}/beheer/wachtwoord-herstellen`,
       });
       if (error) {
-        if (isRateLimited(error.message)) {
+        if (isRateLimitedMessage(error.message)) {
           setState({ status: "rate_limited" });
           return;
         }
@@ -74,7 +70,7 @@ type SetState =
 function toSetErrorCode(error: { code?: string; message?: string }): NieuwWachtwoordErrorCode {
   if (error.code === "weak_password") return "weak_password";
   if (error.code === "same_password") return "same_password";
-  if (isRateLimited(error.message)) return "rate_limited";
+  if (isRateLimitedMessage(error.message)) return "rate_limited";
   return "unknown";
 }
 

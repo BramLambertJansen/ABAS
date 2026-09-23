@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { isRateLimitedMessage } from "@/lib/authErrors";
 import { createClient } from "@/lib/supabase/client";
 
 /**
@@ -35,7 +36,7 @@ function toErrorCode(message: string | undefined): BeheerLoginErrorCode {
   ) {
     return "invalid_credentials";
   }
-  if (normalized.includes("rate limit") || normalized.includes("too many")) {
+  if (isRateLimitedMessage(message)) {
     return "rate_limited";
   }
   return "unknown";

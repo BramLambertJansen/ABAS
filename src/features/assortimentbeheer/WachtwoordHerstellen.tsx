@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
+import { AuroraMerk } from "@/components/AuroraMerk";
 import { NieuwWachtwoordVelden, isPasswordReady } from "@/components/NieuwWachtwoordVelden";
+import { RATE_LIMITED_MESSAGE } from "@/lib/authErrors";
 import {
   useNieuwWachtwoordInstellen,
   type NieuwWachtwoordErrorCode,
@@ -15,7 +17,7 @@ function errorMessage(code: Exclude<NieuwWachtwoordErrorCode, "link_invalid">): 
     case "same_password":
       return "Kies een ander wachtwoord dan je huidige.";
     case "rate_limited":
-      return "te veel pogingen — probeer het over een paar minuten opnieuw";
+      return RATE_LIMITED_MESSAGE;
     case "unknown":
       return "er ging iets mis, probeer het opnieuw";
   }
@@ -51,15 +53,9 @@ export function WachtwoordHerstellen({ tokenHash }: { tokenHash: string | null }
 
   return (
     <main className="flex min-h-screen w-full flex-col items-center justify-center gap-8 bg-canvas px-6 py-10 font-sans text-ink">
-      <div className="flex flex-col items-center gap-2 text-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent text-2xl font-extrabold text-white shadow-[0_10px_26px_-6px_rgba(238,90,36,0.7)]">
-          A
-        </div>
-        <span className="text-[10.5px] font-bold tracking-[0.15em] text-muted">
-          AURORA MUZIEKVERENIGING
-        </span>
+      <AuroraMerk>
         <h1 className="text-xl font-extrabold tracking-tight">Nieuw wachtwoord instellen</h1>
-      </div>
+      </AuroraMerk>
 
       {linkInvalid ? (
         <div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-2xl border border-border bg-white p-6 text-center">

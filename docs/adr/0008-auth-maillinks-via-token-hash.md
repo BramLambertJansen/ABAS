@@ -1,9 +1,9 @@
 # 0008 — Auth-maillinks werken via `token_hash`, niet via PKCE
 
 Status: **voorgesteld** (Architect, 2026-09-23, bij
-`docs/features/wachtwoord-vergeten.md`). Het magic-link-deel is al gebouwd
-(`src/app/(bar)/beheer/callback/route.ts`, branch
-`claude/keen-hopper-9gb5b1`).
+`docs/features/wachtwoord-vergeten.md`). Gebouwd in PR #69
+(`src/app/(bar)/beheer/callback/route.ts` en
+`/beheer/wachtwoord-herstellen`).
 
 ## Context
 
@@ -46,3 +46,13 @@ wisselt dat in met `verifyOtp({ token_hash, type })` — geen
   mail.
 - Een gewijzigde template geldt voor de live omgeving én elke preview:
   `{{ .SiteURL }}` wijst altijd naar productie.
+
+## Dashboardstappen (Bram, ná deploy van PR #69)
+
+De routes accepteren `token_hash` pas als PR #69 live staat; een template
+die eerder omgaat, breekt de betreffende mail tot dan.
+
+- **Magic Link:**
+  `{{ .SiteURL }}/beheer/callback?token_hash={{ .TokenHash }}&type=email`
+- **Reset Password:**
+  `{{ .SiteURL }}/beheer/wachtwoord-herstellen?token_hash={{ .TokenHash }}&type=recovery`
