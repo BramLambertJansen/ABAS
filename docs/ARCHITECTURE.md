@@ -317,6 +317,16 @@ login, but scoped to beheer actions only; #22 itself is about the bar-shell
 PIN flow (#6), which this doesn't touch. See "Auth-methode & modus" below
 (ADR 0003) for the corrected scope.
 
+**Auth-maillinks (proposed, 2026-09-23)**: ADR
+[0008](adr/0008-auth-maillinks-via-token-hash.md) — every Supabase mail that
+yields a session links to an app route with `?token_hash=...&type=...`,
+redeemed with `verifyOtp()`, instead of relying on the PKCE `?code=` flow,
+whose `code_verifier` cookie only exists in the browser that requested the
+link. Requested on the tablet or pc, opened on a phone is the normal case
+here. The mail templates live in the Supabase dashboard, not in this repo.
+First applied to `/beheer/callback` (magic link) and
+`docs/features/wachtwoord-vergeten.md`.
+
 **Settled (2026-08-26)**: this mechanism depends on `members.auth_user_id`
 (planned in "Lid-accounts" below, issue #24) and an e-mail login flow
 (issue #15) — neither exists in the codebase yet as of this writing.
