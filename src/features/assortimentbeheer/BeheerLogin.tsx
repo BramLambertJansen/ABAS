@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useId, useState, type FormEvent } from "react";
+import { useEffect, useId, useState, type FormEvent } from "react";
 import { useBeheerLogin, type BeheerLoginErrorCode } from "@/hooks/queries/useBeheerLogin";
+import { useWachtwoordResetAanvragen } from "@/hooks/queries/useWachtwoordHerstellen";
 
 function errorMessage(code: BeheerLoginErrorCode): string {
   switch (code) {
@@ -35,15 +36,53 @@ function errorMessage(code: BeheerLoginErrorCode): string {
  * actieve bardienst/beheerder — zelfde soort boodschap als de RPC's
  * `no_admin_role`/`no_bar_role`/`actor_not_found` teruggeven, hier vóór het
  * inloggen al zichtbaar in plaats van pas na een mislukte schrijfactie.
+ *
+ * "Wachtwoord vergeten?" (docs/features/wachtwoord-vergeten.md) is een
+ * tweede weergave van dit formulier, geen eigen route: aanvragen gebeurt
+ * hier, het nieuwe wachtwoord instellen op /beheer/wachtwoord-herstellen.
+ * Die route stuurt terug met `?wachtwoord=gewijzigd` (melding hierboven het
+ * formulier) of `?wachtwoord=vergeten` (link verlopen → direct de
+ * aanvraagweergave). Gelezen uit window.location in een effect i.p.v.
+ * useSearchParams(), dat een Suspense-grens rond /beheer zou vereisen.
  */
 export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
   const login = useBeheerLogin();
+  const resetRequest = useWachtwoordResetAanvragen();
+  const [view, setView] = useState<"login" | "forgot">("login");
+  const [passwordChanged, setPasswordChanged] = useState(false);
   const [method, setMethod] = useState<"magic_link" | "password">("magic_link");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const emailId = useId();
   const passwordId = useId();
   const methodLegendId = useId();
+  const forgotHeadingId = useId();
+
+  useEffect(() => {
+    const param = new URLSearchParams(window.location.search).get("wachtwoord");
+    if (param === "gewijzigd") {
+      setPasswordChanged(true);
+      setMethod("password");
+    } else if (param === "vergeten") {
+      setView("forgot");
+    }
+  }, []);
+
+  function openForgot() {
+    resetRequest.reset();
+    setPasswordChanged(false);
+    setView("forgot");
+  }
+
+  function backToLogin() {
+    resetRequest.reset();
+    setView("login");
+  }
+
+  async function onSubmitForgot(event: FormEvent) {
+    event.preventDefault();
+    await resetRequest.requestReset(email);
+  }
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -72,7 +111,16 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
         <h1 className="text-xl font-extrabold tracking-tight">Inloggen</h1>
       </div>
 
-      {deniedMessage && !magicLinkSent && (
+      {passwordChanged && view === "login" && (
+        <p
+          role="status"
+          className="w-full max-w-sm rounded-2xl border border-border bg-white px-4 py-3 text-center text-sm font-bold text-success"
+        >
+          Je wachtwoord is gewijzigd. Log in met je nieuwe wachtwoord.
+        </p>
+      )}
+
+      {deniedMessage && !magicLinkSent && !passwordChanged && view === "login" && (
         <p
           role="alert"
           className="w-full max-w-sm rounded-2xl border border-border bg-white px-4 py-3 text-center text-sm font-bold text-danger"
@@ -81,13 +129,82 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
         </p>
       )}
 
-      {magicLinkSent ? (
+      {view === "forgot" ? (
+        resetRequest.status === "sent" ? (
+          <div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-2xl border border-border bg-white p-6 text-center">
+            <p className="text-sm font-bold text-ink" role="status">
+              Als er een account bij {resetRequest.sentTo} hoort, hebben we een link gestuurd
+              om een nieuw wachtwoord in te stellen.
+            </p>
+            <p className="text-xs font-medium text-muted">De link is 1 uur geldig.</p>
+            <button
+              type="button"
+              onClick={backToLogin}
+              className="text-xs font-semibold text-muted underline hover:text-ink"
+            >
+              ← terug naar inloggen
+            </button>
+          </div>
+        ) : (
+          <form
+            onSubmit={onSubmitForgot}
+            aria-labelledby={forgotHeadingId}
+            className="flex w-full max-w-sm flex-col gap-4 rounded-2xl border border-border bg-white p-6"
+          >
+            <div className="flex flex-col gap-1">
+              <h2 id={forgotHeadingId} className="text-base font-extrabold text-ink">
+                Wachtwoord vergeten
+              </h2>
+              <p className="text-xs font-medium text-muted">
+                Vul je e-mailadres in. Je krijgt een link om een nieuw wachtwoord in te stellen.
+              </p>
+            </div>
+
+            <p className="min-h-[1.25rem] text-sm font-bold text-danger" role="alert">
+              {resetRequest.status === "rate_limited"
+                ? errorMessage("rate_limited")
+                : ""}
+            </p>
+
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor={emailId} className="text-xs font-bold text-muted">
+                E-mailadres
+              </label>
+              <input
+                id={emailId}
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                className="h-12 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink outline-none focus:border-accent"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={resetRequest.status === "pending"}
+              className="flex h-12 w-full items-center justify-center rounded-control bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:opacity-50"
+            >
+              Stuur herstellink
+            </button>
+
+            <button
+              type="button"
+              onClick={backToLogin}
+              className="text-center text-xs font-semibold text-muted hover:text-ink"
+            >
+              ← terug naar inloggen
+            </button>
+          </form>
+        )
+      ) : magicLinkSent ? (
         <div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-2xl border border-border bg-white p-6 text-center">
           <p className="text-sm font-bold text-ink" role="status">
             We hebben een inloglink gestuurd naar {login.magicLinkSentTo}.
           </p>
           <p className="text-xs font-medium text-muted">
-            Open die link op dit apparaat om in te loggen.
+            Open de link in de mail om in te loggen — dat mag ook op een ander apparaat.
           </p>
           <button
             type="button"
@@ -177,6 +294,13 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
                 onChange={(event) => setPassword(event.target.value)}
                 className="h-12 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink outline-none focus:border-accent"
               />
+              <button
+                type="button"
+                onClick={openForgot}
+                className="self-end text-xs font-semibold text-muted underline hover:text-ink"
+              >
+                Wachtwoord vergeten?
+              </button>
             </div>
           )}
 

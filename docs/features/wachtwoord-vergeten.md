@@ -1,8 +1,7 @@
 # Wachtwoord vergeten (`/beheer`)
 
-**Status: concept — wacht op akkoord van Bram.** Eén punt vraagt nog een
-bevestiging: de minimale lengte (zie "Wachtwoordregels"); de Architect
-stelt 8 voor.
+**Status: goedgekeurd door Bram (2026-09-23), inclusief minimaal 8
+tekens.** Geen open vragen.
 
 Bouwt voort op [ADR 0002](../adr/0002-beheeracties-vereisen-eigen-e-mail-sessie.md)
 (de `/beheer`-e-mailsessie vervangt de gedeelde tablet-sessie tot uitloggen),
@@ -63,7 +62,7 @@ formulier is dezelfde enkele kolom als `BeheerLogin.tsx`.
 
 ## Wachtwoordregels
 
-- Minimaal **8 tekens** *(voorstel — Bram bevestigt)*, minstens één kleine
+- Minimaal **8 tekens**, minstens één kleine
   letter (a–z), één hoofdletter (A–Z), één cijfer (0–9) en één leesteken.
 - "Leesteken" = exact de set die Supabase hanteert:
   `` !@#$%^&*()_+-=[]{};':"|<>?,./`~ ``. Dezelfde set client- en
