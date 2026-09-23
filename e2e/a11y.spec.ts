@@ -12,6 +12,16 @@ const routes = [
   { name: "bar shell", path: "/" },
   { name: "portal shell", path: "/portal" },
   { name: "beheer login", path: "/beheer" },
+  // docs/features/wachtwoord-vergeten.md — aanvraagweergave, en het
+  // herstelscherm met een (nep)token (formulier) en zonder (link ongeldig).
+  // Het token wordt pas bij verzenden gebruikt, dus een neptoken rendert
+  // gewoon het formulier.
+  { name: "wachtwoord vergeten", path: "/beheer?wachtwoord=vergeten" },
+  {
+    name: "wachtwoord herstellen",
+    path: "/beheer/wachtwoord-herstellen?token_hash=a11y&type=recovery",
+  },
+  { name: "wachtwoord herstellen, link ongeldig", path: "/beheer/wachtwoord-herstellen" },
 ];
 
 for (const { name, path } of routes) {

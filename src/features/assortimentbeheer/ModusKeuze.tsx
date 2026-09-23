@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { AuroraMerk } from "@/components/AuroraMerk";
 import { MijnAccountOverlay } from "./MijnAccountOverlay";
 
 /**
@@ -40,15 +41,9 @@ export function ModusKeuze({
 
   return (
     <main className="flex min-h-screen w-full flex-col items-center justify-center gap-8 bg-canvas px-6 py-10 font-sans text-ink">
-      <div className="flex flex-col items-center gap-2 text-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent text-2xl font-extrabold text-white shadow-[0_10px_26px_-6px_rgba(238,90,36,0.7)]">
-          A
-        </div>
-        <span className="text-[10.5px] font-bold tracking-[0.15em] text-muted">
-          AURORA MUZIEKVERENIGING
-        </span>
+      <AuroraMerk>
         <h1 className="text-xl font-extrabold tracking-tight">Welkom, {name}</h1>
-      </div>
+      </AuroraMerk>
 
       <div className="flex w-full max-w-sm flex-col gap-3">
         <Link

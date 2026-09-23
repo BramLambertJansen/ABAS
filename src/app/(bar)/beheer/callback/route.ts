@@ -25,15 +25,35 @@ import { linkInvitedMemberAccount } from "@/lib/linkInvitedMemberAccount";
  * "Koppelmechanisme bij acceptatie". Best-effort: draait op *elke* geslaagde
  * /beheer-login (niet alleen invite-acceptaties, ADR 0002/0003), een fout of
  * no-op-resultaat verandert niets aan de bestaande redirect-flow.
+ *
+ * (2026-09-23) Naast `?code=` (PKCE) accepteert deze route ook
+ * `?token_hash=...&type=email` — de vorm die de Magic Link-mailtemplate van
+ * het Supabase-project stuurt. PKCE werkt alleen in de browser die de link
+ * aanvroeg (de code_verifier staat daar in een cookie): link aangevraagd op
+ * de pc en geopend op de telefoon → exchange faalt → terug op het
+ * inlogformulier. verifyOtp() met de token_hash heeft geen verifier nodig en
+ * werkt dus op elk apparaat.
  */
+const TOKEN_HASH_TYPES = ["email", "magiclink", "invite"] as const;
+type TokenHashType = (typeof TOKEN_HASH_TYPES)[number];
+
+function isTokenHashType(value: string | null): value is TokenHashType {
+  return TOKEN_HASH_TYPES.includes(value as TokenHashType);
+}
+
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
+  const tokenHash = request.nextUrl.searchParams.get("token_hash");
+  const type = request.nextUrl.searchParams.get("type");
 
-  if (code) {
+  if (code || (tokenHash && isTokenHashType(type))) {
     const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { error } =
+      tokenHash && isTokenHashType(type)
+        ? await supabase.auth.verifyOtp({ token_hash: tokenHash, type })
+        : await supabase.auth.exchangeCodeForSession(code as string);
     if (error) {
-      console.error("beheer/callback: exchangeCodeForSession failed:", error.message);
+      console.error("beheer/callback: session exchange failed:", error.message);
       // Land back on /beheer regardless — useBeheerSession() resolves to
       // "signed-out" (no session was established) and the login form shows
       // again, same "formulier blijft staan" fallback as any other failed
