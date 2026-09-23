@@ -1,6 +1,11 @@
 # Wachtwoord vergeten (`/beheer`)
 
-**Status: goedgekeurd door Bram (2026-09-23), inclusief minimaal 8
+**Status: gebouwd en gemerged (2026-09-23) —
+[PR #69](https://github.com/BramLambertJansen/ABAS/pull/69).** Zie
+"Gebouwd vs. gespecificeerd" onderaan voor wat er naast deze spec kwam.
+Dashboard-instellingen (hieronder) staan nog bij Bram, ná deploy.
+
+**Oorspronkelijke status: goedgekeurd door Bram (2026-09-23), inclusief minimaal 8
 tekens.** Herzien na de review van PR #69 (Bram, 2026-09-23): ook een rate
 limit geeft de neutrale melding (Schermflow stap 1); de linkgeldigheid van
 1 uur is bevestigd (Email OTP Expiration = 3600); de magic-link-melding
@@ -187,3 +192,49 @@ Supabase-template **Reset Password** (dashboard, door Bram — zie
 - Gelekte-wachtwoordcontrole (HaveIBeenPwned) — alleen op een betaald
   Supabase-plan.
 - PIN vergeten op het tablet — ander mechanisme.
+
+## Gebouwd vs. gespecificeerd (PR #69, 2026-09-23)
+
+De flow hierboven is gebouwd zoals beschreven. Wat er tijdens de review bij
+kwam of anders werd:
+
+- **Rate limit bij aanvragen → neutrale melding.** Besluit van Bram na de
+  Reviewer; de spec was al in de PR herzien (Schermflow stap 1).
+- **Magic-link-melding** op `/beheer` is nu "Open de link in de mail om in
+  te loggen — dat mag ook op een ander apparaat." (goedgekeurd door Bram,
+  hoort bij ADR 0008).
+- **`/beheer/callback`** accepteert naast `?code=` ook
+  `?token_hash=&type=` met `type` = `email`, `magiclink` of `invite`
+  (`verifyOtp`). `signup`, `email_change` en `recovery` worden bewust
+  niet geaccepteerd — vastgelegd in `test/beheerCallback.test.ts`.
+- **`?wachtwoord=gewijzigd`** wordt na het lezen uit de URL gehaald
+  (`history.replaceState`), zodat verversen de melding niet opnieuw toont.
+- **Focusbeheer (WCAG 2.4.3):** bij wisselen tussen inlog-, aanvraag- en
+  verstuurd-weergave verplaatst de focus expliciet naar het nieuwe blok.
+- **Herstelscherm, rate limit bij opslaan:** `updateUser` die op een limiet
+  stuit geeft de gedeelde "te veel pogingen"-melding; niet in de
+  Randgevallen-tabel hierboven genoemd.
+- **Gedeelde bouwstenen, niet in de spec genoemd:**
+  - `src/components/AuroraMerk.tsx` — logo/kop-blok, gebruikt door
+    `BeheerLogin`, `WachtwoordHerstellen`, `ModusKeuze` en `DienstStarten`.
+  - `src/lib/authErrors.ts` — `RATE_LIMITED_MESSAGE` en
+    `isRateLimitedMessage`, gedeeld door `useBeheerLogin` en
+    `useWachtwoordHerstellen`.
+  - `src/components/NieuwWachtwoordVelden.tsx` en
+    `src/lib/passwordPolicy.ts` zoals gespecificeerd.
+- **Tests:** `test/passwordPolicy.test.ts`, `test/beheerCallback.test.ts`
+  (met een resolve-hook en fakes in `test/fakes/`),
+  `e2e/wachtwoord-vergeten.spec.ts`, en de nieuwe routes in
+  `e2e/a11y.spec.ts`.
+
+### Opvolgissues
+
+- [#70](https://github.com/BramLambertJansen/ABAS/issues/70) — de
+  magic-link-knop lekt nog of een e-mailadres bestaat.
+- [#71](https://github.com/BramLambertJansen/ABAS/issues/71) — a11y-flake
+  op de Leden-tab door `transition-colors`.
+- [#72](https://github.com/BramLambertJansen/ABAS/issues/72) — focus na
+  "Stuur inloglink".
+- [#73](https://github.com/BramLambertJansen/ABAS/issues/73) —
+  `LidBeherenOverlay` dupliceert de rate-limit-tekst in plaats van
+  `authErrors.ts` te gebruiken.

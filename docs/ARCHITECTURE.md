@@ -325,7 +325,16 @@ whose `code_verifier` cookie only exists in the browser that requested the
 link. Requested on the tablet or pc, opened on a phone is the normal case
 here. The mail templates live in the Supabase dashboard, not in this repo.
 First applied to `/beheer/callback` (magic link) and
-`docs/features/wachtwoord-vergeten.md`.
+`docs/features/wachtwoord-vergeten.md`. Implemented in PR #69 (merged
+2026-09-23): `/beheer/callback` accepts `type` = `email`/`magiclink`/`invite`
+next to the old `?code=`, and deliberately rejects `signup`/`email_change`/
+`recovery` (`test/beheerCallback.test.ts`); `recovery` is only redeemed by
+`/beheer/wachtwoord-herstellen`, on submit. The same PR added shared
+building blocks for the auth screens: `src/components/AuroraMerk.tsx`
+(logo/heading block, also used by `ModusKeuze` and `DienstStarten`),
+`src/components/NieuwWachtwoordVelden.tsx` + `src/lib/passwordPolicy.ts`
+(for reuse by #15/#17), and `src/lib/authErrors.ts` (rate-limit
+recognition and message).
 
 **Settled (2026-08-26)**: this mechanism depends on `members.auth_user_id`
 (planned in "Lid-accounts" below, issue #24) and an e-mail login flow
