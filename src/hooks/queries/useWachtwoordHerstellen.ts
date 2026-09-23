@@ -14,14 +14,16 @@ import { createClient } from "@/lib/supabase/client";
 type RequestState =
   | { status: "idle" }
   | { status: "pending" }
-  | { status: "sent"; email: string }
-  | { status: "rate_limited" };
+  | { status: "sent"; email: string };
 
 /**
- * Stap 1 — herstellink aanvragen. Elke uitkomst behalve een rate limit
- * wordt "sent": dezelfde melding of het adres nu bekend is of niet (spec →
- * besluit 4, geen e-mail-enumeratie). De rate limit geldt voor het hele
- * project, niet per adres, dus die mag wél zichtbaar zijn.
+ * Stap 1 — herstellink aanvragen. Élke uitkomst wordt "sent": dezelfde
+ * melding of het adres nu bekend is of niet (spec → besluit 4, geen
+ * e-mail-enumeratie). Ook een rate limit: GoTrue raakt die alleen als er
+ * echt gemaild wordt, dus alleen bij een bestaand adres — een aparte
+ * "te veel pogingen"-melding zou verraden dat het adres een account heeft
+ * (Reviewer PR #69, besloten door Bram 2026-09-23). Niet "fixen" door op
+ * error.code/429 te matchen.
  */
 export function useWachtwoordResetAanvragen() {
   const [state, setState] = useState<RequestState>({ status: "idle" });
@@ -34,10 +36,6 @@ export function useWachtwoordResetAanvragen() {
         redirectTo: `${window.location.origin}/beheer/wachtwoord-herstellen`,
       });
       if (error) {
-        if (isRateLimitedMessage(error.message)) {
-          setState({ status: "rate_limited" });
-          return;
-        }
         console.error("useWachtwoordResetAanvragen:", error.message);
       }
     } catch (err) {

@@ -438,8 +438,9 @@ test("aanvragen: e-mail voorgevuld, resetPasswordForEmail met redirect naar het 
   expect(redirectTo).toBe(`${origin}/beheer/wachtwoord-herstellen`);
 });
 
-// Geen e-mail-enumeratie (spec → besluit 4): elke fout behalve een rate
-// limit geeft exact dezelfde melding als een geslaagde aanvraag.
+// Geen e-mail-enumeratie (spec → besluit 4): elke fout, ook een rate
+// limit (zie de test daaronder), geeft exact dezelfde melding als een
+// geslaagde aanvraag.
 for (const [name, result] of [
   ["onbekend adres (Supabase: 200 {})", [200, {}]],
   ["validatiefout", [400, { code: "validation_failed", msg: "Unable to validate email address" }]],
@@ -459,28 +460,30 @@ for (const [name, result] of [
   });
 }
 
-test("aanvragen, e-mail rate limit → 'te veel pogingen', formulier blijft staan", async ({
-  page,
-}) => {
-  const calls = await mockAuth(page, {
-    recover: (n) =>
-      n === 0 ? [429, { code: "over_email_send_rate_limit", msg: "email rate limit exceeded" }] : [200, {}],
+// Besloten door Bram (2026-09-23, Reviewer PR #69): ook een rate limit geeft
+// de neutrale melding. GoTrue raakt de mail-limiet alleen bij een bestaand
+// adres; "te veel pogingen" zou dus verraden dat het adres een account heeft.
+for (const [name, body] of [
+  ["projectbrede mail-limiet", { code: "over_email_send_rate_limit", msg: "email rate limit exceeded" }],
+  [
+    "throttle per adres",
+    { code: "over_email_send_rate_limit", msg: "For security purposes, you can only request this after 42 seconds." },
+  ],
+] as const) {
+  test(`aanvragen, ${name} (429) → dezelfde neutrale melding, geen 'te veel pogingen'`, async ({
+    page,
+  }) => {
+    const calls = await mockAuth(page, { recover: () => [429, body] });
+    await openForgotFromLogin(page, "femke.bos@aurora.local");
+    await page.getByRole("button", { name: "Stuur herstellink" }).click();
+
+    await expect(page.getByRole("status")).toHaveText(
+      "Als er een account bij femke.bos@aurora.local hoort, hebben we een link gestuurd om een nieuw wachtwoord in te stellen."
+    );
+    await expect(page.getByText("te veel pogingen")).toHaveCount(0);
+    expect(calls.recover).toHaveLength(1);
   });
-  await openForgotFromLogin(page, "femke.bos@aurora.local");
-  const stuur = page.getByRole("button", { name: "Stuur herstellink" });
-  await stuur.click();
-
-  await expect(alertOf(page)).toHaveText(
-    "te veel pogingen — probeer het over een paar minuten opnieuw"
-  );
-  await expect(page.getByText("Als er een account bij")).toHaveCount(0);
-  await expect(stuur).toBeEnabled();
-
-  // Later opnieuw: nu wel de neutrale melding.
-  await stuur.click();
-  await expect(page.getByRole("status")).toContainText("Als er een account bij femke.bos@aurora.local");
-  expect(calls.recover).toHaveLength(2);
-});
+}
 
 test("aanvraagweergave: '← terug naar inloggen' toont weer het inlogformulier, ook na versturen", async ({
   page,

@@ -193,12 +193,6 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
               </p>
             </div>
 
-            <p className="min-h-[1.25rem] text-sm font-bold text-danger" role="alert">
-              {resetRequest.status === "rate_limited"
-                ? errorMessage("rate_limited")
-                : ""}
-            </p>
-
             <div className="flex flex-col gap-1.5">
               <label htmlFor={emailId} className="text-xs font-bold text-muted">
                 E-mailadres

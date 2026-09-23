@@ -317,7 +317,7 @@ login, but scoped to beheer actions only; #22 itself is about the bar-shell
 PIN flow (#6), which this doesn't touch. See "Auth-methode & modus" below
 (ADR 0003) for the corrected scope.
 
-**Auth-maillinks (proposed, 2026-09-23)**: ADR
+**Auth-maillinks (settled, 2026-09-23)**: ADR
 [0008](adr/0008-auth-maillinks-via-token-hash.md) — every Supabase mail that
 yields a session links to an app route with `?token_hash=...&type=...`,
 redeemed with `verifyOtp()`, instead of relying on the PKCE `?code=` flow,

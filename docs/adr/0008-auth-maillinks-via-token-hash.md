@@ -1,7 +1,7 @@
 # 0008 — Auth-maillinks werken via `token_hash`, niet via PKCE
 
-Status: **voorgesteld** (Architect, 2026-09-23, bij
-`docs/features/wachtwoord-vergeten.md`). Gebouwd in PR #69
+Status: **geaccepteerd** (Bram, 2026-09-23; voorgesteld door de Architect
+bij `docs/features/wachtwoord-vergeten.md`). Gebouwd in PR #69
 (`src/app/(bar)/beheer/callback/route.ts` en
 `/beheer/wachtwoord-herstellen`).
 

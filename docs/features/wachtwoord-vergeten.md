@@ -1,7 +1,11 @@
 # Wachtwoord vergeten (`/beheer`)
 
 **Status: goedgekeurd door Bram (2026-09-23), inclusief minimaal 8
-tekens.** Geen open vragen.
+tekens.** Herzien na de review van PR #69 (Bram, 2026-09-23): ook een rate
+limit geeft de neutrale melding (Schermflow stap 1); de linkgeldigheid van
+1 uur is bevestigd (Email OTP Expiration = 3600); de magic-link-melding
+"Open de link in de mail om in te loggen — dat mag ook op een ander
+apparaat." is goedgekeurd (hoort bij ADR 0008). Geen open vragen.
 
 Bouwt voort op [ADR 0002](../adr/0002-beheeracties-vereisen-eigen-e-mail-sessie.md)
 (de `/beheer`-e-mailsessie vervangt de gedeelde tablet-sessie tot uitloggen),
@@ -95,11 +99,13 @@ formulier is dezelfde enkele kolom als `BeheerLogin.tsx`.
   "Als er een account bij {email} hoort, hebben we een link gestuurd om een
   nieuw wachtwoord in te stellen. De link is 1 uur geldig." + "← terug naar
   inloggen".
-- Enige fout die wél getoond wordt: `rate_limited` ("te veel pogingen —
-  probeer het over een paar minuten opnieuw", bestaande tekst). Die
-  limiet geldt voor het hele project, niet per adres, dus verraadt niets.
-  Elke andere fout → dezelfde neutrale melding als hierboven, gelogd met
-  `console.error`.
+- **Elke fout, ook een rate limit** → dezelfde neutrale melding als
+  hierboven, gelogd met `console.error`. *(Herzien, Bram 2026-09-23, na
+  Reviewer PR #69: de eerdere uitzondering voor `rate_limited` lekte. GoTrue
+  raakt de mail-limiet alleen als er echt gemaild wordt, dus alleen bij een
+  bestaand adres; "te veel pogingen" verraadt dan dat het adres een account
+  heeft. Nadeel, geaccepteerd: een legitieme gebruiker ziet bij een limiet
+  niet waarom er geen mail komt.)*
 
 ### 2. De mail
 
@@ -153,7 +159,7 @@ Supabase-template **Reset Password** (dashboard, door Bram — zie
 | Nieuw wachtwoord gelijk aan het oude (`same_password`) | "Kies een ander wachtwoord dan je huidige." |
 | Gebruiker verlaat de pagina na stap 1 of 2 zonder stap 3 | Een herstelsessie blijft in deze browser staan tot uitloggen, net als na een gewone `/beheer`-login. Geaccepteerd: `useBeheerSession.ts` behandelt die als elke andere e-mailsessie. |
 | Mail op de telefoon geopend, aangevraagd op het tablet | Werkt (ADR 0008). De herstelsessie en het uitloggen gebeuren op de telefoon; het tablet blijft ongemoeid. |
-| Te veel mails | Supabase's eigen mailverzending laat maar een paar mails per uur toe voor het hele project (magic links, invites en herstel samen). Buiten scope, zie hieronder — wel de `rate_limited`-melding. |
+| Te veel mails | Supabase's eigen mailverzending laat maar een paar mails per uur toe voor het hele project (magic links, invites en herstel samen). Buiten scope, zie hieronder. De gebruiker ziet de neutrale melding (zie Schermflow stap 1). |
 
 ## Dashboard-instellingen (Bram, geen code)
 
