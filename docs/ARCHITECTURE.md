@@ -733,12 +733,36 @@ dekt `mark_member_invited`'s actorcheck/guards (13 nieuwe assertions,
 `supabase/tests/ledenbeheer.test.sql`), niet de `inviteUserByEmail()`-call
 zelf — dat blijft een pgTAP-gat, zoals ADR 0006 → Gevolgen al voorzag.
 
+**Activiteittypes per dienst (gebouwd, #18, 2026-09-22, [PR #65](https://github.com/BramLambertJansen/ABAS/pull/65) —
+CI groen, nog niet gemerged)**: een door de beheerder beheerbare
+`activity_types`-tabel (`docs/features/activiteittypes.md`,
+`supabase/migrations/0019_activiteittypes.sql`), 1-op-1 het
+`products`-patroon (archiveren, nooit verwijderen) zonder
+`category`/`price_cents`. Een dienst kiest, verplicht, bij het starten één
+activiteittype — `start_shift` kreeg er een derde, verplichte parameter bij
+(`p_activity_type_id`), zichtbaar op het dienst-actief-scherm naast "Gestart
+door X om HH:MM". Nieuwe "Activiteitstypes"-kaart naast
+`NegatieveLimietInstellingen` in `/beheer`'s Instellingen-tab, drie nieuwe
+beheerder-only RPC's in ADR-0002-vorm (`create_activity_type`,
+`update_activity_type_name`, `set_activity_type_archived`). Dit is de
+eerste migratie die `0018`'s `revoke execute ... from public/anon`-regel
+(CLAUDE.md → Architectuurbeslissingen) zelf moest toepassen op nieuw
+toegevoegde functies, inclusief op een herschapen `start_shift` (de
+parameterlijst wijzigde, dus Postgres behandelt dat als een nieuw
+functie-object met een eigen, opnieuw in te trekken default-`EXECUTE`) —
+zie `docs/features/activiteittypes.md`'s "(bouw)"-aantekeningen voor de
+volledige uitleg, inclusief een gecorrigeerde `search_path` (moest
+`extensions` bevatten voor `crypt()`, zelfde bugklasse als
+`0002_fix_start_shift_pgcrypto_search_path.sql`). Rapportage/filtering per
+activiteittype en elke koppeling met het toekomstige Logboek-scherm blijven
+losse, nog niet gespecificeerde tickets (#19) — dit ticket levert alleen de
+datalaag.
+
 ## Wat het prototype deed maar hier nog niet is besloten
 
 Listed for reference only — none of this is scoped in or out yet. Don't build
 any of it without a `docs/features/<naam>.md` spec:
 
-- Activity types linked to a shift ("Training" / "Wedstrijddag" / …).
 - A dedicated audit-log screen (`Logboek`) — the ledger/transaction table
   itself will exist regardless (it's the money trail), just not a filterable
   UI for it yet.
@@ -769,3 +793,18 @@ see the comment on the `accent` token in `tailwind.config.ts` for the exact
 contrast numbers. **Any future screen putting bold white/light text on an
 accent-filled background should reach for `bg-accent-active`, not
 `bg-accent`**, to stay green on `check:a11y` without rediscovering this.
+
+**Known, tracked debt: `hover:bg-accent-hover` on dark (`text-rail`) text
+(found #18, 2026-09-22)**: the mirror-image mistake of the one above —
+`accent.hover`/`accent.active` are only WCAG-compliant for white/light text
+(per the same `tailwind.config.ts` comment), not for `text-rail` (dark)
+text on an accent-filled control. Fixed on the two buttons #18 itself added
+(`ActiviteitstypesInstellingen.tsx`, commit `989774c`); the same latent bug
+still exists, unfixed, on at least 9 other existing buttons (`LedenLijst`,
+`NieuwLidOverlay`, `LidBeherenOverlay`, `BeheerLogin`,
+`NegatieveLimietInstellingen`, `NieuwProductOverlay`, `ProductenLijst`,
+`ProductBeherenOverlay`, `MijnAccountOverlay`) — not caught earlier because
+no existing `check:a11y` scenario happened to land on a real/lingering
+`:hover` state there. Tracked as
+[issue #66](https://github.com/BramLambertJansen/ABAS/issues/66), not fixed
+here to avoid broadening #18's PR.

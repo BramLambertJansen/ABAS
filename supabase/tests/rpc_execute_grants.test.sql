@@ -72,7 +72,7 @@ select ok(
 );
 
 select ok(
-  not has_function_privilege('anon', 'public.start_shift(uuid,text)', 'EXECUTE'),
+  not has_function_privilege('anon', 'public.start_shift(uuid,text,uuid)', 'EXECUTE'),
   'start_shift is niet aanroepbaar zonder sessie (anders is de PIN brute-forcebaar zonder account)'
 );
 
@@ -99,7 +99,7 @@ select ok(
 );
 
 select ok(
-  has_function_privilege('authenticated', 'public.start_shift(uuid,text)', 'EXECUTE'),
+  has_function_privilege('authenticated', 'public.start_shift(uuid,text,uuid)', 'EXECUTE'),
   'start_shift blijft aanroepbaar voor een ingelogde sessie'
 );
 

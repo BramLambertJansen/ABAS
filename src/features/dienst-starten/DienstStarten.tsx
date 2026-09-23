@@ -4,8 +4,13 @@ import Link from "next/link";
 import { useState } from "react";
 import { useOpenShift } from "@/hooks/queries/useOpenShift";
 import { useBarStaff, type BarStaffMember } from "@/hooks/queries/useBarStaff";
-import { useStartShift } from "@/hooks/queries/useStartShift";
+import {
+  useActiviteitTypes,
+  type ActiviteitType,
+} from "@/hooks/queries/useActiviteitTypes";
+import { useStartShift, isActivityTypeErrorCode } from "@/hooks/queries/useStartShift";
 import { StaffPicker } from "./StaffPicker";
+import { ActiviteitKeuze } from "./ActiviteitKeuze";
 import { PinPad, PIN_LENGTH } from "./PinPad";
 import { DienstTabs } from "@/features/verkoop/DienstTabs";
 import type { StartShiftErrorCode } from "@/hooks/queries/useStartShift";
@@ -25,7 +30,32 @@ function pinErrorMessage(code: StartShiftErrorCode): string {
     case "no_bar_role":
     case "member_not_found":
       return "dit account kan geen dienst starten — vraag een beheerder";
+    case "invalid_activity_type":
+    case "activity_type_not_found":
+    case "activity_type_archived":
+      // Komt hier in de praktijk nooit — isActivityTypeErrorCode stuurt de
+      // UI terug naar de activiteitkeuze-stap zodra een van deze drie
+      // codes terugkomt (zie pressDigit/activityErrorMessage hieronder),
+      // vóór dit scherm ooit met die fout rendert. Alleen hier om de switch
+      // exhaustief te houden.
+      return "er ging iets mis, probeer het opnieuw";
     case "unknown":
+      return "er ging iets mis, probeer het opnieuw";
+  }
+}
+
+/** Foutmelding voor de activiteitkeuze-stap (stap 2) — de tegenhanger van
+ *  pinErrorMessage voor stap 3. Zie docs/features/activiteittypes.md →
+ *  Schermflow §2 stap 5 / Randgevallen. */
+function activityErrorMessage(code: StartShiftErrorCode): string {
+  switch (code) {
+    case "invalid_activity_type":
+      return "kies een activiteit";
+    case "activity_type_not_found":
+      return "dit activiteittype bestaat niet meer — kies opnieuw";
+    case "activity_type_archived":
+      return "dit activiteittype is niet meer actief — kies opnieuw";
+    default:
       return "er ging iets mis, probeer het opnieuw";
   }
 }
@@ -42,23 +72,49 @@ function pinErrorMessage(code: StartShiftErrorCode): string {
 export function DienstStarten() {
   const openShift = useOpenShift();
   const barStaff = useBarStaff();
+  const activiteitTypes = useActiviteitTypes();
   const startShiftMutation = useStartShift();
 
   const [selectedStaff, setSelectedStaff] = useState<BarStaffMember | null>(
     null
   );
+  const [selectedActivityType, setSelectedActivityType] =
+    useState<ActiviteitType | null>(null);
+  // Expliciete stap, niet afgeleid uit selectedStaff/selectedActivityType
+  // zijn — stap 3 ("terug") gaat terug naar stap 2 zónder
+  // selectedActivityType te wissen (spec → Schermflow §2 stap 3), dus
+  // nullability van die twee velden alleen kan de stap niet meer eenduidig
+  // bepalen zodra de gebruiker heen en weer navigeert.
+  const [step, setStep] = useState<"staff" | "activity" | "pin">("staff");
   const [pin, setPin] = useState("");
 
   function selectStaff(member: BarStaffMember) {
     setSelectedStaff(member);
+    setSelectedActivityType(null);
     setPin("");
     startShiftMutation.reset();
+    setStep("activity");
   }
 
   function backToStaffPicker() {
     setSelectedStaff(null);
+    setSelectedActivityType(null);
     setPin("");
     startShiftMutation.reset();
+    setStep("staff");
+  }
+
+  function selectActivityType(activityType: ActiviteitType) {
+    setSelectedActivityType(activityType);
+    setPin("");
+    startShiftMutation.reset();
+    setStep("pin");
+  }
+
+  function backToActivityKeuze() {
+    setPin("");
+    startShiftMutation.reset();
+    setStep("activity");
   }
 
   async function pressDigit(digit: string) {
@@ -74,19 +130,39 @@ export function DienstStarten() {
     const next = base + digit;
     setPin(next);
 
-    if (next.length === PIN_LENGTH && selectedStaff) {
-      const result = await startShiftMutation.startShift(selectedStaff.id, next);
+    if (next.length === PIN_LENGTH && selectedStaff && selectedActivityType) {
+      const result = await startShiftMutation.startShift(
+        selectedStaff.id,
+        next,
+        selectedActivityType.id
+      );
       if (result.ok) {
         openShift.refetch();
         return;
       }
+
+      // activity_type_*-fouten (race: gearchiveerd tussen kiezen en PIN
+      // bevestigen, of — puur defensief — een inmiddels niet-bestaand id)
+      // horen niet bij een foute PIN. UI navigeert terug naar de
+      // activiteitkeuze-stap met de foutmelding daar, lijst ververst — zie
+      // docs/features/activiteittypes.md → Schermflow §2 stap 5 /
+      // Randgevallen.
+      if (isActivityTypeErrorCode(result.code)) {
+        setSelectedActivityType(null);
+        setPin("");
+        setStep("activity");
+        activiteitTypes.refetch();
+      }
+
       // `no_bar_role`/`member_not_found` kan alleen als de rol of
       // archivering van dit lid veranderd is ná het laden van de
       // stafkeuze — de lijst filtert daar juist op (useBarStaff.ts). De
       // getoonde melding zegt al "dit account kan geen dienst starten";
       // deze refetch zorgt dat de tegel ook echt uit de keuze verdwijnt
       // in plaats van te blijven staan tot een herlaadactie. `invalid_pin`
-      // blijft bewust ongemoeid: dat zegt niets over de lijst.
+      // blijft bewust ongemoeid: dat zegt niets over de lijst. Disjunct met
+      // de activity_type_*-tak hierboven — start_shift retourneert per
+      // aanroep precies één foutcode.
       if (result.code === "no_bar_role" || result.code === "member_not_found") {
         barStaff.refetch();
       }
@@ -152,7 +228,7 @@ export function DienstStarten() {
             </p>
           )}
 
-          {barStaff.status === "ready" && !selectedStaff && (
+          {barStaff.status === "ready" && step === "staff" && (
             <>
               <h1 className="text-xl font-extrabold tracking-tight">
                 Wie start de dienst?
@@ -176,19 +252,47 @@ export function DienstStarten() {
             </>
           )}
 
-          {barStaff.status === "ready" && selectedStaff && (
+          {barStaff.status === "ready" && step === "activity" && selectedStaff && (
+            <ActiviteitKeuze
+              staffName={selectedStaff.name}
+              activityTypes={
+                activiteitTypes.status === "ready"
+                  ? activiteitTypes.activityTypes
+                  : []
+              }
+              loading={activiteitTypes.status === "loading"}
+              loadErrorMessage={
+                activiteitTypes.status === "error"
+                  ? activiteitTypes.message
+                  : null
+              }
+              errorMessage={
+                startShiftMutation.errorCode &&
+                isActivityTypeErrorCode(startShiftMutation.errorCode)
+                  ? activityErrorMessage(startShiftMutation.errorCode)
+                  : null
+              }
+              pending={startShiftMutation.status === "pending"}
+              onSelect={selectActivityType}
+              onBack={backToStaffPicker}
+            />
+          )}
+
+          {barStaff.status === "ready" && step === "pin" && selectedStaff && (
             <PinPad
               staffName={selectedStaff.name}
               pin={pin}
               errorMessage={
-                startShiftMutation.errorCode
+                startShiftMutation.errorCode &&
+                !isActivityTypeErrorCode(startShiftMutation.errorCode)
                   ? pinErrorMessage(startShiftMutation.errorCode)
                   : null
               }
               pending={startShiftMutation.status === "pending"}
               onDigit={pressDigit}
               onBackspace={backspace}
-              onBack={backToStaffPicker}
+              onBack={backToActivityKeuze}
+              backLabel="← andere activiteit"
             />
           )}
         </>

@@ -13,6 +13,12 @@ export type OpenShift = {
   id: string;
   startedByName: string;
   startedAt: string;
+  /** Naam van het gekoppelde activiteittype (docs/features/activiteittypes.md
+   *  → Schermflow §3). `null` alleen voor een dienst gestart vóór
+   *  0019_activiteittypes.sql (`shifts.activity_type_id` is nullable op
+   *  schemaniveau, zie die migratie) — in de praktijk raakt dat geen
+   *  vandaag open dienst, want elke nieuwe dienst kiest verplicht een type. */
+  activityTypeName: string | null;
 };
 
 type State =
@@ -36,7 +42,7 @@ export function useOpenShift(): State & { refetch: () => void } {
       // before because RLS/auth failures always masked it earlier.
       const { data, error } = await supabase
         .from("shifts")
-        .select("id, started_at, members!started_by(name)")
+        .select("id, started_at, members!started_by(name), activity_types(name)")
         .is("ended_at", null)
         .order("started_at", { ascending: false })
         .limit(1)
@@ -48,8 +54,14 @@ export function useOpenShift(): State & { refetch: () => void } {
       // the untyped client can't know shifts→members is a to-one embed, so
       // it infers `members` as an array shape. It's actually a single
       // object at runtime (one FK, one row); go through `unknown` since TS
-      // won't accept the direct cast.
+      // won't accept the direct cast. Same reasoning for shifts→activity_types
+      // (single `activity_type_id` FK, one path — no PGRST201 ambiguity like
+      // members had, but still a to-one embed the untyped client can't infer).
       const startedByMember = data?.members as unknown as
+        | { name: string }
+        | null
+        | undefined;
+      const activityType = data?.activity_types as unknown as
         | { name: string }
         | null
         | undefined;
@@ -61,6 +73,7 @@ export function useOpenShift(): State & { refetch: () => void } {
               id: data.id as string,
               startedAt: data.started_at as string,
               startedByName: startedByMember?.name ?? "onbekend",
+              activityTypeName: activityType?.name ?? null,
             }
           : null,
       });
