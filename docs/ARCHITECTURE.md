@@ -844,17 +844,13 @@ contrast numbers. **Any future screen putting bold white/light text on an
 accent-filled background should reach for `bg-accent-active`, not
 `bg-accent`**, to stay green on `check:a11y` without rediscovering this.
 
-**Known, tracked debt: `hover:bg-accent-hover` on dark (`text-rail`) text
-(found #18, 2026-09-22)**: the mirror-image mistake of the one above —
-`accent.hover`/`accent.active` are only WCAG-compliant for white/light text
-(per the same `tailwind.config.ts` comment), not for `text-rail` (dark)
-text on an accent-filled control. Fixed on the two buttons #18 itself added
-(`ActiviteitstypesInstellingen.tsx`, commit `989774c`); the same latent bug
-still exists, unfixed, on at least 9 other existing buttons (`LedenLijst`,
-`NieuwLidOverlay`, `LidBeherenOverlay`, `BeheerLogin`,
-`NegatieveLimietInstellingen`, `NieuwProductOverlay`, `ProductenLijst`,
-`ProductBeherenOverlay`, `MijnAccountOverlay`) — not caught earlier because
-no existing `check:a11y` scenario happened to land on a real/lingering
-`:hover` state there. Tracked as
-[issue #66](https://github.com/BramLambertJansen/ABAS/issues/66), not fixed
-here to avoid broadening #18's PR.
+**`hover:bg-accent-hover` on dark (`text-rail`) text (found #18, fixed
+#66, 2026-09-24)**: the mirror-image mistake of the one above. The old
+`accent.hover` (#d94d1a) was darker than DEFAULT and failed AA for dark text
+(4.25:1) — and for white text too (4.18:1). All 16 uses sit on
+`bg-accent text-rail` buttons, so the token itself was changed to a
+*lighter* shade (#f1703f, 6.03:1 with `text-rail`) instead of stripping the
+hover per button. `test/accentContrast.test.ts` (part of `npm test`) guards
+the three pairs in use: `text-rail` on `accent` and on `accent-hover`, and
+white on `accent-active`. The rule stays: dark text → `bg-accent` +
+`hover:bg-accent-hover`; white/light text → `bg-accent-active`.

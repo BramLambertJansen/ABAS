@@ -19,9 +19,17 @@ const config: Config = {
         // Caught by check:a11y once a real CI run could finally reach a
         // rendered button for the first time (docs/ARCHITECTURE.md →
         // "Local/CI device account").
+        //
+        // `hover` is the hover shade for dark-text-on-accent buttons
+        // (`bg-accent text-rail hover:bg-accent-hover`) and is therefore
+        // *lighter* than DEFAULT: 6.03:1 with text-rail. It used to be a
+        // darker #d94d1a, which fails AA for dark text (4.25:1) and for white
+        // text (4.18:1) alike (#66). White-text buttons don't use `hover`;
+        // they sit on `active`. test/accentContrast.test.ts guards all of
+        // these pairs.
         accent: {
           DEFAULT: "#ee5a24",
-          hover: "#d94d1a",
+          hover: "#f1703f",
           active: "#c9451a",
         },
         ink: "#1b1e23",

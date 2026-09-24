@@ -24,7 +24,7 @@ dit; CI draait het opnieuw. Bypassen is geen normale werkwijze.
 | `check:policy` | geen queries buiten de datalaag, geen device-sniffing |
 | `check:rls` | elke tabel RLS, elke policy een negatieve test, geldtabellen REVOKED |
 | `check:a11y` | WCAG-AA (axe-core, elk shell-entrypoint) + `eslint-plugin-jsx-a11y`, `lint` faalt op warnings |
-| `test` | de pure client-logica (`src/lib/money.ts`, mandjelogica) |
+| `test` | de pure client-logica (`src/lib/money.ts`, mandjelogica), contrast van de accent-tokens |
 | `db:test` | de negatieve tests zelf, tegen een echte database |
 
 Wat géén gate afdwingt, en dus reviewwerk blijft: dat de client nooit een
