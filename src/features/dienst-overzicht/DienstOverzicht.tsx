@@ -154,7 +154,10 @@ export function DienstOverzicht({
           {/* Alleen null voor een dienst gestart vóór 0019_activiteittypes.sql
               — zie useOpenShift.ts. */}
           {shift.activityTypeName && (
-            <span className="flex-none whitespace-nowrap rounded-full bg-border-subtle px-[11px] py-1.5 text-[10px] font-extrabold tracking-[0.08em] text-ink-soft">
+            <span
+              title={shift.activityTypeName}
+              className="max-w-[45%] flex-none truncate whitespace-nowrap rounded-full bg-border-subtle px-[11px] py-1.5 text-[10px] font-extrabold tracking-[0.08em] text-ink-soft"
+            >
               {shift.activityTypeName}
             </span>
           )}

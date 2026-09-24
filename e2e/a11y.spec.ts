@@ -694,15 +694,31 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
    * docs/features/dienst-overzicht.md → Randgevallen → "A11y": the
    * Dienst-scherm itself (DienstOverzicht.tsx — omzetkaart,
    * transactielijst, bezettingspaneel) with no dialog open. The two
-   * overlay tests above only scan it behind an open dialog. If this shift
-   * already has bookings (an earlier test or retry in this block placed an
-   * order), the person filter is there too — opened and scanned as well,
-   * since its option list only renders while open.
+   * overlay tests above only scan it behind an open dialog. Places one
+   * real order first (one Pils on seeded "Anna de Vries", €12,40) so the
+   * transactielijst has a row and the "geboekt door"-filter renders — on
+   * a clean CI database a fresh shift has no bookings, and without this
+   * the open-dropdown scan below would never run (Codex review on #82).
+   * The filter's option list only renders while open, so it's opened and
+   * scanned as a second pass.
    */
   test("bar shell (/) Dienst-scherm has no WCAG2A/AA violations", async ({
     page,
   }) => {
     await ensureShiftStarted(page);
+
+    const product = page.getByRole("button", { name: /^Pils,/ });
+    await product.waitFor({ state: "visible", timeout: 15_000 });
+    await product.click();
+    await page.getByLabel("Zoek lid op naam").fill("Anna");
+    const memberOption = page.getByRole("button", { name: /Anna de Vries/i });
+    await memberOption.waitFor({ state: "visible", timeout: 15_000 });
+    await memberOption.click();
+    await page.getByRole("button", { name: "Tik afrekenen" }).click();
+    const checkout = page.getByRole("dialog", { name: /^Afrekenen bij/ });
+    await checkout.waitFor({ state: "visible" });
+    await checkout.getByRole("button", { name: "ja, afrekenen" }).click();
+    await checkout.waitFor({ state: "hidden", timeout: 15_000 });
 
     await page.getByRole("tab", { name: "Dienst" }).click();
     await page
@@ -721,20 +737,19 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
       .toEqual([]);
 
     const personFilter = page.getByRole("button", { name: /^Geboekt door:/ });
-    if (await personFilter.isVisible()) {
-      await personFilter.click();
-      await page
-        .getByRole("button", { name: /^Iedereen/ })
-        .waitFor({ state: "visible" });
+    await expect(personFilter).toBeVisible();
+    await personFilter.click();
+    await page
+      .getByRole("button", { name: /^Iedereen/ })
+      .waitFor({ state: "visible" });
 
-      const openResults = await new AxeBuilder({ page })
-        .withTags(["wcag2a", "wcag2aa"])
-        .analyze();
-      expect(
-        openResults.violations,
-        JSON.stringify(openResults.violations, null, 2)
-      ).toEqual([]);
-    }
+    const openResults = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+    expect(
+      openResults.violations,
+      JSON.stringify(openResults.violations, null, 2)
+    ).toEqual([]);
   });
 
   /**

@@ -11,6 +11,11 @@ import type { LedgerEntry } from "@/hooks/queries/useShiftLedger";
 export const ALL_PEOPLE = "alle";
 
 export type LedgerGroup = {
+  /** Uniek per lokaal uurvak: datum + uur + UTC-offset. Alleen het uur is
+   *  niet genoeg — een dienst die langer dan 24 uur open staat, of het
+   *  dubbele uur bij de overgang naar wintertijd, zou dan boekingen uit
+   *  verschillende uren samenvoegen. */
+  key: string;
   /** "21" — het uur (lokale tijd) van alle boekingen in deze groep. */
   hour: string;
   /** "21:00 – 22:00" */
@@ -53,11 +58,14 @@ export function filterLedger(
 export function groupByHour(entries: LedgerEntry[]): LedgerGroup[] {
   const groups: LedgerGroup[] = [];
   for (const entry of entries) {
-    const hour = String(new Date(entry.createdAt).getHours()).padStart(2, "0");
+    const d = new Date(entry.createdAt);
+    const hour = String(d.getHours()).padStart(2, "0");
+    const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}-${hour}-${d.getTimezoneOffset()}`;
     let group = groups[groups.length - 1];
-    if (!group || group.hour !== hour) {
+    if (!group || group.key !== key) {
       const next = String((Number(hour) + 1) % 24).padStart(2, "0");
       group = {
+        key,
         hour,
         label: `${hour}:00 – ${next}:00`,
         entries: [],

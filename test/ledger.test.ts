@@ -83,6 +83,20 @@ test("groupByHour loopt over middernacht heen", () => {
   assert.equal(group.label, "23:00 – 00:00");
 });
 
+test("groupByHour voegt hetzelfde uur op een andere dag niet samen", () => {
+  const groups = groupByHour([
+    entry({ id: "x", createdAt: "2026-09-25T21:05:00" }),
+    entry({ id: "y", createdAt: "2026-09-24T21:50:00" }),
+  ]);
+  assert.deepEqual(
+    groups.map((g) => [g.label, g.entries.map((e) => e.id)]),
+    [
+      ["21:00 – 22:00", ["x"]],
+      ["21:00 – 22:00", ["y"]],
+    ]
+  );
+});
+
 test("peopleWithCounts en ordersPerMember", () => {
   assert.deepEqual(peopleWithCounts(ledger), [
     { id: "kevin", name: "Kevin Jansen", count: 1 },

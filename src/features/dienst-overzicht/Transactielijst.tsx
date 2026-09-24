@@ -108,7 +108,7 @@ export function Transactielijst({
           </div>
         )}
         {groups.map((group) => (
-          <section key={`${group.hour}-${group.entries[0].id}`} aria-label={group.label}>
+          <section key={group.key} aria-label={group.label}>
             <div className="sticky top-0 z-[2] flex items-baseline justify-between gap-3 bg-white pb-[7px] pt-3.5">
               <h2 className="text-[10px] font-extrabold tracking-[0.12em] text-muted">
                 {group.label}
