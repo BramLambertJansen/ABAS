@@ -211,21 +211,44 @@ kwam of anders werd:
   (`history.replaceState`), zodat verversen de melding niet opnieuw toont.
 - **Focusbeheer (WCAG 2.4.3):** bij wisselen tussen inlog-, aanvraag- en
   verstuurd-weergave verplaatst de focus expliciet naar het nieuwe blok.
+  Sinds PR #75 (#72) geldt hetzelfde `focusAfterSwitch`-patroon ook voor de
+  magic link: na "Stuur inloglink" krijgt de verstuurd-melding de focus, na
+  "Andere inlogmethode" het e-mailveld. Na een *mislukte* poging via de
+  knop valt de focus nog naar `<body>` — open als #77.
 - **Herstelscherm, rate limit bij opslaan:** `updateUser` die op een limiet
   stuit geeft de gedeelde "te veel pogingen"-melding; niet in de
   Randgevallen-tabel hierboven genoemd.
 - **Gedeelde bouwstenen, niet in de spec genoemd:**
   - `src/components/AuroraMerk.tsx` — logo/kop-blok, gebruikt door
     `BeheerLogin`, `WachtwoordHerstellen`, `ModusKeuze` en `DienstStarten`.
-  - `src/lib/authErrors.ts` — `RATE_LIMITED_MESSAGE` en
-    `isRateLimitedMessage`, gedeeld door `useBeheerLogin` en
-    `useWachtwoordHerstellen`.
+  - `src/lib/authErrors.ts` — `isRateLimitedMessage` (herkenning, in
+    `useBeheerLogin` en `useWachtwoordHerstellen`) en
+    `RATE_LIMITED_MESSAGE` (de tekst, in `BeheerLogin` en
+    `WachtwoordHerstellen`). Sinds PR #75 (#73) gebruikt ook de
+    uitnodigingsfout `rate_limited` in `LidBeherenOverlay` die constante in
+    plaats van een eigen kopie. Een broncodescan die bewaakt dat de tekst
+    maar op één plek staat is bewust níet toegevoegd (Bram, review PR #75):
+    duplicatie blijft reviewwerk (CLAUDE.md → "Componenten zijn
+    herbruikbaar").
   - `src/components/NieuwWachtwoordVelden.tsx` en
     `src/lib/passwordPolicy.ts` zoals gespecificeerd.
 - **Tests:** `test/passwordPolicy.test.ts`, `test/beheerCallback.test.ts`
   (met een resolve-hook en fakes in `test/fakes/`),
   `e2e/wachtwoord-vergeten.spec.ts`, en de nieuwe routes in
-  `e2e/a11y.spec.ts`.
+  `e2e/a11y.spec.ts`. PR #75 voegde toe:
+  - `e2e/wachtwoord-vergeten.spec.ts` uitgebreid met de focus na de magic
+    link en randgevallen (mislukte magic link, geen achtergebleven
+    focussprong, versturen via Enter). Twee `test.fixme`-tests leggen het
+    gewenste gedrag van #77 vast.
+  - `e2e/ledenbeheer-invite.spec.ts` — de uitnodigingsfout `rate_limited`
+    in `LidBeherenOverlay` toont de gedeelde tekst. Bewaakt het gedrag,
+    niet dat de tekst uit de constante komt.
+  - `e2e/helpers/supabaseMock.ts` — gedeelde bouwstenen voor specs die
+    Supabase via `page.route()` mocken (headers, nep-sessie, `json`,
+    `alertOf`) plus `loginMetWachtwoord`, ook gebruikt door
+    `e2e/a11y.spec.ts`. Zie `docs/ARCHITECTURE.md` → "Local/CI device
+    account" voor waarom /beheer-mocks tegen de device-sessie bestand
+    moeten zijn.
 
 ### Opvolgissues
 
@@ -234,7 +257,16 @@ kwam of anders werd:
 - [#71](https://github.com/BramLambertJansen/ABAS/issues/71) — a11y-flake
   op de Leden-tab door `transition-colors`.
 - [#72](https://github.com/BramLambertJansen/ABAS/issues/72) — focus na
-  "Stuur inloglink".
+  "Stuur inloglink". **Opgelost** in
+  [PR #75](https://github.com/BramLambertJansen/ABAS/pull/75).
 - [#73](https://github.com/BramLambertJansen/ABAS/issues/73) —
   `LidBeherenOverlay` dupliceert de rate-limit-tekst in plaats van
-  `authErrors.ts` te gebruiken.
+  `authErrors.ts` te gebruiken. **Opgelost** in
+  [PR #75](https://github.com/BramLambertJansen/ABAS/pull/75).
+- [#77](https://github.com/BramLambertJansen/ABAS/issues/77) — na een
+  mislukte inlogpoging via de knop valt de focus naar `<body>`. Gevonden
+  bij PR #75; het gewenste gedrag staat als `test.fixme` in
+  `e2e/wachtwoord-vergeten.spec.ts`.
+- [#78](https://github.com/BramLambertJansen/ABAS/issues/78) — `/beheer`
+  toont op het tablet (device-sessie) bij elk bezoek "Dit account is niet
+  gekoppeld aan een lid". Wacht op een besluit (needs-decision).

@@ -922,7 +922,9 @@ verstuur-kant (`mark_member_invite_sent`/de server-side actie):
 - `rate_limited` → **"te veel pogingen — probeer het over een paar minuten
   opnieuw"** (nieuw, zelfde soort boodschap als `useBeheerLogin.ts`'s
   `rate_limited`-code beschrijft, hier voor het eerst als letterlijke tekst
-  vastgelegd).
+  vastgelegd). Sinds PR #75 (#73) komt de tekst uit
+  `RATE_LIMITED_MESSAGE` in `src/lib/authErrors.ts`, gedeeld met de
+  `/beheer`-inlogschermen, in plaats van een eigen kopie.
 - `unknown` → **"er ging iets mis, probeer het opnieuw"** (letterlijk
   hergebruikt — de bestaande vaste fallback-tekst uit elke andere
   error-mapping-functie in dit bestand).
