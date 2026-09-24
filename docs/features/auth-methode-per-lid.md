@@ -2,7 +2,10 @@
 
 Spec voor [issue #42](https://github.com/BramLambertJansen/ABAS/issues/42).
 
-**Status: goedgekeurd door Bram, klaar voor de Developer (2026-09-19).** De
+**Status: gebouwd en gemerged (2026-09-20) —
+[PR #60](https://github.com/BramLambertJansen/ABAS/pull/60).** Goedgekeurd
+door Bram op 2026-09-19; de rest van dit document is de spec zoals die toen
+goedgekeurd is. De
 drie punten die de vorige versie als "Openstaande vragen voor Bram" openliet
 zijn beantwoord — zie **"Definitieve keuzes (Bram, 2026-09-19)"** hieronder,
 die die sectie vervangt. Er staat in dit document geen open vraag meer; elke
