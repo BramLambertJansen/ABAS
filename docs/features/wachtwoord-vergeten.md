@@ -214,7 +214,9 @@ kwam of anders werd:
   Sinds PR #75 (#72) geldt hetzelfde `focusAfterSwitch`-patroon ook voor de
   magic link: na "Stuur inloglink" krijgt de verstuurd-melding de focus, na
   "Andere inlogmethode" het e-mailveld. Na een *mislukte* poging via de
-  knop valt de focus nog naar `<body>` — open als #77.
+  knop houdt de knop de focus (#77): hij is tijdens het versturen
+  `aria-disabled` in plaats van `disabled`, en `onSubmit` blokkeert zelf
+  een tweede poging.
 - **Herstelscherm, rate limit bij opslaan:** `updateUser` die op een limiet
   stuit geeft de gedeelde "te veel pogingen"-melding; niet in de
   Randgevallen-tabel hierboven genoemd.
@@ -238,9 +240,9 @@ kwam of anders werd:
   `e2e/a11y.spec.ts`. PR #75 voegde toe:
   - `e2e/wachtwoord-vergeten.spec.ts` uitgebreid met de focus na de magic
     link en randgevallen (mislukte magic link, geen achtergebleven
-    focussprong, versturen via Enter). Twee `test.fixme`-tests voor #77
-    toetsen alleen dat de focus na een mislukte poging niet naar `<body>`
-    valt; waar hij wél heen moet, beslist de Architect bij #77.
+    focussprong, versturen via Enter). Voor #77: na een mislukte poging via
+    de knop staat de focus op de knop, en tijdens het versturen gaat er geen
+    tweede aanvraag uit.
   - `e2e/ledenbeheer-invite.spec.ts` — de uitnodigingsfout `rate_limited`
     in `LidBeherenOverlay` toont de gedeelde tekst. Bewaakt het gedrag,
     niet dat de tekst uit de constante komt.
@@ -265,10 +267,9 @@ kwam of anders werd:
   `authErrors.ts` te gebruiken. **Opgelost** in
   [PR #75](https://github.com/BramLambertJansen/ABAS/pull/75).
 - [#77](https://github.com/BramLambertJansen/ABAS/issues/77) — na een
-  mislukte inlogpoging via de knop valt de focus naar `<body>`. Gevonden
-  bij PR #75; twee `test.fixme`-tests in `e2e/wachtwoord-vergeten.spec.ts`
-  toetsen alleen dat de focus niet naar `<body>` valt. Waar hij wél heen
-  moet, is nog niet besloten (Architect).
+  mislukte inlogpoging via de knop viel de focus naar `<body>`. **Opgelost**
+  (besluit Bram, 2026-09-24): de knop is `aria-disabled` in plaats van
+  `disabled` en houdt zo de focus.
 - [#78](https://github.com/BramLambertJansen/ABAS/issues/78) — `/beheer`
   toont op het tablet (device-sessie) bij elk bezoek "Dit account is niet
   gekoppeld aan een lid". Wacht op een besluit (needs-decision).
