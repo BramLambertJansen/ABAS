@@ -366,6 +366,17 @@ test.describe("beheer ingelogde staat (a11y)", () => {
  * token) that this test was the first thing in the repo to ever reach far
  * enough to surface.
  */
+/**
+ * The stafkeuze-knop for the demo bardienst account. Anchored on purpose:
+ * StaffPicker's button is named "Tom Willems, bardienst", but since #83 the
+ * Verkoop screen's BezettingPil is a button named "Bezetting: Tom Willems —
+ * tik om te wijzigen". An unanchored /Tom Willems/ matched that pill as
+ * soon as the bezetting loaded, so ensureShiftStarted()/ensureNoOpenShift()
+ * took the "no shift open" branch with a shift actually open — timing-
+ * dependent, and it failed PR #82's CI run.
+ */
+const STAFF_BUTTON_NAME = /^Tom Willems\b/;
+
 test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
   /** Starts a shift as the demo "Tom Willems" bardienst account (PIN 1234,
    *  per seed.sql's comment: "Demo PIN for every bar/beheer member below is
@@ -392,7 +403,7 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
     await page.goto("/");
 
     const verkoopTab = page.getByRole("tab", { name: "Verkoop" });
-    const staffButton = page.getByRole("button", { name: /Tom Willems/i });
+    const staffButton = page.getByRole("button", { name: STAFF_BUTTON_NAME });
 
     // A short isVisible()-with-timeout pre-check here was racy in CI: on a
     // slower/cold navigation, hydration can take longer than a couple of
@@ -444,7 +455,7 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
   }) => {
     await page.goto("/");
 
-    const staffButton = page.getByRole("button", { name: /Tom Willems/i });
+    const staffButton = page.getByRole("button", { name: STAFF_BUTTON_NAME });
     await staffButton.waitFor({ state: "visible", timeout: 15_000 });
     await staffButton.click();
 
@@ -496,7 +507,7 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
   }) => {
     await page.goto("/");
 
-    const staffButton = page.getByRole("button", { name: /Tom Willems/i });
+    const staffButton = page.getByRole("button", { name: STAFF_BUTTON_NAME });
     await staffButton.waitFor({ state: "visible", timeout: 15_000 });
     await staffButton.click();
 
@@ -542,7 +553,7 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
     await page.goto("/");
 
     const verkoopTab = page.getByRole("tab", { name: "Verkoop" });
-    const staffButton = page.getByRole("button", { name: /Tom Willems/i });
+    const staffButton = page.getByRole("button", { name: STAFF_BUTTON_NAME });
 
     // Same "race both landing states rather than pre-guessing which one
     // shows first" reasoning as ensureShiftStarted() above.
@@ -555,7 +566,7 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
 
     await page.getByRole("tab", { name: "Dienst" }).click();
     await page
-      .getByRole("heading", { name: "Dienst actief" })
+      .getByRole("heading", { name: "Dienst", exact: true })
       .waitFor({ state: "visible", timeout: 15_000 });
     await page.getByRole("button", { name: "Dienst afsluiten" }).click();
 
@@ -596,7 +607,7 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
   }) => {
     await ensureNoOpenShift(page);
 
-    await page.getByRole("button", { name: /Tom Willems/i }).click();
+    await page.getByRole("button", { name: STAFF_BUTTON_NAME }).click();
 
     const activitySelect = page.getByRole("combobox", { name: "Activiteit" });
     await activitySelect.waitFor({ state: "visible", timeout: 15_000 });
@@ -636,7 +647,7 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
     await page.getByRole("tab", { name: "Dienst" }).click();
 
     await page
-      .getByRole("heading", { name: "Dienst actief" })
+      .getByRole("heading", { name: "Dienst", exact: true })
       .waitFor({ state: "visible", timeout: 15_000 });
 
     await page.getByRole("button", { name: "Bezetting wijzigen" }).click();
@@ -680,7 +691,7 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
     await page.getByRole("tab", { name: "Dienst" }).click();
 
     await page
-      .getByRole("heading", { name: "Dienst actief" })
+      .getByRole("heading", { name: "Dienst", exact: true })
       .waitFor({ state: "visible", timeout: 15_000 });
 
     await page.getByRole("button", { name: "Dienst afsluiten" }).click();
@@ -698,6 +709,68 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
 
     expect(results.violations, JSON.stringify(results.violations, null, 2))
       .toEqual([]);
+  });
+
+  /**
+   * docs/features/dienst-overzicht.md → Randgevallen → "A11y": the
+   * Dienst-scherm itself (DienstActief.tsx — omzetkaart,
+   * transactielijst, bezettingspaneel) with no dialog open. The two
+   * overlay tests above only scan it behind an open dialog. Places one
+   * real order first (one Pils on seeded "Anna de Vries", €12,40) so the
+   * transactielijst has a row and the "geboekt door"-filter renders — on
+   * a clean CI database a fresh shift has no bookings, and without this
+   * the open-dropdown scan below would never run (Codex review on #82).
+   * The filter's option list only renders while open, so it's opened and
+   * scanned as a second pass.
+   */
+  test("bar shell (/) Dienst-scherm has no WCAG2A/AA violations", async ({
+    page,
+  }) => {
+    await ensureShiftStarted(page);
+
+    const product = page.getByRole("button", { name: /^Pils,/ });
+    await product.waitFor({ state: "visible", timeout: 15_000 });
+    await product.click();
+    await page.getByLabel("Zoek lid op naam").fill("Anna");
+    const memberOption = page.getByRole("button", { name: /Anna de Vries/i });
+    await memberOption.waitFor({ state: "visible", timeout: 15_000 });
+    await memberOption.click();
+    await page.getByRole("button", { name: "Tik afrekenen" }).click();
+    const checkout = page.getByRole("dialog", { name: /^Afrekenen bij/ });
+    await checkout.waitFor({ state: "visible" });
+    await checkout.getByRole("button", { name: "ja, afrekenen" }).click();
+    await checkout.waitFor({ state: "hidden", timeout: 15_000 });
+
+    await page.getByRole("tab", { name: "Dienst" }).click();
+    await page
+      .getByRole("heading", { name: "Dienst", exact: true })
+      .waitFor({ state: "visible", timeout: 15_000 });
+    // Wait for the ledger to settle (either rows or the empty state) so
+    // the scan doesn't catch the "Boekingen laden…" intermediate state.
+    await page
+      .getByText("Boekingen laden…")
+      .waitFor({ state: "hidden", timeout: 15_000 });
+
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+    expect(results.violations, JSON.stringify(results.violations, null, 2))
+      .toEqual([]);
+
+    const personFilter = page.getByRole("button", { name: /^Geboekt door:/ });
+    await expect(personFilter).toBeVisible();
+    await personFilter.click();
+    await page
+      .getByRole("button", { name: /^Iedereen/ })
+      .waitFor({ state: "visible" });
+
+    const openResults = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+    expect(
+      openResults.violations,
+      JSON.stringify(openResults.violations, null, 2)
+    ).toEqual([]);
   });
 
   /**

@@ -1,14 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { OpenShift } from "@/hooks/queries/useOpenShift";
 import { useShiftMembers } from "@/hooks/queries/useShiftMembers";
 import { useShiftSummary } from "@/hooks/queries/useShiftSummary";
+import { useShiftLedger } from "@/hooks/queries/useShiftLedger";
 import { formatCents } from "@/lib/money";
 import { InitialsAvatar } from "@/components/InitialsAvatar";
 import { BezettingOverlay } from "./BezettingOverlay";
 import { BezettingPil } from "./BezettingPil";
 import { DienstAfsluitenOverlay } from "@/features/dienst-afsluiten/DienstAfsluitenOverlay";
+import { Transactielijst } from "@/features/dienst-overzicht/Transactielijst";
+import { durationLabel, ordersPerMember } from "@/features/dienst-overzicht/ledger";
+
+const DURATION_TICK_MS = 30_000;
 
 function formatStartedAt(iso: string): string {
   return new Date(iso).toLocaleTimeString("nl-NL", {
@@ -24,9 +29,10 @@ function formatStartedAt(iso: string): string {
  * de donkere omzetkaart, rechts een paneel met wie de dienst startte, de
  * activiteit, de bezetting en "dienst afsluiten".
  *
- * Wat het prototype hier nog meer toont — de transactielijst van de dienst
- * met terugdraaien en de omzet per medewerker — bestaat nog niet als
- * feature; dat vraagt eerst een spec, geen restyling.
+ * Onder de omzetkaart de alleen-lezen transactielijst en in het paneel
+ * het aantal bonnen per persoon en de duur van de dienst
+ * (docs/features/dienst-overzicht.md). Terugdraaien/correcties uit het
+ * prototype zijn nog geen feature: dat vraagt een eigen geld-RPC en spec.
  */
 export function DienstActief({
   shift,
@@ -37,10 +43,20 @@ export function DienstActief({
 }) {
   const shiftMembers = useShiftMembers(shift.id);
   const shiftSummary = useShiftSummary(shift.id);
+  const ledger = useShiftLedger(shift.id);
   const [overlayOpen, setOverlayOpen] = useState(false);
   const [afsluitenOverlayOpen, setAfsluitenOverlayOpen] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), DURATION_TICK_MS);
+    return () => clearInterval(timer);
+  }, []);
 
   const members = shiftMembers.status === "ready" ? shiftMembers.members : [];
+  const receipts = ordersPerMember(
+    ledger.status === "ready" ? ledger.entries : []
+  );
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1">
@@ -104,6 +120,8 @@ export function DienstActief({
             </>
           )}
         </section>
+
+        <Transactielijst ledger={ledger} showServedBy={members.length > 1} />
       </div>
 
       <aside className="flex w-[372px] min-h-0 flex-none flex-col gap-3 overflow-auto border-l border-border bg-white p-[18px]">
@@ -117,14 +135,18 @@ export function DienstActief({
               {shift.startedByName}
             </span>
             <span className="text-xs font-semibold text-muted">
-              gestart om {formatStartedAt(shift.startedAt)}
+              gestart om {formatStartedAt(shift.startedAt)} ·{" "}
+              {durationLabel(shift.startedAt, now)}
             </span>
           </div>
           {/* Alleen null voor een dienst gestart vóór 0019_activiteittypes.sql
               — zie useOpenShift.ts (docs/features/activiteittypes.md →
               Schermflow §3). */}
           {shift.activityTypeName && (
-            <span className="flex-none whitespace-nowrap rounded-full bg-border-subtle px-[11px] py-1.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-muted-strong">
+            <span
+              title={shift.activityTypeName}
+              className="max-w-[45%] flex-none truncate whitespace-nowrap rounded-full bg-border-subtle px-[11px] py-1.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-muted-strong"
+            >
               <span className="sr-only">Activiteit: </span>
               {shift.activityTypeName}
             </span>
@@ -169,6 +191,11 @@ export function DienstActief({
                   <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-ink">
                     {member.name}
                   </span>
+                  <span className="flex-none text-[12.5px] font-extrabold text-muted">
+                    {ledger.status !== "ready"
+                      ? "…"
+                      : receiptLabel(receipts.get(member.id) ?? 0)}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -205,6 +232,11 @@ export function DienstActief({
       )}
     </div>
   );
+}
+
+function receiptLabel(n: number): string {
+  if (n === 0) return "—";
+  return `${n} ${n === 1 ? "bon" : "bonnen"}`;
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
