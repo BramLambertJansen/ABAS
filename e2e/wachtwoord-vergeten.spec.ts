@@ -734,19 +734,20 @@ test("mislukte wachtwoordlogin: foutmelding, geen focussprong naar het e-mailvel
   expect(calls.token).toHaveLength(1);
   expect(calls.otp).toHaveLength(0);
 
-  // Via de knop: dezelfde melding, geen verstuurd-weergave. Waar de focus
-  // dan hoort staat nog open (#77, zie de fixme-test hieronder).
+  // Via de knop: dezelfde melding, geen verstuurd-weergave. De knop houdt
+  // de focus (#77, zie de tests hieronder).
   await page.getByRole("button", { name: "Inloggen" }).click();
   await expect.poll(() => calls.token.length).toBe(2);
   await expect(formulierAlert(page)).toHaveText("onjuist e-mailadres of wachtwoord");
   await expect(page.getByRole("status").filter({ hasText: MAGIC_LINK_SENT })).toHaveCount(0);
 });
 
-// #77 — na een mislukte poging via de knop valt de focus nu naar <body>
-// (de knop is tijdens `pending` disabled). Waar hij wél heen moet, beslist
-// de Architect; deze tests gaan aan met de fix voor #77.
+// #77 — de verstuurknop is tijdens `pending` aria-disabled in plaats van
+// disabled, zodat hij de focus houdt. Na een mislukte poging staat de focus
+// dus nog op de knop (niet op <body>), en de foutmelding (role=alert) wordt
+// voorgelezen. Besluit Bram, 2026-09-24.
 for (const methode of ["magic_link", "password"] as const) {
-  test.fixme(`mislukte poging via de knop (${methode}): focus valt niet naar <body> (#77)`, async ({
+  test(`mislukte poging via de knop (${methode}): de knop houdt de focus (#77)`, async ({
     page,
   }) => {
     await mockAuth(page, { otp: () => [500, { code: "unexpected_failure", msg: "mislukt" }] });
@@ -756,11 +757,44 @@ for (const methode of ["magic_link", "password"] as const) {
       await page.locator('label:has(input[value="password"])').click();
       await page.locator('input[type="password"]').fill("fout-wachtwoord");
     }
-    await page
-      .getByRole("button", { name: methode === "password" ? "Inloggen" : "Stuur inloglink" })
-      .click();
+    const knop = page.getByRole("button", {
+      name: methode === "password" ? "Inloggen" : "Stuur inloglink",
+    });
+    await knop.click();
     await expect(formulierAlert(page)).not.toHaveText("");
 
-    expect(await page.evaluate(() => document.activeElement === document.body)).toBe(false);
+    await expect(knop).toBeFocused();
+    await expect(knop).toHaveAttribute("aria-disabled", "false");
   });
 }
+
+test("tijdens het versturen blokkeert de knop een tweede poging (#77)", async ({ page }) => {
+  const calls = await mockAuth(page);
+  // Houd de otp-aanvraag vast tot de test hem loslaat, zodat de knop in
+  // `pending` blijft. Deze route gaat vóór die van mockAuth.
+  let release: () => void = () => {};
+  const held = new Promise<void>((resolve) => (release = resolve));
+  let otpCalls = 0;
+  await page.route(/\/auth\/v1\/otp(\?|$)/, async (route) => {
+    otpCalls += 1;
+    await held;
+    return json(route, 200, {});
+  });
+
+  await openLogin(page);
+  await page.getByLabel("E-mailadres").fill("femke.bos@aurora.local");
+  const knop = page.getByRole("button", { name: "Stuur inloglink" });
+  await knop.click();
+  await expect(knop).toHaveAttribute("aria-disabled", "true");
+  await expect(knop).toBeFocused();
+
+  // Playwright klikt niet op een aria-disabled knop; een echte gebruiker
+  // wel, en dat is precies wat hier getest wordt.
+  await knop.click({ force: true });
+  await page.getByLabel("E-mailadres").press("Enter");
+  release();
+
+  await expect(page.getByRole("status").filter({ hasText: MAGIC_LINK_SENT })).toBeVisible();
+  expect(otpCalls).toBe(1);
+  expect(calls.otp).toHaveLength(0);
+});

@@ -85,6 +85,7 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
   }, []);
 
   const magicLinkSent = login.status === "magic_link_sent";
+  const loginPending = login.status === "pending";
 
   useEffect(() => {
     if (!focusAfterSwitch.current) return;
@@ -122,6 +123,7 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
+    if (loginPending) return;
     if (method === "magic_link") {
       focusAfterSwitch.current = true;
       await login.signInWithMagicLink(email);
@@ -348,10 +350,13 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
             </div>
           )}
 
+          {/* aria-disabled, niet disabled: een disabled knop verliest de
+              focus, en na een mislukte poging stond die dan op <body> (#77).
+              onSubmit blokkeert dubbel versturen zelf. */}
           <button
             type="submit"
-            disabled={login.status === "pending"}
-            className="flex h-12 w-full items-center justify-center rounded-control bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:opacity-50"
+            aria-disabled={loginPending}
+            className="flex h-12 w-full items-center justify-center rounded-control bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
           >
             {method === "magic_link" ? "Stuur inloglink" : "Inloggen"}
           </button>
