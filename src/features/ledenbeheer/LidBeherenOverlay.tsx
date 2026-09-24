@@ -154,10 +154,15 @@ export function LidBeherenOverlay({
   member: initialMember,
   onClose,
   onChanged,
+  onOpenOrders,
 }: {
   member: LedenbeheerLid;
   onClose: () => void;
   onChanged: () => void;
+  /** Wisselt naar "bestelling terugdraaien" voor dit lid
+   *  (docs/features/bestelling-terugdraaien.md → Beheer). De ouder sluit
+   *  deze overlay en opent die andere — nooit twee overlays tegelijk. */
+  onOpenOrders: () => void;
 }) {
   const [member, setMember] = useState(initialMember);
   const [nameInput, setNameInput] = useState(initialMember.name);
@@ -467,6 +472,22 @@ export function LidBeherenOverlay({
           )}
         </div>
       )}
+
+      <button
+        type="button"
+        onClick={onOpenOrders}
+        className="flex items-center justify-between gap-3 rounded-control border border-border p-3.5 text-left transition-colors hover:border-danger"
+      >
+        <span className="flex flex-col gap-0.5">
+          <span className="text-sm font-bold text-ink">Bestelling terugdraaien</span>
+          <span className="text-xs font-medium text-muted">
+            het bedrag gaat terug naar het saldo, met een reden
+          </span>
+        </span>
+        <span aria-hidden="true" className="text-base font-bold text-muted">
+          ›
+        </span>
+      </button>
 
       <button
         type="button"

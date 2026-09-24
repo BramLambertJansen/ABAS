@@ -53,8 +53,16 @@ export function filterLedger(
   });
 }
 
+/** Een verkoop die meetelt als omzet: niet teruggedraaid
+ *  (docs/features/bestelling-terugdraaien.md → Omzet). */
+export function countsAsSale(entry: LedgerEntry): boolean {
+  return entry.kind === "verkoop" && entry.reversal === null;
+}
+
 /** Groepeert opeenvolgende boekingen van hetzelfde uur. Verwacht de lijst
- *  al gesorteerd (nieuwste eerst, zoals useShiftLedger() hem levert). */
+ *  al gesorteerd (nieuwste eerst, zoals useShiftLedger() hem levert).
+ *  Teruggedraaide bestellingen blijven in de groep staan, maar tellen niet
+ *  mee in omzet en aantal. */
 export function groupByHour(entries: LedgerEntry[]): LedgerGroup[] {
   const groups: LedgerGroup[] = [];
   for (const entry of entries) {
@@ -75,7 +83,7 @@ export function groupByHour(entries: LedgerEntry[]): LedgerGroup[] {
       groups.push(group);
     }
     group.entries.push(entry);
-    if (entry.kind === "verkoop") {
+    if (countsAsSale(entry)) {
       group.orderCount += 1;
       group.turnoverCents += entry.amountCents;
     }
@@ -103,11 +111,12 @@ export function peopleWithCounts(
 }
 
 /** Aantal bestellingen ("bonnen") per medewerker, voor het
- *  bezettingsblok rechts. Opwaarderingen tellen niet mee. */
+ *  bezettingsblok rechts. Opwaarderingen en teruggedraaide bestellingen
+ *  tellen niet mee. */
 export function ordersPerMember(entries: LedgerEntry[]): Map<string, number> {
   const counts = new Map<string, number>();
   for (const entry of entries) {
-    if (entry.kind !== "verkoop") continue;
+    if (!countsAsSale(entry)) continue;
     counts.set(entry.servedById, (counts.get(entry.servedById) ?? 0) + 1);
   }
   return counts;

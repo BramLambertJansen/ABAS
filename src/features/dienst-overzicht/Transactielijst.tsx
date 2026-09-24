@@ -26,11 +26,15 @@ type LedgerState =
 export function Transactielijst({
   ledger,
   showServedBy,
+  onReverse,
 }: {
   ledger: LedgerState;
   /** Initialen van wie de boeking deed — alleen zinvol met meer dan één
    *  persoon in de bezetting, zelfde regel als het ontwerp. */
   showServedBy: boolean;
+  /** Opent de terugdraai-overlay voor een verkoop die nog niet is
+   *  teruggedraaid (docs/features/bestelling-terugdraaien.md → Bar). */
+  onReverse: (entry: LedgerEntry) => void;
 }) {
   const [query, setQuery] = useState("");
   const [personId, setPersonId] = useState(ALL_PEOPLE);
@@ -125,7 +129,12 @@ export function Transactielijst({
             </div>
             <ul>
               {group.entries.map((entry) => (
-                <LedgerRow key={entry.id} entry={entry} showServedBy={showServedBy} />
+                <LedgerRow
+                  key={entry.id}
+                  entry={entry}
+                  showServedBy={showServedBy}
+                  onReverse={onReverse}
+                />
               ))}
             </ul>
           </section>
@@ -138,13 +147,18 @@ export function Transactielijst({
 function LedgerRow({
   entry,
   showServedBy,
+  onReverse,
 }: {
   entry: LedgerEntry;
   showServedBy: boolean;
+  onReverse: (entry: LedgerEntry) => void;
 }) {
   const isSale = entry.kind === "verkoop";
+  const reversed = entry.reversal !== null;
   const detail = isSale
-    ? `${entry.itemCount} ${entry.itemCount === 1 ? "item" : "items"}`
+    ? `${entry.itemCount} ${entry.itemCount === 1 ? "item" : "items"}${
+        entry.reversal ? ` · teruggedraaid · ${entry.reversal.reason}` : ""
+      }`
     : `opgewaardeerd · ${entry.method ?? ""}`;
 
   return (
@@ -176,16 +190,31 @@ function LedgerRow({
       <div className="flex min-w-[84px] flex-none flex-col items-end gap-px">
         <span
           className={`whitespace-nowrap text-right text-sm font-extrabold ${
-            isSale ? "text-ink" : "text-success"
+            reversed ? "text-muted line-through" : isSale ? "text-ink" : "text-success"
           }`}
         >
           {isSale ? "− " : "+ "}
           {formatCents(entry.amountCents)}
+          {reversed && <span className="sr-only"> (teruggedraaid)</span>}
         </span>
         <span className="text-[10px] font-bold tracking-[0.07em] text-muted">
-          SALDO
+          {reversed ? "TERUG" : "SALDO"}
         </span>
       </div>
+      {isSale && !reversed ? (
+        <button
+          type="button"
+          onClick={() => onReverse(entry)}
+          aria-label={`Bestelling terugdraaien: ${entry.memberName ?? "losse verkoop"}, ${clockLabel(
+            entry.createdAt
+          )}, ${formatCents(entry.amountCents)}`}
+          className="flex h-10 w-10 flex-none items-center justify-center rounded-control text-base font-extrabold text-muted transition-colors hover:bg-danger-bg hover:text-danger"
+        >
+          <span aria-hidden="true">⤺</span>
+        </button>
+      ) : (
+        <span aria-hidden="true" className="w-10 flex-none" />
+      )}
     </li>
   );
 }

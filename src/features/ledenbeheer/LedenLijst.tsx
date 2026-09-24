@@ -7,6 +7,7 @@ import { formatCents } from "@/lib/money";
 import { InitialsAvatar } from "@/components/InitialsAvatar";
 import { NieuwLidOverlay } from "./NieuwLidOverlay";
 import { LidBeherenOverlay } from "./LidBeherenOverlay";
+import { LidBestellingenOverlay } from "@/features/bestelling-terugdraaien/LidBestellingenOverlay";
 
 const TOAST_DURATION_MS = 3500;
 
@@ -42,7 +43,10 @@ export function LedenLijst() {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<StatusFilter>("actief");
   const [overlay, setOverlay] = useState<
-    { kind: "new" } | { kind: "manage"; member: LedenbeheerLid } | null
+    | { kind: "new" }
+    | { kind: "manage"; member: LedenbeheerLid }
+    | { kind: "orders"; member: LedenbeheerLid }
+    | null
   >(null);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -246,6 +250,21 @@ export function LedenLijst() {
       {overlay?.kind === "manage" && (
         <LidBeherenOverlay
           member={overlay.member}
+          onClose={() => setOverlay(null)}
+          onChanged={() => {
+            members.refetch();
+          }}
+          onOpenOrders={() => setOverlay({ kind: "orders", member: overlay.member })}
+        />
+      )}
+
+      {/* Sluiten gaat terug naar de (ververste) ledenlijst, niet naar "Lid
+          beheren": die overlay houdt een momentopname van het lid vast en
+          zou het oude saldo tonen. */}
+      {overlay?.kind === "orders" && (
+        <LidBestellingenOverlay
+          memberId={overlay.member.id}
+          memberName={overlay.member.name}
           onClose={() => setOverlay(null)}
           onChanged={() => {
             members.refetch();

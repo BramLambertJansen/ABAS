@@ -26,7 +26,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(11);
+select plan(15);
 
 -- ── 1) Niets in public is uitvoerbaar zonder sessie ──────────────────────
 
@@ -117,6 +117,27 @@ select ok(
 select ok(
   has_function_privilege('authenticated', 'public.caller_is_lid()', 'EXECUTE'),
   'caller_is_lid blijft uitvoerbaar voor authenticated (nodig voor de RLS-policies uit 0015)'
+);
+
+-- Added for 0020_bestelling_terugdraaien.sql: both reversal RPCs move money.
+select ok(
+  not has_function_privilege('anon', 'public.reverse_order_at_bar(uuid,uuid,text,uuid)', 'EXECUTE'),
+  'reverse_order_at_bar is niet aanroepbaar zonder sessie'
+);
+
+select ok(
+  not has_function_privilege('anon', 'public.reverse_order_as_admin(uuid,text)', 'EXECUTE'),
+  'reverse_order_as_admin is niet aanroepbaar zonder sessie'
+);
+
+select ok(
+  has_function_privilege('authenticated', 'public.reverse_order_at_bar(uuid,uuid,text,uuid)', 'EXECUTE'),
+  'reverse_order_at_bar blijft aanroepbaar voor een ingelogde sessie'
+);
+
+select ok(
+  has_function_privilege('authenticated', 'public.reverse_order_as_admin(uuid,text)', 'EXECUTE'),
+  'reverse_order_as_admin blijft aanroepbaar voor een ingelogde sessie'
 );
 
 select * from finish();

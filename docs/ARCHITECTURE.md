@@ -708,6 +708,16 @@ ADR-0002-actorcheck-vorm als `create_product`/`update_product_price`/
 `beheerder`), beheerder-only, geen schemawijziging — de kolom bestond en werd
 al gehandhaafd, alleen het schrijfpad ontbrak.
 
+**Bestelling terugdraaien (2026-09-24)**: `0020_bestelling_terugdraaien.sql`
+voegt de geldtabel `order_reversals` toe (alleen toevoegen, primary key
+`order_id` = hooguit één keer) en twee RPC's die `orders.total_cents`
+terugboeken: `reverse_order_at_bar` (gedeelde bar-sessie, open dienst, wie
+het deed uit de bezetting — het `served_by`-patroon) en
+`reverse_order_as_admin` (beheerder via `auth.uid()`, ADR 0002, elke
+bestelling). Geen nieuwe ADR: beide wegen volgen een bestaand patroon.
+Teruggedraaide bestellingen tellen niet mee als omzet (`useShiftSummary`,
+`ledger.ts`). Zie `docs/features/bestelling-terugdraaien.md`.
+
 **Dienst afsluiten (gebouwd en gemerged, #12, PR #52, 2026-08-30)**: een
 "Dienst afsluiten"-knop/overlay op de "Dienst"-tab
 (`DienstActief.tsx`, naast "Bezetting wijzigen"), zesde consument van

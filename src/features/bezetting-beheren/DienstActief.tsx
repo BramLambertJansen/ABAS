@@ -12,8 +12,11 @@ import { BezettingPil } from "./BezettingPil";
 import { DienstAfsluitenOverlay } from "@/features/dienst-afsluiten/DienstAfsluitenOverlay";
 import { Transactielijst } from "@/features/dienst-overzicht/Transactielijst";
 import { durationLabel, ordersPerMember } from "@/features/dienst-overzicht/ledger";
+import { TerugdraaienOverlay } from "@/features/bestelling-terugdraaien/TerugdraaienOverlay";
+import type { LedgerEntry } from "@/hooks/queries/useShiftLedger";
 
 const DURATION_TICK_MS = 30_000;
+const TOAST_DURATION_MS = 4000;
 
 function formatStartedAt(iso: string): string {
   return new Date(iso).toLocaleTimeString("nl-NL", {
@@ -29,10 +32,11 @@ function formatStartedAt(iso: string): string {
  * de donkere omzetkaart, rechts een paneel met wie de dienst startte, de
  * activiteit, de bezetting en "dienst afsluiten".
  *
- * Onder de omzetkaart de alleen-lezen transactielijst en in het paneel
- * het aantal bonnen per persoon en de duur van de dienst
- * (docs/features/dienst-overzicht.md). Terugdraaien/correcties uit het
- * prototype zijn nog geen feature: dat vraagt een eigen geld-RPC en spec.
+ * Onder de omzetkaart de transactielijst en in het paneel het aantal
+ * bonnen per persoon en de duur van de dienst
+ * (docs/features/dienst-overzicht.md). Vanuit de lijst kan de bardienst
+ * een bestelling van deze dienst terugdraaien; het paneel telt de
+ * correcties (docs/features/bestelling-terugdraaien.md → Bar).
  */
 export function DienstActief({
   shift,
@@ -47,6 +51,14 @@ export function DienstActief({
   const [overlayOpen, setOverlayOpen] = useState(false);
   const [afsluitenOverlayOpen, setAfsluitenOverlayOpen] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  const [reverseEntry, setReverseEntry] = useState<LedgerEntry | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), TOAST_DURATION_MS);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), DURATION_TICK_MS);
@@ -121,7 +133,11 @@ export function DienstActief({
           )}
         </section>
 
-        <Transactielijst ledger={ledger} showServedBy={members.length > 1} />
+        <Transactielijst
+          ledger={ledger}
+          showServedBy={members.length > 1}
+          onReverse={setReverseEntry}
+        />
       </div>
 
       <aside className="flex w-[372px] min-h-0 flex-none flex-col gap-3 overflow-auto border-l border-border bg-white p-[18px]">
@@ -205,6 +221,14 @@ export function DienstActief({
         <div className="h-px flex-none bg-border-subtle" />
         <div className="min-h-0 flex-1" />
 
+        {shiftSummary.status === "ready" && shiftSummary.summary.reversalCount > 0 && (
+          <p className="flex-none rounded-[13px] bg-danger-bg px-[13px] py-[11px] text-[12.5px] font-bold text-danger">
+            {shiftSummary.summary.reversalCount === 1
+              ? "1 correctie deze dienst"
+              : `${shiftSummary.summary.reversalCount} correcties deze dienst`}
+          </p>
+        )}
+
         <button
           type="button"
           onClick={() => setAfsluitenOverlayOpen(true)}
@@ -221,6 +245,35 @@ export function DienstActief({
           onMembersChanged={shiftMembers.refetch}
           onClose={() => setOverlayOpen(false)}
         />
+      )}
+
+      {reverseEntry && (
+        <TerugdraaienOverlay
+          shiftId={shift.id}
+          entry={reverseEntry}
+          crew={members}
+          onClose={() => setReverseEntry(null)}
+          onReversed={(refundedCents) => {
+            setReverseEntry(null);
+            setToast(`Bestelling teruggedraaid · ${formatCents(refundedCents)}`);
+            ledger.refetch();
+            shiftSummary.refetch();
+          }}
+          onRefetchCrew={shiftMembers.refetch}
+          onRefetchLedger={ledger.refetch}
+        />
+      )}
+
+      {toast && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="pointer-events-none fixed inset-x-0 bottom-6 flex justify-center"
+        >
+          <span className="rounded-full bg-ink px-5 py-2.5 text-sm font-bold text-white shadow-lg">
+            {toast}
+          </span>
+        </div>
       )}
 
       {afsluitenOverlayOpen && (

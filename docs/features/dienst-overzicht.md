@@ -62,8 +62,9 @@ bevat `Transactielijst.tsx` en `ledger.ts` (pure logica, getest in
 ## Expliciet buiten scope
 
 - **Terugdraaien/correcties** (ontwerp: ⤺ per verkoopregel, "N correcties
-  deze dienst"). Dat vraagt een nieuwe geld-RPC, en daarmee een eigen spec
-  en negatieve tests. Het wordt een apart ticket.
+  deze dienst") — inmiddels gebouwd als eigen feature, zie
+  `docs/features/bestelling-terugdraaien.md`. Vrije saldocorrectie blijft
+  buiten scope.
 - Pinverkoop en pin-/Tikkie-opwaarderingen: bestaan niet.
 
 ## Randgevallen

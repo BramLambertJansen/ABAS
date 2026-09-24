@@ -62,6 +62,11 @@ dat een betaalprovider-webhook er later naast kan zonder het patroon (geld
 alleen via RPC) te breken — en zonder die €500, die een kassa-guard is en geen
 eigenschap van de tabel.
 
+**Terugdraaien:** alleen een hele bestelling, met reden — op de bar tijdens
+de dienst (bezettings-attributie, alleen die dienst), in beheer elke
+bestelling. Telt daarna niet als omzet. Zie
+`docs/features/bestelling-terugdraaien.md`.
+
 **Dienst & bezetting.** Wie een dienst start doet dat met de eigen PIN en
 stelt daarna de bezetting samen — andere leden die meewerken, zonder dat zij
 zelf inloggen. Zie Architectuurbeslissingen voor hoe attributie daaruit werkt.
@@ -70,8 +75,9 @@ zelf inloggen. Zie Architectuurbeslissingen voor hoe attributie daaruit werkt.
 
 **Geld beweegt alleen via RPC.** `place_order` en `top_up` bepalen bedrag,
 controleren saldo (inclusief de ingestelde negatieflimiet) en schrijven de
-transactie in één statement. De client stuurt alleen product-ids, aantallen of
-een bedrag mee — nooit een berekend totaal (het `REVOKE` op geldtabellen dat
+transactie in één statement; `reverse_order_at_bar`/`reverse_order_as_admin`
+boeken `orders.total_cents` terug. De client stuurt alleen ids, aantallen of
+een opwaardeerbedrag mee — nooit een berekend totaal (het `REVOKE` op geldtabellen dat
 dit ook technisch afdwingt staat onder Verificatie → `check:rls`). Die RPC's
 zijn uitsluitend uitvoerbaar voor `authenticated`: een nieuwe functie krijgt
 van Postgres standaard `EXECUTE` voor `PUBLIC`, en dat moet elke migratie die
