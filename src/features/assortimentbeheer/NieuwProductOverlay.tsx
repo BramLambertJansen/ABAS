@@ -69,15 +69,12 @@ export function NieuwProductOverlay({
       description="Naam, categorie en prijs — het product staat meteen op het verkoopscherm."
       onClose={onClose}
     >
-      {/* text-rail-error, niet de light-theme `danger`-kleur — Overlay.tsx
-          is altijd rail-* gestyled (donkere kaart), zie
-          ProductBeherenOverlay.tsx voor dezelfde afweging. */}
-      <p className="min-h-[1.25rem] text-sm font-bold text-rail-error" role="alert">
+      <p className="text-sm font-bold text-danger empty:-mt-4" role="alert">
         {createProduct.errorCode ? errorMessage(createProduct.errorCode) : ""}
       </p>
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor={nameId} className="text-xs font-bold text-rail-muted">
+        <label htmlFor={nameId} className="text-xs font-bold text-muted">
           Naam
         </label>
         <input
@@ -85,12 +82,12 @@ export function NieuwProductOverlay({
           type="text"
           value={name}
           onChange={(event) => setName(event.target.value)}
-          className="h-12 rounded-control border border-rail-border bg-rail px-3.5 text-sm font-semibold text-white outline-none focus:border-accent"
+          className="h-12 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink outline-none focus:border-accent"
         />
       </div>
 
       <fieldset className="flex flex-col gap-2">
-        <legend className="text-xs font-bold text-rail-muted">Categorie</legend>
+        <legend className="float-left w-full text-xs font-bold text-muted">Categorie</legend>
         <div className="flex flex-wrap gap-2" role="group" aria-label="Categorie">
           {PRODUCT_CATEGORIES.map((option) => (
             <button
@@ -101,7 +98,7 @@ export function NieuwProductOverlay({
               className={`flex h-9 items-center justify-center rounded-full border px-3.5 text-xs font-bold transition-colors ${
                 category === option
                   ? "border-accent bg-accent text-rail"
-                  : "border-rail-border bg-rail text-white hover:border-accent"
+                  : "border-border bg-white text-ink hover:border-accent"
               }`}
             >
               {option}
@@ -111,11 +108,11 @@ export function NieuwProductOverlay({
       </fieldset>
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor={priceId} className="text-xs font-bold text-rail-muted">
+        <label htmlFor={priceId} className="text-xs font-bold text-muted">
           Prijs
         </label>
-        <div className="flex items-center gap-2 rounded-control border border-rail-border bg-rail px-3.5 focus-within:border-accent">
-          <span aria-hidden="true" className="text-sm font-bold text-rail-muted">
+        <div className="flex items-center gap-2 rounded-control border border-border bg-white px-3.5 focus-within:border-accent">
+          <span aria-hidden="true" className="text-sm font-bold text-muted">
             €
           </span>
           <input
@@ -125,7 +122,7 @@ export function NieuwProductOverlay({
             placeholder="0,00"
             value={priceInput}
             onChange={(event) => setPriceInput(event.target.value)}
-            className="h-12 flex-1 min-w-0 bg-transparent text-sm font-semibold text-white outline-none"
+            className="h-12 flex-1 min-w-0 bg-transparent text-sm font-semibold text-ink outline-none"
           />
         </div>
       </div>
@@ -134,7 +131,7 @@ export function NieuwProductOverlay({
         <button
           type="button"
           onClick={onClose}
-          className="flex h-11 flex-1 items-center justify-center rounded-control border border-rail-border bg-rail text-sm font-bold text-white transition-colors hover:border-accent"
+          className="flex h-11 flex-1 items-center justify-center rounded-control border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink"
         >
           Annuleren
         </button>
@@ -142,7 +139,7 @@ export function NieuwProductOverlay({
           type="button"
           disabled={!canSubmit}
           onClick={submit}
-          className="flex h-11 flex-1 items-center justify-center rounded-control bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:opacity-50"
+          className="flex h-11 flex-1 items-center justify-center rounded-control bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:bg-track disabled:text-muted"
         >
           Toevoegen
         </button>

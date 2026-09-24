@@ -254,7 +254,7 @@ function PersonFilter({
         <span className="whitespace-nowrap text-[13.5px] font-bold">{active.name}</span>
         <span
           className={`flex-none rounded-full px-[7px] py-0.5 text-[11px] font-extrabold ${
-            dark ? "bg-white/[0.16] text-white" : "bg-border-subtle text-ink-soft"
+            dark ? "bg-white/[0.16] text-white" : "bg-border-subtle text-muted-strong"
           }`}
         >
           {active.count}
@@ -288,7 +288,7 @@ function PersonFilter({
                   <span className="flex-1 truncate">{option.name}</span>
                   <span
                     className={`flex-none rounded-full px-[7px] py-0.5 text-[11px] font-extrabold ${
-                      selected ? "bg-white/[0.16] text-white" : "bg-border-subtle text-ink-soft"
+                      selected ? "bg-white/[0.16] text-white" : "bg-border-subtle text-muted-strong"
                     }`}
                   >
                     {option.count}

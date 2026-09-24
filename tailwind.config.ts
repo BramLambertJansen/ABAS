@@ -31,15 +31,12 @@ const config: Config = {
           DEFAULT: "#ee5a24",
           hover: "#f1703f",
           active: "#c9451a",
+          // Zachte accent-ondergrond ("+"-knoppen, aantal-pillen, gekozen
+          // rij) — altijd met `text-danger`/`text-accent-active` erop, nooit
+          // met accent.DEFAULT als tekstkleur (te weinig contrast).
+          soft: "#fff2ec",
         },
-        ink: {
-          DEFAULT: "#1b1e23",
-          // Secondary dark text on white/`border-subtle` — the design's
-          // #5c5952 (bezettingschip, activity pill, light avatars). 6.99:1
-          // on white; muted (#736d66) only reaches 4.47:1 on
-          // `border-subtle`, so light avatars use this instead.
-          soft: "#5c5952",
-        },
+        ink: "#1b1e23",
         canvas: "#faf7f3",
         border: {
           DEFAULT: "#ede7df",
@@ -53,7 +50,13 @@ const config: Config = {
           // per CLAUDE.md → Designbestanden, not a defect.
           DEFAULT: "#736d66",
           light: "#aca69e",
+          // Donkerder secundair grijs uit het prototype (chips, pil-labels):
+          // 6.6:1 op wit.
+          strong: "#5c5952",
         },
+        // Ondergrond van gesegmenteerde knoppen (galerij/lijst e.d.) en
+        // uitgeschakelde primaire knoppen in het prototype.
+        track: "#f2ece4",
         // The dark login screen (dienst starten, issue #6) — prototype's
         // "noLogin" screen background family, distinct from the light
         // canvas/ink pair the rest of the app uses.
@@ -65,14 +68,10 @@ const config: Config = {
           // sizes but no margin for error at 12-13px body text. Used
           // #8c8f96 instead (5.49:1) for actual body/label text.
           muted: "#8c8f96",
+          // Lichtgrijs uit het prototype (#cfd3d8): namen onder een avatar,
+          // hover-tekst, de bardienst-rolbadge — 8:1 op rail-border.
+          light: "#cfd3d8",
           error: "#ff7c4a",
-          // Dienst-scherm (docs/features/dienst-overzicht.md): the active
-          // rail item's text (5.87:1 on its accent/15 background), the
-          // "DIENST" badge (6.46:1 on accent/18) and the stat values in
-          // the dark omzet card (14.7:1 on rail). Prototype values.
-          accent: "#ff7c4a",
-          badge: "#ff9165",
-          value: "#e8eaed",
         },
         success: "#157f4a",
         warning: {

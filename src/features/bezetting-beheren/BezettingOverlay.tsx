@@ -96,24 +96,24 @@ export function BezettingOverlay({
       description="Iedereen hieronder werkt in dezelfde dienst. Tik iemand aan om toe te voegen of af te melden."
       onClose={onClose}
     >
-      <p className="min-h-[1.25rem] text-sm font-bold text-rail-error" role="alert">
+      <p className="text-sm font-bold text-danger empty:-mt-4" role="alert">
         {errorMessage ?? ""}
       </p>
 
       {barStaff.status === "loading" && (
-        <p className="text-sm font-semibold text-rail-muted" role="status">
+        <p className="text-sm font-semibold text-muted" role="status">
           Bardienst-lijst laden…
         </p>
       )}
 
       {barStaff.status === "error" && (
-        <p className="text-sm font-semibold text-rail-error" role="alert">
+        <p className="text-sm font-semibold text-danger" role="alert">
           {barStaff.message}
         </p>
       )}
 
       {barStaff.status === "ready" && barStaff.staff.length === 0 && (
-        <p className="text-sm font-semibold text-rail-muted">
+        <p className="text-sm font-semibold text-muted">
           {NO_BAR_STAFF_MESSAGE}
         </p>
       )}
@@ -135,23 +135,23 @@ export function BezettingOverlay({
                   onClick={() => toggle(member)}
                   className={`flex w-full min-h-[44px] items-center gap-3 rounded-2xl border p-3 text-left transition-colors disabled:opacity-50 ${
                     inBezetting
-                      ? "border-accent bg-rail"
-                      : "border-rail-border bg-rail"
+                      ? "border-accent bg-white"
+                      : "border-border bg-white"
                   }`}
                 >
-                  <InitialsAvatar name={member.name} size="sm" />
+                  <InitialsAvatar name={member.name} size="sm" tone="light" />
                   <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <span className="truncate text-sm font-bold text-white">
+                    <span className="truncate text-sm font-bold text-ink">
                       {member.name}
                     </span>
-                    <RoleBadge role={member.role} />
+                    <RoleBadge role={member.role} tone="light" />
                   </span>
                   <span
                     aria-hidden="true"
                     className={`flex h-6 w-6 flex-none items-center justify-center rounded-full text-sm font-extrabold ${
                       inBezetting
                         ? "bg-accent-active text-white"
-                        : "border border-rail-border text-rail-muted"
+                        : "border border-border text-muted"
                     }`}
                   >
                     {isPending ? "…" : inBezetting ? "✓" : "+"}

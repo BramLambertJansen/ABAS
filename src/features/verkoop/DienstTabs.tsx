@@ -2,26 +2,25 @@
 
 import { useId, useState, type ReactNode } from "react";
 import type { OpenShift } from "@/hooks/queries/useOpenShift";
-import { DienstOverzicht } from "@/features/dienst-overzicht/DienstOverzicht";
+import { DienstActief } from "@/features/bezetting-beheren/DienstActief";
 import { VerkoopScherm } from "./VerkoopScherm";
 
 type Tab = "verkoop" | "dienst";
 
 /**
  * Navigatie tussen Verkoop (standaard/actief na dienst-start of bij een
- * al-open dienst, docs/features/verkoop.md → Navigatie) en Dienst
- * (`DienstOverzicht`). De donkere icon-rail links volgt het ontwerp
- * (`designs/Bar App.dc.html` regel 39–57 en de navStyle/navBar-stijlen,
- * regel 2988); zie docs/features/dienst-overzicht.md → Navigatie. Het
- * "Afsluiten"-item onderaan de rail uit het ontwerp is er bewust niet: de
- * gedeelde bar-sessie heeft geen modus om uit te stappen, een dienst
- * sluit je af via het Dienst-scherm.
+ * al-open dienst) en Dienst (`DienstActief`) — zie docs/features/verkoop.md
+ * → Navigatie. Chrome naar designs/Bar App.dc.html: een donkere icon-rail
+ * links (92px, "A"-merkteken, "DIENST"-label, één knop per scherm met
+ * oranje streep bij het actieve scherm). Semantisch een verticale
+ * `tablist`, zodat toetsenbord en schermlezer dezelfde tabs zien als
+ * voorheen.
  *
  * Elk tabblad blijft alleen gemount terwijl het actief is (zelfde
  * mount/unmount-als-lifecycle-aanpak als Overlay.tsx, niet een
- * hidden-toggle) — zo krijgt elk scherm bij terugkeer altijd verse data
- * (assortiment, leden, bezetting, boekingen) in plaats van een stale
- * snapshot van vóór het wisselen.
+ * hidden-toggle) — zo krijgt Verkoop bij terugkeer altijd verse data
+ * (assortiment, leden, bezetting) in plaats van een stale snapshot van
+ * vóór het wisselen.
  */
 export function DienstTabs({
   shift,
@@ -35,15 +34,18 @@ export function DienstTabs({
   const dienstTabId = useId();
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-canvas font-sans text-ink">
-      <div className="flex w-[92px] flex-none flex-col items-center gap-1 bg-rail pb-[18px] pt-5">
-        <span
+    <div className="flex h-screen w-full overflow-hidden bg-canvas font-sans text-ink antialiased">
+      <nav
+        aria-label="Bar"
+        className="flex w-[92px] flex-none flex-col items-center gap-1 bg-rail pb-[18px] pt-5"
+      >
+        <div
           aria-hidden="true"
-          className="flex h-[42px] w-[42px] items-center justify-center rounded-[13px] bg-accent text-[19px] font-extrabold tracking-[-0.02em] text-white shadow-[0_6px_16px_-4px_rgba(238,90,36,0.7)]"
+          className="flex h-[42px] w-[42px] items-center justify-center rounded-[13px] bg-accent text-[19px] font-extrabold tracking-tight text-white shadow-[0_6px_16px_-4px_rgba(238,90,36,0.7)]"
         >
           A
-        </span>
-        <span className="mb-4 mt-[9px] rounded-full bg-accent/[0.18] px-2 py-1 text-[8.5px] font-extrabold tracking-[0.13em] text-rail-badge">
+        </div>
+        <span className="mb-4 mt-[9px] rounded-full bg-accent/20 px-2 py-1 text-[8.5px] font-extrabold tracking-[0.13em] text-rail-error">
           DIENST
         </span>
 
@@ -84,14 +86,14 @@ export function DienstTabs({
             Dienst
           </RailTab>
         </div>
-      </div>
+      </nav>
 
       {tab === "verkoop" && (
         <div
           id="verkoop-panel"
           role="tabpanel"
           aria-labelledby={verkoopTabId}
-          className="flex min-h-0 min-w-0 flex-1 flex-col"
+          className="flex min-h-0 min-w-0 flex-1"
         >
           <VerkoopScherm shift={shift} />
         </div>
@@ -104,7 +106,7 @@ export function DienstTabs({
           aria-labelledby={dienstTabId}
           className="flex min-h-0 min-w-0 flex-1"
         >
-          <DienstOverzicht shift={shift} onShiftEnded={onShiftEnded} />
+          <DienstActief shift={shift} onShiftEnded={onShiftEnded} />
         </div>
       )}
     </div>
@@ -136,13 +138,13 @@ function RailTab({
       onClick={onSelect}
       className={`relative flex w-[70px] flex-col items-center gap-[7px] rounded-[14px] pb-[9px] pt-[11px] text-center text-[10.5px] font-bold transition-colors ${
         selected
-          ? "bg-accent/15 text-rail-accent"
+          ? "bg-accent/15 text-rail-error"
           : "text-rail-muted hover:bg-white/5 hover:text-white"
       }`}
     >
       <span
         aria-hidden="true"
-        className={`absolute -left-[11px] bottom-3.5 top-3.5 w-[3px] rounded-r-[3px] ${
+        className={`absolute -left-[11px] bottom-[14px] top-[14px] w-[3px] rounded-r-[3px] ${
           selected ? "bg-accent" : "bg-transparent"
         }`}
       />

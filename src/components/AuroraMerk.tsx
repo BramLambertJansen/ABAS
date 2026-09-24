@@ -14,8 +14,8 @@ export function AuroraMerk({
   children?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center gap-2 text-center">
-      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent text-2xl font-extrabold text-white shadow-[0_10px_26px_-6px_rgba(238,90,36,0.7)]">
+    <div className="flex flex-col items-center gap-1.5 text-center">
+      <div className="mb-2 flex h-[52px] w-[52px] items-center justify-center rounded-card bg-accent text-2xl font-extrabold text-white shadow-[0_10px_26px_-6px_rgba(238,90,36,0.7)]">
         A
       </div>
       <span

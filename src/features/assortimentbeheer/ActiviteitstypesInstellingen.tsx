@@ -153,7 +153,7 @@ export function ActiviteitstypesInstellingen() {
         </p>
       </div>
 
-      <p className="min-h-[1.25rem] text-sm font-bold text-danger" role="alert">
+      <p className="text-sm font-bold text-danger empty:-mt-4" role="alert">
         {errorMessage ?? ""}
       </p>
 
@@ -197,7 +197,7 @@ export function ActiviteitstypesInstellingen() {
                     type="button"
                     disabled={renaming || editing.name.trim() === ""}
                     onClick={saveEdit}
-                    className="flex h-10 flex-none items-center justify-center rounded-control bg-accent px-3 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex h-10 flex-none items-center justify-center rounded-control bg-accent px-3 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-track disabled:text-muted"
                   >
                     Opslaan
                   </button>
@@ -280,7 +280,7 @@ export function ActiviteitstypesInstellingen() {
             type="button"
             disabled={creating || newName.trim() === ""}
             onClick={createType}
-            className="flex h-11 flex-none items-center gap-1.5 rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-11 flex-none items-center gap-1.5 rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-track disabled:text-muted"
           >
             <span aria-hidden="true" className="text-base leading-none">
               +
