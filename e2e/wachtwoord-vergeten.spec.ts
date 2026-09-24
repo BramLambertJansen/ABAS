@@ -590,6 +590,16 @@ test("focus volgt 'Stuur inloglink' en 'Andere inlogmethode'", async ({ page }) 
  */
 const MAGIC_LINK_SENT = "We hebben een inloglink gestuurd";
 
+/**
+ * De foutregel ín het inlogformulier. Niet alertOf(): op een tablet (en in
+ * CI) logt de middleware /beheer in als het gedeelde device-account, en dan
+ * staat er boven het formulier nog een tweede alert ("Dit account is niet
+ * gekoppeld aan een lid").
+ */
+function formulierAlert(page: Page) {
+  return page.locator("form").getByRole("alert");
+}
+
 async function openLogin(page: Page) {
   await page.goto("/beheer");
   await page.locator('input[type="email"]').waitFor({ state: "visible", timeout: 15_000 });
@@ -628,7 +638,7 @@ for (const [name, status, body, melding] of [
     await emailVeld.fill("femke.bos@aurora.local");
     await knop.click();
 
-    await expect(alertOf(page)).toHaveText(melding);
+    await expect(formulierAlert(page)).toHaveText(melding);
     await expect(verstuurd).toHaveCount(0);
     await expect(emailVeld).toHaveValue("femke.bos@aurora.local");
     await expect(knop).toBeEnabled();
@@ -651,7 +661,7 @@ test("na een mislukte magic link: wisselen van methode en 'vergeten' geven geen 
   const emailVeld = page.getByLabel("E-mailadres");
   await emailVeld.fill("femke.bos@aurora.local");
   await page.getByRole("button", { name: "Stuur inloglink" }).click();
-  await expect(alertOf(page)).toHaveText("er ging iets mis, probeer het opnieuw");
+  await expect(formulierAlert(page)).toHaveText("er ging iets mis, probeer het opnieuw");
 
   // Methode wisselen: focus blijft op de gekozen radio, springt niet naar
   // het e-mailveld door een achtergebleven focusAfterSwitch.
@@ -717,7 +727,7 @@ test("mislukte wachtwoordlogin: foutmelding, geen focussprong naar het e-mailvel
   await wachtwoordVeld.fill("fout-wachtwoord");
   await wachtwoordVeld.press("Enter");
 
-  await expect(alertOf(page)).toHaveText("onjuist e-mailadres of wachtwoord");
+  await expect(formulierAlert(page)).toHaveText("onjuist e-mailadres of wachtwoord");
   // Via het toetsenbord verstuurd: de focus blijft in het wachtwoordveld.
   await expect(wachtwoordVeld).toBeFocused();
   await expect(wachtwoordVeld).toHaveValue("fout-wachtwoord");
@@ -728,7 +738,7 @@ test("mislukte wachtwoordlogin: foutmelding, geen focussprong naar het e-mailvel
   // dan hoort staat nog open (#77, zie de fixme-test hieronder).
   await page.getByRole("button", { name: "Inloggen" }).click();
   await expect.poll(() => calls.token.length).toBe(2);
-  await expect(alertOf(page)).toHaveText("onjuist e-mailadres of wachtwoord");
+  await expect(formulierAlert(page)).toHaveText("onjuist e-mailadres of wachtwoord");
   await expect(page.getByRole("status").filter({ hasText: MAGIC_LINK_SENT })).toHaveCount(0);
 });
 
@@ -749,7 +759,7 @@ for (const methode of ["magic_link", "password"] as const) {
     await page
       .getByRole("button", { name: methode === "password" ? "Inloggen" : "Stuur inloglink" })
       .click();
-    await expect(alertOf(page)).not.toHaveText("");
+    await expect(formulierAlert(page)).not.toHaveText("");
 
     expect(await page.evaluate(() => document.activeElement === document.body)).toBe(false);
   });

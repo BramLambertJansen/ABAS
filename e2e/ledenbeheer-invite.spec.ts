@@ -43,11 +43,14 @@ async function mockBeheerder(page: Page, invite: [number, unknown]) {
     const accept = route.request().headers()["accept"] ?? "";
     return json(route, 200, accept.includes("vnd.pgrst.object") ? null : []);
   });
-  // useBeheerSession: members-rij van de ingelogde beheerder.
+  // useBeheerSession: members-rij, alleen voor de nep-beheerder (USER). Een
+  // andere sessie — in CI het device-account dat de middleware op /beheer
+  // inlogt — hoort bij geen lid, net als in het echt.
   await page.route(/\/rest\/v1\/members(\?|$)/, (route) => {
-    const row = { name: "Femke Bos", role: "beheerder", has_pin: false };
+    const isBeheerder = route.request().url().includes(`auth_user_id=eq.${USER.id}`);
+    const row = isBeheerder ? { name: "Femke Bos", role: "beheerder", has_pin: false } : null;
     const accept = route.request().headers()["accept"] ?? "";
-    return json(route, 200, accept.includes("vnd.pgrst.object") ? row : [row]);
+    return json(route, 200, accept.includes("vnd.pgrst.object") ? row : row ? [row] : []);
   });
   await page.route(/\/rest\/v1\/rpc\/list_members_admin(\?|$)/, (route) => json(route, 200, [LID]));
 
