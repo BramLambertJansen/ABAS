@@ -192,11 +192,11 @@ above.
 
 **First multi-screen bar navigation (settled, 2026-08-26)**: issue #8 is the
 first time `shells/bar` needed more than one screen behind an open shift.
-`src/features/verkoop/DienstTabs.tsx` renders a simple `role="tablist"` tab
-bar (Verkoop, default/active; Dienst, the existing #7 `DienstActief`
-content) — deliberately not the prototype's dark icon-rail chrome, per
-`docs/features/verkoop.md` → Navigatie ("the spec fixes that navigation
-exists, not the pixels"). `DienstStarten.tsx` hands off to `DienstTabs`
+`src/features/verkoop/DienstTabs.tsx` renders a `role="tablist"` (Verkoop,
+default/active; Dienst). Originally a plain tab bar; since 2026-09-24 the
+prototype's dark icon-rail, with the Dienst tab showing the design's
+Dienst-scherm (`src/features/dienst-overzicht/`, see
+`docs/features/dienst-overzicht.md`) instead of #7's `DienstActief` card. `DienstStarten.tsx` hands off to `DienstTabs`
 entirely once a shift is open, rather than branching inside its own dark
 PIN-entry layout. Each tab's content is mounted/unmounted as the active tab
 changes (not hidden via CSS) — same lifecycle-based approach as

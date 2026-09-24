@@ -1,25 +1,27 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useState, type ReactNode } from "react";
 import type { OpenShift } from "@/hooks/queries/useOpenShift";
-import { DienstActief } from "@/features/bezetting-beheren/DienstActief";
+import { DienstOverzicht } from "@/features/dienst-overzicht/DienstOverzicht";
 import { VerkoopScherm } from "./VerkoopScherm";
 
 type Tab = "verkoop" | "dienst";
 
 /**
  * Navigatie tussen Verkoop (standaard/actief na dienst-start of bij een
- * al-open dienst) en Dienst (bestaande `DienstActief`-inhoud, ongewijzigd)
- * — zie docs/features/verkoop.md → Navigatie. De exacte chrome is bewust
- * eenvoudig gehouden (een tabbar, geen nabouw van het ontwerp se donkere
- * icon-rail): de spec legt alleen vast dát er navigatie is met Verkoop als
- * standaard, niet de pixels.
+ * al-open dienst, docs/features/verkoop.md → Navigatie) en Dienst
+ * (`DienstOverzicht`). De donkere icon-rail links volgt het ontwerp
+ * (`designs/Bar App.dc.html` regel 39–57 en de navStyle/navBar-stijlen,
+ * regel 2988); zie docs/features/dienst-overzicht.md → Navigatie. Het
+ * "Afsluiten"-item onderaan de rail uit het ontwerp is er bewust niet: de
+ * gedeelde bar-sessie heeft geen modus om uit te stappen, een dienst
+ * sluit je af via het Dienst-scherm.
  *
  * Elk tabblad blijft alleen gemount terwijl het actief is (zelfde
  * mount/unmount-als-lifecycle-aanpak als Overlay.tsx, niet een
- * hidden-toggle) — zo krijgt Verkoop bij terugkeer altijd verse data
- * (assortiment, leden, bezetting) in plaats van een stale snapshot van
- * vóór het wisselen.
+ * hidden-toggle) — zo krijgt elk scherm bij terugkeer altijd verse data
+ * (assortiment, leden, bezetting, boekingen) in plaats van een stale
+ * snapshot van vóór het wisselen.
  */
 export function DienstTabs({
   shift,
@@ -33,38 +35,55 @@ export function DienstTabs({
   const dienstTabId = useId();
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-canvas font-sans text-ink">
-      <div role="tablist" aria-label="Dienst-navigatie" className="flex flex-none gap-2 border-b border-border bg-white px-4 py-2">
-        <button
-          type="button"
-          role="tab"
-          id={verkoopTabId}
-          aria-selected={tab === "verkoop"}
-          aria-controls="verkoop-panel"
-          onClick={() => setTab("verkoop")}
-          className={`flex min-h-[44px] items-center rounded-2xl px-4 text-sm font-bold transition-colors ${
-            tab === "verkoop"
-              ? "bg-accent-active text-white"
-              : "text-muted hover:bg-canvas hover:text-ink"
-          }`}
+    <div className="flex h-screen w-full overflow-hidden bg-canvas font-sans text-ink">
+      <div className="flex w-[92px] flex-none flex-col items-center gap-1 bg-rail pb-[18px] pt-5">
+        <span
+          aria-hidden="true"
+          className="flex h-[42px] w-[42px] items-center justify-center rounded-[13px] bg-accent text-[19px] font-extrabold tracking-[-0.02em] text-white shadow-[0_6px_16px_-4px_rgba(238,90,36,0.7)]"
         >
-          Verkoop
-        </button>
-        <button
-          type="button"
-          role="tab"
-          id={dienstTabId}
-          aria-selected={tab === "dienst"}
-          aria-controls="dienst-panel"
-          onClick={() => setTab("dienst")}
-          className={`flex min-h-[44px] items-center rounded-2xl px-4 text-sm font-bold transition-colors ${
-            tab === "dienst"
-              ? "bg-accent-active text-white"
-              : "text-muted hover:bg-canvas hover:text-ink"
-          }`}
+          A
+        </span>
+        <span className="mb-4 mt-[9px] rounded-full bg-accent/[0.18] px-2 py-1 text-[8.5px] font-extrabold tracking-[0.13em] text-rail-badge">
+          DIENST
+        </span>
+
+        <div
+          role="tablist"
+          aria-label="Dienst-navigatie"
+          aria-orientation="vertical"
+          className="flex flex-col items-center gap-1"
         >
-          Dienst
-        </button>
+          <RailTab
+            id={verkoopTabId}
+            controls="verkoop-panel"
+            selected={tab === "verkoop"}
+            onSelect={() => setTab("verkoop")}
+            icon={
+              <svg width="19" height="19" viewBox="0 0 19 19" fill="none" aria-hidden="true">
+                <rect x="5.2" y="2.6" width="8.6" height="13.8" rx="2.6" stroke="currentColor" strokeWidth="1.6" />
+                <line x1="5.2" y1="7.2" x2="13.8" y2="7.2" stroke="currentColor" strokeWidth="1.6" />
+              </svg>
+            }
+          >
+            Verkoop
+          </RailTab>
+          <RailTab
+            id={dienstTabId}
+            controls="dienst-panel"
+            selected={tab === "dienst"}
+            onSelect={() => setTab("dienst")}
+            icon={
+              <svg width="19" height="19" viewBox="0 0 19 19" fill="none" aria-hidden="true">
+                <line x1="4.2" y1="6.4" x2="14.2" y2="6.4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                <polyline points="11.6,3.8 14.8,6.4 11.6,9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                <line x1="14.8" y1="12.6" x2="4.8" y2="12.6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                <polyline points="7.4,10 4.2,12.6 7.4,15.2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            }
+          >
+            Dienst
+          </RailTab>
+        </div>
       </div>
 
       {tab === "verkoop" && (
@@ -72,7 +91,7 @@ export function DienstTabs({
           id="verkoop-panel"
           role="tabpanel"
           aria-labelledby={verkoopTabId}
-          className="flex min-h-0 flex-1 flex-col"
+          className="flex min-h-0 min-w-0 flex-1 flex-col"
         >
           <VerkoopScherm shift={shift} />
         </div>
@@ -83,11 +102,52 @@ export function DienstTabs({
           id="dienst-panel"
           role="tabpanel"
           aria-labelledby={dienstTabId}
-          className="flex min-h-0 flex-1 flex-col items-center justify-center gap-8 bg-rail px-6 py-10 text-white"
+          className="flex min-h-0 min-w-0 flex-1"
         >
-          <DienstActief shift={shift} onShiftEnded={onShiftEnded} />
+          <DienstOverzicht shift={shift} onShiftEnded={onShiftEnded} />
         </div>
       )}
     </div>
+  );
+}
+
+function RailTab({
+  id,
+  controls,
+  selected,
+  onSelect,
+  icon,
+  children,
+}: {
+  id: string;
+  controls: string;
+  selected: boolean;
+  onSelect: () => void;
+  icon: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      id={id}
+      aria-selected={selected}
+      aria-controls={controls}
+      onClick={onSelect}
+      className={`relative flex w-[70px] flex-col items-center gap-[7px] rounded-[14px] pb-[9px] pt-[11px] text-center text-[10.5px] font-bold transition-colors ${
+        selected
+          ? "bg-accent/15 text-rail-accent"
+          : "text-rail-muted hover:bg-white/5 hover:text-white"
+      }`}
+    >
+      <span
+        aria-hidden="true"
+        className={`absolute -left-[11px] bottom-3.5 top-3.5 w-[3px] rounded-r-[3px] ${
+          selected ? "bg-accent" : "bg-transparent"
+        }`}
+      />
+      {icon}
+      {children}
+    </button>
   );
 }

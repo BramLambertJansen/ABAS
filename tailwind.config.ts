@@ -32,7 +32,14 @@ const config: Config = {
           hover: "#f1703f",
           active: "#c9451a",
         },
-        ink: "#1b1e23",
+        ink: {
+          DEFAULT: "#1b1e23",
+          // Secondary dark text on white/`border-subtle` — the design's
+          // #5c5952 (bezettingschip, activity pill, light avatars). 6.99:1
+          // on white; muted (#736d66) only reaches 4.47:1 on
+          // `border-subtle`, so light avatars use this instead.
+          soft: "#5c5952",
+        },
         canvas: "#faf7f3",
         border: {
           DEFAULT: "#ede7df",
@@ -59,6 +66,13 @@ const config: Config = {
           // #8c8f96 instead (5.49:1) for actual body/label text.
           muted: "#8c8f96",
           error: "#ff7c4a",
+          // Dienst-scherm (docs/features/dienst-overzicht.md): the active
+          // rail item's text (5.87:1 on its accent/15 background), the
+          // "DIENST" badge (6.46:1 on accent/18) and the stat values in
+          // the dark omzet card (14.7:1 on rail). Prototype values.
+          accent: "#ff7c4a",
+          badge: "#ff9165",
+          value: "#e8eaed",
         },
         success: "#157f4a",
         warning: {

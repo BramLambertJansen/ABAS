@@ -65,8 +65,8 @@ function activityErrorMessage(code: StartShiftErrorCode): string {
  * Bar-shell entry screen — start a shift with your own PIN, or (if one's
  * already running on this shared tablet session) hand off to DienstTabs
  * (src/features/verkoop/), which owns the Verkoop/Dienst navigation added
- * by #8 — Verkoop (default) plus the existing DienstActief/bezetting-
- * beheren content (#7) under the Dienst tab. See
+ * by #8 — Verkoop (default) plus the Dienst-scherm (DienstOverzicht,
+ * docs/features/dienst-overzicht.md) under the Dienst tab. See
  * docs/features/dienst-starten.md for the start-shift spec and
  * docs/features/verkoop.md for the navigation this hands off to.
  */

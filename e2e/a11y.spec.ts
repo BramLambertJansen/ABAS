@@ -546,7 +546,7 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
 
     await page.getByRole("tab", { name: "Dienst" }).click();
     await page
-      .getByRole("heading", { name: "Dienst actief" })
+      .getByRole("heading", { name: "Dienst", exact: true })
       .waitFor({ state: "visible", timeout: 15_000 });
     await page.getByRole("button", { name: "Dienst afsluiten" }).click();
 
@@ -610,7 +610,7 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
    * van de overlay zelf": this app's first real interactive overlay
    * (src/components/Overlay.tsx — role="dialog", aria-modal, focus-trap,
    * Escape/backdrop-close), opened from
-   * src/features/bezetting-beheren/DienstActief.tsx via the "Bezetting
+   * src/features/dienst-overzicht/DienstOverzicht.tsx via the "Bezetting
    * wijzigen" button. The routes above only scan static/error-state pages —
    * this drives the app into a real open-dialog state before scanning so the
    * modal itself is under the WCAG-AA gate, not just its trigger.
@@ -621,12 +621,12 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
     await ensureShiftStarted(page);
 
     // Since #8 (docs/features/verkoop.md → Navigatie), a started/open shift
-    // lands on the Verkoop tab by default — DienstActief now lives under the
-    // Dienst tab, not shown directly.
+    // lands on the Verkoop tab by default — the Dienst-scherm
+    // (DienstOverzicht) lives under the Dienst tab, not shown directly.
     await page.getByRole("tab", { name: "Dienst" }).click();
 
     await page
-      .getByRole("heading", { name: "Dienst actief" })
+      .getByRole("heading", { name: "Dienst", exact: true })
       .waitFor({ state: "visible", timeout: 15_000 });
 
     await page.getByRole("button", { name: "Bezetting wijzigen" }).click();
@@ -670,7 +670,7 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
     await page.getByRole("tab", { name: "Dienst" }).click();
 
     await page
-      .getByRole("heading", { name: "Dienst actief" })
+      .getByRole("heading", { name: "Dienst", exact: true })
       .waitFor({ state: "visible", timeout: 15_000 });
 
     await page.getByRole("button", { name: "Dienst afsluiten" }).click();
@@ -688,6 +688,53 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
 
     expect(results.violations, JSON.stringify(results.violations, null, 2))
       .toEqual([]);
+  });
+
+  /**
+   * docs/features/dienst-overzicht.md → Randgevallen → "A11y": the
+   * Dienst-scherm itself (DienstOverzicht.tsx — omzetkaart,
+   * transactielijst, bezettingspaneel) with no dialog open. The two
+   * overlay tests above only scan it behind an open dialog. If this shift
+   * already has bookings (an earlier test or retry in this block placed an
+   * order), the person filter is there too — opened and scanned as well,
+   * since its option list only renders while open.
+   */
+  test("bar shell (/) Dienst-scherm has no WCAG2A/AA violations", async ({
+    page,
+  }) => {
+    await ensureShiftStarted(page);
+
+    await page.getByRole("tab", { name: "Dienst" }).click();
+    await page
+      .getByRole("heading", { name: "Dienst", exact: true })
+      .waitFor({ state: "visible", timeout: 15_000 });
+    // Wait for the ledger to settle (either rows or the empty state) so
+    // the scan doesn't catch the "Boekingen laden…" intermediate state.
+    await page
+      .getByText("Boekingen laden…")
+      .waitFor({ state: "hidden", timeout: 15_000 });
+
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+    expect(results.violations, JSON.stringify(results.violations, null, 2))
+      .toEqual([]);
+
+    const personFilter = page.getByRole("button", { name: /^Geboekt door:/ });
+    if (await personFilter.isVisible()) {
+      await personFilter.click();
+      await page
+        .getByRole("button", { name: /^Iedereen/ })
+        .waitFor({ state: "visible" });
+
+      const openResults = await new AxeBuilder({ page })
+        .withTags(["wcag2a", "wcag2aa"])
+        .analyze();
+      expect(
+        openResults.violations,
+        JSON.stringify(openResults.violations, null, 2)
+      ).toEqual([]);
+    }
   });
 
   /**
