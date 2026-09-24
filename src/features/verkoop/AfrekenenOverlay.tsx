@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Overlay } from "@/components/Overlay";
 import { StatCard } from "@/components/StatCard";
+import { BezettingKeuze } from "@/components/BezettingKeuze";
 import { formatCents } from "@/lib/money";
 import { usePlaceOrder, type PlaceOrderErrorCode } from "@/hooks/queries/usePlaceOrder";
 import type { MemberOption } from "@/hooks/queries/useMembers";
@@ -160,33 +161,12 @@ export function AfrekenenOverlay({
       )}
 
       {needsPicker && (
-        <fieldset className="flex flex-col gap-2 rounded-2xl bg-canvas p-3">
-          <legend className="float-left flex w-full items-baseline justify-between gap-2">
-            <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-muted">
-              Wie geeft uit?
-            </span>
-            <span className="text-[10.5px] font-bold text-muted">
-              {servedBy ? "gekozen" : "verplicht"}
-            </span>
-          </legend>
-          <div className="flex flex-wrap gap-2">
-            {crew.map((option) => (
-              <button
-                key={option.id}
-                type="button"
-                aria-pressed={servedBy === option.id}
-                onClick={() => setServedBy(option.id)}
-                className={`min-h-[40px] rounded-xl border px-3 text-xs font-bold transition-colors ${
-                  servedBy === option.id
-                    ? "border-accent bg-accent-active text-white"
-                    : "border-border bg-white text-ink hover:border-accent"
-                }`}
-              >
-                {option.name}
-              </button>
-            ))}
-          </div>
-        </fieldset>
+        <BezettingKeuze
+          legend="Wie geeft uit?"
+          crew={crew}
+          selectedId={servedBy}
+          onSelect={setServedBy}
+        />
       )}
 
       <div className="mt-0.5 flex gap-2.5">

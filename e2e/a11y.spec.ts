@@ -774,6 +774,68 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
   });
 
   /**
+   * docs/features/bestelling-terugdraaien.md → Bar: de ⤺ in de
+   * transactielijst, de terugdraai-overlay (TerugdraaienOverlay.tsx — een
+   * Overlay.tsx-consument) en het resultaat op het Dienst-scherm, tegen de
+   * echte reverse_order_at_bar. Rekent eerst zelf een Pils af op "Anna de
+   * Vries", zodat er altijd een nog niet teruggedraaide bestelling van deze
+   * dienst is — ook op een retry, waar eerdere bestellingen van dezelfde
+   * dienst al teruggedraaid kunnen zijn. Draait daarna écht terug: dat
+   * boekt het bedrag terug op Anna's saldo, dus de latere tests (die op
+   * haar saldo leunen) houden hun marge.
+   */
+  test("bar shell (/) bestelling terugdraaien has no WCAG2A/AA violations", async ({
+    page,
+  }) => {
+    await ensureShiftStarted(page);
+
+    const product = page.getByRole("button", { name: /^Pils,/ });
+    await product.waitFor({ state: "visible", timeout: 15_000 });
+    await product.click();
+    await page.getByLabel("Zoek lid op naam").fill("Anna");
+    const memberOption = page.getByRole("button", { name: /Anna de Vries/i });
+    await memberOption.waitFor({ state: "visible", timeout: 15_000 });
+    await memberOption.click();
+    await page.getByRole("button", { name: "Tik afrekenen" }).click();
+    const checkout = page.getByRole("dialog", { name: /^Afrekenen bij/ });
+    await checkout.waitFor({ state: "visible" });
+    await checkout.getByRole("button", { name: "ja, afrekenen" }).click();
+    await checkout.waitFor({ state: "hidden", timeout: 15_000 });
+
+    await page.getByRole("tab", { name: "Dienst" }).click();
+    await page
+      .getByRole("heading", { name: "Dienst", exact: true })
+      .waitFor({ state: "visible", timeout: 15_000 });
+
+    // Nieuwste eerst: de eerste ⤺ voor Anna is de zojuist afgerekende.
+    await page
+      .getByRole("button", { name: /^Bestelling terugdraaien: Anna de Vries/ })
+      .first()
+      .click();
+
+    const dialog = page.getByRole("dialog", { name: "Bestelling terugdraaien" });
+    await dialog.waitFor({ state: "visible" });
+    await expect(dialog).toBeFocused();
+    await expect(dialog.getByRole("button", { name: "terugdraaien", exact: true })).toBeDisabled();
+    await dialog.getByLabel("Reden").fill("a11y-test: verkeerd lid getikt");
+
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+    expect(results.violations, JSON.stringify(results.violations, null, 2))
+      .toEqual([]);
+
+    // Tom staat alleen in de bezetting (zie de afrekenbevestiging-test
+    // hieronder), dus geen keuze nodig: de knop is nu actief.
+    await dialog.getByRole("button", { name: "terugdraaien", exact: true }).click();
+    await dialog.waitFor({ state: "hidden", timeout: 15_000 });
+
+    await expect(page.getByText(/^Bestelling teruggedraaid · /)).toBeVisible();
+    await expect(page.getByText(/^\d+ correcties? deze dienst$/)).toBeVisible();
+    await expect(page.getByText("TERUG").first()).toBeVisible();
+  });
+
+  /**
    * docs/features/verkoop.md (#8) → Randgevallen → "A11y van de
    * afrekenbevestiging": this screen's other new interactive overlay (the
    * afrekenbevestiging, AfrekenenOverlay.tsx — the second real consumer of

@@ -21,7 +21,26 @@ export type LedgerEntry = {
   productNames: string[];
   /** `top_ups.method` (vandaag altijd "contant"); `null` voor een verkoop. */
   method: string | null;
+  /** Alleen bij een verkoop: de terugdraaiing uit `order_reversals`, of
+   *  `null` als de bestelling (nog) staat — docs/features/
+   *  bestelling-terugdraaien.md. Een teruggedraaide verkoop telt niet mee
+   *  als omzet. */
+  reversal: LedgerReversal | null;
 };
+
+export type LedgerReversal = {
+  reason: string;
+  reversedByName: string;
+  via: "bar" | "beheer";
+};
+
+/** PostgREST geeft een één-op-één-embed (order_reversals.order_id is de
+ *  primary key) als object terug; de untyped client typeert hem als array.
+ *  Beide vormen afvangen in plaats van op één te gokken. */
+function firstOrNull<T>(value: unknown): T | null {
+  if (Array.isArray(value)) return (value[0] as T | undefined) ?? null;
+  return (value as T | null) ?? null;
+}
 
 type State =
   | { status: "loading" }
@@ -61,7 +80,7 @@ export function useShiftLedger(
         supabase
           .from("orders")
           .select(
-            "id, created_at, total_cents, served_by, member:members!member_id(name), server:members!served_by(name), order_lines(qty, products(name))"
+            "id, created_at, total_cents, served_by, member:members!member_id(name), server:members!served_by(name), order_lines(qty, products(name)), order_reversals(reason, via, reverser:members!reversed_by(name))"
           )
           .eq("shift_id", shiftId),
         supabase
@@ -85,6 +104,11 @@ export function useShiftLedger(
           qty: number;
           products: { name: string } | null;
         }[];
+        const reversal = firstOrNull<{
+          reason: string;
+          via: "bar" | "beheer";
+          reverser: { name: string } | null;
+        }>(row.order_reversals);
         return {
           id: row.id as string,
           kind: "verkoop",
@@ -98,6 +122,13 @@ export function useShiftLedger(
           itemCount: lines.reduce((sum, line) => sum + line.qty, 0),
           productNames: lines.map((line) => line.products?.name ?? ""),
           method: null,
+          reversal: reversal
+            ? {
+                reason: reversal.reason,
+                reversedByName: reversal.reverser?.name ?? "onbekend",
+                via: reversal.via,
+              }
+            : null,
         };
       });
 
@@ -115,6 +146,7 @@ export function useShiftLedger(
           itemCount: 0,
           productNames: [],
           method: row.method as string,
+          reversal: null,
         };
       });
 

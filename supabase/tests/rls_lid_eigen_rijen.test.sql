@@ -43,7 +43,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(14);
+select plan(16);
 
 -- ── Fixtures (als superuser, vóór de rolwissel) ──────────────────────────
 
@@ -102,6 +102,11 @@ insert into order_lines (order_id, product_id, qty, unit_cents) values
   ('00000000-0000-0000-0000-0000000002e1', '00000000-0000-0000-0000-0000000002c0', 2, 250),
   ('00000000-0000-0000-0000-0000000002e2', '00000000-0000-0000-0000-0000000002c0', 1, 250);
 
+-- Terugdraaiingen (0020): één van lid A, één van lid B.
+insert into order_reversals (order_id, reason, reversed_by, via, shift_id, refunded_cents) values
+  ('00000000-0000-0000-0000-0000000002e0', 'rls test', '00000000-0000-0000-0000-0000000002b2', 'bar', '00000000-0000-0000-0000-0000000002d0', 250),
+  ('00000000-0000-0000-0000-0000000002e1', 'rls test', '00000000-0000-0000-0000-0000000002b2', 'bar', '00000000-0000-0000-0000-0000000002d0', 500);
+
 insert into top_ups (shift_id, member_id, amount_cents, method, served_by) values
   ('00000000-0000-0000-0000-0000000002d0', '00000000-0000-0000-0000-0000000002b0', 1000, 'cash', '00000000-0000-0000-0000-0000000002b2'),
   ('00000000-0000-0000-0000-0000000002d0', '00000000-0000-0000-0000-0000000002b1', 2000, 'cash', '00000000-0000-0000-0000-0000000002b2');
@@ -117,6 +122,7 @@ select set_config('abas.n_orders',        (select count(*)::text from orders),  
 select set_config('abas.n_top_ups',       (select count(*)::text from top_ups),       true);
 select set_config('abas.n_shifts',        (select count(*)::text from shifts),        true);
 select set_config('abas.n_shift_members', (select count(*)::text from shift_members), true);
+select set_config('abas.n_order_reversals', (select count(*)::text from order_reversals), true);
 
 -- De rijen die lid A toebehoren — waartegen de beperkte kant gemeten wordt.
 -- Ook dit als referentie in plaats van een vast getal, zodat dit bestand
@@ -125,6 +131,9 @@ select set_config('abas.n_orders_lid_a', (
   select count(*)::text from orders where member_id = '00000000-0000-0000-0000-0000000002b0'), true);
 select set_config('abas.n_order_lines_lid_a', (
   select count(*)::text from order_lines ol join orders o on o.id = ol.order_id
+   where o.member_id = '00000000-0000-0000-0000-0000000002b0'), true);
+select set_config('abas.n_order_reversals_lid_a', (
+  select count(*)::text from order_reversals r join orders o on o.id = r.order_id
    where o.member_id = '00000000-0000-0000-0000-0000000002b0'), true);
 select set_config('abas.n_top_ups_lid_a', (
   select count(*)::text from top_ups where member_id = '00000000-0000-0000-0000-0000000002b0'), true);
@@ -176,6 +185,12 @@ select is(
   'een lid ziet alleen de eigen opwaarderingen'
 );
 
+select is(
+  (select count(*)::integer from order_reversals),
+  current_setting('abas.n_order_reversals_lid_a')::integer,
+  'een lid ziet alleen de terugdraaiingen van de eigen bestellingen (0020)'
+);
+
 -- Bewuste reikwijdte-beslissing (Bram, app-review 2026-09-21): shifts en
 -- shift_members blijven ook voor een lid leesbaar — wie welke dienst
 -- draaide is binnen de vereniging geen privégegeven. Vastgelegd als
@@ -220,6 +235,12 @@ select is(
   (select count(*)::integer from top_ups),
   current_setting('abas.n_top_ups')::integer,
   'een bardienst-sessie ziet nog steeds alle opwaarderingen'
+);
+
+select is(
+  (select count(*)::integer from order_reversals),
+  current_setting('abas.n_order_reversals')::integer,
+  'een bardienst-sessie ziet alle terugdraaiingen (het Dienst-scherm heeft ze nodig)'
 );
 
 reset role;

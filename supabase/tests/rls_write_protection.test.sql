@@ -7,7 +7,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(11);
+select plan(14);
 
 set local role authenticated;
 
@@ -117,6 +117,32 @@ select throws_ok(
   '42501',
   'permission denied for table shifts',
   'update on shifts (end_shift''s write path) is blocked for authenticated'
+);
+
+-- Added for bestelling terugdraaien (0020, docs/features/
+-- bestelling-terugdraaien.md): order_reversals is a money table — a direct
+-- insert would mark an order reversed without the refund (or the other way
+-- round via update/delete), skipping reverse_order_at_bar/_as_admin's guards.
+select throws_ok(
+  $$ insert into order_reversals (order_id, reason, reversed_by, via, refunded_cents)
+     values (gen_random_uuid(), 'x', gen_random_uuid(), 'bar', 0) $$,
+  '42501',
+  'permission denied for table order_reversals',
+  'insert on order_reversals is blocked for authenticated'
+);
+
+select throws_ok(
+  $$ update order_reversals set refunded_cents = 999999 where order_id = gen_random_uuid() $$,
+  '42501',
+  'permission denied for table order_reversals',
+  'update on order_reversals is blocked for authenticated'
+);
+
+select throws_ok(
+  $$ delete from order_reversals where order_id = gen_random_uuid() $$,
+  '42501',
+  'permission denied for table order_reversals',
+  'delete on order_reversals is blocked for authenticated (a reversal cannot be undone by deleting it)'
 );
 
 select * from finish();

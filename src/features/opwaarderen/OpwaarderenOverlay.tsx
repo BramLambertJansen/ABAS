@@ -2,6 +2,7 @@
 
 import { useId, useState } from "react";
 import { Overlay } from "@/components/Overlay";
+import { BezettingKeuze } from "@/components/BezettingKeuze";
 import { formatCents, parseEuroToCents } from "@/lib/money";
 import { useTopUp, type TopUpErrorCode } from "@/hooks/queries/useTopUp";
 import type { MemberOption } from "@/hooks/queries/useMembers";
@@ -18,10 +19,10 @@ import {
 /**
  * Opwaardeer-overlay (modal, `src/components/Overlay.tsx` — de derde
  * consument, geen nieuwe overlay-beslissing). Zie
- * docs/features/opwaarderen.md → Schermflow §2 / Randgevallen. Het
- * served_by/bezetting-patroon hieronder is bewust 1-op-1 gekopieerd uit
- * AfrekenenOverlay.tsx, niet gegeneraliseerd — zie
- * docs/features/opwaarderen.md → Schermflow §2 voor de afweging.
+ * docs/features/opwaarderen.md → Schermflow §2 / Randgevallen. De
+ * "Wie geeft uit?"-keuze is het gedeelde BezettingKeuze-component (stond
+ * eerst als kopie uit AfrekenenOverlay.tsx hier; gedeeld sinds bestelling
+ * terugdraaien er een derde consument van werd).
  */
 export function OpwaarderenOverlay({
   shiftId,
@@ -165,33 +166,12 @@ export function OpwaarderenOverlay({
       </div>
 
       {needsPicker && (
-        <fieldset className="flex flex-col gap-2 rounded-2xl bg-canvas p-3">
-          <legend className="float-left flex w-full items-baseline justify-between gap-2">
-            <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-muted">
-              Wie geeft uit?
-            </span>
-            <span className={`text-[10.5px] font-bold ${servedBy ? "text-muted" : "text-danger"}`}>
-              {servedBy ? "gekozen" : "verplicht"}
-            </span>
-          </legend>
-          <div className="flex flex-wrap gap-2">
-            {crew.map((option) => (
-              <button
-                key={option.id}
-                type="button"
-                aria-pressed={servedBy === option.id}
-                onClick={() => setServedBy(option.id)}
-                className={`min-h-[40px] rounded-full border px-4 text-xs font-extrabold transition-colors ${
-                  servedBy === option.id
-                    ? "border-accent bg-accent-active text-white"
-                    : "border-border bg-white text-ink hover:border-accent"
-                }`}
-              >
-                {option.name}
-              </button>
-            ))}
-          </div>
-        </fieldset>
+        <BezettingKeuze
+          legend="Wie geeft uit?"
+          crew={crew}
+          selectedId={servedBy}
+          onSelect={setServedBy}
+        />
       )}
 
       <div className="grid grid-cols-4 gap-2">

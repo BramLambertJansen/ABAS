@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   ALL_PEOPLE,
+  countsAsSale,
   durationLabel,
   filterLedger,
   groupByHour,
@@ -30,6 +31,7 @@ function entry(overrides: Partial<LedgerEntry>): LedgerEntry {
     itemCount: 1,
     productNames: ["Bier"],
     method: null,
+    reversal: null,
     ...overrides,
   };
 }
@@ -104,6 +106,26 @@ test("peopleWithCounts en ordersPerMember", () => {
   ]);
   // Een opwaardering is geen bon.
   assert.deepEqual([...ordersPerMember(ledger)], [["tom", 2]]);
+});
+
+test("teruggedraaide bestellingen tellen niet mee als omzet of bon", () => {
+  const reversed = entry({
+    id: "r",
+    createdAt: "2026-09-24T22:30:00",
+    amountCents: 900,
+    reversal: { reason: "verkeerd lid", reversedByName: "Tom Willems", via: "bar" },
+  });
+  const withReversal = [reversed, ...ledger];
+
+  const [lateGroup] = groupByHour(withReversal);
+  assert.deepEqual(
+    [lateGroup.entries.map((e) => e.id), lateGroup.orderCount, lateGroup.turnoverCents],
+    [["r", "a"], 1, 350],
+    "de teruggedraaide bestelling staat in de groep, maar niet in omzet of aantal"
+  );
+  assert.deepEqual([...ordersPerMember(withReversal)], [["tom", 2]]);
+  assert.equal(countsAsSale(reversed), false);
+  assert.equal(countsAsSale(ledger[0]), true);
 });
 
 test("durationLabel", () => {

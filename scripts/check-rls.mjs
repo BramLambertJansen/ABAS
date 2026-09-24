@@ -49,7 +49,7 @@ for (const table of tables) {
 // Money tables: REVOKE must be explicit somewhere in migrations, per
 // CLAUDE.md → Architectuurbeslissingen. Names hardcoded because "which
 // tables are money tables" is a judgment call a script can't infer.
-const MONEY_TABLES = ["orders", "order_lines", "top_ups", "members"];
+const MONEY_TABLES = ["orders", "order_lines", "top_ups", "members", "order_reversals"];
 for (const table of MONEY_TABLES) {
   if (tables.includes(table)) {
     const revokeRe = new RegExp(`revoke[^;]*\\b${table}\\b[^;]*from\\s+authenticated`, "i");

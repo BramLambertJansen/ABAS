@@ -9,9 +9,14 @@ import { createClient } from "@/lib/supabase/client";
  *  voor de begripsafbakening (er is vandaag maar één betaalwijze per
  *  concept). */
 export type ShiftSummary = {
+  /** Alleen bestellingen die niet zijn teruggedraaid
+   *  (docs/features/bestelling-terugdraaien.md → Omzet). */
   salesTotalCents: number;
   orderCount: number;
   topUpsTotalCents: number;
+  /** Aantal teruggedraaide bestellingen van deze dienst ("N correcties
+   *  deze dienst"). */
+  reversalCount: number;
 };
 
 type State =
@@ -34,7 +39,12 @@ export function useShiftSummary(
     if (!shiftId) {
       setState({
         status: "ready",
-        summary: { salesTotalCents: 0, orderCount: 0, topUpsTotalCents: 0 },
+        summary: {
+          salesTotalCents: 0,
+          orderCount: 0,
+          topUpsTotalCents: 0,
+          reversalCount: 0,
+        },
       });
       return;
     }
@@ -43,7 +53,10 @@ export function useShiftSummary(
     try {
       const supabase = createClient();
       const [ordersResult, topUpsResult] = await Promise.all([
-        supabase.from("orders").select("total_cents").eq("shift_id", shiftId),
+        supabase
+          .from("orders")
+          .select("total_cents, order_reversals(order_id)")
+          .eq("shift_id", shiftId),
         supabase
           .from("top_ups")
           .select("amount_cents")
@@ -53,7 +66,14 @@ export function useShiftSummary(
       if (ordersResult.error) throw ordersResult.error;
       if (topUpsResult.error) throw topUpsResult.error;
 
-      const orderRows = ordersResult.data ?? [];
+      // order_reversals is een één-op-één-embed (primary key order_id):
+      // object of null, al typeert de untyped client het als array.
+      const isReversed = (row: { order_reversals: unknown }) =>
+        Array.isArray(row.order_reversals)
+          ? row.order_reversals.length > 0
+          : row.order_reversals != null;
+      const allOrderRows = ordersResult.data ?? [];
+      const orderRows = allOrderRows.filter((row) => !isReversed(row));
       const topUpRows = topUpsResult.data ?? [];
 
       const salesTotalCents = orderRows.reduce(
@@ -71,6 +91,7 @@ export function useShiftSummary(
           salesTotalCents,
           orderCount: orderRows.length,
           topUpsTotalCents,
+          reversalCount: allOrderRows.length - orderRows.length,
         },
       });
     } catch (err) {
