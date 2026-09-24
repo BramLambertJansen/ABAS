@@ -366,6 +366,17 @@ test.describe("beheer ingelogde staat (a11y)", () => {
  * token) that this test was the first thing in the repo to ever reach far
  * enough to surface.
  */
+/**
+ * The stafkeuze-knop for the demo bardienst account. Anchored on purpose:
+ * StaffPicker's button is named "Tom Willems, bardienst", but since #83 the
+ * Verkoop screen's BezettingPil is a button named "Bezetting: Tom Willems —
+ * tik om te wijzigen". An unanchored /Tom Willems/ matched that pill as
+ * soon as the bezetting loaded, so ensureShiftStarted()/ensureNoOpenShift()
+ * took the "no shift open" branch with a shift actually open — timing-
+ * dependent, and it failed PR #82's CI run.
+ */
+const STAFF_BUTTON_NAME = /^Tom Willems\b/;
+
 test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
   /** Starts a shift as the demo "Tom Willems" bardienst account (PIN 1234,
    *  per seed.sql's comment: "Demo PIN for every bar/beheer member below is
@@ -392,7 +403,7 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
     await page.goto("/");
 
     const verkoopTab = page.getByRole("tab", { name: "Verkoop" });
-    const staffButton = page.getByRole("button", { name: /Tom Willems/i });
+    const staffButton = page.getByRole("button", { name: STAFF_BUTTON_NAME });
 
     // A short isVisible()-with-timeout pre-check here was racy in CI: on a
     // slower/cold navigation, hydration can take longer than a couple of
@@ -444,7 +455,7 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
   }) => {
     await page.goto("/");
 
-    const staffButton = page.getByRole("button", { name: /Tom Willems/i });
+    const staffButton = page.getByRole("button", { name: STAFF_BUTTON_NAME });
     await staffButton.waitFor({ state: "visible", timeout: 15_000 });
     await staffButton.click();
 
@@ -496,7 +507,7 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
   }) => {
     await page.goto("/");
 
-    const staffButton = page.getByRole("button", { name: /Tom Willems/i });
+    const staffButton = page.getByRole("button", { name: STAFF_BUTTON_NAME });
     await staffButton.waitFor({ state: "visible", timeout: 15_000 });
     await staffButton.click();
 
@@ -542,7 +553,7 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
     await page.goto("/");
 
     const verkoopTab = page.getByRole("tab", { name: "Verkoop" });
-    const staffButton = page.getByRole("button", { name: /Tom Willems/i });
+    const staffButton = page.getByRole("button", { name: STAFF_BUTTON_NAME });
 
     // Same "race both landing states rather than pre-guessing which one
     // shows first" reasoning as ensureShiftStarted() above.
@@ -596,7 +607,7 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
   }) => {
     await ensureNoOpenShift(page);
 
-    await page.getByRole("button", { name: /Tom Willems/i }).click();
+    await page.getByRole("button", { name: STAFF_BUTTON_NAME }).click();
 
     const activitySelect = page.getByRole("combobox", { name: "Activiteit" });
     await activitySelect.waitFor({ state: "visible", timeout: 15_000 });
