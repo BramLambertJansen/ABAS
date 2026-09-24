@@ -1,5 +1,7 @@
 "use client";
 
+import { StaffHeader } from "./StaffHeader";
+
 const PIN_LENGTH = 4;
 const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "⌫"] as const;
 
@@ -23,8 +25,8 @@ export function PinPad({
   backLabel?: string;
 }) {
   return (
-    <div className="flex w-full max-w-[280px] flex-col items-center gap-5">
-      <p className="text-sm font-bold text-white">{staffName}</p>
+    <div className="flex w-full max-w-[260px] flex-col items-center gap-[18px]">
+      <StaffHeader name={staffName} />
 
       <div className="flex gap-3" aria-hidden="true">
         {Array.from({ length: PIN_LENGTH }).map((_, i) => (
@@ -59,7 +61,7 @@ export function PinPad({
               disabled={pending}
               onClick={key === "⌫" ? onBackspace : () => onDigit(key)}
               aria-label={key === "⌫" ? "Wis laatste cijfer" : `Cijfer ${key}`}
-              className="flex h-14 items-center justify-center rounded-2xl border border-rail-border bg-rail-card text-lg font-bold text-white transition-colors hover:border-accent disabled:opacity-50"
+              className="flex h-14 items-center justify-center rounded-[14px] border border-rail-border bg-rail-card text-lg font-bold text-white transition-colors hover:border-accent hover:bg-[#262a31] disabled:opacity-50"
             >
               {key}
             </button>
@@ -71,7 +73,7 @@ export function PinPad({
         type="button"
         disabled={pending}
         onClick={onBack}
-        className="text-xs font-semibold text-rail-muted hover:text-white disabled:opacity-50"
+        className="text-xs font-semibold text-rail-muted hover:text-rail-light disabled:opacity-50"
       >
         {backLabel}
       </button>

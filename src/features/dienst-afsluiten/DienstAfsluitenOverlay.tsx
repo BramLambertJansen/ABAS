@@ -66,19 +66,19 @@ export function DienstAfsluitenOverlay({
       )} — een overzicht van deze dienst voordat je 'm afsluit.`}
       onClose={handleClose}
     >
-      <p className="min-h-[1.25rem] text-sm font-bold text-rail-error" role="alert">
+      <p className="text-sm font-bold text-danger empty:-mt-4" role="alert">
         {endShiftMutation.errorCode ? END_SHIFT_ERROR_MESSAGE : ""}
       </p>
 
       {(shiftSummary.status === "loading" ||
         shiftMembers.status === "loading") && (
-        <p className="text-sm font-semibold text-rail-muted" role="status">
+        <p className="text-sm font-semibold text-muted" role="status">
           Overzicht laden…
         </p>
       )}
 
       {(shiftSummary.status === "error" || shiftMembers.status === "error") && (
-        <p className="text-sm font-semibold text-rail-error" role="alert">
+        <p className="text-sm font-semibold text-danger" role="alert">
           Kan het overzicht niet laden. De dienst kan wel afgesloten worden.
         </p>
       )}
@@ -100,19 +100,19 @@ export function DienstAfsluitenOverlay({
         </div>
       )}
 
-      <div className="flex flex-col items-center gap-2 rounded-2xl border border-rail-border bg-rail-card p-3">
-        <h3 className="text-xs font-extrabold uppercase tracking-wide text-rail-muted">
+      <div className="flex flex-col items-center gap-2 rounded-2xl border border-border bg-canvas p-3">
+        <h3 className="text-xs font-extrabold uppercase tracking-wide text-muted">
           Bezetting
         </h3>
 
         {shiftMembers.status === "ready" && shiftMembers.members.length === 0 && (
-          <p className="text-sm font-semibold text-rail-muted">Nog niemand</p>
+          <p className="text-sm font-semibold text-muted">Nog niemand</p>
         )}
 
         {shiftMembers.status === "ready" && shiftMembers.members.length > 0 && (
           <ul className="flex w-full flex-wrap items-center justify-center gap-2">
             {shiftMembers.members.map((member) => (
-              <MemberPill key={member.id} name={member.name} />
+              <MemberPill key={member.id} name={member.name} tone="light" />
             ))}
           </ul>
         )}
@@ -123,7 +123,7 @@ export function DienstAfsluitenOverlay({
           type="button"
           disabled={pending}
           onClick={handleClose}
-          className="flex h-[50px] flex-1 items-center justify-center rounded-2xl border border-rail-border bg-rail text-sm font-bold text-white transition-colors hover:border-accent disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex h-[50px] flex-1 items-center justify-center rounded-2xl border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
         >
           annuleren
         </button>
@@ -131,7 +131,7 @@ export function DienstAfsluitenOverlay({
           type="button"
           disabled={pending}
           onClick={handleConfirm}
-          className="flex h-[50px] flex-1 items-center justify-center rounded-2xl bg-accent-active text-sm font-bold text-white transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex h-[50px] flex-1 items-center justify-center rounded-2xl bg-accent-active text-sm font-bold text-white transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:bg-track disabled:text-muted"
         >
           {pending ? "bezig…" : "dienst afsluiten"}
         </button>

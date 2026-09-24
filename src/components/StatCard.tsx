@@ -1,6 +1,6 @@
 /**
  * The `rounded-2xl bg-canvas p-3` stat wrapper: a lighter card floating
- * inside the dark Overlay.tsx dialog. Two shapes share that wrapper but
+ * inside the white Overlay.tsx dialog (canvas-tint, as in the prototype). Two shapes share that wrapper but
  * differ structurally, not just in content, which is why this is a
  * discriminated union on `variant` rather than one prop set with optional
  * fields — a "member" card can't accidentally receive a "metric"-only prop

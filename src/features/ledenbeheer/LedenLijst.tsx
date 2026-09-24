@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAlleLeden, type LedenbeheerLid } from "@/hooks/queries/useAlleLeden";
 import { useAppSettings } from "@/hooks/queries/useAppSettings";
 import { formatCents } from "@/lib/money";
+import { InitialsAvatar } from "@/components/InitialsAvatar";
 import { NieuwLidOverlay } from "./NieuwLidOverlay";
 import { LidBeherenOverlay } from "./LidBeherenOverlay";
 
@@ -84,11 +85,11 @@ export function LedenLijst() {
   return (
     <>
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-xl font-extrabold tracking-tight">Leden</h1>
+        <h1 className="text-[19px] font-extrabold tracking-[-0.02em]">Leden</h1>
         <button
           type="button"
           onClick={() => setOverlay({ kind: "new" })}
-          className="flex h-11 items-center gap-1.5 rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover"
+          className="flex h-[42px] items-center gap-1.5 rounded-control bg-accent px-[18px] text-[13px] font-extrabold text-rail transition-colors hover:bg-accent-hover"
         >
           <span aria-hidden="true" className="text-base leading-none">
             +
@@ -97,7 +98,7 @@ export function LedenLijst() {
         </button>
       </div>
 
-      <div aria-live="polite" role="status" className="min-h-[1.5rem]">
+      <div aria-live="polite" role="status" className="empty:-mt-5">
         {toast && (
           <p className="w-fit rounded-control border border-border bg-white px-3.5 py-2 text-sm font-bold text-ink">
             {toast}
@@ -105,7 +106,18 @@ export function LedenLijst() {
         )}
       </div>
 
-      <div className="flex-none">
+      <div className="relative flex flex-none items-center">
+          <svg
+            width="17"
+            height="17"
+            viewBox="0 0 17 17"
+            fill="none"
+            aria-hidden="true"
+            className="pointer-events-none absolute left-[19px] top-1/2 -translate-y-1/2"
+          >
+            <circle cx="7.2" cy="7.2" r="5" stroke="#aca69e" strokeWidth="1.7" />
+            <line x1="11" y1="11" x2="15" y2="15" stroke="#aca69e" strokeWidth="1.7" strokeLinecap="round" />
+          </svg>
         <label htmlFor="ledenbeheer-search" className="sr-only">
           Zoek lid op naam
         </label>
@@ -115,7 +127,7 @@ export function LedenLijst() {
           placeholder="Zoek lid op naam"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          className="h-12 w-full rounded-2xl border border-border bg-white px-4 text-sm font-medium text-ink outline-none placeholder:text-muted focus:border-accent focus:ring-2 focus:ring-accent/30"
+          className="h-[52px] w-full rounded-[14px] border border-border bg-white pl-[46px] pr-[18px] text-[14.5px] font-medium text-ink outline-none placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
         />
       </div>
 
@@ -126,16 +138,16 @@ export function LedenLijst() {
             type="button"
             aria-pressed={filter === f.id}
             onClick={() => setFilter(f.id)}
-            className={`flex min-h-[38px] items-center gap-1.5 rounded-full border px-3.5 text-xs font-bold transition-colors ${
+            className={`flex h-11 items-center gap-2 whitespace-nowrap rounded-full border px-[18px] text-[13.5px] font-bold transition-colors ${
               filter === f.id
                 ? "border-ink bg-ink text-white"
-                : "border-border bg-white text-muted hover:border-accent hover:text-accent"
+                : "border-border bg-white text-muted-strong hover:border-ink"
             }`}
           >
             {f.label}
             <span
               className={`text-[11px] font-extrabold ${
-                filter === f.id ? "text-white/60" : "text-muted"
+                filter === f.id ? "text-white/70" : "text-muted"
               }`}
             >
               {counts[f.id]}
@@ -167,14 +179,19 @@ export function LedenLijst() {
       )}
 
       {members.status === "ready" && visibleMembers.length > 0 && (
-        <ul className="flex flex-col gap-2 rounded-2xl border border-border bg-white p-2">
+        <div className="flex min-h-0 flex-col overflow-hidden rounded-card border border-border bg-white">
+          <p className="flex-none border-b border-border-subtle px-4 py-[11px] text-[11px] font-bold uppercase tracking-[0.07em] text-muted">
+            {`${visibleMembers.length} van ${members.members.length} leden`}
+          </p>
+        <ul className="flex flex-col overflow-auto px-1.5 py-1">
           {visibleMembers.map((member) => (
             <li key={member.id}>
               <button
                 type="button"
                 onClick={() => setOverlay({ kind: "manage", member })}
-                className="flex w-full min-h-[44px] items-center gap-3 rounded-control px-3.5 py-3 text-left transition-colors hover:bg-canvas"
+                className="flex w-full min-h-[44px] items-center gap-3 rounded-control px-2.5 py-[11px] text-left transition-colors hover:bg-canvas"
               >
+                <InitialsAvatar name={member.name} size="sm" tone="light" />
                 <span className="flex min-w-0 flex-1 items-center gap-2">
                   <span
                     className={`truncate text-sm font-bold ${
@@ -184,23 +201,23 @@ export function LedenLijst() {
                     {member.name}
                   </span>
                   {member.role === "bardienst" && (
-                    <span className="flex-none rounded-full border border-border bg-canvas px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide text-muted">
+                    <span className="flex-none rounded-full bg-track px-[9px] py-1 text-[9.5px] font-extrabold uppercase tracking-[0.06em] text-muted-strong">
                       BAR
                     </span>
                   )}
                   {member.role === "beheerder" && (
-                    <span className="flex-none rounded-full bg-danger-bg px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide text-danger">
+                    <span className="flex-none rounded-full bg-accent-soft px-[9px] py-1 text-[9.5px] font-extrabold uppercase tracking-[0.06em] text-danger">
                       BEHEER
                     </span>
                   )}
                   {member.archived && (
-                    <span className="flex-none rounded-full border border-border bg-canvas px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide text-muted">
+                    <span className="flex-none rounded-full bg-track px-[9px] py-1 text-[9.5px] font-extrabold uppercase tracking-[0.06em] text-muted-strong">
                       GEARCHIVEERD
                     </span>
                   )}
                 </span>
                 <span
-                  className={`flex-none text-sm font-extrabold ${
+                  className={`min-w-16 flex-none text-right text-[13px] font-extrabold ${
                     !member.archived && member.balanceCents < lowBalanceThresholdCents
                       ? "text-danger"
                       : "text-muted"
@@ -212,6 +229,7 @@ export function LedenLijst() {
             </li>
           ))}
         </ul>
+        </div>
       )}
 
       {overlay?.kind === "new" && (

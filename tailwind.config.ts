@@ -31,6 +31,10 @@ const config: Config = {
           DEFAULT: "#ee5a24",
           hover: "#f1703f",
           active: "#c9451a",
+          // Zachte accent-ondergrond ("+"-knoppen, aantal-pillen, gekozen
+          // rij) — altijd met `text-danger`/`text-accent-active` erop, nooit
+          // met accent.DEFAULT als tekstkleur (te weinig contrast).
+          soft: "#fff2ec",
         },
         ink: "#1b1e23",
         canvas: "#faf7f3",
@@ -46,7 +50,13 @@ const config: Config = {
           // per CLAUDE.md → Designbestanden, not a defect.
           DEFAULT: "#736d66",
           light: "#aca69e",
+          // Donkerder secundair grijs uit het prototype (chips, pil-labels):
+          // 6.6:1 op wit.
+          strong: "#5c5952",
         },
+        // Ondergrond van gesegmenteerde knoppen (galerij/lijst e.d.) en
+        // uitgeschakelde primaire knoppen in het prototype.
+        track: "#f2ece4",
         // The dark login screen (dienst starten, issue #6) — prototype's
         // "noLogin" screen background family, distinct from the light
         // canvas/ink pair the rest of the app uses.
@@ -58,6 +68,9 @@ const config: Config = {
           // sizes but no margin for error at 12-13px body text. Used
           // #8c8f96 instead (5.49:1) for actual body/label text.
           muted: "#8c8f96",
+          // Lichtgrijs uit het prototype (#cfd3d8): namen onder een avatar,
+          // hover-tekst, de bardienst-rolbadge — 8:1 op rail-border.
+          light: "#cfd3d8",
           error: "#ff7c4a",
         },
         success: "#157f4a",

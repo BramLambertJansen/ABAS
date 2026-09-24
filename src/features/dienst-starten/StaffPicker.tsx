@@ -32,10 +32,10 @@ export function StaffPicker({
               type="button"
               onClick={() => onSelect(member)}
               aria-label={`${member.name}, ${ROLE_LABELS[member.role]}`}
-              className="flex flex-col items-center gap-2 rounded-2xl border border-rail-border bg-rail-card p-4 text-center transition-colors hover:border-accent"
+              className="flex flex-col items-center gap-2 rounded-card border border-rail-border bg-rail-card px-2 py-[15px] text-center transition-colors hover:border-accent hover:bg-[#23262d]"
             >
               <InitialsAvatar name={member.name} size="md" />
-              <span className="text-sm font-bold leading-tight text-white">
+              <span className="text-[12.5px] font-bold leading-tight text-white">
                 {member.name}
               </span>
               <RoleBadge role={member.role} />

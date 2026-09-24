@@ -317,26 +317,26 @@ export function LidBeherenOverlay({
       description={`Wijzigingen aan ${member.name}.`}
       onClose={onClose}
     >
-      <div aria-live="polite" role="status" className="min-h-[1.25rem]">
-        {toast && <p className="text-sm font-bold text-white">{toast}</p>}
+      <div aria-live="polite" role="status" className="empty:-mt-4">
+        {toast && <p className="text-sm font-bold text-ink">{toast}</p>}
       </div>
 
-      <p className="min-h-[1.25rem] text-sm font-bold text-rail-error" role="alert">
+      <p className="text-sm font-bold text-danger empty:-mt-4" role="alert">
         {errorMessage ?? ""}
       </p>
 
-      <div className="flex items-center justify-between rounded-control bg-rail px-3.5 py-3">
-        <span className="text-[10.5px] font-bold uppercase tracking-wide text-rail-muted">
+      <div className="flex items-center justify-between rounded-control bg-canvas px-3.5 py-3">
+        <span className="text-[10.5px] font-bold uppercase tracking-wide text-muted">
           Saldo
         </span>
-        <span className="text-sm font-extrabold text-white">
+        <span className="text-sm font-extrabold text-ink">
           {formatCents(member.balanceCents)}
         </span>
       </div>
 
-      <div className="flex flex-col gap-2 rounded-control border border-rail-border p-3.5">
+      <div className="flex flex-col gap-2 rounded-control border border-border p-3.5">
         <div className="flex flex-col gap-0.5">
-          <span className="text-sm font-bold text-white">Naam wijzigen</span>
+          <span className="text-sm font-bold text-ink">Naam wijzigen</span>
         </div>
         <div className="flex items-center gap-2">
           <label htmlFor={nameId} className="sr-only">
@@ -347,22 +347,22 @@ export function LidBeherenOverlay({
             type="text"
             value={nameInput}
             onChange={(event) => setNameInput(event.target.value)}
-            className="h-11 flex-1 min-w-0 rounded-control border border-rail-border bg-rail px-3.5 text-sm font-semibold text-white outline-none focus:border-accent"
+            className="h-11 flex-1 min-w-0 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink outline-none focus:border-accent"
           />
           <button
             type="button"
             disabled={!canSaveName}
             onClick={saveName}
-            className="flex h-11 items-center justify-center rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:opacity-50"
+            className="flex h-11 items-center justify-center rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:bg-track disabled:text-muted"
           >
             Opslaan
           </button>
         </div>
       </div>
 
-      <div className="flex flex-col gap-2 rounded-control border border-rail-border p-3.5">
+      <div className="flex flex-col gap-2 rounded-control border border-border p-3.5">
         <div className="flex flex-col gap-0.5">
-          <span className="text-sm font-bold text-white">E-mailadres</span>
+          <span className="text-sm font-bold text-ink">E-mailadres</span>
         </div>
         <div className="flex items-center gap-2">
           <label htmlFor={emailId} className="sr-only">
@@ -373,23 +373,23 @@ export function LidBeherenOverlay({
             type="email"
             value={emailInput}
             onChange={(event) => setEmailInput(event.target.value)}
-            className="h-11 flex-1 min-w-0 rounded-control border border-rail-border bg-rail px-3.5 text-sm font-semibold text-white outline-none focus:border-accent"
+            className="h-11 flex-1 min-w-0 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink outline-none focus:border-accent"
           />
           <button
             type="button"
             disabled={!canSaveEmail}
             onClick={saveEmail}
-            className="flex h-11 items-center justify-center rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:opacity-50"
+            className="flex h-11 items-center justify-center rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:bg-track disabled:text-muted"
           >
             Opslaan
           </button>
         </div>
       </div>
 
-      <div className="flex flex-col gap-2 rounded-control border border-rail-border p-3.5">
+      <div className="flex flex-col gap-2 rounded-control border border-border p-3.5">
         <div className="flex flex-col gap-0.5">
-          <span className="text-sm font-bold text-white">Barrechten</span>
-          <span className="text-xs font-medium text-rail-muted">
+          <span className="text-sm font-bold text-ink">Barrechten</span>
+          <span className="text-xs font-medium text-muted">
             bardienst staat achter de bar, beheerder beheert de vereniging
           </span>
         </div>
@@ -403,7 +403,7 @@ export function LidBeherenOverlay({
             onChange={(event) =>
               setRoleValue(event.target.value as LedenbeheerLid["role"])
             }
-            className="h-11 flex-1 min-w-0 rounded-control border border-rail-border bg-rail px-3.5 text-sm font-semibold text-white outline-none focus:border-accent"
+            className="h-11 flex-1 min-w-0 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink outline-none focus:border-accent"
           >
             {ROLE_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -415,7 +415,7 @@ export function LidBeherenOverlay({
             type="button"
             disabled={!canSaveRole}
             onClick={saveRole}
-            className="flex h-11 items-center justify-center rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:opacity-50"
+            className="flex h-11 items-center justify-center rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:bg-track disabled:text-muted"
           >
             Opslaan
           </button>
@@ -423,26 +423,26 @@ export function LidBeherenOverlay({
       </div>
 
       {member.role !== "lid" && (
-        <div className="flex flex-col gap-2 rounded-control border border-rail-border p-3.5">
+        <div className="flex flex-col gap-2 rounded-control border border-border p-3.5">
           <div className="flex flex-col gap-0.5">
-            <span className="text-sm font-bold text-white">Inloggegevens</span>
-            <span className="text-xs font-medium text-rail-muted">
+            <span className="text-sm font-bold text-ink">Inloggegevens</span>
+            <span className="text-xs font-medium text-muted">
               pincode is alleen-lezen — dit lid beheert &apos;m zelf via &quot;Mijn account&quot;
             </span>
           </div>
-          <div className="flex items-center justify-between rounded-control bg-rail px-3.5 py-3">
-            <span className="text-[10.5px] font-bold uppercase tracking-wide text-rail-muted">
+          <div className="flex items-center justify-between rounded-control bg-canvas px-3.5 py-3">
+            <span className="text-[10.5px] font-bold uppercase tracking-wide text-muted">
               Wachtwoordaccount
             </span>
-            <span className="text-sm font-extrabold text-white">
+            <span className="text-sm font-extrabold text-ink">
               {accountStatusText(member)}
             </span>
           </div>
-          <div className="flex items-center justify-between rounded-control bg-rail px-3.5 py-3">
-            <span className="text-[10.5px] font-bold uppercase tracking-wide text-rail-muted">
+          <div className="flex items-center justify-between rounded-control bg-canvas px-3.5 py-3">
+            <span className="text-[10.5px] font-bold uppercase tracking-wide text-muted">
               Pincode
             </span>
-            <span className="text-sm font-extrabold text-white">
+            <span className="text-sm font-extrabold text-ink">
               {member.hasPin ? "ingesteld" : "niet ingesteld"}
             </span>
           </div>
@@ -452,11 +452,11 @@ export function LidBeherenOverlay({
                 type="button"
                 disabled={member.hasAccount || inviteMutation.status === "pending"}
                 onClick={sendInvite}
-                className="flex h-11 w-full items-center justify-center rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:opacity-50"
+                className="flex h-11 w-full items-center justify-center rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:bg-track disabled:text-muted"
               >
                 {member.invitedAt === null ? "Invite versturen" : "Invite opnieuw versturen"}
               </button>
-              <span className="text-xs font-medium text-rail-muted">
+              <span className="text-xs font-medium text-muted">
                 {member.hasAccount
                   ? "dit lid heeft al een account — een nieuwe uitnodiging is niet nodig"
                   : member.invitedAt === null
@@ -472,19 +472,19 @@ export function LidBeherenOverlay({
         type="button"
         disabled={archiveMutation.status === "pending"}
         onClick={toggleArchived}
-        className="flex items-center justify-between gap-3 rounded-control border border-rail-border p-3.5 text-left transition-colors hover:border-rail-error disabled:opacity-50"
+        className="flex items-center justify-between gap-3 rounded-control border border-border p-3.5 text-left transition-colors hover:border-danger disabled:opacity-50"
       >
         <span className="flex flex-col gap-0.5">
-          <span className="text-sm font-bold text-rail-error">
+          <span className="text-sm font-bold text-danger">
             {member.archived ? "Lid terugzetten" : "Lid archiveren"}
           </span>
-          <span className="text-xs font-medium text-rail-muted">
+          <span className="text-xs font-medium text-muted">
             {member.archived
               ? "lid kan weer tikken en opwaarderen"
               : "lid verdwijnt uit de verkoopzoeker"}
           </span>
         </span>
-        <span aria-hidden="true" className="text-base font-bold text-rail-muted">
+        <span aria-hidden="true" className="text-base font-bold text-muted">
           ›
         </span>
       </button>
@@ -492,7 +492,7 @@ export function LidBeherenOverlay({
       <button
         type="button"
         onClick={onClose}
-        className="flex h-11 w-full items-center justify-center rounded-control border border-rail-border bg-rail text-sm font-bold text-white transition-colors hover:border-accent"
+        className="flex h-11 w-full items-center justify-center rounded-control border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink"
       >
         Sluiten
       </button>

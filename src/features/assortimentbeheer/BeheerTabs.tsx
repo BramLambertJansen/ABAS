@@ -47,113 +47,170 @@ export function BeheerTabs({
   const instellingenTabId = useId();
 
   return (
-    <main className="flex min-h-screen w-full flex-col gap-5 bg-canvas px-6 py-6 font-sans text-ink">
-      <header className="flex flex-wrap items-center justify-between gap-3">
-        <Link href="/" className="text-xs font-semibold text-muted hover:text-ink">
-          ← terug naar bardienst
+    <main className="flex min-h-screen w-full flex-col bg-canvas font-sans text-ink antialiased">
+      {/* Eén kopbalk zoals het prototype (`beheerOpen`): terug-link, tabs als
+          pillen (actief = donker), rechts de BEHEER-badge en uitloggen. */}
+      <header className="flex h-[60px] flex-none items-center gap-3.5 border-b border-border bg-white px-5">
+        <Link
+          href="/"
+          className="flex h-9 items-center gap-1.5 whitespace-nowrap rounded-[10px] pl-2.5 pr-3.5 text-[12.5px] font-extrabold text-muted-strong transition-colors hover:bg-border-subtle hover:text-ink"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 14 14"
+            fill="none"
+            aria-hidden="true"
+          >
+            <polyline
+              points="8.6,3.2 4.2,7 8.6,10.8"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          terug naar bardienst
         </Link>
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-semibold text-muted">
+        <div aria-hidden="true" className="h-[26px] w-px flex-none bg-border" />
+
+        <div
+          role="tablist"
+          aria-label="Beheer-navigatie"
+          className="flex items-center gap-1"
+        >
+          <button
+            type="button"
+            role="tab"
+            id={assortimentTabId}
+            aria-selected={tab === "assortiment"}
+            aria-controls="assortiment-panel"
+            onClick={() => setTab("assortiment")}
+            className={`flex h-9 items-center whitespace-nowrap rounded-[10px] px-[15px] text-[12.5px] font-extrabold transition-colors ${
+              tab === "assortiment"
+                ? "bg-ink text-white"
+                : "text-muted-strong hover:bg-border-subtle"
+            }`}
+          >
+            Assortiment
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id={ledenTabId}
+            aria-selected={tab === "leden"}
+            aria-controls="leden-panel"
+            onClick={() => setTab("leden")}
+            className={`flex h-9 items-center whitespace-nowrap rounded-[10px] px-[15px] text-[12.5px] font-extrabold transition-colors ${
+              tab === "leden"
+                ? "bg-ink text-white"
+                : "text-muted-strong hover:bg-border-subtle"
+            }`}
+          >
+            Leden
+          </button>
+          <button
+            type="button"
+            role="tab"
+            id={instellingenTabId}
+            aria-selected={tab === "instellingen"}
+            aria-controls="instellingen-panel"
+            onClick={() => setTab("instellingen")}
+            className={`flex h-9 items-center whitespace-nowrap rounded-[10px] px-[15px] text-[12.5px] font-extrabold transition-colors ${
+              tab === "instellingen"
+                ? "bg-ink text-white"
+                : "text-muted-strong hover:bg-border-subtle"
+            }`}
+          >
+            Instellingen
+          </button>
+        </div>
+
+        <div className="ml-auto flex flex-none items-center gap-2.5">
+          <span className="hidden whitespace-nowrap text-xs font-semibold text-muted lg:inline">
             Ingelogd als {name}
+          </span>
+          <span className="whitespace-nowrap rounded-full bg-ink px-[11px] py-1.5 text-[9.5px] font-extrabold tracking-[0.11em] text-white">
+            BEHEER
           </span>
           <button
             type="button"
             onClick={onSignOut}
-            className="flex h-9 items-center justify-center rounded-control border border-border bg-white px-3 text-xs font-bold text-ink transition-colors hover:border-accent"
+            className="flex h-9 flex-none items-center gap-[7px] whitespace-nowrap rounded-[10px] border border-border px-3.5 text-xs font-extrabold text-muted transition-colors hover:border-accent hover:text-accent-active"
           >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 14 14"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path
+                d="M8.4 2.6h2a1.2 1.2 0 0 1 1.2 1.2v6.4a1.2 1.2 0 0 1-1.2 1.2h-2"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
+              <line
+                x1="7.2"
+                y1="7"
+                x2="2.6"
+                y2="7"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
+              <polyline
+                points="4.6,5 2.6,7 4.6,9"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
             Uitloggen
           </button>
         </div>
       </header>
 
-      <div
-        role="tablist"
-        aria-label="Beheer-navigatie"
-        className="flex flex-none gap-2 border-b border-border pb-2"
-      >
-        <button
-          type="button"
-          role="tab"
-          id={assortimentTabId}
-          aria-selected={tab === "assortiment"}
-          aria-controls="assortiment-panel"
-          onClick={() => setTab("assortiment")}
-          className={`flex min-h-[44px] items-center rounded-2xl px-4 text-sm font-bold transition-colors ${
-            tab === "assortiment"
-              ? "bg-accent-active text-white"
-              : "text-muted hover:bg-white hover:text-ink"
-          }`}
-        >
-          Assortiment
-        </button>
-        <button
-          type="button"
-          role="tab"
-          id={ledenTabId}
-          aria-selected={tab === "leden"}
-          aria-controls="leden-panel"
-          onClick={() => setTab("leden")}
-          className={`flex min-h-[44px] items-center rounded-2xl px-4 text-sm font-bold transition-colors ${
-            tab === "leden"
-              ? "bg-accent-active text-white"
-              : "text-muted hover:bg-white hover:text-ink"
-          }`}
-        >
-          Leden
-        </button>
-        <button
-          type="button"
-          role="tab"
-          id={instellingenTabId}
-          aria-selected={tab === "instellingen"}
-          aria-controls="instellingen-panel"
-          onClick={() => setTab("instellingen")}
-          className={`flex min-h-[44px] items-center rounded-2xl px-4 text-sm font-bold transition-colors ${
-            tab === "instellingen"
-              ? "bg-accent-active text-white"
-              : "text-muted hover:bg-white hover:text-ink"
-          }`}
-        >
-          Instellingen
-        </button>
-      </div>
+      <div className="flex min-h-0 flex-1 flex-col gap-5 px-5 py-[18px]">
+        {tab === "assortiment" && (
+          <div
+            id="assortiment-panel"
+            role="tabpanel"
+            aria-labelledby={assortimentTabId}
+            className="flex min-h-0 flex-1 flex-col gap-5"
+          >
+            <ProductenLijst />
+          </div>
+        )}
 
-      {tab === "assortiment" && (
-        <div
-          id="assortiment-panel"
-          role="tabpanel"
-          aria-labelledby={assortimentTabId}
-          className="flex min-h-0 flex-1 flex-col gap-5"
-        >
-          <ProductenLijst />
-        </div>
-      )}
+        {tab === "leden" && (
+          <div
+            id="leden-panel"
+            role="tabpanel"
+            aria-labelledby={ledenTabId}
+            className="flex min-h-0 flex-1 flex-col gap-5"
+          >
+            <LedenLijst />
+          </div>
+        )}
 
-      {tab === "leden" && (
-        <div
-          id="leden-panel"
-          role="tabpanel"
-          aria-labelledby={ledenTabId}
-          className="flex min-h-0 flex-1 flex-col gap-5"
-        >
-          <LedenLijst />
-        </div>
-      )}
-
-      {tab === "instellingen" && (
-        <div
-          id="instellingen-panel"
-          role="tabpanel"
-          aria-labelledby={instellingenTabId}
-          className="flex min-h-0 flex-1 flex-wrap items-start gap-5"
-        >
-          <NegatieveLimietInstellingen />
-          {/* Nieuwe kaart naast (niet in plaats van) NegatieveLimietInstellingen
+        {tab === "instellingen" && (
+          <div
+            id="instellingen-panel"
+            role="tabpanel"
+            aria-labelledby={instellingenTabId}
+            className="flex min-h-0 flex-1 flex-wrap items-start gap-5"
+          >
+            <NegatieveLimietInstellingen />
+            {/* Nieuwe kaart naast (niet in plaats van) NegatieveLimietInstellingen
               — responsief, scrollbaar raster (issue #18, chat37.md), geen
               vierde tab. Zie docs/features/activiteittypes.md → Schermflow §1. */}
-          <ActiviteitstypesInstellingen />
-        </div>
-      )}
+            <ActiviteitstypesInstellingen />
+          </div>
+        )}
+      </div>
     </main>
   );
 }

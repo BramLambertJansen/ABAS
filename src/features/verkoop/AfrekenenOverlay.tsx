@@ -115,7 +115,7 @@ export function AfrekenenOverlay({
       description="Het bedrag gaat van het saldo af en de kassa staat daarna klaar voor de volgende."
       onClose={handleClose}
     >
-      <p className="min-h-[1.25rem] text-sm font-bold text-rail-error" role="alert">
+      <p className="text-sm font-bold text-danger empty:-mt-4" role="alert">
         {submitErrorCode ? placeOrderErrorMessage(submitErrorCode) : ""}
       </p>
 
@@ -129,23 +129,23 @@ export function AfrekenenOverlay({
         {lines.map((line) => (
           <li
             key={line.productId}
-            className="flex justify-between text-sm font-semibold text-rail-muted"
+            className="flex justify-between text-sm font-semibold text-muted"
           >
             <span>
               {line.qty}× {line.name}
             </span>
-            <span className="font-bold text-white">
+            <span className="font-bold text-ink">
               {formatCents(line.lineTotalCents)}
             </span>
           </li>
         ))}
       </ul>
 
-      <div className="h-px bg-rail-border" />
+      <div className="h-px bg-border" />
 
       <div className="flex items-baseline justify-between">
-        <span className="text-sm font-extrabold text-white">Totaal</span>
-        <span className="text-xl font-extrabold text-white">
+        <span className="text-sm font-extrabold text-ink">Totaal</span>
+        <span className="text-xl font-extrabold text-ink">
           {formatCents(subtotalCents)}
         </span>
       </div>
@@ -161,7 +161,7 @@ export function AfrekenenOverlay({
 
       {needsPicker && (
         <fieldset className="flex flex-col gap-2 rounded-2xl bg-canvas p-3">
-          <legend className="flex w-full items-baseline justify-between gap-2">
+          <legend className="float-left flex w-full items-baseline justify-between gap-2">
             <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-muted">
               Wie geeft uit?
             </span>
@@ -194,7 +194,7 @@ export function AfrekenenOverlay({
           type="button"
           disabled={pending}
           onClick={handleClose}
-          className="flex h-[50px] flex-1 items-center justify-center rounded-2xl border border-rail-border bg-rail text-sm font-bold text-white transition-colors hover:border-accent disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex h-[50px] flex-1 items-center justify-center rounded-2xl border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
         >
           annuleren
         </button>
@@ -202,7 +202,7 @@ export function AfrekenenOverlay({
           type="button"
           disabled={confirmDisabled}
           onClick={handleConfirm}
-          className="flex h-[50px] flex-1 items-center justify-center rounded-2xl bg-accent-active text-sm font-bold text-white transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex h-[50px] flex-1 items-center justify-center rounded-2xl bg-accent-active text-sm font-bold text-white transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:bg-track disabled:text-muted"
         >
           {pending ? "bezig…" : "ja, afrekenen"}
         </button>

@@ -74,7 +74,7 @@ export function WachtwoordHerstellen({ tokenHash }: { tokenHash: string | null }
           onSubmit={onSubmit}
           className="flex w-full max-w-sm flex-col gap-4 rounded-2xl border border-border bg-white p-6"
         >
-          <p className="min-h-[1.25rem] text-sm font-bold text-danger" role="alert">
+          <p className="text-sm font-bold text-danger empty:-mt-4" role="alert">
             {herstel.errorCode && herstel.errorCode !== "link_invalid"
               ? errorMessage(herstel.errorCode)
               : ""}
@@ -94,7 +94,7 @@ export function WachtwoordHerstellen({ tokenHash }: { tokenHash: string | null }
               herstel.status === "pending" ||
               herstel.status === "done"
             }
-            className="flex h-12 w-full items-center justify-center rounded-control bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:opacity-50"
+            className="flex h-12 w-full items-center justify-center rounded-control bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:bg-track disabled:text-muted"
           >
             Wachtwoord opslaan
           </button>

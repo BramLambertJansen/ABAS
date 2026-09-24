@@ -190,8 +190,18 @@ export function DienstStarten() {
   }
 
   return (
-    <main className="flex min-h-screen w-full flex-col items-center justify-center gap-8 bg-rail px-6 py-10 font-sans text-white">
-      <AuroraMerk tone="dark" />
+    <main className="relative isolate flex min-h-screen w-full flex-col items-center justify-center gap-6 overflow-auto bg-rail px-6 py-8 font-sans text-white">
+      {/* Oranje gloed bovenin, zoals het prototype (`noLogin`). */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_0%,rgba(238,90,36,0.16),transparent_60%)]"
+      />
+      <AuroraMerk tone="dark">
+        <h1 className="text-[21px] font-extrabold tracking-[-0.02em]">Bar openen</h1>
+        <p className="text-[12.5px] font-semibold leading-normal text-rail-muted">
+          Wie opent de bar vanavond?
+        </p>
+      </AuroraMerk>
 
       {openShift.status === "loading" && (
         <p className="text-sm font-semibold text-rail-muted" role="status">
@@ -224,9 +234,6 @@ export function DienstStarten() {
 
           {barStaff.status === "ready" && step === "staff" && (
             <>
-              <h1 className="text-xl font-extrabold tracking-tight">
-                Wie start de dienst?
-              </h1>
               <StaffPicker staff={barStaff.staff} onSelect={selectStaff} />
               {/* Universele voordeur, niet een noodpad — sinds #42
                   (docs/features/auth-methode-per-lid.md, ADR 0005) is
@@ -239,7 +246,7 @@ export function DienstStarten() {
                   Definitieve keuzes punt 2 voor de volledige afweging. */}
               <Link
                 href="/beheer"
-                className="flex h-12 w-full max-w-[500px] items-center justify-center rounded-2xl border border-rail-border text-sm font-semibold text-rail-muted transition-colors hover:border-accent hover:text-white"
+                className="flex h-12 w-full max-w-[500px] items-center justify-center rounded-[15px] border border-rail-border text-sm font-bold text-rail-muted transition-colors hover:border-accent hover:text-rail-light"
               >
                 Inloggen met e-mail
               </Link>

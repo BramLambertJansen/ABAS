@@ -33,6 +33,7 @@ export function Assortiment({
   const shell = useShell();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string | null>(ALL_CATEGORIES);
+  const [view, setView] = useState<"grid" | "list">("grid");
 
   // Trimt en sluit lege categorieën uit — het schema staat `category` als
   // vrije, niet-lege-maar-wel-blanco-toegestane tekst toe; zonder deze
@@ -66,32 +67,70 @@ export function Assortiment({
     return map;
   }, [cart]);
 
+  const chipClass = (active: boolean) =>
+    `flex h-11 items-center whitespace-nowrap rounded-full border px-[18px] text-[13.5px] font-bold transition-colors ${
+      active
+        ? "border-accent-active bg-accent-active text-white shadow-[0_6px_16px_-8px_rgba(238,90,36,0.9)]"
+        : "border-border bg-white text-muted-strong hover:border-ink"
+    }`;
+  const segClass = (active: boolean) =>
+    `flex h-11 items-center justify-center whitespace-nowrap rounded-[11px] px-[15px] text-[12.5px] font-bold transition-[background-color,color,box-shadow] ${
+      active
+        ? "bg-white text-ink shadow-[0_1px_2px_rgba(27,30,35,0.10),0_4px_12px_-6px_rgba(27,30,35,0.28)]"
+        : "text-muted-strong hover:text-ink"
+    }`;
+
+  // Layout naar designs/Bar App.dc.html → `isSales`: zoekveld (52px, met
+  // icoon) + galerij/lijst-schakelaar, categorie-chips, dan kaarten of
+  // rijen met een ronde "+"-knop. Geen productfoto's: die bestaan niet in
+  // het datamodel (het prototype toont daar een lege image-slot).
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden p-4">
-      <div className="flex-none">
-        <label htmlFor="verkoop-product-search" className="sr-only">
-          Zoek product
-        </label>
-        <input
-          id="verkoop-product-search"
-          type="search"
-          placeholder="Zoek product"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="h-12 w-full rounded-2xl border border-border bg-white px-4 text-sm font-medium text-ink outline-none placeholder:text-muted focus:border-accent focus:ring-2 focus:ring-accent/30"
-        />
+    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
+      <div className="flex flex-none flex-wrap items-center gap-3">
+        <div className="relative flex min-w-[260px] flex-1 items-center">
+          <svg
+            width="17"
+            height="17"
+            viewBox="0 0 17 17"
+            fill="none"
+            aria-hidden="true"
+            className="pointer-events-none absolute left-[19px] top-1/2 -translate-y-1/2"
+          >
+            <circle cx="7.2" cy="7.2" r="5" stroke="#aca69e" strokeWidth="1.7" />
+            <line x1="11" y1="11" x2="15" y2="15" stroke="#aca69e" strokeWidth="1.7" strokeLinecap="round" />
+          </svg>
+          <label htmlFor="verkoop-product-search" className="sr-only">
+            Zoek product
+          </label>
+          <input
+            id="verkoop-product-search"
+            type="search"
+            placeholder="Zoek product"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="h-[52px] w-full rounded-[14px] border border-border bg-white pl-[46px] pr-[18px] text-[14.5px] font-medium text-ink outline-none placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
+          />
+        </div>
+        <div
+          role="group"
+          aria-label="Weergave"
+          className="flex h-[52px] flex-none items-center gap-0.5 rounded-[13px] bg-track p-0.5"
+        >
+          <button type="button" aria-pressed={view === "grid"} onClick={() => setView("grid")} className={segClass(view === "grid")}>
+            galerij
+          </button>
+          <button type="button" aria-pressed={view === "list"} onClick={() => setView("list")} className={segClass(view === "list")}>
+            lijst
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-none flex-wrap gap-2" role="group" aria-label="Categorie">
         <button
           type="button"
-          aria-pressed={category === ALL_CATEGORIES}
+          aria-pressed={!trimmedQuery && category === ALL_CATEGORIES}
           onClick={() => setCategory(ALL_CATEGORIES)}
-          className={`min-h-[36px] rounded-full border px-3 text-xs font-bold transition-colors ${
-            category === ALL_CATEGORIES
-              ? "border-accent bg-accent-active text-white"
-              : "border-border bg-white text-muted hover:border-accent hover:text-accent"
-          }`}
+          className={chipClass(!trimmedQuery && category === ALL_CATEGORIES)}
         >
           Alle
         </button>
@@ -99,13 +138,9 @@ export function Assortiment({
           <button
             key={cat}
             type="button"
-            aria-pressed={category === cat}
+            aria-pressed={!trimmedQuery && category === cat}
             onClick={() => setCategory(cat)}
-            className={`min-h-[36px] rounded-full border px-3 text-xs font-bold transition-colors ${
-              category === cat
-                ? "border-accent bg-accent-active text-white"
-                : "border-border bg-white text-muted hover:border-accent hover:text-accent"
-            }`}
+            className={chipClass(!trimmedQuery && category === cat)}
           >
             {cat}
           </button>
@@ -116,43 +151,93 @@ export function Assortiment({
         <p className="flex flex-1 items-center justify-center text-sm font-semibold text-muted">
           Geen producten gevonden.
         </p>
-      ) : (
+      ) : view === "grid" ? (
         <ul
-          className="grid flex-1 auto-rows-min gap-3 overflow-auto pb-2"
-          style={{ gridTemplateColumns: `repeat(${shell.columns}, 1fr)` }}
+          className="grid flex-1 auto-rows-min content-start gap-3 overflow-auto p-0.5 pb-2"
+          style={{ gridTemplateColumns: `repeat(${shell.columns}, minmax(0, 1fr))` }}
         >
           {visible.map((product) => {
             const qty = qtyByProduct.get(product.id) ?? 0;
             return (
-              <li key={product.id} className="relative">
+              <li key={product.id}>
                 <button
                   type="button"
                   onClick={() => onAdd(product.id)}
-                  aria-label={`${product.name}, ${formatCents(product.priceCents)}${
-                    qty > 0 ? `, ${qty} in het mandje` : ""
-                  } — tik om toe te voegen`}
-                  className="flex min-h-[44px] w-full flex-col items-start gap-1 rounded-2xl border border-border bg-white p-3 text-left shadow-sm transition-colors hover:border-accent"
+                  aria-label={addLabel(product.name, product.priceCents, qty)}
+                  className="group flex w-full items-center justify-between gap-2 rounded-card border border-border bg-white p-[11px] text-left shadow-[0_1px_2px_rgba(27,30,35,0.03)] transition-[border-color,box-shadow] hover:border-accent hover:shadow-[0_10px_24px_-14px_rgba(27,30,35,0.35)]"
                 >
-                  <span className="w-full truncate text-sm font-bold text-ink">
-                    {product.name}
+                  <span className="flex min-w-0 flex-col gap-0.5">
+                    <span className="truncate text-[13.5px] font-bold text-ink">
+                      {product.name}
+                    </span>
+                    <span className="text-[13px] font-semibold text-muted">
+                      {formatCents(product.priceCents)}
+                    </span>
                   </span>
-                  <span className="text-xs font-semibold text-muted">
-                    {formatCents(product.priceCents)}
+                  <span className="flex flex-none items-center gap-1.5">
+                    {qty > 0 && <QtyPill qty={qty} />}
+                    <AddCircle />
                   </span>
                 </button>
-                {qty > 0 && (
-                  <span
-                    aria-hidden="true"
-                    className="absolute -right-2 -top-2 flex h-6 min-w-[24px] items-center justify-center rounded-full bg-accent-active px-1.5 text-xs font-extrabold text-white shadow"
-                  >
-                    {qty}
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <ul className="flex flex-1 flex-col overflow-auto rounded-card border border-border bg-white px-1.5 py-1">
+          {visible.map((product) => {
+            const qty = qtyByProduct.get(product.id) ?? 0;
+            return (
+              <li key={product.id} className="border-b border-border-subtle last:border-b-0">
+                <button
+                  type="button"
+                  onClick={() => onAdd(product.id)}
+                  aria-label={addLabel(product.name, product.priceCents, qty)}
+                  className="group flex w-full items-center gap-3.5 rounded-xl px-2 py-[9px] text-left transition-colors hover:bg-canvas"
+                >
+                  <span className="min-w-0 flex-1 truncate text-sm font-bold text-ink">
+                    {product.name}
                   </span>
-                )}
+                  {qty > 0 && <QtyPill qty={qty} />}
+                  <span className="min-w-[58px] text-right text-[13.5px] font-semibold text-muted">
+                    {formatCents(product.priceCents)}
+                  </span>
+                  <AddCircle />
+                </button>
               </li>
             );
           })}
         </ul>
       )}
     </div>
+  );
+}
+
+function addLabel(name: string, priceCents: number, qty: number): string {
+  return `${name}, ${formatCents(priceCents)}${
+    qty > 0 ? `, ${qty} in het mandje` : ""
+  } — tik om toe te voegen`;
+}
+
+/** Aantal al in het mandje — binnen de kaart/rij, niet eroverheen. */
+function QtyPill({ qty }: { qty: number }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="rounded-full bg-accent-soft px-2.5 py-[3px] text-[11.5px] font-extrabold text-danger"
+    >
+      {qty}×
+    </span>
+  );
+}
+
+function AddCircle() {
+  return (
+    <span
+      aria-hidden="true"
+      className="flex h-11 w-11 flex-none items-center justify-center rounded-full bg-accent-soft text-[15px] font-extrabold leading-none text-danger transition-colors group-hover:bg-accent-active group-hover:text-white"
+    >
+      +
+    </span>
   );
 }

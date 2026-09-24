@@ -3,9 +3,12 @@
 import { useState } from "react";
 import type { OpenShift } from "@/hooks/queries/useOpenShift";
 import { useShiftMembers } from "@/hooks/queries/useShiftMembers";
+import { useShiftSummary } from "@/hooks/queries/useShiftSummary";
+import { formatCents } from "@/lib/money";
+import { InitialsAvatar } from "@/components/InitialsAvatar";
 import { BezettingOverlay } from "./BezettingOverlay";
+import { BezettingPil } from "./BezettingPil";
 import { DienstAfsluitenOverlay } from "@/features/dienst-afsluiten/DienstAfsluitenOverlay";
-import { MemberPill } from "@/components/MemberPill";
 
 function formatStartedAt(iso: string): string {
   return new Date(iso).toLocaleTimeString("nl-NL", {
@@ -15,10 +18,15 @@ function formatStartedAt(iso: string): string {
 }
 
 /**
- * "Dienst actief"-scherm. Vervangt dienst-starten's
- * ShiftActivePlaceholder (#6) nu bezetting beheren (#7) gebouwd is — de
- * "Gestart door X om HH:MM"-tekst is hierheen verhuisd, ongewijzigd. Zie
- * docs/features/bezetting-beheren.md → Schermflow.
+ * "Dienst"-scherm (het tweede tabblad van DienstTabs). Zie
+ * docs/features/bezetting-beheren.md → Schermflow. Indeling naar
+ * designs/Bar App.dc.html → `isShift`: links de titel met bezettingspil en
+ * de donkere omzetkaart, rechts een paneel met wie de dienst startte, de
+ * activiteit, de bezetting en "dienst afsluiten".
+ *
+ * Wat het prototype hier nog meer toont — de transactielijst van de dienst
+ * met terugdraaien en de omzet per medewerker — bestaat nog niet als
+ * feature; dat vraagt eerst een spec, geen restyling.
  */
 export function DienstActief({
   shift,
@@ -28,87 +36,161 @@ export function DienstActief({
   onShiftEnded: () => void;
 }) {
   const shiftMembers = useShiftMembers(shift.id);
+  const shiftSummary = useShiftSummary(shift.id);
   const [overlayOpen, setOverlayOpen] = useState(false);
   const [afsluitenOverlayOpen, setAfsluitenOverlayOpen] = useState(false);
 
+  const members = shiftMembers.status === "ready" ? shiftMembers.members : [];
+
   return (
-    <div className="flex w-full max-w-sm flex-col items-center gap-6 text-center">
-      <div className="flex flex-col items-center gap-2">
-        <span
-          aria-hidden="true"
-          className="flex h-10 w-10 items-center justify-center rounded-full bg-success text-lg text-white"
+    <div className="flex min-h-0 min-w-0 flex-1">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-auto px-[26px] pb-[22px] pt-6">
+        <header className="flex flex-none flex-wrap items-center gap-3.5">
+          <h1 className="text-[25px] font-extrabold leading-none tracking-[-0.025em] text-ink">
+            Dienst
+          </h1>
+          <BezettingPil
+            members={members}
+            loading={shiftMembers.status === "loading"}
+            onOpen={() => setOverlayOpen(true)}
+          />
+        </header>
+
+        <section
+          aria-label="Omzet deze dienst"
+          className="flex flex-none flex-col gap-[13px] rounded-[18px] bg-rail px-5 pb-4 pt-[15px] shadow-[0_14px_34px_-22px_rgba(22,24,28,0.9)]"
         >
-          ✓
-        </span>
-        <h2 className="text-lg font-extrabold text-white">Dienst actief</h2>
-        <p className="max-w-xs text-sm font-medium text-rail-muted">
-          Gestart door {shift.startedByName} om {formatStartedAt(shift.startedAt)}.
-        </p>
-        {/* Alleen null voor een dienst gestart vóór 0019_activiteittypes.sql
-            — zie useOpenShift.ts. Geen apart "historische dienst"-onderscheid
-            nodig hier, dit scherm toont per definitie alleen de huidige, open
-            dienst (docs/features/activiteittypes.md → Schermflow §3). */}
-        {shift.activityTypeName && (
-          <p className="max-w-xs text-sm font-medium text-rail-muted">
-            Activiteit: {shift.activityTypeName}
-          </p>
-        )}
+          <div className="flex min-w-0 flex-col gap-[5px]">
+            <span className="text-[9.5px] font-extrabold tracking-[0.14em] text-rail-muted">
+              OMZET DEZE DIENST
+            </span>
+            {shiftSummary.status === "loading" && (
+              <span className="text-sm font-semibold text-rail-muted" role="status">
+                Omzet laden…
+              </span>
+            )}
+            {shiftSummary.status === "error" && (
+              <span className="text-sm font-semibold text-rail-error" role="alert">
+                Kan de omzet niet laden.
+              </span>
+            )}
+            {shiftSummary.status === "ready" && (
+              <div className="flex min-w-0 items-baseline gap-[13px]">
+                <span className="flex-none text-[31px] font-extrabold leading-none tracking-[-0.04em] text-white">
+                  {formatCents(shiftSummary.summary.salesTotalCents)}
+                </span>
+                <span className="min-w-0 flex-1 truncate text-[11px] font-semibold text-rail-muted">
+                  {shiftSummary.summary.orderCount === 1
+                    ? "1 bestelling"
+                    : `${shiftSummary.summary.orderCount} bestellingen`}
+                </span>
+              </div>
+            )}
+          </div>
+          {shiftSummary.status === "ready" && (
+            <>
+              <div className="h-px bg-rail-border" />
+              <dl className="grid grid-cols-[repeat(auto-fit,minmax(84px,1fr))] gap-x-4 gap-y-[11px]">
+                <Stat
+                  label="OPGEWAARDEERD"
+                  value={formatCents(shiftSummary.summary.topUpsTotalCents)}
+                />
+                <Stat label="GESTART" value={formatStartedAt(shift.startedAt)} />
+                <Stat
+                  label="BEZETTING"
+                  value={shiftMembers.status === "ready" ? String(members.length) : "…"}
+                />
+              </dl>
+            </>
+          )}
+        </section>
       </div>
 
-      <div className="flex w-full flex-col items-center gap-3 rounded-2xl border border-rail-border bg-rail-card p-4">
-        <h3 className="text-xs font-extrabold uppercase tracking-wide text-rail-muted">
-          Bezetting
-        </h3>
+      <aside className="flex w-[372px] min-h-0 flex-none flex-col gap-3 overflow-auto border-l border-border bg-white p-[18px]">
+        <h2 className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-muted">
+          Dienst actief
+        </h2>
+        <div className="flex flex-none items-center gap-3">
+          <InitialsAvatar name={shift.startedByName} size="md" tone="light" />
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <span className="truncate text-[15.5px] font-extrabold tracking-[-0.015em] text-ink">
+              {shift.startedByName}
+            </span>
+            <span className="text-xs font-semibold text-muted">
+              gestart om {formatStartedAt(shift.startedAt)}
+            </span>
+          </div>
+          {/* Alleen null voor een dienst gestart vóór 0019_activiteittypes.sql
+              — zie useOpenShift.ts (docs/features/activiteittypes.md →
+              Schermflow §3). */}
+          {shift.activityTypeName && (
+            <span className="flex-none whitespace-nowrap rounded-full bg-border-subtle px-[11px] py-1.5 text-[10px] font-extrabold uppercase tracking-[0.08em] text-muted-strong">
+              <span className="sr-only">Activiteit: </span>
+              {shift.activityTypeName}
+            </span>
+          )}
+        </div>
 
-        {shiftMembers.status === "loading" && (
-          <p className="text-sm font-semibold text-rail-muted" role="status">
-            Bezetting laden…
-          </p>
-        )}
+        <div className="h-px flex-none bg-border-subtle" />
 
-        {shiftMembers.status === "error" && (
-          <p className="text-sm font-semibold text-rail-error" role="alert">
-            {shiftMembers.message}
-          </p>
-        )}
+        <div className="flex flex-none flex-col gap-2.5">
+          <div className="flex items-baseline justify-between gap-2.5">
+            <h3 className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-muted">
+              Bezetting
+            </h3>
+            <button
+              type="button"
+              onClick={() => setOverlayOpen(true)}
+              aria-label="Bezetting wijzigen"
+              className="text-[11px] font-bold text-muted transition-colors hover:text-ink"
+            >
+              wijzigen
+            </button>
+          </div>
 
-        {shiftMembers.status === "ready" &&
-          shiftMembers.members.length === 0 && (
-            <p className="text-sm font-semibold text-rail-muted">
-              Nog niemand
+          {shiftMembers.status === "loading" && (
+            <p className="text-sm font-semibold text-muted" role="status">
+              Bezetting laden…
             </p>
           )}
-
-        {shiftMembers.status === "ready" &&
-          shiftMembers.members.length > 0 && (
-            <ul className="flex w-full flex-wrap items-center justify-center gap-2">
-              {shiftMembers.members.map((member) => (
-                <MemberPill key={member.id} name={member.name} />
+          {shiftMembers.status === "error" && (
+            <p className="text-sm font-semibold text-danger" role="alert">
+              {shiftMembers.message}
+            </p>
+          )}
+          {shiftMembers.status === "ready" && members.length === 0 && (
+            <p className="text-sm font-semibold text-muted">Nog niemand</p>
+          )}
+          {members.length > 0 && (
+            <ul className="flex flex-col gap-2.5">
+              {members.map((member) => (
+                <li key={member.id} className="flex items-center gap-[9px]">
+                  <InitialsAvatar name={member.name} size="chip" tone="light" />
+                  <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-ink">
+                    {member.name}
+                  </span>
+                </li>
               ))}
             </ul>
           )}
+        </div>
 
-        <button
-          type="button"
-          onClick={() => setOverlayOpen(true)}
-          className="flex h-11 w-full items-center justify-center rounded-2xl border border-rail-border bg-rail px-4 text-sm font-bold text-white transition-colors hover:border-accent"
-        >
-          Bezetting wijzigen
-        </button>
+        <div className="h-px flex-none bg-border-subtle" />
+        <div className="min-h-0 flex-1" />
 
         <button
           type="button"
           onClick={() => setAfsluitenOverlayOpen(true)}
-          className="flex h-11 w-full items-center justify-center rounded-2xl border border-rail-border bg-rail px-4 text-sm font-bold text-white transition-colors hover:border-accent"
+          className="flex h-[52px] flex-none items-center justify-center rounded-[14px] bg-rail text-sm font-extrabold text-white transition-colors hover:bg-black"
         >
           Dienst afsluiten
         </button>
-      </div>
+      </aside>
 
       {overlayOpen && (
         <BezettingOverlay
           shiftId={shift.id}
-          members={shiftMembers.status === "ready" ? shiftMembers.members : []}
+          members={members}
           onMembersChanged={shiftMembers.refetch}
           onClose={() => setOverlayOpen(false)}
         />
@@ -121,6 +203,19 @@ export function DienstActief({
           onShiftEnded={onShiftEnded}
         />
       )}
+    </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex min-w-0 flex-col gap-0.5">
+      <dt className="truncate text-[9px] font-extrabold leading-tight tracking-[0.1em] text-rail-muted">
+        {label}
+      </dt>
+      <dd className="whitespace-nowrap text-[15px] font-extrabold tracking-[-0.02em] text-[#e8eaed]">
+        {value}
+      </dd>
     </div>
   );
 }

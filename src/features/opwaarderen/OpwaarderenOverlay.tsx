@@ -2,7 +2,6 @@
 
 import { useId, useState } from "react";
 import { Overlay } from "@/components/Overlay";
-import { StatCard } from "@/components/StatCard";
 import { formatCents, parseEuroToCents } from "@/lib/money";
 import { useTopUp, type TopUpErrorCode } from "@/hooks/queries/useTopUp";
 import type { MemberOption } from "@/hooks/queries/useMembers";
@@ -137,77 +136,41 @@ export function OpwaarderenOverlay({
     }
   }
 
+  const lowBalance = member.balanceCents < lowBalanceThresholdCents;
+  const chipSelected = (cents: number) =>
+    selectedChipCents === cents && customAmount.trim() === "";
+
+  // Indeling naar designs/Bar App.dc.html → `topupOpen`: naam/saldo als één
+  // regel, "betaald met" als label, chips, invoerveld met "boeken" ernaast,
+  // "annuleren" als tekstlink. Afwijkingen van het prototype die de spec
+  // vastlegt (docs/features/opwaarderen.md §2): titel mét ledennaam, geen
+  // methode-toggle (MVP is alleen contant), chips kiezen een bedrag in
+  // plaats van direct te boeken, en de "Wie geeft uit?"-picker.
   return (
     <Overlay title={`Saldo opwaarderen bij ${member.name}`} onClose={handleClose}>
-      <p className="min-h-[1.25rem] text-sm font-bold text-rail-error" role="alert">
-        {submitErrorCode ? topUpErrorMessage(submitErrorCode) : ""}
-      </p>
-
-      <StatCard
-        variant="member"
-        name={member.name}
-        subtitle={`saldo ${formatCents(member.balanceCents)}${member.balanceCents < lowBalanceThresholdCents ? " — laag saldo" : ""}`}
-      />
-
-      <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-rail-muted">
-        betaald met: contant
-      </span>
-
-      <div className="grid grid-cols-4 gap-2">
-        {AMOUNT_CHIPS_CENTS.map((cents) => (
-          <button
-            key={cents}
-            type="button"
-            aria-pressed={selectedChipCents === cents && customAmount.trim() === ""}
-            onClick={() => chooseChip(cents)}
-            className={`flex h-12 items-center justify-center rounded-xl border text-sm font-extrabold transition-colors ${
-              selectedChipCents === cents && customAmount.trim() === ""
-                ? "border-accent bg-accent-active text-white"
-                : "border-border bg-white text-ink hover:border-accent"
-            }`}
-          >
-            {formatCents(cents)}
-          </button>
-        ))}
+      <div className="-mt-1 flex items-baseline justify-between gap-3 text-[13px] font-semibold text-muted">
+        <span className="min-w-0 truncate">
+          saldo{lowBalance ? " — laag saldo" : ""}
+        </span>
+        <span className={`font-extrabold ${lowBalance ? "text-danger" : "text-ink"}`}>
+          {formatCents(member.balanceCents)}
+        </span>
       </div>
 
-      <div className="flex flex-col gap-1">
-        <label htmlFor="opwaarderen-bedrag" className="sr-only">
-          Ander bedrag
-        </label>
-        <input
-          id="opwaarderen-bedrag"
-          type="text"
-          inputMode="decimal"
-          placeholder="ander bedrag"
-          value={customAmount}
-          onChange={(e) => {
-            setCustomAmount(e.target.value);
-            setSelectedChipCents(null);
-            setConfirming(false);
-          }}
-          aria-describedby={amountTooHigh ? amountLimitId : undefined}
-          aria-invalid={amountTooHigh || undefined}
-          className="h-12 rounded-xl border border-border px-3 text-sm font-semibold text-ink outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
-        />
-        {amountTooHigh && (
-          <p
-            id={amountLimitId}
-            className="text-xs font-bold text-rail-error"
-            role="alert"
-          >
-            {topUpAmountTooHighMessage()}
-          </p>
-        )}
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-[10.5px] font-extrabold uppercase tracking-[0.08em] text-muted">
+          betaald met
+        </span>
+        <span className="text-[13px] font-extrabold text-ink">contant</span>
       </div>
 
       {needsPicker && (
         <fieldset className="flex flex-col gap-2 rounded-2xl bg-canvas p-3">
-          <legend className="flex w-full items-baseline justify-between gap-2">
+          <legend className="float-left flex w-full items-baseline justify-between gap-2">
             <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-muted">
               Wie geeft uit?
             </span>
-            <span className="text-[10.5px] font-bold text-muted">
+            <span className={`text-[10.5px] font-bold ${servedBy ? "text-muted" : "text-danger"}`}>
               {servedBy ? "gekozen" : "verplicht"}
             </span>
           </legend>
@@ -218,7 +181,7 @@ export function OpwaarderenOverlay({
                 type="button"
                 aria-pressed={servedBy === option.id}
                 onClick={() => setServedBy(option.id)}
-                className={`min-h-[40px] rounded-xl border px-3 text-xs font-bold transition-colors ${
+                className={`min-h-[40px] rounded-full border px-4 text-xs font-extrabold transition-colors ${
                   servedBy === option.id
                     ? "border-accent bg-accent-active text-white"
                     : "border-border bg-white text-ink hover:border-accent"
@@ -231,6 +194,24 @@ export function OpwaarderenOverlay({
         </fieldset>
       )}
 
+      <div className="grid grid-cols-4 gap-2">
+        {AMOUNT_CHIPS_CENTS.map((cents) => (
+          <button
+            key={cents}
+            type="button"
+            aria-pressed={chipSelected(cents)}
+            onClick={() => chooseChip(cents)}
+            className={`flex h-12 items-center justify-center rounded-[13px] border text-sm font-extrabold transition-colors ${
+              chipSelected(cents)
+                ? "border-accent bg-accent-active text-white"
+                : "border-border bg-white text-ink hover:border-accent hover:bg-canvas hover:text-accent-active"
+            }`}
+          >
+            {formatCents(cents)}
+          </button>
+        ))}
+      </div>
+
       {confirming && amountCents !== null && (
         <p
           className="rounded-xl bg-warning-bg px-3 py-2 text-xs font-bold text-warning-fg"
@@ -240,32 +221,68 @@ export function OpwaarderenOverlay({
         </p>
       )}
 
-      <div className="mt-0.5 flex gap-2.5">
-        <button
-          type="button"
-          disabled={pending}
-          // In de bevestigingsstap is dit "terug" naar het bedrag, niet
-          // "annuleren" van de hele overlay — anders is een verkeerd
-          // ingetikt bedrag corrigeren alleen mogelijk door opnieuw te
-          // beginnen, precies op het moment dat de operator al twijfelt.
-          onClick={confirming ? () => setConfirming(false) : handleClose}
-          className="flex h-[50px] flex-1 items-center justify-center rounded-2xl border border-rail-border bg-rail text-sm font-bold text-white transition-colors hover:border-accent disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {confirming ? "terug" : "annuleren"}
-        </button>
-        <button
-          type="button"
-          disabled={bookDisabled}
-          onClick={handleBook}
-          className="flex h-[50px] flex-1 items-center justify-center rounded-2xl bg-accent-active text-sm font-bold text-white transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {pending
-            ? "bezig…"
-            : confirming && amountCents !== null
-              ? `ja, ${formatCents(amountCents)} boeken`
-              : "boeken"}
-        </button>
+      <div className="flex flex-col gap-1">
+        <div className="flex gap-2">
+          <label htmlFor="opwaarderen-bedrag" className="sr-only">
+            Ander bedrag
+          </label>
+          <input
+            id="opwaarderen-bedrag"
+            type="text"
+            inputMode="decimal"
+            placeholder="ander bedrag"
+            value={customAmount}
+            onChange={(e) => {
+              setCustomAmount(e.target.value);
+              setSelectedChipCents(null);
+              setConfirming(false);
+            }}
+            aria-describedby={amountTooHigh ? amountLimitId : undefined}
+            aria-invalid={amountTooHigh || undefined}
+            className="h-12 min-w-0 flex-1 rounded-[13px] border border-border bg-white px-3.5 text-[13.5px] font-semibold text-ink outline-none placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
+          />
+          <button
+            type="button"
+            disabled={bookDisabled}
+            onClick={handleBook}
+            className="flex h-12 flex-none items-center justify-center rounded-[13px] bg-accent-active px-[18px] text-[13.5px] font-extrabold text-white transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:bg-track disabled:text-muted"
+          >
+            {pending
+              ? "bezig…"
+              : confirming && amountCents !== null
+                ? `ja, ${formatCents(amountCents)} boeken`
+                : "boeken"}
+          </button>
+        </div>
+        {amountTooHigh && (
+          <p
+            id={amountLimitId}
+            className="text-xs font-bold text-danger"
+            role="alert"
+          >
+            {topUpAmountTooHighMessage()}
+          </p>
+        )}
       </div>
+
+      {/* Geen min-hoogte: leeg neemt deze regel geen ruimte in (het lege
+          vlak onder de titel in de vorige versie). */}
+      <p className="text-sm font-bold text-danger empty:-mt-4" role="alert">
+        {submitErrorCode ? topUpErrorMessage(submitErrorCode) : ""}
+      </p>
+
+      <button
+        type="button"
+        disabled={pending}
+        // In de bevestigingsstap is dit "terug" naar het bedrag, niet
+        // "annuleren" van de hele overlay — anders is een verkeerd
+        // ingetikt bedrag corrigeren alleen mogelijk door opnieuw te
+        // beginnen, precies op het moment dat de operator al twijfelt.
+        onClick={confirming ? () => setConfirming(false) : handleClose}
+        className="-mt-1 self-center px-3 py-1 text-[13px] font-bold text-muted transition-colors hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {confirming ? "terug" : "annuleren"}
+      </button>
     </Overlay>
   );
 }
