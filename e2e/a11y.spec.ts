@@ -410,9 +410,10 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
     if (await staffButton.isVisible()) {
       await staffButton.click();
 
-      const activitySelect = page.getByLabel("Activiteit");
+      const activitySelect = page.getByRole("combobox", { name: "Activiteit" });
       await activitySelect.waitFor({ state: "visible", timeout: 15_000 });
-      await activitySelect.selectOption({ label: "Training" });
+      await activitySelect.click();
+      await page.getByRole("option", { name: "Training" }).click();
 
       for (const digit of ["1", "2", "3", "4"]) {
         await page.getByRole("button", { name: `Cijfer ${digit}` }).click();
@@ -447,8 +448,14 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
     await staffButton.waitFor({ state: "visible", timeout: 15_000 });
     await staffButton.click();
 
-    const activitySelect = page.getByLabel("Activiteit");
+    const activitySelect = page.getByRole("combobox", { name: "Activiteit" });
     await activitySelect.waitFor({ state: "visible", timeout: 15_000 });
+    // Scan met het menu open: de listbox en haar opties tellen dan mee
+    // (dicht is de listbox `display: none` en slaat axe haar over).
+    await activitySelect.click();
+    await page
+      .getByRole("listbox", { name: "Activiteit" })
+      .waitFor({ state: "visible", timeout: 15_000 });
 
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa"])
@@ -469,7 +476,7 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
    * `selectedActivityType`), so the dropdown visually resets to the
    * placeholder while the internal state still holds the earlier choice —
    * a UI/state mismatch, not a functional break: the user has to interact
-   * with the `<select>` again regardless (`onSelect` only fires on a real
+   * with the dropdown again regardless (`onSelect` only fires on a real
    * `onChange`), and doing so immediately overwrites the stale state before
    * it can be submitted anywhere. This test locks down that this is the
    * CURRENT behaviour, not a statement that it's the correct one.
@@ -493,9 +500,10 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
     await staffButton.waitFor({ state: "visible", timeout: 15_000 });
     await staffButton.click();
 
-    const activitySelect = page.getByLabel("Activiteit");
+    const activitySelect = page.getByRole("combobox", { name: "Activiteit" });
     await activitySelect.waitFor({ state: "visible", timeout: 15_000 });
-    await activitySelect.selectOption({ label: "Training" });
+    await activitySelect.click();
+    await page.getByRole("option", { name: "Training" }).click();
 
     // Auto-advances to the PIN-stap once an activity is picked (spec →
     // Schermflow §2 stap 2) — geen aparte "volgende"-knop.
@@ -504,14 +512,15 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
 
     await page.getByRole("button", { name: "← andere activiteit" }).click();
 
-    const activitySelectAgain = page.getByLabel("Activiteit");
+    const activitySelectAgain = page.getByRole("combobox", { name: "Activiteit" });
     await activitySelectAgain.waitFor({ state: "visible", timeout: 15_000 });
-    await expect(activitySelectAgain).toHaveValue("");
+    await expect(activitySelectAgain).toHaveText("Kies een activiteit…");
 
     // Functioneel onschadelijk (Reviewer's beoordeling): opnieuw kiezen
     // (ook dezelfde activiteit) werkt gewoon en komt weer op de PIN-stap
     // uit — geen dead end.
-    await activitySelectAgain.selectOption({ label: "Training" });
+    await activitySelectAgain.click();
+    await page.getByRole("option", { name: "Training" }).click();
     await digit1.waitFor({ state: "visible", timeout: 15_000 });
   });
 
@@ -589,9 +598,10 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
 
     await page.getByRole("button", { name: /Tom Willems/i }).click();
 
-    const activitySelect = page.getByLabel("Activiteit");
+    const activitySelect = page.getByRole("combobox", { name: "Activiteit" });
     await activitySelect.waitFor({ state: "visible", timeout: 15_000 });
-    await activitySelect.selectOption({ label: "Training" });
+    await activitySelect.click();
+    await page.getByRole("option", { name: "Training" }).click();
 
     await page
       .getByRole("button", { name: "Cijfer 1" })

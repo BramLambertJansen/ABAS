@@ -40,11 +40,11 @@ export function ProductenLijst() {
   return (
     <>
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-xl font-extrabold tracking-tight">Assortiment</h1>
+        <h1 className="text-[19px] font-extrabold tracking-[-0.02em]">Assortiment</h1>
         <button
           type="button"
           onClick={() => setOverlay({ kind: "new" })}
-          className="flex h-11 items-center gap-1.5 rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover"
+          className="flex h-[42px] items-center gap-1.5 rounded-control bg-accent px-[18px] text-[13px] font-extrabold text-rail transition-colors hover:bg-accent-hover"
         >
           <span aria-hidden="true" className="text-base leading-none">
             +
@@ -53,7 +53,7 @@ export function ProductenLijst() {
         </button>
       </div>
 
-      <div aria-live="polite" role="status" className="min-h-[1.5rem]">
+      <div aria-live="polite" role="status" className="empty:-mt-5">
         {toast && (
           <p className="w-fit rounded-control border border-border bg-white px-3.5 py-2 text-sm font-bold text-ink">
             {toast}
@@ -80,13 +80,17 @@ export function ProductenLijst() {
       )}
 
       {products.status === "ready" && products.products.length > 0 && (
-        <ul className="flex flex-col gap-2 rounded-2xl border border-border bg-white p-2">
+        <div className="flex min-h-0 flex-col overflow-hidden rounded-card border border-border bg-white">
+          <p className="flex-none border-b border-border-subtle px-4 py-[11px] text-[11px] font-bold uppercase tracking-[0.07em] text-muted">
+            {products.products.length === 1 ? "1 product" : `${products.products.length} producten`}
+          </p>
+        <ul className="flex flex-col overflow-auto px-1.5 py-1">
           {products.products.map((product) => (
             <li key={product.id}>
               <button
                 type="button"
                 onClick={() => setOverlay({ kind: "manage", product })}
-                className="flex w-full min-h-[44px] items-center justify-between gap-3 rounded-control px-3.5 py-3 text-left transition-colors hover:bg-canvas"
+                className="flex w-full min-h-[44px] items-center justify-between gap-3 rounded-control px-2.5 py-[11px] text-left transition-colors hover:bg-canvas"
               >
                 <span className="flex min-w-0 flex-col gap-0.5">
                   {/* Gearchiveerd: gedempt via de bestaande `muted`-kleur
@@ -101,12 +105,12 @@ export function ProductenLijst() {
                   >
                     {product.name}
                   </span>
-                  <span className="text-xs font-semibold text-muted">
+                  <span className="text-[11px] font-semibold text-muted">
                     {product.category} · {formatCents(product.priceCents)}
                   </span>
                 </span>
                 {product.archived && (
-                  <span className="flex-none rounded-full border border-border bg-canvas px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide text-muted">
+                  <span className="flex-none rounded-full bg-track px-[9px] py-1 text-[9.5px] font-extrabold uppercase tracking-[0.06em] text-muted-strong">
                     Uit assortiment
                   </span>
                 )}
@@ -114,6 +118,7 @@ export function ProductenLijst() {
             </li>
           ))}
         </ul>
+        </div>
       )}
 
       {overlay?.kind === "new" && (

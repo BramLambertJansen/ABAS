@@ -92,19 +92,19 @@ export function MijnAccountOverlay({
       description="Je wachtwoord blijft altijd werken. Een pincode is een optionele snelkoppeling voor deze bar-tablet."
       onClose={onClose}
     >
-      <div aria-live="polite" role="status" className="min-h-[1.25rem]">
-        {toast && <p className="text-sm font-bold text-white">{toast}</p>}
+      <div aria-live="polite" role="status" className="empty:-mt-4">
+        {toast && <p className="text-sm font-bold text-ink">{toast}</p>}
       </div>
 
-      <p className="min-h-[1.25rem] text-sm font-bold text-rail-error" role="alert">
+      <p className="text-sm font-bold text-danger empty:-mt-4" role="alert">
         {mutation.errorCode ? errorMessage(mutation.errorCode) : ""}
       </p>
 
-      <div className="flex items-center justify-between rounded-control bg-rail px-3.5 py-3">
-        <span className="text-[10.5px] font-bold uppercase tracking-wide text-rail-muted">
+      <div className="flex items-center justify-between rounded-control bg-canvas px-3.5 py-3">
+        <span className="text-[10.5px] font-bold uppercase tracking-wide text-muted">
           Pincode
         </span>
-        <span className="text-sm font-extrabold text-white">
+        <span className="text-sm font-extrabold text-ink">
           {hasPin ? "ingesteld" : "niet ingesteld"}
         </span>
       </div>
@@ -114,28 +114,28 @@ export function MijnAccountOverlay({
           type="button"
           disabled={mutation.status === "pending"}
           onClick={turnOffPin}
-          className="flex items-center justify-between gap-3 rounded-control border border-rail-border p-3.5 text-left transition-colors hover:border-rail-error disabled:opacity-50"
+          className="flex items-center justify-between gap-3 rounded-control border border-border p-3.5 text-left transition-colors hover:border-danger disabled:opacity-50"
         >
           <span className="flex flex-col gap-0.5">
-            <span className="text-sm font-bold text-rail-error">Pincode uitzetten</span>
-            <span className="text-xs font-medium text-rail-muted">
+            <span className="text-sm font-bold text-danger">Pincode uitzetten</span>
+            <span className="text-xs font-medium text-muted">
               je kunt altijd met wachtwoord blijven inloggen
             </span>
           </span>
-          <span aria-hidden="true" className="text-base font-bold text-rail-muted">
+          <span aria-hidden="true" className="text-base font-bold text-muted">
             ›
           </span>
         </button>
       ) : (
-        <div className="flex flex-col gap-2 rounded-control border border-rail-border p-3.5">
+        <div className="flex flex-col gap-2 rounded-control border border-border p-3.5">
           <div className="flex flex-col gap-0.5">
-            <span className="text-sm font-bold text-white">Pincode instellen</span>
-            <span className="text-xs font-medium text-rail-muted">
+            <span className="text-sm font-bold text-ink">Pincode instellen</span>
+            <span className="text-xs font-medium text-muted">
               kies 4 cijfers om snel in te loggen op deze bar-tablet
             </span>
           </div>
 
-          <label htmlFor={pinId} className="text-xs font-bold text-rail-muted">
+          <label htmlFor={pinId} className="text-xs font-bold text-muted">
             Pincode
           </label>
           <input
@@ -146,10 +146,10 @@ export function MijnAccountOverlay({
             maxLength={4}
             value={pin}
             onChange={(event) => setPin(event.target.value.replace(/\D/g, "").slice(0, 4))}
-            className="h-11 rounded-control border border-rail-border bg-rail px-3.5 text-sm font-semibold text-white outline-none focus:border-accent"
+            className="h-11 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink outline-none focus:border-accent"
           />
 
-          <label htmlFor={pinConfirmId} className="text-xs font-bold text-rail-muted">
+          <label htmlFor={pinConfirmId} className="text-xs font-bold text-muted">
             Voer dezelfde 4 cijfers nog een keer in
           </label>
           <input
@@ -162,14 +162,14 @@ export function MijnAccountOverlay({
             onChange={(event) =>
               setPinConfirm(event.target.value.replace(/\D/g, "").slice(0, 4))
             }
-            className="h-11 rounded-control border border-rail-border bg-rail px-3.5 text-sm font-semibold text-white outline-none focus:border-accent"
+            className="h-11 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink outline-none focus:border-accent"
           />
 
           <button
             type="button"
             disabled={!canSubmit}
             onClick={submitPin}
-            className="flex h-11 items-center justify-center rounded-control bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:opacity-50"
+            className="flex h-11 items-center justify-center rounded-control bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:bg-track disabled:text-muted"
           >
             Pincode instellen
           </button>
@@ -179,7 +179,7 @@ export function MijnAccountOverlay({
       <button
         type="button"
         onClick={onClose}
-        className="flex h-11 w-full items-center justify-center rounded-control border border-rail-border bg-rail text-sm font-bold text-white transition-colors hover:border-accent"
+        className="flex h-11 w-full items-center justify-center rounded-control border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink"
       >
         Sluiten
       </button>

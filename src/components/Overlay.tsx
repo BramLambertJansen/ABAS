@@ -13,6 +13,11 @@ const FOCUSABLE_SELECTOR =
  * modal dialog (bar-shell, the only consumer today) or — not built yet, no
  * shells/portal consumer exists to test it against — a bottom sheet.
  *
+ * Wit, zoals elke dialoog in designs/Bar App.dc.html (`background:#fff`,
+ * radius 20, padding 26) — ook boven de donkere rail-schermen. Inhoud
+ * gebruikt dus de lichte tokens (`text-ink`, `text-muted`, `border-border`,
+ * `text-danger`), niet de `rail-*`-familie.
+ *
  * Required regardless of variant: role="dialog", aria-modal="true", labelled
  * by `title`, focus moves into the dialog on mount and returns to whatever
  * was focused before on unmount, a focus trap while open, and Escape /
@@ -106,14 +111,14 @@ export function Overlay({
       aria-labelledby={titleId}
       aria-describedby={description ? descriptionId : undefined}
       tabIndex={-1}
-      className="flex max-h-[88vh] w-full max-w-[460px] flex-col gap-4 overflow-auto rounded-card border border-rail-border bg-rail-card p-6 text-white shadow-[0_30px_70px_-20px_rgba(0,0,0,0.55)] focus:outline-none"
+      className="flex max-h-[88vh] w-full max-w-[460px] flex-col gap-4 overflow-auto rounded-[20px] bg-white p-[26px] text-ink shadow-[0_30px_70px_-20px_rgba(0,0,0,0.55)] focus:outline-none"
     >
       <div className="flex flex-col gap-1">
-        <h2 id={titleId} className="text-lg font-extrabold tracking-tight text-white">
+        <h2 id={titleId} className="text-[19px] font-extrabold tracking-tight text-ink">
           {title}
         </h2>
         {description && (
-          <p id={descriptionId} className="text-xs font-semibold leading-relaxed text-rail-muted">
+          <p id={descriptionId} className="text-[12.5px] font-semibold leading-relaxed text-muted">
             {description}
           </p>
         )}
@@ -123,7 +128,7 @@ export function Overlay({
   );
 
   const backdrop = (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-rail/55 p-4">
       {dialog}
     </div>
   );

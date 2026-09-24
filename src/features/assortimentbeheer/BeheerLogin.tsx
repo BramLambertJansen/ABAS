@@ -138,19 +138,23 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
   }
 
   return (
-    <main className="flex min-h-screen w-full flex-col items-center justify-center gap-8 bg-canvas px-6 py-10 font-sans text-ink">
-      <AuroraMerk>
+    <main className="relative isolate flex min-h-screen w-full flex-col items-center justify-center gap-6 overflow-auto bg-rail px-6 py-8 font-sans text-white">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_0%,rgba(238,90,36,0.16),transparent_60%)]"
+      />
+      <AuroraMerk tone="dark">
         {/* Neutrale kop, geen "Beheer" meer vóór een modus gekozen is —
             docs/features/auth-methode-per-lid.md → Schermflow stap 1: dit
             formulier is de ingang voor bardienst én beheerder, niet alleen
             voor beheer. */}
-        <h1 className="text-xl font-extrabold tracking-tight">Inloggen</h1>
+        <h1 className="text-[21px] font-extrabold tracking-[-0.02em]">Inloggen</h1>
       </AuroraMerk>
 
       {passwordChanged && view === "login" && (
         <p
           role="status"
-          className="w-full max-w-sm rounded-2xl border border-border bg-white px-4 py-3 text-center text-sm font-bold text-success"
+          className="w-full max-w-sm rounded-card border border-rail-border bg-rail-card px-4 py-3 text-center text-sm font-bold text-rail-light"
         >
           Je wachtwoord is gewijzigd. Log in met je nieuwe wachtwoord.
         </p>
@@ -159,7 +163,7 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
       {deniedMessage && !magicLinkSent && !passwordChanged && view === "login" && (
         <p
           role="alert"
-          className="w-full max-w-sm rounded-2xl border border-border bg-white px-4 py-3 text-center text-sm font-bold text-danger"
+          className="w-full max-w-sm rounded-card border border-rail-border bg-rail-card px-4 py-3 text-center text-sm font-bold text-rail-error"
         >
           {deniedMessage}
         </p>
@@ -167,21 +171,21 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
 
       {view === "forgot" ? (
         resetRequest.status === "sent" ? (
-          <div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-2xl border border-border bg-white p-6 text-center">
+          <div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-card border border-rail-border bg-rail-card p-6 text-center">
             <p
               ref={forgotSentRef}
               tabIndex={-1}
-              className="text-sm font-bold text-ink outline-none"
+              className="text-sm font-bold text-white outline-none"
               role="status"
             >
               Als er een account bij {resetRequest.sentTo} hoort, hebben we een link gestuurd
               om een nieuw wachtwoord in te stellen.
             </p>
-            <p className="text-xs font-medium text-muted">De link is 1 uur geldig.</p>
+            <p className="text-xs font-medium text-rail-muted">De link is 1 uur geldig.</p>
             <button
               type="button"
               onClick={backToLogin}
-              className="text-xs font-semibold text-muted underline hover:text-ink"
+              className="text-xs font-semibold text-rail-muted underline hover:text-rail-light"
             >
               ← terug naar inloggen
             </button>
@@ -190,24 +194,24 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
           <form
             onSubmit={onSubmitForgot}
             aria-labelledby={forgotHeadingId}
-            className="flex w-full max-w-sm flex-col gap-4 rounded-2xl border border-border bg-white p-6"
+            className="flex w-full max-w-sm flex-col gap-4 rounded-card border border-rail-border bg-rail-card p-6"
           >
             <div className="flex flex-col gap-1">
               <h2
                 id={forgotHeadingId}
                 ref={forgotHeadingRef}
                 tabIndex={-1}
-                className="text-base font-extrabold text-ink outline-none"
+                className="text-base font-extrabold text-white outline-none"
               >
                 Wachtwoord vergeten
               </h2>
-              <p className="text-xs font-medium text-muted">
+              <p className="text-xs font-medium text-rail-muted">
                 Vul je e-mailadres in. Je krijgt een link om een nieuw wachtwoord in te stellen.
               </p>
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label htmlFor={emailId} className="text-xs font-bold text-muted">
+              <label htmlFor={emailId} className="text-xs font-bold text-rail-muted">
                 E-mailadres
               </label>
               <input
@@ -217,14 +221,14 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
                 required
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                className="h-12 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink outline-none focus:border-accent"
+                className="h-[52px] rounded-[15px] border border-rail-border bg-rail px-4 text-sm font-semibold text-white outline-none focus:border-accent"
               />
             </div>
 
             <button
               type="submit"
               disabled={resetRequest.status === "pending"}
-              className="flex h-12 w-full items-center justify-center rounded-control bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:opacity-50"
+              className="flex h-[52px] w-full items-center justify-center rounded-[15px] bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:opacity-50"
             >
               Stuur herstellink
             </button>
@@ -232,29 +236,29 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
             <button
               type="button"
               onClick={backToLogin}
-              className="text-center text-xs font-semibold text-muted hover:text-ink"
+              className="text-center text-xs font-semibold text-rail-muted hover:text-rail-light"
             >
               ← terug naar inloggen
             </button>
           </form>
         )
       ) : magicLinkSent ? (
-        <div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-2xl border border-border bg-white p-6 text-center">
+        <div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-card border border-rail-border bg-rail-card p-6 text-center">
           <p
             ref={magicLinkSentRef}
             tabIndex={-1}
-            className="text-sm font-bold text-ink outline-none"
+            className="text-sm font-bold text-white outline-none"
             role="status"
           >
             We hebben een inloglink gestuurd naar {login.magicLinkSentTo}.
           </p>
-          <p className="text-xs font-medium text-muted">
+          <p className="text-xs font-medium text-rail-muted">
             Open de link in de mail om in te loggen — dat mag ook op een ander apparaat.
           </p>
           <button
             type="button"
             onClick={otherLoginMethod}
-            className="text-xs font-semibold text-muted underline hover:text-ink"
+            className="text-xs font-semibold text-rail-muted underline hover:text-rail-light"
           >
             Andere inlogmethode
           </button>
@@ -262,14 +266,14 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
       ) : (
         <form
           onSubmit={onSubmit}
-          className="flex w-full max-w-sm flex-col gap-4 rounded-2xl border border-border bg-white p-6"
+          className="flex w-full max-w-sm flex-col gap-4 rounded-card border border-rail-border bg-rail-card p-6"
         >
-          <p className="min-h-[1.25rem] text-sm font-bold text-danger" role="alert">
+          <p className="text-sm font-bold text-rail-error empty:-mt-4" role="alert">
             {login.errorCode ? errorMessage(login.errorCode) : ""}
           </p>
 
           <div className="flex flex-col gap-1.5">
-            <label htmlFor={emailId} className="text-xs font-bold text-muted">
+            <label htmlFor={emailId} className="text-xs font-bold text-rail-muted">
               E-mailadres
             </label>
             <input
@@ -280,20 +284,20 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
               required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              className="h-12 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink outline-none focus:border-accent"
+              className="h-[52px] rounded-[15px] border border-rail-border bg-rail px-4 text-sm font-semibold text-white outline-none focus:border-accent"
             />
           </div>
 
           <fieldset className="flex flex-col gap-2">
-            <legend id={methodLegendId} className="text-xs font-bold text-muted">
+            <legend id={methodLegendId} className="text-xs font-bold text-rail-muted">
               Inlogmethode
             </legend>
             <div className="flex gap-2" role="group" aria-labelledby={methodLegendId}>
               <label
                 className={`flex flex-1 cursor-pointer items-center justify-center rounded-control border px-3 py-2.5 text-xs font-bold focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent ${
                   method === "magic_link"
-                    ? "border-accent bg-white text-ink"
-                    : "border-border bg-white text-muted"
+                    ? "border-accent bg-rail text-white"
+                    : "border-rail-border bg-rail text-rail-muted"
                 }`}
               >
                 <input
@@ -309,8 +313,8 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
               <label
                 className={`flex flex-1 cursor-pointer items-center justify-center rounded-control border px-3 py-2.5 text-xs font-bold focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent ${
                   method === "password"
-                    ? "border-accent bg-white text-ink"
-                    : "border-border bg-white text-muted"
+                    ? "border-accent bg-rail text-white"
+                    : "border-rail-border bg-rail text-rail-muted"
                 }`}
               >
                 <input
@@ -328,7 +332,7 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
 
           {method === "password" && (
             <div className="flex flex-col gap-1.5">
-              <label htmlFor={passwordId} className="text-xs font-bold text-muted">
+              <label htmlFor={passwordId} className="text-xs font-bold text-rail-muted">
                 Wachtwoord
               </label>
               <input
@@ -338,12 +342,12 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
                 required
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                className="h-12 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink outline-none focus:border-accent"
+                className="h-[52px] rounded-[15px] border border-rail-border bg-rail px-4 text-sm font-semibold text-white outline-none focus:border-accent"
               />
               <button
                 type="button"
                 onClick={openForgot}
-                className="self-end text-xs font-semibold text-muted underline hover:text-ink"
+                className="self-end text-xs font-semibold text-rail-muted underline hover:text-rail-light"
               >
                 Wachtwoord vergeten?
               </button>
@@ -356,12 +360,12 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
           <button
             type="submit"
             aria-disabled={loginPending}
-            className="flex h-12 w-full items-center justify-center rounded-control bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+            className="flex h-[52px] w-full items-center justify-center rounded-[15px] bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
           >
             {method === "magic_link" ? "Stuur inloglink" : "Inloggen"}
           </button>
 
-          <Link href="/" className="text-center text-xs font-semibold text-muted hover:text-ink">
+          <Link href="/" className="text-center text-xs font-semibold text-rail-muted hover:text-rail-light">
             ← terug naar bardienst
           </Link>
         </form>

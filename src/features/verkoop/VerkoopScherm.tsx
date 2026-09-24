@@ -11,6 +11,8 @@ import { Assortiment } from "./Assortiment";
 import { Mandje } from "./Mandje";
 import { AfrekenenOverlay } from "./AfrekenenOverlay";
 import { OpwaarderenOverlay } from "@/features/opwaarderen/OpwaarderenOverlay";
+import { BezettingOverlay } from "@/features/bezetting-beheren/BezettingOverlay";
+import { BezettingPil } from "@/features/bezetting-beheren/BezettingPil";
 import { applyDelta, removeLine, type CartLine } from "./cart";
 import { EMPTY_ROSTER_MESSAGE, placeOrderErrorMessage } from "./messages";
 
@@ -28,6 +30,7 @@ export function VerkoopScherm({ shift }: { shift: OpenShift }) {
   const members = useMembers();
   const appSettings = useAppSettings();
   const crew = useShiftMembers(shift.id);
+  const [bezettingOpen, setBezettingOpen] = useState(false);
 
   const [cartLines, setCartLines] = useState<CartLine[]>([]);
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
@@ -257,8 +260,18 @@ export function VerkoopScherm({ shift }: { shift: OpenShift }) {
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex min-h-0 flex-1 overflow-hidden">
+    <div className="flex min-h-0 min-w-0 flex-1">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-hidden px-[26px] pb-[22px] pt-6">
+        <header className="flex flex-none flex-wrap items-center gap-3.5">
+          <h1 className="text-[25px] font-extrabold leading-none tracking-[-0.025em] text-ink">
+            Bar
+          </h1>
+          <BezettingPil
+            members={crewList}
+            loading={crew.status === "loading"}
+            onOpen={() => setBezettingOpen(true)}
+          />
+        </header>
         {products.status === "loading" && (
           <p className="flex flex-1 items-center justify-center text-sm font-semibold text-muted" role="status">
             Assortiment laden…
@@ -272,31 +285,40 @@ export function VerkoopScherm({ shift }: { shift: OpenShift }) {
         {products.status === "ready" && (
           <Assortiment products={productList} cart={cartLines} onAdd={inc} />
         )}
-
-        <Mandje
-          members={memberList}
-          membersStatus={members.status}
-          membersErrorMessage={members.status === "error" ? members.message : null}
-          lowBalanceThresholdCents={lowBalanceThresholdCents}
-          selectedMember={selectedMember}
-          onSelectMember={chooseMember}
-          onClearMember={clearMember}
-          memberNotice={memberNotice}
-          cartLines={cartDisplayLines}
-          subtotalCents={subtotalCents}
-          insufficientFunds={insufficientFunds}
-          shortfallCents={shortfallCents}
-          onInc={inc}
-          onDec={dec}
-          onRemove={remove}
-          rosterEmpty={rosterEmpty}
-          rosterEmptyMessage={EMPTY_ROSTER_MESSAGE}
-          checkoutDisabled={checkoutDisabled}
-          onOpenCheckout={openCheckout}
-          topupDisabled={topupDisabled}
-          onOpenTopup={openTopup}
-        />
       </div>
+
+      <Mandje
+        members={memberList}
+        membersStatus={members.status}
+        membersErrorMessage={members.status === "error" ? members.message : null}
+        lowBalanceThresholdCents={lowBalanceThresholdCents}
+        selectedMember={selectedMember}
+        onSelectMember={chooseMember}
+        onClearMember={clearMember}
+        memberNotice={memberNotice}
+        cartLines={cartDisplayLines}
+        subtotalCents={subtotalCents}
+        insufficientFunds={insufficientFunds}
+        shortfallCents={shortfallCents}
+        onInc={inc}
+        onDec={dec}
+        onRemove={remove}
+        rosterEmpty={rosterEmpty}
+        rosterEmptyMessage={EMPTY_ROSTER_MESSAGE}
+        checkoutDisabled={checkoutDisabled}
+        onOpenCheckout={openCheckout}
+        topupDisabled={topupDisabled}
+        onOpenTopup={openTopup}
+      />
+
+      {bezettingOpen && (
+        <BezettingOverlay
+          shiftId={shift.id}
+          members={crewList}
+          onMembersChanged={crew.refetch}
+          onClose={() => setBezettingOpen(false)}
+        />
+      )}
 
       {toast && (
         <div

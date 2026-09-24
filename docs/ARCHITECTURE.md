@@ -181,7 +181,10 @@ modal-with-backdrop for `overlay === "modal"` (the only value `shells/bar`
 has ever set, `barCapabilities.overlay`) and falls through to the same
 markup for `"sheet"` rather than building an untested second branch — no
 `shells/portal` consumer exists yet to build or verify a real bottom sheet
-against. Required regardless of variant: `role="dialog"`, `aria-modal`,
+against. The dialog is white, as every dialog in `designs/Bar App.dc.html`
+(it was a dark `rail-card` panel until 2026-09-24); content inside uses the
+light tokens, and `InitialsAvatar`/`RoleBadge`/`MemberPill` take a
+`tone="light"` there. Required regardless of variant: `role="dialog"`, `aria-modal`,
 labelled by title, focus-trap, focus in/out on mount/unmount, Escape and
 backdrop-click both close. Reused as-is (no new decision) by issue #8's
 sale-checkout confirmation — see `docs/features/verkoop.md`. `density`
@@ -192,11 +195,13 @@ above.
 
 **First multi-screen bar navigation (settled, 2026-08-26)**: issue #8 is the
 first time `shells/bar` needed more than one screen behind an open shift.
-`src/features/verkoop/DienstTabs.tsx` renders a simple `role="tablist"` tab
-bar (Verkoop, default/active; Dienst, the existing #7 `DienstActief`
-content) — deliberately not the prototype's dark icon-rail chrome, per
-`docs/features/verkoop.md` → Navigatie ("the spec fixes that navigation
-exists, not the pixels"). `DienstStarten.tsx` hands off to `DienstTabs`
+`src/features/verkoop/DienstTabs.tsx` renders the navigation (Verkoop,
+default/active; Dienst, the existing #7 `DienstActief` content). Originally
+a plain top tab bar; since 2026-09-24 it follows the prototype's dark
+92px icon-rail (Bram: "zet zoveel mogelijk recht" na een ontwerp-vs-code-
+vergelijking) — still a `role="tablist"` (now `aria-orientation="vertical"`),
+so the navigation contract from `docs/features/verkoop.md` → Navigatie is
+unchanged, only the pixels. `DienstStarten.tsx` hands off to `DienstTabs`
 entirely once a shift is open, rather than branching inside its own dark
 PIN-entry layout. Each tab's content is mounted/unmounted as the active tab
 changes (not hidden via CSS) — same lifecycle-based approach as

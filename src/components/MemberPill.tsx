@@ -18,11 +18,26 @@ import { InitialsAvatar } from "@/components/InitialsAvatar";
  * than just sharing InitialsAvatar/RoleBadge sub-parts). Not built against
  * that branch here — it isn't merged yet — but this component's shape is
  * chosen so that branch can adopt it unchanged later.
+ *
+ * `tone`: "dark" op de rail-schermen (standaard), "light" in de witte
+ * Overlay.tsx-dialogen (DienstAfsluitenOverlay.tsx).
  */
-export function MemberPill({ name }: { name: string }) {
+export function MemberPill({
+  name,
+  tone = "dark",
+}: {
+  name: string;
+  tone?: "dark" | "light";
+}) {
   return (
-    <li className="flex items-center gap-1.5 rounded-full border border-rail-border bg-rail px-2.5 py-1 text-xs font-bold text-white">
-      <InitialsAvatar name={name} size="xs" />
+    <li
+      className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold ${
+        tone === "light"
+          ? "border-border bg-white text-ink"
+          : "border-rail-border bg-rail text-white"
+      }`}
+    >
+      <InitialsAvatar name={name} size="xs" tone={tone} />
       {name}
     </li>
   );

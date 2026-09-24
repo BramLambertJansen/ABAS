@@ -117,7 +117,7 @@ export function NegatieveLimietInstellingen() {
         </span>
       </div>
 
-      <div aria-live="polite" role="status" className="min-h-[1.25rem]">
+      <div aria-live="polite" role="status" className="empty:-mt-4">
         {toast && (
           <p className="w-fit rounded-control border border-border bg-white px-3.5 py-2 text-sm font-bold text-ink">
             {toast}
@@ -169,7 +169,7 @@ export function NegatieveLimietInstellingen() {
         </div>
       </div>
 
-      <p className="min-h-[1.25rem] text-sm font-bold text-danger" role="alert">
+      <p className="text-sm font-bold text-danger empty:-mt-4" role="alert">
         {mutation.errorCode ? errorMessage(mutation.errorCode) : ""}
       </p>
 
@@ -192,7 +192,7 @@ export function NegatieveLimietInstellingen() {
           onClick={() => {
             if (parsedCustomCents !== null) apply(parsedCustomCents);
           }}
-          className="flex h-12 items-center justify-center rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex h-12 items-center justify-center rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-track disabled:text-muted"
         >
           opslaan
         </button>
