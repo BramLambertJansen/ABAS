@@ -193,7 +193,7 @@ Supabase-template **Reset Password** (dashboard, door Bram — zie
   Supabase-plan.
 - PIN vergeten op het tablet — ander mechanisme.
 
-## Gebouwd vs. gespecificeerd (PR #69, 2026-09-23)
+## Gebouwd vs. gespecificeerd (PR #69, 2026-09-23; aangevuld na PR #75, 2026-09-24)
 
 De flow hierboven is gebouwd zoals beschreven. Wat er tijdens de review bij
 kwam of anders werd:
@@ -238,16 +238,17 @@ kwam of anders werd:
   `e2e/a11y.spec.ts`. PR #75 voegde toe:
   - `e2e/wachtwoord-vergeten.spec.ts` uitgebreid met de focus na de magic
     link en randgevallen (mislukte magic link, geen achtergebleven
-    focussprong, versturen via Enter). Twee `test.fixme`-tests leggen het
-    gewenste gedrag van #77 vast.
+    focussprong, versturen via Enter). Twee `test.fixme`-tests voor #77
+    toetsen alleen dat de focus na een mislukte poging niet naar `<body>`
+    valt; waar hij wél heen moet, beslist de Architect bij #77.
   - `e2e/ledenbeheer-invite.spec.ts` — de uitnodigingsfout `rate_limited`
     in `LidBeherenOverlay` toont de gedeelde tekst. Bewaakt het gedrag,
     niet dat de tekst uit de constante komt.
   - `e2e/helpers/supabaseMock.ts` — gedeelde bouwstenen voor specs die
     Supabase via `page.route()` mocken (headers, nep-sessie, `json`,
     `alertOf`) plus `loginMetWachtwoord`, ook gebruikt door
-    `e2e/a11y.spec.ts`. Zie `docs/ARCHITECTURE.md` → "Local/CI device
-    account" voor waarom /beheer-mocks tegen de device-sessie bestand
+    `e2e/a11y.spec.ts`. Zie `docs/ARCHITECTURE.md` → "e2e-mocks on
+    `/beheer` must survive the device session" voor waarom /beheer-mocks tegen de device-sessie bestand
     moeten zijn.
 
 ### Opvolgissues
@@ -265,8 +266,9 @@ kwam of anders werd:
   [PR #75](https://github.com/BramLambertJansen/ABAS/pull/75).
 - [#77](https://github.com/BramLambertJansen/ABAS/issues/77) — na een
   mislukte inlogpoging via de knop valt de focus naar `<body>`. Gevonden
-  bij PR #75; het gewenste gedrag staat als `test.fixme` in
-  `e2e/wachtwoord-vergeten.spec.ts`.
+  bij PR #75; twee `test.fixme`-tests in `e2e/wachtwoord-vergeten.spec.ts`
+  toetsen alleen dat de focus niet naar `<body>` valt. Waar hij wél heen
+  moet, is nog niet besloten (Architect).
 - [#78](https://github.com/BramLambertJansen/ABAS/issues/78) — `/beheer`
   toont op het tablet (device-sessie) bij elk bezoek "Dit account is niet
   gekoppeld aan een lid". Wacht op een besluit (needs-decision).
