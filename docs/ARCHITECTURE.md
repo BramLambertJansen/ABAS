@@ -458,28 +458,37 @@ against the real project before shipping password login there.
   scope — unrelated to the local/CI seeding above, which only ever targets
   the local stack.
 
-## Auth-methode & modus (bar vs. beheer) (settled, 2026-08-26)
+## Auth-methode & modus (bar vs. beheer) (settled 2026-08-26, amended 2026-09-02, built 2026-09-20)
 
 ADR [0003](adr/0003-auth-methode-per-lid-en-vaste-modus-bar-beheer.md)
 generalizes the "beheer-sessie" mechanism above: e-mail/wachtwoord login
-isn't a beheer-specific concept, it's one of two methods (PIN or
-e-mail/wachtwoord) a `bardienst`/`beheerder` member picks for their own
-account — either/or, per member, never both, no system-wide setting, no
-fixed method↔mode coupling. After signing in, whichever method was used,
-the signed-in person picks a **mode: bar or beheer** — modes are separate
-instances, not something you switch inside one session; changing mode means
-signing out and back in (a generalization of the single-session-per-browser
-replace-not-coexist mechanism above, not a new mechanism).
+isn't a beheer-specific concept. ADR
+[0005](adr/0005-wachtwoord-verplicht-pin-optionele-snelkoppeling.md)
+amends ADR 0003 → Beslissing 1: a `bardienst`/`beheerder` member **always
+has e-mail/wachtwoord** (a linked Supabase Auth account,
+`members.auth_user_id`); a PIN is an optional shortcut on top of it, never a
+replacement. Both at once is the normal state for a member with a PIN; the
+only forbidden state is PIN-only. The member toggles the PIN themselves via
+`set_own_pin` ("Mijn account" in the mode chooser — only reachable from an
+individual e-mail session, never the shared device session). "Has a PIN" is
+the generated column `has_pin` (`pin_hash is not null`, readable while
+`pin_hash` itself is column-REVOKEd — `0010`); no separate auth-method
+column.
+
+After an e-mail login the signed-in person picks a **mode: bar or beheer**
+(`ModusKeuze.tsx`) — modes are separate instances, not something you switch
+inside one session; changing mode means signing out and back in (a
+generalization of the single-session-per-browser replace-not-coexist
+mechanism above, not a new mechanism).
 
 Bar-modus itself, however signed into, stays exactly what already exists:
 `start_shift`/`add_shift_member`/`remove_shift_member` (issues #6/#7) and
-`served_by`-attribution at checkout are unchanged. **Only the beheer side of
-this is actually built today**: `/beheer`'s e-mail login (issue #14). PIN
-via the shared device session (issue #6/#32/#33) remains the only built way
-into bar-modus — a per-member auth-method setting and bar-modus reachable
-via e-mail/wachtwoord are explicitly deferred to a new, not-yet-numbered
-issue (see ADR 0003 → scope-splitsing), so as not to re-open #6/#32's
-already-merged behavior inside #14.
+`served_by`-attribution at checkout are unchanged. **Both routes into
+bar-modus are built** (issue #42, PR #60): PIN via the shared device session
+(issue #6/#32/#33 — the PIN staff picker only lists members with a PIN), and
+e-mail/wachtwoord → "Bar" in the mode chooser, which navigates to the same
+bar screens. `DienstStarten` links to `/beheer` ("Inloggen met e-mail") for
+the e-mail route. Spec: `docs/features/auth-methode-per-lid.md`.
 
 This also revises `docs/features/dienst-starten.md` → "Expliciet buiten
 scope"'s claim that the prototype's bar/beheer modus-keuze "vervalt" — that
