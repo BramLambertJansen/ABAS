@@ -1,4 +1,5 @@
-import { test, expect, type Page, type Route } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
+import { USER, alertOf, fakeSession, json, loginMetWachtwoord } from "./helpers/supabaseMock";
 
 /**
  * #73 — de uitnodigingsfout `rate_limited` in LidBeherenOverlay toont de
@@ -10,50 +11,12 @@ import { test, expect, type Page, type Route } from "@playwright/test";
  * src/lib/inviteMember.ts een echte GoTrue-rate-limit ook daadwerkelijk als
  * `rate_limited` teruggeeft — dat is serverside en valt buiten de browser.
  *
- * De tekst staat hier bewust letterlijk en niet geïmporteerd: de test moet
- * rood worden als iemand de gedeelde tekst of de koppeling ernaar wijzigt.
+ * Dit bewaakt het gedrag (welke tekst de gebruiker ziet), niet dat de tekst
+ * uit de gedeelde constante komt: een letterlijke kopie met dezelfde tekst
+ * blijft hier groen. Die koppeling is reviewwerk (CLAUDE.md → duplicatie).
  */
 
 const RATE_LIMITED_TEXT = "te veel pogingen — probeer het over een paar minuten opnieuw";
-
-const HEADERS = {
-  "access-control-allow-origin": "*",
-  "access-control-allow-headers": "*",
-  "access-control-expose-headers": "x-supabase-api-version, content-range",
-  "content-type": "application/json",
-  "x-supabase-api-version": "2024-01-01",
-};
-
-function base64url(value: object): string {
-  return Buffer.from(JSON.stringify(value)).toString("base64url");
-}
-
-const USER = {
-  id: "00000000-0000-4000-8000-000000000001",
-  aud: "authenticated",
-  role: "authenticated",
-  email: "femke.bos@aurora.local",
-  app_metadata: { provider: "email" },
-  user_metadata: {},
-  created_at: "2026-01-01T00:00:00Z",
-};
-
-function fakeSession() {
-  const exp = Math.floor(Date.now() / 1000) + 3600;
-  const accessToken = [
-    base64url({ alg: "HS256", typ: "JWT" }),
-    base64url({ sub: USER.id, aud: "authenticated", role: "authenticated", exp, email: USER.email }),
-    "nep-handtekening",
-  ].join(".");
-  return {
-    access_token: accessToken,
-    token_type: "bearer",
-    expires_in: 3600,
-    expires_at: exp,
-    refresh_token: "nep-refresh-token",
-    user: USER,
-  };
-}
 
 const LID = {
   id: "00000000-0000-4000-8000-0000000000aa",
@@ -66,10 +29,6 @@ const LID = {
   email: "joris@aurora.local",
   invited_at: null,
 };
-
-function json(route: Route, status: number, body: unknown) {
-  return route.fulfill({ status, headers: HEADERS, body: JSON.stringify(body) });
-}
 
 /** `invite` = [HTTP-status, body]. De echte route geeft een fout uit
  *  sendMemberInvite() met status 200 terug ({ ok: false, errorCode }); alleen
@@ -102,22 +61,12 @@ async function mockBeheerder(page: Page, invite: [number, unknown]) {
 }
 
 async function openLidBeheren(page: Page) {
-  await page.goto("/beheer");
-  const emailVeld = page.locator('input[type="email"]');
-  await emailVeld.waitFor({ state: "visible", timeout: 15_000 });
-  await emailVeld.fill(USER.email);
-  await page.locator('label:has(input[value="password"])').click();
-  await page.locator('input[type="password"]').fill("Aurora#2026");
-  await page.getByRole("button", { name: "Inloggen" }).click();
+  await loginMetWachtwoord(page, USER.email, "Aurora#2026");
 
   await page.getByRole("button", { name: "Beheer" }).click();
   await page.getByRole("tab", { name: "Leden" }).click();
   await page.getByRole("button", { name: LID.name }).click();
   await expect(page.getByRole("button", { name: "Invite versturen" })).toBeVisible();
-}
-
-function overlayAlert(page: Page) {
-  return page.locator('[role="alert"]:not(#__next-route-announcer__)');
 }
 
 test("invite: rate_limited → de gedeelde 'te veel pogingen'-tekst (#73)", async ({ page }) => {
@@ -126,7 +75,7 @@ test("invite: rate_limited → de gedeelde 'te veel pogingen'-tekst (#73)", asyn
 
   await page.getByRole("button", { name: "Invite versturen" }).click();
 
-  await expect(overlayAlert(page)).toHaveText(RATE_LIMITED_TEXT);
+  await expect(alertOf(page)).toHaveText(RATE_LIMITED_TEXT);
   expect(calls).toEqual([{ memberId: LID.id }]);
   // Mislukt: geen "uitgenodigd op …", knop blijft bruikbaar voor een nieuwe poging.
   await expect(page.getByText("nog niet uitgenodigd")).toBeVisible();
@@ -139,6 +88,6 @@ test("invite: andere fout (unknown) → géén 'te veel pogingen'-tekst", async 
 
   await page.getByRole("button", { name: "Invite versturen" }).click();
 
-  await expect(overlayAlert(page)).toHaveText("er ging iets mis, probeer het opnieuw");
+  await expect(alertOf(page)).toHaveText("er ging iets mis, probeer het opnieuw");
   await expect(page.getByText("te veel pogingen")).toHaveCount(0);
 });

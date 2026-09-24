@@ -1,4 +1,5 @@
-import { test, expect, type Page, type Route } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
+import { SUPABASE_HEADERS, USER, alertOf, fakeSession, json } from "./helpers/supabaseMock";
 
 /**
  * docs/features/wachtwoord-vergeten.md — gedrag (niet a11y; de axe-scans
@@ -12,61 +13,11 @@ import { test, expect, type Page, type Route } from "@playwright/test";
  * apparaat-onafhankelijke verifyOtp tegen echte GoTrue) staat in het
  * Tester-rapport van PR #69 als handmatige controle.
  *
- * Supabase-foutbodies volgen de API-versie 2024-01-01 (`code` + `msg`),
- * met de header waaraan auth-js die versie herkent — zonder die header
- * leest auth-js `code` niet en zou de weak_password-/same_password-mapping
- * hier onterecht falen.
+ * Mock-bouwstenen (headers, nep-sessie, alertOf) staan in
+ * e2e/helpers/supabaseMock.ts, gedeeld met e2e/ledenbeheer-invite.spec.ts.
  */
 
-const AUTH_HEADERS = {
-  "access-control-allow-origin": "*",
-  "access-control-allow-headers": "*",
-  "access-control-expose-headers": "x-supabase-api-version",
-  "content-type": "application/json",
-  "x-supabase-api-version": "2024-01-01",
-};
-
 const VALID_PASSWORD = "Aurora#2026";
-
-function base64url(value: object): string {
-  return Buffer.from(JSON.stringify(value)).toString("base64url");
-}
-
-const USER = {
-  id: "00000000-0000-4000-8000-000000000001",
-  aud: "authenticated",
-  role: "authenticated",
-  email: "femke.bos@aurora.local",
-  app_metadata: { provider: "email" },
-  user_metadata: {},
-  created_at: "2026-01-01T00:00:00Z",
-};
-
-function fakeSession() {
-  const exp = Math.floor(Date.now() / 1000) + 3600;
-  const accessToken = [
-    base64url({ alg: "HS256", typ: "JWT" }),
-    base64url({ sub: USER.id, aud: "authenticated", role: "authenticated", exp, email: USER.email }),
-    "nep-handtekening",
-  ].join(".");
-  return {
-    access_token: accessToken,
-    token_type: "bearer",
-    expires_in: 3600,
-    expires_at: exp,
-    refresh_token: "nep-refresh-token",
-    user: USER,
-  };
-}
-
-/** De eigen `role="alert"` van het scherm — niet Next.js' route-announcer. */
-function alertOf(page: Page) {
-  return page.locator('[role="alert"]:not(#__next-route-announcer__)');
-}
-
-function json(route: Route, status: number, body: unknown) {
-  return route.fulfill({ status, headers: AUTH_HEADERS, body: JSON.stringify(body) });
-}
 
 type AuthMock = {
   verify: Array<Record<string, unknown>>;
@@ -122,7 +73,7 @@ async function mockAuth(
   await page.route(/\/auth\/v1\/logout(\?|$)/, async (route) => {
     calls.logout += 1;
     const status = handlers.logoutStatus ?? 204;
-    if (status === 204) return route.fulfill({ status, headers: AUTH_HEADERS, body: "" });
+    if (status === 204) return route.fulfill({ status, headers: SUPABASE_HEADERS, body: "" });
     return json(route, status, { code: "unexpected_failure", msg: "logout mislukt" });
   });
 
@@ -681,9 +632,6 @@ for (const [name, status, body, melding] of [
     await expect(verstuurd).toHaveCount(0);
     await expect(emailVeld).toHaveValue("femke.bos@aurora.local");
     await expect(knop).toBeEnabled();
-    // De fix zet de focus alleen bij een wissel van weergave; een mislukte
-    // poging wisselt niets, dus ook het e-mailveld krijgt geen focus.
-    await expect(emailVeld).not.toBeFocused();
     expect(calls.otp).toHaveLength(1);
 
     await knop.click();
@@ -776,11 +724,33 @@ test("mislukte wachtwoordlogin: foutmelding, geen focussprong naar het e-mailvel
   expect(calls.token).toHaveLength(1);
   expect(calls.otp).toHaveLength(0);
 
-  // Via de knop: geen sprong naar het e-mailveld (de effect-tak voor
-  // view === "login" mag bij een wachtwoordpoging niet vuren).
+  // Via de knop: dezelfde melding, geen verstuurd-weergave. Waar de focus
+  // dan hoort staat nog open (#77, zie de fixme-test hieronder).
   await page.getByRole("button", { name: "Inloggen" }).click();
   await expect.poll(() => calls.token.length).toBe(2);
   await expect(alertOf(page)).toHaveText("onjuist e-mailadres of wachtwoord");
-  await expect(emailVeld).not.toBeFocused();
   await expect(page.getByRole("status").filter({ hasText: MAGIC_LINK_SENT })).toHaveCount(0);
 });
+
+// #77 — na een mislukte poging via de knop valt de focus nu naar <body>
+// (de knop is tijdens `pending` disabled). Waar hij wél heen moet, beslist
+// de Architect; deze tests gaan aan met de fix voor #77.
+for (const methode of ["magic_link", "password"] as const) {
+  test.fixme(`mislukte poging via de knop (${methode}): focus valt niet naar <body> (#77)`, async ({
+    page,
+  }) => {
+    await mockAuth(page, { otp: () => [500, { code: "unexpected_failure", msg: "mislukt" }] });
+    await openLogin(page);
+    await page.getByLabel("E-mailadres").fill("femke.bos@aurora.local");
+    if (methode === "password") {
+      await page.locator('label:has(input[value="password"])').click();
+      await page.locator('input[type="password"]').fill("fout-wachtwoord");
+    }
+    await page
+      .getByRole("button", { name: methode === "password" ? "Inloggen" : "Stuur inloglink" })
+      .click();
+    await expect(alertOf(page)).not.toHaveText("");
+
+    expect(await page.evaluate(() => document.activeElement === document.body)).toBe(false);
+  });
+}
