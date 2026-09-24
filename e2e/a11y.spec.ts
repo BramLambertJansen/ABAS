@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { loginMetWachtwoord } from "./helpers/supabaseMock";
 
 /**
  * The WCAG-AA gate CLAUDE.md calls for: axe-core against every shell's
@@ -69,24 +70,7 @@ for (const { name, path } of routes) {
  * kloppend te houden met het nu gewijzigde schermverloop.
  */
 async function loginAsBeheerder(page: Page) {
-  await page.goto("/beheer");
-
-  // The "Wachtwoord"-optie's radio input is visually-hidden (`sr-only`),
-  // but its wrapping <label> is a normal, visible click target (implicit
-  // label association, no htmlFor) — click that instead of the input
-  // itself so this stays a real, actionable click rather than a
-  // visibility-check bypass.
-  await page.locator('label:has(input[value="password"])').click();
-
-  // CSS-type locators, not getByLabel("Wachtwoord") — the "Wachtwoord"-
-  // wachtwoordveld and the "Wachtwoord"-inlogmethode-radio share the exact
-  // same accessible name, which getByLabel can't disambiguate on its own.
-  await page.locator('input[type="email"]').fill("femke.bos@aurora.local");
-  await page
-    .locator('input[type="password"]')
-    .fill("local-beheerder-dev-only");
-
-  await page.getByRole("button", { name: "Inloggen" }).click();
+  await loginMetWachtwoord(page, "femke.bos@aurora.local", "local-beheerder-dev-only");
 
   const beheerTegel = page.getByRole("button", { name: "Beheer" });
   await beheerTegel.waitFor({ state: "visible", timeout: 15_000 });
@@ -105,14 +89,7 @@ async function loginAsBeheerder(page: Page) {
  * step on the way to another one.
  */
 async function loginToModusKeuze(page: Page) {
-  await page.goto("/beheer");
-
-  await page.locator('label:has(input[value="password"])').click();
-  await page.locator('input[type="email"]').fill("femke.bos@aurora.local");
-  await page
-    .locator('input[type="password"]')
-    .fill("local-beheerder-dev-only");
-  await page.getByRole("button", { name: "Inloggen" }).click();
+  await loginMetWachtwoord(page, "femke.bos@aurora.local", "local-beheerder-dev-only");
 
   await page
     .getByRole("heading", { name: /^Welkom,/ })

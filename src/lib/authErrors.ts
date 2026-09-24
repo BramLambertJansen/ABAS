@@ -1,6 +1,7 @@
 /**
  * Gedeeld tussen de /beheer-auth-hooks (useBeheerLogin,
- * useWachtwoordHerstellen) en hun schermen. Supabase Auth heeft geen vaste
+ * useWachtwoordHerstellen), hun schermen en de uitnodigingsfout in
+ * LidBeherenOverlay. Supabase Auth heeft geen vaste
  * foutvocabulaire zoals de RPC's; herkenning gaat best-effort op de tekst.
  */
 export const RATE_LIMITED_MESSAGE =
