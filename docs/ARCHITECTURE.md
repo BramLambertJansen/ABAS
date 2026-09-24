@@ -334,7 +334,8 @@ building blocks for the auth screens: `src/components/AuroraMerk.tsx`
 (logo/heading block, also used by `ModusKeuze` and `DienstStarten`),
 `src/components/NieuwWachtwoordVelden.tsx` + `src/lib/passwordPolicy.ts`
 (for reuse by #15/#17), and `src/lib/authErrors.ts` (rate-limit
-recognition and message).
+recognition and message — since PR #75 also used for the invite error in
+`LidBeherenOverlay`).
 
 **Settled (2026-08-26)**: this mechanism depends on `members.auth_user_id`
 (planned in "Lid-accounts" below, issue #24) and an e-mail login flow
@@ -449,6 +450,27 @@ project), so this has no effect on production's real signup policy.
 sets its own signup toggle to closed, password login may silently break
 for existing members too by the same GoTrue behavior — worth confirming
 against the real project before shipping password login there.
+
+**e2e-mocks on `/beheer` must survive the device session (2026-09-24)**:
+the middleware's matcher covers `/beheer` too, so wherever
+`SUPABASE_DEVICE_*` is set (CI, and any deployment that configures them —
+every browser there, not only the tablet; see "Accepted risk: device sign-in
+has no tablet-trust check" above) a visitor to `/beheer` is already signed in as the device account before any beheer login; in a
+local run without those env vars there is no session at all. Found in CI on
+PR #75: specs that passed locally failed there. Two consequences for specs
+that mock Supabase via `page.route()` (`e2e/helpers/supabaseMock.ts`):
+- `BeheerLogin` then shows `useBeheerSession`'s denied message ("Dit
+  account is niet gekoppeld aan een lid", passed in as `deniedMessage` by
+  `Assortimentbeheer`) as its own alert above the login form, so a spec asserting the
+  form's error must look inside the form, not at any `role="alert"` (see
+  `formulierAlert` in `e2e/wachtwoord-vergeten.spec.ts`);
+- a `members` mock must only return a row for the mocked beheerder's
+  `auth_user_id`, not for every session — otherwise the device account
+  looks like a beheerder and the login form never appears (see
+  `mockBeheerder` in `e2e/ledenbeheer-invite.spec.ts`).
+Whether `/beheer` should show that alert to the device session at all is
+open as [#78](https://github.com/BramLambertJansen/ABAS/issues/78)
+(needs-decision).
 
 **Still open**:
 - **Device account provisioning flow (production)**: who creates the
