@@ -7,3 +7,19 @@
     @apply bg-canvas text-ink font-sans antialiased;
   }
 }
+
+/*
+ * Wie minder beweging wil, krijgt geen kleurovergangen (`transition-colors`)
+ * of animaties. De a11y-scans draaien ook zo (playwright.config.ts →
+ * reducedMotion), zodat axe altijd de eindkleur meet en niet een tussenkleur
+ * halverwege een overgang (#71).
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0s !important;
+    animation-duration: 0s !important;
+    animation-iteration-count: 1 !important;
+  }
+}

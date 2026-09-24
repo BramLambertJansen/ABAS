@@ -39,6 +39,20 @@ for (const { name, path } of routes) {
 }
 
 /**
+ * #71: de scans hierboven en hieronder meten kleuren. Een knop of tab met
+ * `transition-colors` die net van staat wisselde, stond soms nog halverwege
+ * de overgang, en axe mat dan een tussenkleur. playwright.config.ts draait
+ * daarom met reducedMotion "reduce", en globals.css zet overgangen dan uit.
+ * Deze test bewaakt dat die twee samen blijven werken.
+ */
+test("a11y-scans draaien zonder kleurovergangen (#71)", async ({ page }) => {
+  await page.goto("/beheer");
+
+  const inloggen = page.getByRole("button", { name: /^(Inloggen|Stuur inloglink)$/ });
+  await expect(inloggen).toHaveCSS("transition-duration", "0s");
+});
+
+/**
  * docs/features/negatieve-saldolimiet.md (#11) → Randgevallen → "A11y":
  * the routes loop above only scans `/beheer`'s signed-out inlogformulier —
  * the signed-in state (tabbalk + both tabbladen) was never in this file's

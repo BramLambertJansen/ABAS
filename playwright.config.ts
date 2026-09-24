@@ -31,6 +31,10 @@ export default defineConfig({
   reporter: "list",
   use: {
     baseURL: "http://127.0.0.1:3100",
+    // Zonder overgangen meet axe de eindkleuren, niet een tussenkleur
+    // halverwege `transition-colors` (#71). globals.css zet overgangen uit
+    // onder prefers-reduced-motion.
+    contextOptions: { reducedMotion: "reduce" },
     launchOptions: executablePath ? { executablePath } : undefined,
   },
   webServer: {
