@@ -110,6 +110,30 @@ async function loginToModusKeuze(page: Page) {
     .waitFor({ state: "visible", timeout: 15_000 });
 }
 
+/**
+ * docs/features/logboek.md (#19) → Randgevallen: signs in as the seeded
+ * `bardienst` e-mail/wachtwoord account (Sanne Bakker, `supabase/seed.sql`)
+ * and clicks through to `BeheerTabs`, same shape as `loginAsBeheerder()`
+ * above but for the other role `useBeheerSession.ts` accepts into
+ * `/beheer`. Not `role="beheerder"`: BeheerTabs.tsx renders the Logboek tab
+ * only for that role, and this helper exists specifically to prove the
+ * opposite case genuinely reaches the tabbalk (Assortiment/Leden/
+ * Instellingen) without Logboek, rather than being denied outright by
+ * `useBeheerSession.ts` — a `bardienst` session is a fully accepted
+ * "signed-in" state there (ADR 0005), not a "denied" one.
+ */
+async function loginAsBardienst(page: Page) {
+  await loginMetWachtwoord(page, "sanne.bakker@aurora.local", "local-bardienst-dev-only");
+
+  const beheerTegel = page.getByRole("button", { name: "Beheer" });
+  await beheerTegel.waitFor({ state: "visible", timeout: 15_000 });
+  await beheerTegel.click();
+
+  await page
+    .getByRole("tablist", { name: "Beheer-navigatie" })
+    .waitFor({ state: "visible", timeout: 15_000 });
+}
+
 test.describe("beheer ingelogde staat (a11y)", () => {
   test("beheer (/beheer) Assortiment-tab (ingelogd) has no WCAG2A/AA violations", async ({
     page,
@@ -389,6 +413,39 @@ test.describe("beheer ingelogde staat (a11y)", () => {
       filteredResults.violations,
       JSON.stringify(filteredResults.violations, null, 2)
     ).toEqual([]);
+  });
+
+  /**
+   * docs/features/logboek.md (#19) → Randgevallen: "beheerder only" was
+   * previously only claimed in the spec, never enforced — BeheerTabs.tsx
+   * now gates the Logboek tab on `role === "beheerder"` (commit ab7dfe6),
+   * with `role` threaded through from `useBeheerSession.ts`. This proves
+   * that structurally, against a genuine `bardienst` session
+   * (`loginAsBardienst()`, Sanne Bakker — `supabase/seed.sql`), not by
+   * inspecting the source.
+   *
+   * Asserts absence via `.getByRole("tab", { name: "Logboek" })` +
+   * `toHaveCount(0)` — the tab button isn't in the DOM at all for this
+   * role (no `hidden`/`display: none` toggle to check instead, see
+   * BeheerTabs.tsx's `{role === "beheerder" && (...)}` guard). Also
+   * confirms the other three tabs (Assortiment/Leden/Instellingen) ARE
+   * present for this same session, so this test actually distinguishes
+   * "correctly scoped to one missing tab" from "everything broken/empty" —
+   * an empty tablist would otherwise also make the Logboek-absence
+   * assertion pass for the wrong reason. Not an axe scan itself (no new
+   * screen state beyond what the Assortiment-/Leden-/Instellingen-tab
+   * tests above already cover) — this is the role-gate's own regression
+   * test, not a duplicate a11y pass.
+   */
+  test("beheer (/beheer) Logboek-tab is genuinely absent for a bardienst session (#19)", async ({
+    page,
+  }) => {
+    await loginAsBardienst(page);
+
+    await expect(page.getByRole("tab", { name: "Assortiment" })).toHaveCount(1);
+    await expect(page.getByRole("tab", { name: "Leden" })).toHaveCount(1);
+    await expect(page.getByRole("tab", { name: "Instellingen" })).toHaveCount(1);
+    await expect(page.getByRole("tab", { name: "Logboek" })).toHaveCount(0);
   });
 });
 

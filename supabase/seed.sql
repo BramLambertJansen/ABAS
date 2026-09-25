@@ -104,6 +104,62 @@ update members set auth_user_id = (
   pin_hash = null
 where name = 'Femke Bos';
 
+-- Bardienst e-mail/wachtwoord account for Sanne Bakker, so
+-- e2e/a11y.spec.ts can prove issue #19's role-gate on BeheerTabs.tsx (the
+-- Logboek-tab only renders for `role === "beheerder"`) against a genuine
+-- `bardienst` session reaching `/beheer`, not just a beheerder one — the
+-- seeded bardienst members (Tom Willems, Sanne Bakker) only had a PIN
+-- before this, and PIN sign-in is bar-modus only (ADR 0002/0003), never
+-- reaching `/beheer`'s `BeheerTabs`. Sanne Bakker, not Tom Willems: Tom's
+-- PIN is load-bearing across `e2e/a11y.spec.ts`'s whole
+-- "stateful bar-shell scenarios" describe.serial block
+-- (`STAFF_BUTTON_NAME`/`ensureShiftStarted()`), so giving him a password
+-- account would mean clearing his `pin_hash` (ADR 0003's per-member
+-- either/or, see the Femke Bos comment above) and breaking all of that —
+-- Sanne has no such dependency anywhere in the codebase. Same
+-- either/or consequence as Femke Bos: her `pin_hash` is cleared below the
+-- moment she gets a linked auth_user_id, same local-dev-only direct
+-- auth.users/auth.identities insert as the two accounts above, still never
+-- seeded into a real deployment. This narrows
+-- docs/features/auth-methode-per-lid.md's "Tom Willems, Sanne Bakker are
+-- both PIN-only fixtures" observation down to Tom Willems alone — that
+-- section only documents *why* the schema tolerates
+-- `pin_hash is not null` / `auth_user_id is null` together, not a
+-- guarantee that both fixtures forever stay in that state.
+insert into auth.users (
+  instance_id, id, aud, role, email, encrypted_password,
+  email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
+  created_at, updated_at,
+  confirmation_token, email_change, email_change_token_new, recovery_token
+) values (
+  '00000000-0000-0000-0000-000000000000',
+  gen_random_uuid(),
+  'authenticated',
+  'authenticated',
+  'sanne.bakker@aurora.local',
+  crypt('local-bardienst-dev-only', gen_salt('bf')),
+  now(),
+  '{"provider":"email","providers":["email"]}',
+  '{}',
+  now(), now(),
+  '', '', '', ''
+);
+
+insert into auth.identities (
+  id, user_id, provider_id, identity_data, provider,
+  last_sign_in_at, created_at, updated_at
+)
+select gen_random_uuid(), id, id::text,
+  format('{"sub":"%s","email":"%s"}', id::text, email)::jsonb,
+  'email', now(), now(), now()
+from auth.users where email = 'sanne.bakker@aurora.local';
+
+update members set auth_user_id = (
+    select id from auth.users where email = 'sanne.bakker@aurora.local'
+  ),
+  pin_hash = null
+where name = 'Sanne Bakker';
+
 insert into products (name, category, price_cents) values
   ('Pils',   'Bier', 250),
   ('Radler', 'Bier', 250),
