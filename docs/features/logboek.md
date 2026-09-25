@@ -38,6 +38,29 @@ database vastlegt. Zie Datamodel en Openstaande vragen voor Bram hieronder;
 dat gat is bewust **niet** zelf ingevuld met een nieuwe tabel — dat zou een
 architectuurbeslissing zijn die deze spec niet namens Bram maakt.
 
+5. **Echte rolcheck, niet alleen "sessie bestaat"** (2026-09-25, na
+   Reviewer-bevinding op PR #85). De Reviewer blokkeerde PR #85 op een reële
+   bevinding: deze spec's oorspronkelijke Rolzichtbaarheid-tekst beweerde dat
+   Logboek zichtbaar is "uitsluitend binnen een actieve beheerder-sessie...
+   niet bardienst", maar dat was feitelijk onjuist — `useBeheerSession()`
+   behandelt `bardienst` én `beheerder` allebei als `"signed-in"` (bewuste
+   generalisatie, ADR 0005/#42), en `BeheerTabs.tsx` kreeg tot nu toe geen
+   `role`-prop, dus kon structureel niet filteren. Voor de drie bestaande
+   tabs (Assortiment/Leden/Instellingen) is dat onschadelijk omdat hun
+   schrijf-RPC's `no_admin_role` serverside afdwingen ondanks de zichtbare
+   UI. Logboek heeft **geen RPC** — een platte `select` zonder serverside
+   rolcheck — dus was voor dit scherm specifiek "zichtbaar in de UI" exact
+   hetzelfde als "leesbaar door bardienst", wat Bram's expliciete
+   "uitsluitend beheerder"-besluit (punt 2 hierboven) rechtstreeks
+   tegensprak. Bram heeft besloten: een echte rolcheck toevoegen — `role`
+   van `useBeheerSession()` doorgeven aan `BeheerTabs`, en de Logboek-tab
+   alleen conditioneel renderen voor `role === "beheerder"`. Dit geldt
+   **alleen voor Logboek**, niet voor de andere drie tabs (die blijven
+   bardienst-zichtbaar zoals vandaag) — dit is geen aanscherping van ADR
+   0003 Beslissing 4, maar een punt-oplossing voor dit ene scherm, omdat dit
+   scherm org-brede geldhistorie toont zonder RPC-laag als vangnet. Zie
+   Rolzichtbaarheid hieronder voor het exacte mechanisme.
+
 ## Doel
 
 Een beheerder kan, binnen de bestaande `/beheer`-sessie, alle geldbewegingen
@@ -154,33 +177,72 @@ betekenis geven voor dezelfde parameterwaarde.
 
 ## Rolzichtbaarheid
 
-Zelfde patroon als de drie bestaande `/beheer`-tabs
+**Niet** hetzelfde patroon als de drie bestaande `/beheer`-tabs
 (`docs/features/negatieve-saldolimiet.md` → Rolzichtbaarheid,
-`docs/features/ledenbeheer.md` → Rolzichtbaarheid): de Logboek-tab is
-**uitsluitend zichtbaar binnen een actieve beheerder-sessie** op `/beheer`.
-Geen sessie → alleen het inlogformulier; een sessie zonder `beheerder`-rol
-(`useBeheerSession()`'s `"denied"`-staat) → hetzelfde foutscherm als
-vandaag, vóór de tabbalk — de Logboek-tab bestaat dan niet, net zomin als de
-andere drie tabs dat vandaag doen.
+`docs/features/ledenbeheer.md` → Rolzichtbaarheid) — dat patroon ("zichtbaar
+zodra `useBeheerSession()` op `"signed-in"` staat, dus voor zowel
+`bardienst` als `beheerder`") is precies wat de Reviewer op PR #85 terecht
+blokkeerde voor dit scherm specifiek (zie Besloten door Bram, punt 5): omdat
+Logboek geen RPC heeft, is "zichtbaar in de UI" hier gelijk aan "leesbaar
+door bardienst". Voor Logboek geldt daarom een **echte rolcheck**, boven op
+de bestaande sessie-check — de Developer bouwt exact dit, geen variant:
 
-**Verschil met de andere drie tabs, expliciet genoemd omdat het een reële
-inconsistentie is, geen verzinsel van deze spec**: er is geen RPC-actorcheck
-die een `bardienst`-sessie op databaseniveau alsnog tegenhoudt, zoals
-`no_admin_role` dat wel doet voor `create_product`/`update_member_name`/etc.
-Want er is geen RPC — dit is een platte `select`. Een `bardienst`-medewerker
-op de gedeelde bar-tablet-sessie kan dus, met directe databasetoegang (niet
-via deze UI), exact dezelfde `orders`/`top_ups`/`order_reversals`-rijen
-lezen die dit scherm toont. Dat is **geen nieuw gat** — diezelfde sessie kon
-dat al vóór deze spec (bijvoorbeeld via `useShiftLedger()` voor een dienst
-naar keuze, of rechtstreeks); dit scherm voegt alleen een gemaksmiddel toe
-om het org-breed en doorzoekbaar te bekijken. Bram's beslissing "beheerder
-only" is dus een **UI-laag-beslissing** (welke sessie de tab te zien krijgt),
-niet een nieuwe databasegrens — precies zoals
-`docs/features/negatieve-saldolimiet.md` dat al voor `app_settings` vaststelt.
-Als Bram dit onderscheid onvoldoende vindt (bijvoorbeeld: een bardienst-
-medewerker mag de geldhistorie helemaal niet org-breed kunnen doorzoeken,
-zelfs niet met directe toegang), is dat een aanscherping van ADR 0007's
-reikwijdte — buiten scope van dit leesscherm, zie Expliciet buiten scope.
+1. **`role` komt uit `useBeheerSession()`'s bestaande sessie-data, niet uit
+   een nieuwe query.** De hook selecteert in `resolve()` al
+   `.select("name, role, has_pin")` tegen `members` (`useBeheerSession.ts`,
+   huidige regel ~75) en gebruikt `data.role` al om `"denied"` van
+   `"signed-in"` te onderscheiden (regel ~93: alleen `"bardienst"` of
+   `"beheerder"` bereikt `"signed-in"` — elke andere rol, of geen gekoppeld
+   lid, wordt `"denied"`). Op het punt waar de hook vandaag `setState({
+   status: "signed-in", email, name: data.name, hasPin: data.has_pin })`
+   zet (regel ~104–109), is `data.role` dus al gegarandeerd `"bardienst"` of
+   `"beheerder"`. De `"signed-in"`-variant van `BeheerSessionState`
+   (`useBeheerSession.ts`, huidige regel 43) krijgt een nieuw veld:
+   `role: "bardienst" | "beheerder"`, gevuld met exact die al-opgehaalde
+   waarde. Geen nieuwe kolom, geen nieuwe select, geen nieuwe roundtrip.
+2. **`role` stroomt door naar `BeheerTabs` als nieuwe, verplichte prop.**
+   `Assortimentbeheer.tsx` is de enige aanroeper van `<BeheerTabs>` (huidige
+   regel ~51: `<BeheerTabs name={session.name} onSignOut={session.signOut}
+   />`, bereikt alleen na `session.status === "signed-in"`, dus `session.role`
+   ligt daar al klaar). Wordt: `<BeheerTabs name={session.name}
+   role={session.role} onSignOut={session.signOut} />`. `BeheerTabs.tsx`
+   krijgt de propsignatuur `{ name: string; role: "bardienst" |
+   "beheerder"; onSignOut: () => void }`.
+3. **De conditionele render zit uitsluitend in `BeheerTabs.tsx`, en raakt
+   alleen Logboek.** Zowel de tabknop ("Logboek", huidige regel ~135–149 in
+   `role="tablist"`) als het bijbehorende tabpanel/de mount van
+   `LogboekLijst` (huidige regel ~237–246) renderen alleen wanneer
+   `role === "beheerder"`. Voor een `bardienst`-sessie bestaat de Logboek-tab
+   dus niet in de DOM — geen `display:none`, geen disabled-knop, het element
+   wordt niet gemount. Assortiment, Leden en Instellingen blijven ongewijzigd
+   zichtbaar voor beide rollen — dit is geen bredere aanscherping van ADR
+   0003 Beslissing 4, alleen dit ene scherm verandert.
+4. **Dit is een UI-laag-conditie, geen nieuwe RPC-laag.** Er is nog steeds
+   geen RPC voor Logboek — dit blijft een platte `select` op
+   `orders`/`order_lines`/`top_ups`/`order_reversals`, nog steeds leesbaar
+   voor elke niet-`lid`-sessie op databaseniveau (ADR 0007, ongewijzigd, zie
+   RPC's/leeshook hierboven). Het punt van deze aanscherping is uitsluitend
+   dat een `bardienst`-sessie de Logboek-UI niet meer te zien krijgt — niet
+   dat de onderliggende tabellen nu strenger zijn. Een `bardienst`-medewerker
+   met directe databasetoegang (buiten deze UI om) kan nog steeds dezelfde
+   rijen lezen; dat is, zoals hieronder toegelicht, geen nieuw gat en geen
+   scope van deze wijziging.
+
+**Resterend, bewust ongewijzigd punt**: er is nog steeds geen RPC-actorcheck
+die een `bardienst`-sessie op databaseniveau tegenhoudt, zoals `no_admin_role`
+dat wel doet voor `create_product`/`update_member_name`/etc. — want er is nog
+steeds geen RPC, dit is een platte `select`. Vóór punt 5 (Besloten door Bram)
+was dat gat zichtbaar via de UI zélf; ná deze wijziging bestaat het gat alleen
+nog bij **directe** databasetoegang (buiten de app om), niet meer via het
+scherm — precies de reductie die Bram met de rolcheck bedoelde. Dat een
+`bardienst`-sessie met directe toegang nog altijd dezelfde
+`orders`/`top_ups`/`order_reversals`-rijen kan lezen is **geen nieuw gat** —
+diezelfde sessie kon dat al vóór deze spec (bijvoorbeeld via
+`useShiftLedger()` voor een dienst naar keuze, of rechtstreeks). Als Bram ook
+dát onvoldoende vindt (bijvoorbeeld: een bardienst-medewerker mag de
+geldhistorie helemaal niet org-breed kunnen doorzoeken, zelfs niet met
+directe toegang), is dat een aanscherping van ADR 0007's reikwijdte — buiten
+scope van dit leesscherm, zie Expliciet buiten scope.
 
 ## Schermflow
 
