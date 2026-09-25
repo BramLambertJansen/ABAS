@@ -63,7 +63,12 @@ Developer begint; er blijft na dit document geen open vraag over.
      product demo data already relies on." Tom Willems/Sanne Bakker zijn
      dus fixtures om `start_shift`/de PIN-stafkeuze lokaal en in CI te
      kunnen testen (zoals de PIN-stafkeuze dat al voor #6 nodig had), geen
-     bewijs van een echt Aurora-lid in die staat.
+     bewijs van een echt Aurora-lid in die staat. **Bijgewerkt (2026-09-25,
+     #19):** Sanne Bakker kreeg zelf inmiddels ook een e-mail/wachtwoord-
+     account (`supabase/seed.sql`), nodig om een échte `bardienst`-sessie
+     te kunnen inloggen op `/beheer` voor `docs/features/logboek.md`'s
+     rolcheck-test — Tom Willems blijft de PIN-only fixture die dit punt
+     hieronder illustreert.
    - Het enige spoor van een **echt** geprovisioned account in de codebase
      is Femke Bos' patroon (`seed.sql`: handmatige `auth.users`/
      `auth.identities`-insert, hetzelfde patroon als `docs/ARCHITECTURE.md`
@@ -77,8 +82,8 @@ Developer begint; er blijft na dit document geen open vraag over.
      overgangsstaat-toelating (geen `not null`-constraint op
      `auth_user_id`) — niet langer omdat die vandaag een echt lid zou
      beschermen (dat blijkt niet nodig), maar omdat (a) de lokale/
-     CI-seedfixtures (Tom Willems, Sanne Bakker) een `supabase start`/
-     CI-breuk zouden veroorzaken als de constraint er wél kwam, en (b) ADR
+     CI-seedfixture (Tom Willems, zie boven) een `supabase start`/
+     CI-breuk zou veroorzaken als de constraint er wél kwam, en (b) ADR
      0004 → Beslissing 5 de *handhavingstiming* (of/wanneer een harde
      deadline komt voor een toekomstig, wél bestaand geval) bewust als
      Bram's eigen, nog te nemen beleidsvraag openlaat — een
@@ -304,10 +309,12 @@ kolom al volledig:
   Aurora-lid bestaat dat zo'n constraint zou breken — dit is dus geen geval
   van "voorkomt vandaag een crash op bestaande rijen". De constraint blijft
   toch achterwege, om twee andere, wel nog geldige redenen: (a)
-  `supabase/seed.sql`'s eigen lokale/CI-fixtures (Tom Willems, Sanne Bakker)
-  modelleren bewust precies deze overgangsstaat om `start_shift`/de
-  PIN-stafkeuze te kunnen testen — een harde constraint zou `supabase
-  start`/CI breken op data die met opzet zo is opgezet; en (b) *of/wanneer*
+  `supabase/seed.sql`'s eigen lokale/CI-fixture (Tom Willems — Sanne Bakker
+  kreeg sinds #19 zelf een e-mail/wachtwoord-account, zie "Definitieve
+  keuzes" punt 1) modelleert bewust precies deze overgangsstaat om
+  `start_shift`/de PIN-stafkeuze te kunnen testen — een harde constraint
+  zou `supabase start`/CI breken op data die met opzet zo is opgezet; en
+  (b) *of/wanneer*
   een toekomstig, wél bestaand geval van deze staat verplicht naar een
   account gemigreerd moet worden is ADR 0005 → Beslissing 5's bewust
   opengelaten beleidsvraag — een schema-constraint zou die handhavingstiming
@@ -556,7 +563,8 @@ de RPC (`no_bar_role`).
 
 - **Bardienst/beheerder-lid met `pin_hash is not null` maar
   `auth_user_id is null`** — vandaag **alleen aanwezig als lokale/CI-
-  seedfixture** (Tom Willems, Sanne Bakker in `supabase/seed.sql`), niet bij
+  seedfixture** (Tom Willems in `supabase/seed.sql`; Sanne Bakker kreeg
+  sinds #19 zelf een e-mail/wachtwoord-account, zie boven), niet bij
   enig echt Aurora-lid (bevestigd door Bram, zie "Definitieve keuzes" punt
   1) — geen actief migratiescenario, wel gedocumenteerd gedrag voor het
   geval dit ooit alsnog voorkomt: zo'n lid kan gewoon met PIN blijven
