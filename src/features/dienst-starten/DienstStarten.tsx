@@ -31,6 +31,10 @@ function pinErrorMessage(code: StartShiftErrorCode): string {
     case "no_bar_role":
     case "member_not_found":
       return "dit account kan geen dienst starten — vraag een beheerder";
+    case "shift_already_open":
+      // Komt hier in de praktijk nooit: pressDigit haalt dan meteen de al
+      // open dienst op, en dat scherm vervangt dit scherm.
+      return "er ging iets mis, probeer het opnieuw";
     case "invalid_activity_type":
     case "activity_type_not_found":
     case "activity_type_archived":
@@ -137,7 +141,11 @@ export function DienstStarten() {
         next,
         selectedActivityType.id
       );
-      if (result.ok) {
+      // `shift_already_open` (#29): intussen heeft iemand anders een
+      // dienst gestart, bv. een tweede tabblad. Geen fout voor deze
+      // gebruiker: gewoon die open dienst ophalen, net als na een geslaagde
+      // start.
+      if (result.ok || result.code === "shift_already_open") {
         openShift.refetch();
         return;
       }
