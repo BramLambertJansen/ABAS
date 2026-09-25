@@ -77,3 +77,21 @@ export async function loginMetWachtwoord(page: Page, email: string, password: st
   await page.locator('input[type="password"]').fill(password);
   await page.getByRole("button", { name: "Inloggen" }).click();
 }
+
+/**
+ * Zelfde als `loginMetWachtwoord`, maar voor `/portal` (docs/features/
+ * portal-login.md → PortalLogin.tsx) — eigen functie i.p.v. hergebruik: de
+ * twee formulieren delen vorm/precedent, niet code (spec → "Herbruik"), en
+ * de knoptekst is hier "Inloggen" ná het kiezen van methode Wachtwoord,
+ * verder identiek DOM-patroon (sr-only radio, omhullende <label> als
+ * klikdoel).
+ */
+export async function portalLoginMetWachtwoord(page: Page, email: string, password: string) {
+  await page.goto("/portal");
+  const emailVeld = page.locator('input[type="email"]');
+  await emailVeld.waitFor({ state: "visible", timeout: 15_000 });
+  await page.locator('label:has(input[value="password"])').click();
+  await emailVeld.fill(email);
+  await page.locator('input[type="password"]').fill(password);
+  await page.getByRole("button", { name: "Inloggen" }).click();
+}

@@ -1,6 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { loginMetWachtwoord } from "./helpers/supabaseMock";
+import { loginMetWachtwoord, portalLoginMetWachtwoord } from "./helpers/supabaseMock";
 
 /**
  * The WCAG-AA gate CLAUDE.md calls for: axe-core against every shell's
@@ -23,6 +23,15 @@ const routes = [
     path: "/beheer/wachtwoord-herstellen?token_hash=a11y&type=recovery",
   },
   { name: "wachtwoord herstellen, link ongeldig", path: "/beheer/wachtwoord-herstellen" },
+  // docs/features/portal-login.md (#15) → Randgevallen → "A11y":
+  // "/portal/wachtwoord-herstellen (formulier + 'link ongeldig')" — zelfde
+  // twee statische staten als hierboven voor /beheer, nu voor de
+  // portal-variant (PortalWachtwoordHerstellen.tsx).
+  {
+    name: "portal wachtwoord herstellen",
+    path: "/portal/wachtwoord-herstellen?token_hash=a11y&type=recovery",
+  },
+  { name: "portal wachtwoord herstellen, link ongeldig", path: "/portal/wachtwoord-herstellen" },
 ];
 
 for (const { name, path } of routes) {
@@ -50,6 +59,146 @@ test("a11y-scans draaien zonder kleurovergangen (#71)", async ({ page }) => {
 
   const inloggen = page.getByRole("button", { name: /^(Inloggen|Stuur inloglink)$/ });
   await expect(inloggen).toHaveCSS("transition-duration", "0s");
+});
+
+/**
+ * docs/features/portal-login.md (#15) → Randgevallen → "A11y": de routes-
+ * loop hierboven scant alleen `/portal`'s standaardstaat (methode Magic
+ * link, geen sessie). Deze tests dekken de overige stateful weergaven van
+ * `PortalLogin.tsx`/`PortalShellHome.tsx` die de spec expliciet noemt:
+ * methode-keuze (Wachtwoord geselecteerd), de "link verstuurd"-bevestiging,
+ * de wachtwoord-vergeten-aanvraag- en -verstuurd-weergave, en
+ * `PortalShellHome`'s ingelogd-/denied-branches. Zelfde live-backend-opzet
+ * als de rest van dit bestand (een echte lokale Supabase-stack, gevuld met
+ * `supabase/seed.sql`) — geen mocking, dus ook de magic-link-/
+ * wachtwoord-vergeten-aanvragen hieronder gaan echt naar de lokale GoTrue
+ * (onschadelijk: er hoeft geen mail aan te komen voor een a11y-scan, alleen
+ * de resulterende UI-staat telt).
+ */
+test.describe("portal (a11y)", () => {
+  test("portal (/portal) methode-keuze met Wachtwoord geselecteerd has no WCAG2A/AA violations", async ({
+    page,
+  }) => {
+    await page.goto("/portal");
+    const emailVeld = page.locator('input[type="email"]');
+    await emailVeld.waitFor({ state: "visible", timeout: 15_000 });
+    await page.locator('label:has(input[value="password"])').click();
+    await page.locator('input[type="password"]').waitFor({ state: "visible" });
+
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+
+    expect(results.violations, JSON.stringify(results.violations, null, 2))
+      .toEqual([]);
+  });
+
+  test("portal (/portal) 'link verstuurd'-bevestiging has no WCAG2A/AA violations", async ({
+    page,
+  }) => {
+    await page.goto("/portal");
+    const emailVeld = page.locator('input[type="email"]');
+    await emailVeld.waitFor({ state: "visible", timeout: 15_000 });
+    await emailVeld.fill("a11y-scan-magiclink@aurora.local");
+    await page.getByRole("button", { name: "Stuur mij een inloglink" }).click();
+    await page
+      .getByRole("status")
+      .filter({ hasText: "hebben we een inloglink gestuurd" })
+      .waitFor({ state: "visible", timeout: 15_000 });
+
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+
+    expect(results.violations, JSON.stringify(results.violations, null, 2))
+      .toEqual([]);
+  });
+
+  test("portal (/portal) wachtwoord-vergeten-aanvraag has no WCAG2A/AA violations", async ({
+    page,
+  }) => {
+    await page.goto("/portal");
+    const emailVeld = page.locator('input[type="email"]');
+    await emailVeld.waitFor({ state: "visible", timeout: 15_000 });
+    await page.locator('label:has(input[value="password"])').click();
+    await page.getByRole("button", { name: "Wachtwoord vergeten?" }).click();
+    await page
+      .getByRole("heading", { name: "Wachtwoord vergeten" })
+      .waitFor({ state: "visible" });
+
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+
+    expect(results.violations, JSON.stringify(results.violations, null, 2))
+      .toEqual([]);
+  });
+
+  test("portal (/portal) wachtwoord-vergeten-verstuurd has no WCAG2A/AA violations", async ({
+    page,
+  }) => {
+    await page.goto("/portal");
+    const emailVeld = page.locator('input[type="email"]');
+    await emailVeld.waitFor({ state: "visible", timeout: 15_000 });
+    await emailVeld.fill("a11y-scan-vergeten@aurora.local");
+    await page.locator('label:has(input[value="password"])').click();
+    await page.getByRole("button", { name: "Wachtwoord vergeten?" }).click();
+    await page.getByRole("button", { name: "Stuur herstellink" }).click();
+    await page
+      .getByRole("status")
+      .filter({ hasText: "hebben we een link gestuurd" })
+      .waitFor({ state: "visible", timeout: 15_000 });
+
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+
+    expect(results.violations, JSON.stringify(results.violations, null, 2))
+      .toEqual([]);
+  });
+
+  /**
+   * `PortalShellHome`'s "signed-in"-branch — Anna de Vries (seeded `lid`-rol
+   * e-mail/wachtwoord-account, `supabase/seed.sql`), zelfde fixture als
+   * e2e/portal-login.spec.ts's wachtwoordpad-test.
+   */
+  test("portal (/portal) ingelogde staat (Anna de Vries) has no WCAG2A/AA violations", async ({
+    page,
+  }) => {
+    await portalLoginMetWachtwoord(page, "anna.de.vries@aurora.local", "local-lid-dev-only");
+    await page
+      .getByRole("heading", { name: "Welkom, Anna de Vries" })
+      .waitFor({ state: "visible", timeout: 15_000 });
+
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+
+    expect(results.violations, JSON.stringify(results.violations, null, 2))
+      .toEqual([]);
+  });
+
+  /**
+   * `usePortalSession()`'s `denied`-staat — een sessie die bestaat maar niet
+   * naar een actief `lid`-record herleidt. Hergebruikt de al geseede Sanne
+   * Bakker (`bardienst`-e-mail/wachtwoord-account) — geen nieuwe fixture
+   * nodig, zelfde account als e2e/portal-login.spec.ts's denied-test.
+   */
+  test("portal (/portal) denied-staat (bardienst-account) has no WCAG2A/AA violations", async ({
+    page,
+  }) => {
+    await portalLoginMetWachtwoord(page, "sanne.bakker@aurora.local", "local-bardienst-dev-only");
+    await page
+      .getByText("Dit account is niet gekoppeld aan een lid.")
+      .waitFor({ state: "visible", timeout: 15_000 });
+
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+
+    expect(results.violations, JSON.stringify(results.violations, null, 2))
+      .toEqual([]);
+  });
 });
 
 /**

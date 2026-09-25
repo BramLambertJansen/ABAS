@@ -1,0 +1,137 @@
+"use client";
+
+import { useRef, useState } from "react";
+import { isRateLimitedMessage } from "@/lib/authErrors";
+import { createClient } from "@/lib/supabase/portalClient";
+
+/**
+ * Wachtwoord vergeten op `/portal` — docs/features/portal-login.md →
+ * Schermflow → "Wachtwoord vergeten". Analoog aan
+ * `useWachtwoordHerstellen.ts` (`/beheer`), eigen bestand: dat bestand
+ * importeert `@/lib/supabase/client`, wat de portal-only
+ * `check:arch`-regel (ADR 0009) verbiedt. Verder identiek gedrag/contract —
+ * zelfde twee stappen (aanvragen, nieuw wachtwoord instellen), zelfde
+ * neutrale-melding-altijd-"sent"-vorm, zelfde `token_hash`/`type=recovery`-
+ * verificatie op het moment van versturen (ADR 0008), zelfde
+ * "terug naar inloggen, opnieuw inloggen"-afronding (spec →
+ * "Wachtwoord vergeten", bewust géén "direct ingelogd").
+ */
+
+type RequestState =
+  | { status: "idle" }
+  | { status: "pending" }
+  | { status: "sent"; email: string };
+
+/**
+ * Stap 1 — herstellink aanvragen. Élke uitkomst wordt "sent", ook een
+ * rate limit — geen e-mail-enumeratie (zelfde motivatie als
+ * `useWachtwoordHerstellen.ts`'s `useWachtwoordResetAanvragen`, letterlijk
+ * hergebruikt).
+ */
+export function usePortalWachtwoordHerstellen() {
+  const [state, setState] = useState<RequestState>({ status: "idle" });
+
+  async function requestReset(email: string): Promise<void> {
+    setState({ status: "pending" });
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/portal/wachtwoord-herstellen`,
+      });
+      if (error) {
+        console.error("usePortalWachtwoordHerstellen:", error.message);
+      }
+    } catch (err) {
+      console.error("usePortalWachtwoordHerstellen:", err);
+    }
+    setState({ status: "sent", email });
+  }
+
+  return {
+    status: state.status,
+    sentTo: state.status === "sent" ? state.email : null,
+    requestReset,
+    reset: () => setState({ status: "idle" }),
+  };
+}
+
+export type PortalNieuwWachtwoordErrorCode =
+  | "link_invalid"
+  | "weak_password"
+  | "same_password"
+  | "rate_limited"
+  | "unknown";
+
+type SetState =
+  | { status: "idle" }
+  | { status: "pending" }
+  | { status: "done" }
+  | { status: "error"; code: PortalNieuwWachtwoordErrorCode };
+
+function toSetErrorCode(error: {
+  code?: string;
+  message?: string;
+}): PortalNieuwWachtwoordErrorCode {
+  if (error.code === "weak_password") return "weak_password";
+  if (error.code === "same_password") return "same_password";
+  if (isRateLimitedMessage(error.message)) return "rate_limited";
+  return "unknown";
+}
+
+/**
+ * Stap 3 — nieuw wachtwoord instellen met de `token_hash` uit de mail (ADR
+ * 0008). Token wordt pas hier, bij verzenden, ingewisseld.
+ */
+export function usePortalNieuwWachtwoordInstellen(tokenHash: string | null) {
+  const [state, setState] = useState<SetState>(
+    tokenHash ? { status: "idle" } : { status: "error", code: "link_invalid" }
+  );
+  const verified = useRef(false);
+
+  async function setNewPassword(password: string): Promise<boolean> {
+    if (!tokenHash) {
+      setState({ status: "error", code: "link_invalid" });
+      return false;
+    }
+    setState({ status: "pending" });
+    try {
+      const supabase = createClient();
+
+      if (!verified.current) {
+        const { error } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: "recovery",
+        });
+        if (error) {
+          console.error("usePortalNieuwWachtwoordInstellen (verifyOtp):", error.message);
+          setState({ status: "error", code: "link_invalid" });
+          return false;
+        }
+        verified.current = true;
+      }
+
+      const { error } = await supabase.auth.updateUser({ password });
+      if (error) {
+        console.error("usePortalNieuwWachtwoordInstellen (updateUser):", error.message);
+        setState({ status: "error", code: toSetErrorCode(error) });
+        return false;
+      }
+
+      // Terug naar het inlogscherm, opnieuw inloggen (spec → "Wachtwoord
+      // vergeten", zelfde besluit als wachtwoord-vergeten.md besluit 2).
+      await supabase.auth.signOut();
+      setState({ status: "done" });
+      return true;
+    } catch (err) {
+      console.error("usePortalNieuwWachtwoordInstellen:", err);
+      setState({ status: "error", code: "unknown" });
+      return false;
+    }
+  }
+
+  return {
+    status: state.status,
+    errorCode: state.status === "error" ? state.code : null,
+    setNewPassword,
+  };
+}
