@@ -602,12 +602,12 @@ test.describe("beheer ingelogde staat (a11y)", () => {
  * Both scenarios below need a shift already open on the shared bar-tablet
  * session before they can reach their target screen — there is exactly one
  * "current open shift" (docs/ARCHITECTURE.md → "Shared bar-tablet session
- * mechanism"), not scoped per browser/page, and `start_shift` has no
- * server-side exclusivity yet (issue #29). Grouped in
+ * mechanism"), not scoped per browser/page; since #29 `start_shift` refuses
+ * a second open shift (`shift_already_open`). Grouped in
  * `test.describe.serial` so Playwright runs them one after another rather
  * than in separate parallel workers (`fullyParallel: true` in
  * playwright.config.ts) — two concurrent `start_shift`/`place_order` calls
- * against that shared, unenforced "one open shift" state would be racy
+ * against that shared "one open shift" state would be racy
  * (whichever finishes last "wins" as the shift the other test's page
  * observes, independent of which test's assertions expect it).
  * `ensureShiftStarted()` below also tolerates a shift that's already open

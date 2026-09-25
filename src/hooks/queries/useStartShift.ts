@@ -4,7 +4,8 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 /** Error codes `start_shift` (0001_init.sql, uitgebreid in
- *  0019_activiteittypes.sql met een verplichte p_activity_type_id) actually
+ *  0019_activiteittypes.sql met een verplichte p_activity_type_id, en in
+ *  0021_start_shift_een_open_dienst.sql met `shift_already_open`) actually
  *  raises. Anything else (network failure, unexpected server error) falls
  *  through to "unknown". The three activity_type_*-codes are handled
  *  separately from the rest by the one caller (DienstStarten.tsx, see
@@ -18,6 +19,7 @@ export type StartShiftErrorCode =
   | "invalid_activity_type"
   | "activity_type_not_found"
   | "activity_type_archived"
+  | "shift_already_open"
   | "unknown";
 
 /** True for the three foutcodes that belong to the activiteitkeuze-stap,
@@ -43,7 +45,8 @@ function toErrorCode(message: string | undefined): StartShiftErrorCode {
     message === "member_not_found" ||
     message === "invalid_activity_type" ||
     message === "activity_type_not_found" ||
-    message === "activity_type_archived"
+    message === "activity_type_archived" ||
+    message === "shift_already_open"
   ) {
     return message;
   }
