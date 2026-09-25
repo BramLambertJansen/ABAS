@@ -43,9 +43,11 @@ type Tab = "assortiment" | "leden" | "instellingen" | "logboek";
  */
 export function BeheerTabs({
   name,
+  role,
   onSignOut,
 }: {
   name: string;
+  role: "bardienst" | "beheerder";
   onSignOut: () => void;
 }) {
   const [tab, setTab] = useState<Tab>("assortiment");
@@ -132,21 +134,23 @@ export function BeheerTabs({
           >
             Instellingen
           </button>
-          <button
-            type="button"
-            role="tab"
-            id={logboekTabId}
-            aria-selected={tab === "logboek"}
-            aria-controls="logboek-panel"
-            onClick={() => setTab("logboek")}
-            className={`flex h-9 items-center whitespace-nowrap rounded-[10px] px-[15px] text-[12.5px] font-extrabold transition-colors ${
-              tab === "logboek"
-                ? "bg-ink text-white"
-                : "text-muted-strong hover:bg-border-subtle"
-            }`}
-          >
-            Logboek
-          </button>
+          {role === "beheerder" && (
+            <button
+              type="button"
+              role="tab"
+              id={logboekTabId}
+              aria-selected={tab === "logboek"}
+              aria-controls="logboek-panel"
+              onClick={() => setTab("logboek")}
+              className={`flex h-9 items-center whitespace-nowrap rounded-[10px] px-[15px] text-[12.5px] font-extrabold transition-colors ${
+                tab === "logboek"
+                  ? "bg-ink text-white"
+                  : "text-muted-strong hover:bg-border-subtle"
+              }`}
+            >
+              Logboek
+            </button>
+          )}
         </div>
 
         <div className="ml-auto flex flex-none items-center gap-2.5">
@@ -234,7 +238,7 @@ export function BeheerTabs({
           </div>
         )}
 
-        {tab === "logboek" && (
+        {tab === "logboek" && role === "beheerder" && (
           <div
             id="logboek-panel"
             role="tabpanel"

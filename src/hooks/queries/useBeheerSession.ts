@@ -40,7 +40,13 @@ export type BeheerSessionState =
   | { status: "loading" }
   | { status: "signed-out" }
   | { status: "denied"; message: string }
-  | { status: "signed-in"; email: string; name: string; hasPin: boolean };
+  | {
+      status: "signed-in";
+      email: string;
+      name: string;
+      hasPin: boolean;
+      role: "bardienst" | "beheerder";
+    };
 
 export function useBeheerSession(): BeheerSessionState & {
   signOut: () => Promise<void>;
@@ -106,6 +112,7 @@ export function useBeheerSession(): BeheerSessionState & {
             email,
             name: data.name as string,
             hasPin: data.has_pin as boolean,
+            role: data.role,
           });
         } catch (err) {
           // Can't confirm a bardienst/beheerder-koppeling — fail closed

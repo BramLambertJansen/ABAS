@@ -48,7 +48,13 @@ export function Assortimentbeheer() {
   }
 
   if (mode === "beheer") {
-    return <BeheerTabs name={session.name} onSignOut={session.signOut} />;
+    return (
+      <BeheerTabs
+        name={session.name}
+        role={session.role}
+        onSignOut={session.signOut}
+      />
+    );
   }
 
   return (
