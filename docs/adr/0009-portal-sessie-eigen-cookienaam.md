@@ -1,8 +1,12 @@
 # 0009 — Portal-sessie gebruikt een eigen Supabase-cookienaam, gescheiden van de bar/beheer-sessie
 
-Status: **voorgesteld door de Architect, wacht op akkoord van Bram** (samen
-met `docs/features/portal-login.md`, issue #15). Vult ADR 0002/0003 aan
-(sessie-mechanisme voor bar/beheer), vervangt niets.
+Status: **geaccepteerd** (Bram, 2026-09-25, samen met
+`docs/features/portal-login.md`, issue #15). Vult ADR 0002/0003 aan
+(sessie-mechanisme voor bar/beheer), vervangt niets. Zie "Aanvulling"
+hieronder voor een kleine, met naam genoemde uitzondering op de
+`check:arch`-regel, nodig geworden door Bram's beslissing voor één gedeelde
+`/auth/callback`-route (`docs/features/portal-login.md` → "Besloten door
+Bram (2026-09-25)", punt 3) — geen heropening van de kernbeslissing.
 
 ## Context
 
@@ -127,3 +131,44 @@ die drie bestanden.**
   opnieuw afgewogen wordt.
 - Geen gevolgen voor `check:rls`/`check:policy`/de geldlaag — puur een
   transportlaag-/sessiebeheerbeslissing.
+
+## Aanvulling (2026-09-25) — één met naam genoemde uitzondering op de `check:arch`-regel, voor `/auth/callback`
+
+`docs/features/portal-login.md` → "Besloten door Bram (2026-09-25)", punt 3,
+kiest voor één gedeelde, neutrale mail-callback-route (`/auth/callback`,
+Magic Link voor zowel `/beheer` als `/portal`) boven twee Supabase-projecten.
+Die route moet, op basis van een gevalideerde `?next=bar`/`?next=portal`,
+kiezen tussen `src/lib/supabase/server.ts` en
+`src/lib/supabase/portalClient.ts`/`portalServer.ts` **vóórdat** de
+sessie-uitwisseling plaatsvindt (`verifyOtp`/`exchangeCodeForSession`
+persisteert de sessie als bijeffect naar de cookienaam van de client
+waarmee hij wordt aangeroepen — er is geen manier om dat achteraf te
+verplaatsen zonder een cookie-loze tussenvorm te introduceren, zie
+`docs/features/portal-login.md` → Schermflow → `/auth/callback` voor de
+volledige afweging). Dat is precies het patroon dat de oorspronkelijke
+`check:arch`-regel (hierboven, "Beslissing") verbiedt: code buiten
+`src/app/portal/`/`src/shells/portal/`/`src/features/portal-login/` die
+`portalClient`/`portalServer` importeert.
+
+**Aanvulling op die regel, niet een versoepeling ervan:** de regel krijgt
+één expliciete, met bestandspad genoemde uitzondering —
+`src/app/auth/callback/route.ts` mag als enige bestand in de codebase zowel
+`@/lib/supabase/server` als `@/lib/supabase/portalClient`/`portalServer`
+importeren. Dit is een bestandspad, geen mapprefix: een toekomstige tweede
+shared-route zou zelf opnieuw expliciet aan de uitzonderingslijst
+toegevoegd moeten worden, niet automatisch meeliften. Binnen dat ene bestand
+geldt onverkort dat één request nooit beide cookienamen tegelijk schrijft —
+de route kiest er, op basis van `next`, precies één vóór de
+sessie-uitwisseling en gebruikt die client daarna consistent (ook voor de
+koppel-RPC-aanroepen erna). De kernisolatie (bar-sessie en portal-sessie
+kunnen elkaar nooit lezen/overschrijven) blijft dus intact; alleen de plek
+waar de *keuze* tussen de twee cookienamen wordt gemaakt, krijgt er één
+bewust gecentraliseerd bestand bij naast de vele bestanden die altijd al
+voor precies één van de twee kiezen.
+
+- `docs/features/portal-login.md` → Cookie-isolatie (ADR 0009) beschrijft de
+  exacte, bijgewerkte `check:arch`-regel voor de Developer.
+- Geen wijziging aan de path-scoping (`path: "/portal"` op
+  `sb-portal-auth-token`) of aan `src/middleware.ts`/`client.ts`/`server.ts`
+  zelf — deze aanvulling raakt uitsluitend de importregel en het ene nieuwe
+  bestand dat ervan gebruikmaakt.

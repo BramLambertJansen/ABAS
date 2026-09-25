@@ -2,11 +2,15 @@
 
 Spec voor [issue #15](https://github.com/BramLambertJansen/ABAS/issues/15).
 
-**Status: concept — wacht op akkoord van Bram, met twee expliciete open
-vragen (zie onderaan) voordat de Developer begint.** Introduceert een nieuwe
+**Status: geaccordeerd door Bram (2026-09-25).** Introduceert een nieuwe
 architectuurbeslissing (cookie-isolatie) — zie
-[ADR 0009](../adr/0009-portal-sessie-eigen-cookienaam.md), zelf ook nog
-voorgesteld, niet geaccepteerd.
+[ADR 0009](../adr/0009-portal-sessie-eigen-cookienaam.md), geaccepteerd
+samen met deze spec. Zie "Besloten door Bram (2026-09-25)" verderop voor de
+drie punten die Bram expliciet heeft vastgesteld (lid-koppeling wordt nu
+meegebouwd, `shouldCreateUser: true`, één gedeelde `/auth/callback`-route
+i.p.v. losse `/beheer/callback`/`/portal/callback`-eindpunten voor de
+mail-callback) — de rest van dit document is daarop bijgewerkt, geen open
+vragen meer voor de Developer.
 
 Bouwt voort op ADR
 [0002](../adr/0002-beheeracties-vereisen-eigen-e-mail-sessie.md) (sessie via
@@ -92,9 +96,35 @@ als volgt:**
 
 ## Betrokken shell
 
-**Alleen `shells/portal`.** Geen wijziging aan `shells/bar`,
-`src/middleware.ts`, `src/lib/supabase/client.ts` of `server.ts` — zie ADR
-0009 voor waarom de cookie-isolatie zonder die wijzigingen kan.
+**Overwegend `shells/portal`, met drie kleine, doelbewuste uitzonderingen
+die rechtstreeks uit "Besloten door Bram" punt 3 volgen** (de gedeelde
+`/auth/callback`-route) — geen van drieën wijzigt bar/beheer-gedrag,
+functionaliteit of UI, alleen waar een mail-link naartoe wijst:
+
+1. **`src/app/auth/callback/route.ts` is nieuw en shell-onwetend** — het
+   leeft niet onder `src/app/portal/`, `src/app/(bar)/` of enige
+   `src/shells/*`-map, rendert zelf niets (redirect-only, zoals
+   `/beheer/callback` vandaag), en is de enige plek in de codebase die zowel
+   `src/lib/supabase/server.ts` als `src/lib/supabase/portalClient.ts`/
+   `portalServer.ts` mag importeren — zie "Cookie-isolatie (ADR 0009)"
+   hieronder voor de bijbehorende, nauw omschreven uitzondering op de
+   `check:arch`-regel.
+2. **`useBeheerLogin.ts`'s `signInWithMagicLink` krijgt een andere
+   `emailRedirectTo`-waarde** (`${origin}/auth/callback?next=bar` i.p.v.
+   `${origin}/beheer/callback`) — zie Schermflow → `/auth/callback` voor
+   waarom. Geen andere wijziging aan dat bestand: `shouldCreateUser: false`
+   voor `/beheer` blijft ongewijzigd (dat is een eigen, nog steeds geldige
+   afweging voor bardienst/beheerder-accounts, los van "Besloten door Bram"
+   punt 2 hieronder, die uitsluitend over de portal gaat).
+3. **`src/app/(bar)/beheer/callback/route.ts` zelf blijft volledig
+   ongewijzigd** (geen refactor, geen gedeelde helper met de nieuwe route) —
+   zie "Cookie-isolatie (ADR 0009)"/Schermflow voor de motivatie: het is
+   backward-compat voor elke mail die nog naar de oude URL wijst totdat het
+   dashboard-sjabloon is omgezet, geen migratie/deprecation in deze ticket.
+
+Verder ongewijzigd: `src/middleware.ts`, `src/lib/supabase/client.ts` en
+`server.ts` — zie ADR 0009 voor waarom de cookie-isolatie zonder wijziging
+aan die drie kan.
 
 - **Nieuw:** `src/features/portal-login/PortalLogin.tsx` (inlogscherm,
   functioneel/structureel naast `src/features/assortimentbeheer/
@@ -102,13 +132,21 @@ als volgt:**
   vorm/precedent, niet code, zelfde reden als hieronder bij "Herbruik"
   toegelicht) + `src/hooks/queries/usePortalLogin.ts` (magic
   link/wachtwoord) + `src/hooks/queries/usePortalSession.ts` (sessie →
-  `lid`-rol member, analoog aan `useBeheerSession.ts`).
-- **Nieuw:** `src/app/portal/callback/route.ts` (analoog aan
-  `src/app/(bar)/beheer/callback/route.ts`) en
+  `lid`-rol member, analoog aan `useBeheerSession.ts`, inclusief dezelfde
+  `denied`-staat als `useBeheerSession.ts` kent).
+- **Nieuw:** `src/app/auth/callback/route.ts` (gedeelde callback, zie
+  Schermflow → `/auth/callback` — vervangt wat eerder als losse
+  `src/app/portal/callback/route.ts` was voorgesteld) en
   `src/app/portal/wachtwoord-herstellen/page.tsx` +
   `src/hooks/queries/usePortalWachtwoordHerstellen.ts` (analoog aan
   `useWachtwoordHerstellen.ts`, zie "Herbruik" hieronder voor wat wél en
-  niet gedeeld wordt).
+  niet gedeeld wordt) — **deze twee blijven wél puur portal-only**, alleen
+  de callback zelf is gedeeld.
+- **Nieuw:** `src/lib/linkLidMemberAccount.ts` (analoog aan het bestaande
+  `src/lib/linkInvitedMemberAccount.ts`, zie RPC's/Schermflow) — aangeroepen
+  vanuit `src/app/auth/callback/route.ts`, dat ook het bestaande
+  `linkInvitedMemberAccount.ts` hergebruikt (geen duplicatie, zie Schermflow
+  → `/auth/callback`).
 - **Gewijzigd:** `src/shells/portal/PortalShellHome.tsx` — van statische
   placeholder naar een echte branch op `usePortalSession()`: geen sessie →
   `PortalLogin`; wel een sessie die naar een actief `lid`-record herleidt →
@@ -163,7 +201,21 @@ alternatieven in de ADR:
     `src/features/portal-login/` dat `@/lib/supabase/client` of
     `@/lib/supabase/server` importeert → fout;
   - elk bestand **buiten** die drie mappen dat `@/lib/supabase/portalClient`
-    of `@/lib/supabase/portalServer` importeert → fout.
+    of `@/lib/supabase/portalServer` importeert → fout, **met precies één,
+    met naam genoemde uitzondering: `src/app/auth/callback/route.ts`.**
+    Die route moet, per ontwerp (zie Schermflow → `/auth/callback`, "Besloten
+    door Bram" punt 3), op basis van een gevalideerde `?next=`-waarde kiezen
+    tussen `server.ts` en `portalServer.ts` **voordat** de sessie-uitwisseling
+    plaatsvindt — dat is de enige plek in de codebase waar dat nodig is. De
+    uitzondering is het bestandspad zelf, geen mapprefix: een toekomstige
+    tweede shared-route-file valt er dus niet automatisch onder, en moet zelf
+    weer expliciet aan deze regel toegevoegd worden (zelfde
+    "geen stilzwijgende uitbreiding"-principe als de rest van deze regel).
+    Binnen dat ene bestand mag nooit tegelijk `server.ts` én `portalServer.ts`
+    op dezelfde sessie-uitwisseling worden losgelaten — de route kiest er
+    exact één op basis van `next`, roept die client vervolgens aan voor
+    zowel de auth-call als de RPC-aanroepen, nooit beide voor dezelfde
+    request (zie Schermflow).
 - **Acceptatiecriterium 4 is hiermee direct verifieerbaar**: een bar-sessie
   (device-cookie, default naam, `path: "/"`) wordt door de browser wel
   meegestuurd naar `/portal`-requests, maar `portalClient.ts`/`portalServer.ts`
@@ -186,8 +238,8 @@ Auth-calls (`signInWithOtp`, `signInWithPassword`, `verifyOtp`,
 
 **Wél afhankelijk van een migratie voor de koppeling zelf** (hoe een
 `lid`-rol `members`-rij aan `auth_user_id` komt) — zie "Ledenkoppeling voor
-rol `lid`" hieronder. Dat onderdeel is voorgesteld, niet vastgesteld — zie
-Open vragen.
+rol `lid`" hieronder. **Vastgesteld door Bram (2026-09-25, "Besloten door
+Bram" punt 1) — dit ticket bouwt de koppeling mee, geen apart vervolgticket.**
 
 ## RPC's
 
@@ -195,10 +247,10 @@ Open vragen.
 RPC's (zelfde constatering als `wachtwoord-vergeten.md` → "Geldlaag,
 datamodel, RPC's").
 
-**Voorgesteld: `link_lid_member_account() returns members`**, nieuwe
-migratie `supabase/migrations/0021_lid_account_koppelen.sql`, voor de
-koppeling — zie "Ledenkoppeling voor rol `lid`" hieronder. Onderdeel van het
-voorstel, niet van de vastgestelde kern.
+**Nieuwe RPC: `link_lid_member_account() returns members`**, nieuwe migratie
+`supabase/migrations/0021_lid_account_koppelen.sql`, voor de koppeling — zie
+"Ledenkoppeling voor rol `lid`" hieronder. Vastgesteld, onderdeel van de
+kern (Besloten door Bram, punt 1).
 
 ## Schermflow
 
@@ -213,9 +265,25 @@ expliciet verplaatst bij elke weergavewissel (WCAG 2.4.3, zelfde
 `focusAfterSwitch`-patroon als `BeheerLogin.tsx`).
 
 - **Magic link** (`usePortalLogin().signInWithMagicLink(email)`):
-  `signInWithOtp({ email, options: { shouldCreateUser: <zie Open vraag 2>,
-  emailRedirectTo: \`${origin}/portal/callback\` } })`, via
-  `portalClient.ts`.
+  `signInWithOtp({ email, options: { shouldCreateUser: true,
+  emailRedirectTo: \`${origin}/auth/callback?next=portal\` } })`, via
+  `portalClient.ts`. **`shouldCreateUser: true` is vastgesteld** (Besloten
+  door Bram, punt 2, "zelfbediening voor iedereen") — elk geldig
+  e-mailadres krijgt een `auth.users`-rij en een werkende link, ook als er
+  geen (nog niet geëmailde) `lid`-rij bij hoort; `link_lid_member_account()`
+  koppelt daarna alsnog alleen wanneer het adres matcht met een
+  daadwerkelijk uitgenodigde `lid`-rij (zie "Ledenkoppeling voor rol `lid`")
+  — een niet-matchend adres krijgt gewoon een ongekoppelde `auth.users`-rij
+  en, na het volgen van de link, `usePortalSession()`'s `denied`-staat. De
+  motivatie is structureel, niet gemakszucht: bij `true` bestaat issue #70's
+  enumeratielek voor de portal niet — élk adres doorloopt exact hetzelfde
+  pad (nieuwe of bestaande `auth.users`-rij, altijd een verstuurde link,
+  altijd dezelfde neutrale melding hieronder) — terwijl `false` een aparte
+  maskeringslaag nodig zou hebben om diezelfde neutraliteit te bereiken. Dit
+  is bewust **niet** "consistent met `BeheerLogin.tsx`'s keuze" (die kiest
+  `false`, zie `useBeheerLogin.ts`) — bardienst/beheerder-accounts blijven
+  wél uitsluitend beheerder-geprovisioneerd, de portal is nu expliciet
+  laagdrempeliger, zie "Besloten door Bram" punt 2.
 - **Wachtwoord** (`usePortalLogin().signInWithPassword(email, password)`):
   `signInWithPassword({ email, password })`, via `portalClient.ts`. Faalt
   met "onjuist e-mailadres of wachtwoord" — dit pad lekt geen
@@ -235,16 +303,112 @@ expliciet verplaatst bij elke weergavewissel (WCAG 2.4.3, zelfde
   `signInWithMagicLink` volgt die vorm, niet `useBeheerLogin.ts`'s huidige
   (lekkende) vorm.
 
-### 2. `/portal/callback`
+### 2. `/auth/callback` — gedeelde callback voor `/beheer` én `/portal` (Besloten door Bram, punt 3)
 
-Analoog aan `/beheer/callback` (ADR 0008): accepteert `?token_hash=&type=`
-(`email`/`magiclink`) naast `?code=`, wisselt in via `portalServer.ts`
-(`verifyOtp`/`exchangeCodeForSession`), redirect altijd naar `/portal`
-ongeacht uitkomst (fout gelogd, niet getoond — er is op deze route geen
-scherm). **Roept, ná een geslaagde sessie-uitwisseling, best-effort de
-voorgestelde `link_lid_member_account()` aan** (zie hieronder) — zelfde
-"onvoorwaardelijk, nooit blokkerend"-vorm als `/beheer/callback`'s
-`link_invited_member_account()`-aanroep.
+**Vervangt het eerder voorgestelde, portal-only `/portal/callback`.** Bram
+koos expliciet voor "één gedeelde, neutrale callback-route" boven twee
+Supabase-projecten (Open vraag 3, optie 1) — dit is de concrete uitwerking,
+met "een parameter die de aanvragende pagina al meegeeft" (de tweede
+mogelijkheid die diezelfde optie noemde) als het gekozen mechanisme, niet
+member-record-matching. Motivatie voor die keuze staat hieronder bij
+"Waarom een parameter, niet member-matching".
+
+**Waarom dit sowieso een eigen route moet zijn, niet gewoon een aangepast
+`/beheer/callback`-sjabloon.** Supabase kent maar één "Magic Link"-template
+per project (geen per-audience-variant) — zowel `/beheer`'s als `/portal`'s
+magic-link-mail lopen straks door datzelfde sjabloon. Dat sjabloon kan naar
+precies één URL linken, dus moet die URL zelf de vertakking naar `/beheer`
+of `/portal` bevatten — vandaar `/auth/callback`, shell-onwetend, buiten
+`src/app/portal/`/`src/app/(bar)/`.
+
+**Contract:**
+
+- **`?next=bar` of `?next=portal`**, meegegeven door de aanvragende pagina
+  via `emailRedirectTo` (niet door de route zelf verzonnen):
+  - `useBeheerLogin().signInWithMagicLink` (bestaand bestand, kleine
+    wijziging — zie Betrokken shell): `emailRedirectTo:
+    \`${origin}/auth/callback?next=bar\`` (was `${origin}/beheer/callback`).
+  - `usePortalLogin().signInWithMagicLink` (nieuw, zie hierboven):
+    `emailRedirectTo: \`${origin}/auth/callback?next=portal\``.
+  - Het Magic Link-sjabloon zelf wordt (Dashboard-instellingen hieronder):
+    `{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=email` — `.RedirectTo`
+    is Supabase's eigen sjabloonvariabele voor de `emailRedirectTo`-waarde
+    die de aanroepende code meegaf; de route hoeft dus niets zelf te
+    reconstrueren, het sjabloon plakt alleen `token_hash`/`type` erachter.
+  - **Strikte allowlist, geen open redirect:** de route accepteert
+    uitsluitend de letterlijke waarden `bar`/`portal` voor `next` (parsed uit
+    de query string van de binnenkomende request, niet uit `.RedirectTo`'s
+    volledige URL). Elke andere waarde, of een ontbrekende `next`
+    (bijvoorbeeld een mail verstuurd vóórdat het sjabloon is omgezet — zie
+    Dashboard-instellingen), valt terug op `bar` — hetzelfde gedrag als
+    `/beheer/callback` vandaag altijd al had, dus geen regressie voor een
+    mail die nog uit de oude sjabloonversie komt.
+- **Cliëntkeuze vóór de sessie-uitwisseling, niet erna.** `next=portal` →
+  `portalServer.ts` (schrijft `sb-portal-auth-token`); `next=bar`/default →
+  `server.ts` (schrijft de bestaande, impliciete bar-cookienaam). Dit moet
+  vóór `verifyOtp`/`exchangeCodeForSession` besloten zijn: `@supabase/ssr`
+  persisteert de sessie als bijeffect van die aanroep zelf, naar de
+  cookienaam van de client waarmee hij wordt aangeroepen (ADR 0009) — er is
+  geen manier om een sessie eerst "neutraal" te lezen en daarna alsnog naar
+  de andere cookienaam te verplaatsen zonder een tweede, cookie-loze
+  clientvorm te introduceren. Vandaar dat de vertakking op `next` draait
+  (bekend vóór de uitwisseling), niet op het gekoppelde `members.role`
+  (pas bekend erna) — zie "Waarom een parameter, niet member-matching".
+- Accepteert, net als `/beheer/callback` vandaag, zowel `?code=` (PKCE) als
+  `?token_hash=&type=` (`email`/`magiclink`/`invite`, ADR 0008) voor de
+  sessie-uitwisseling zelf.
+- **Ná een geslaagde uitwisseling, met de zojuist gekozen client, roept de
+  route best-effort ALLEBEI de koppel-RPC's aan** —
+  `linkInvitedMemberAccount()` (bestaand, hergebruikt uit
+  `src/lib/linkInvitedMemberAccount.ts`, ongewijzigd) én de nieuwe
+  `linkLidMemberAccount()` (`src/lib/linkLidMemberAccount.ts`, analoog
+  bestand). **Bewust allebei, ongeacht `next`** — `next` is alleen een
+  UX-vertakking (waar de gebruiker straks landt), geen autorisatiebeslissing;
+  de koppel-RPC's zelf bepalen via hun eigen, harde `role`-filter
+  (`bardienst`/`beheerder` resp. `lid`, zie RPC's) of er iets te koppelen
+  valt. Zo blijft de daadwerkelijke koppel-logica onafhankelijk van welke
+  waarde een aanvragende pagina toevallig meegaf — verdediging-in-twee-lagen,
+  zelfde principe als overal elders in deze RPC-familie
+  (`lid-account-invite.md`). Beide aanroepen zijn stille no-ops wanneer niet
+  van toepassing (geen foutcodes, zie RPC's), dus nooit een probleem om
+  allebei te proberen.
+- **Redirect altijd naar `/beheer` (bij `next=bar`/default) of `/portal`
+  (bij `next=portal`), ongeacht de uitkomst van de uitwisseling of de
+  koppel-RPC's** — fout gelogd (`console.error`), niet getoond, zelfde
+  "land regardless"-patroon als `/beheer/callback` vandaag. Een sessie die
+  wél tot stand komt maar nergens aan koppelt, toont op de bestemming
+  gewoon de bestaande `denied`-staat (`usePortalSession`/`useBeheerSession`)
+  — geen nieuwe afhandeling nodig, dit was al een bestaand scenario voor
+  `/beheer/callback` (een her-login zonder koppeling) en is voor `/portal`
+  hetzelfde.
+
+**Waarom een parameter, niet member-matching.** De andere mogelijkheid die
+Open vraag 3 noemde — de route laat zelf `members` bevragen om te bepalen
+waar de sessie bij hoort — is hier niet gekozen omdat dat de cliëntkeuze
+hierboven omdraait: member-matching kan pas ná een geslaagde
+sessie-uitwisseling (er moet een sessie zijn om `auth.uid()`/`auth.email()`
+te lezen), maar de sessie moet al op de juiste cookienaam geschreven zijn
+vóórdat die uitwisseling plaatsvindt. Member-matching zou dus een sessie
+eerst ergens moeten vastleggen om te weten waar hij hoort, en 'm dan
+mogelijk moeten verplaatsen — precies de complicatie die de
+parametervariant vermijdt.
+
+**Verificatieafhankelijkheid, zelfde categorie als Dashboard-instellingen
+punt 3 (signup-policy).** Dit ontwerp veronderstelt dat Supabase's Magic
+Link-sjabloon een `{{ .RedirectTo }}`-variabele met de meegegeven
+`emailRedirectTo`-waarde daadwerkelijk beschikbaar stelt. Niets in deze
+repository kan dat bevestigen (het is dashboard-/GoTrue-gedrag van het
+gehoste project) — de Developer/Bram controleren dit bij het invullen van
+het sjabloon (Dashboard-instellingen hieronder). **Dit blokkeert de bouw
+niet**: `/auth/callback` zelf is volledig bouwbaar en testbaar met
+handmatig samengestelde `?token_hash=&type=&next=`-URLs (zelfde
+e2e-precedent als de bestaande `/beheer`-tests), ongeacht of `.RedirectTo`
+uiteindelijk beschikbaar blijkt. Blijkt de variabele niet beschikbaar, dan
+is het enige gevolg dat de sjabloonregel zelf een andere vorm nodig heeft
+(bijvoorbeeld een vaste tweede route toch weer per-shell benaderen) — geen
+wijziging aan `/auth/callback`'s eigen contract (`?next=`, cliëntkeuze,
+beide koppel-RPC's) nodig. Zou dit toch nodig blijken, dan is dat een
+nieuwe, kleine vraag voor Bram, niet een aanname.
 
 ### 3. Wachtwoord vergeten
 
@@ -271,24 +435,45 @@ bewust is losgelaten (CLAUDE.md → Designbestanden: "afwijking van de
 wireframe is normale evolutie, geen defect" — hier toegepast in de andere
 richting, wireframe wijkt af van het al gekozen precedent, niet omgekeerd).
 
-## Ledenkoppeling voor rol `lid` (voorstel — zie Open vraag 1)
+**Geen gedeelde `/auth/...`-route nodig voor dit pad, in tegenstelling tot
+Magic Link.** Het "één sjabloon, twee bestemmingen"-probleem (Besloten door
+Bram punt 3) geldt voor "Reset Password" net zo goed als voor "Magic Link" —
+maar hier is de oplossing eenvoudiger en vereist geen nieuwe route: ADR
+0008 stelt al dat `token_hash`/`type=recovery` pas bij het **versturen** van
+het formulier wordt ingewisseld, niet bij het openen van de link. Er is dus
+geen sessie-uitwisseling op laad-tijd die eerst zou moeten "weten" welke
+cookie-client te gebruiken (de complicatie die `/auth/callback` wél heeft,
+zie Schermflow → `/auth/callback` → "Waarom een parameter, niet
+member-matching") — `/portal/wachtwoord-herstellen` en
+`/beheer/wachtwoord-herstellen` kunnen elk gewoon zelfstandig blijven
+bestaan, en het "Reset Password"-sjabloon kan rechtstreeks naar
+`{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=recovery` linken —
+`.RedirectTo` is dan simpelweg de `redirectTo`-waarde die elke aanroepende
+hook al meegeeft (`${origin}/portal/wachtwoord-herstellen` resp.
+`${origin}/beheer/wachtwoord-herstellen`, allebei al zo gespecificeerd,
+ongewijzigd). Zie Dashboard-instellingen voor de exacte sjabloonwaarde;
+geen code-wijziging nodig ten opzichte van wat hierboven al stond.
 
-**Waarom dit hier staat, en waarom het niet gewoon is aangenomen:** issue
-#15's eigen tekst/acceptatiecriteria noemen alleen het inlogscherm, geen
-koppelmechanisme. Maar `docs/features/lid-account-invite.md` → "Besloten
+## Ledenkoppeling voor rol `lid`
+
+**Vastgesteld door Bram (2026-09-25, "Besloten door Bram" punt 1, optie A
+hieronder) — dit was eerder Open vraag 1, nu beantwoord.** Ter
+achtergrond: issue #15's eigen tekst/acceptatiecriteria noemen alleen het
+inlogscherm, geen koppelmechanisme. Maar `docs/features/lid-account-invite.md`
+→ "Besloten
 door Bram (2026-09-21)", punt 1, legt vast: *"Rolreikwijdte: voorlopig alleen
 bardienst/beheerder, niet lid... lid-rol invites volgen pas als onderdeel
 van #15 zelf, geen nieuw ticket hier."* Zonder enig koppelmechanisme is
 acceptatiecriterium 3 ("beide paden leiden naar hetzelfde lid-account") ook
 niet zinvol te verifiëren met een echt `lid`-account (alleen met een
 handmatig-in-Studio-geprovisioned fixture, zie Randgevallen) — en die eerdere
-beslissing zegt expliciet dat dat niet de bedoeling is. Dit is dus geen
-losse toevoeging maar een spanning tussen de letterlijke issue-tekst en een
-eerder vastgelegd besluit, die ik niet zelf oplos — zie Open vraag 1 voor de
-twee concrete opties.
+beslissing zegt expliciet dat dat niet de bedoeling is. Dit was dus een
+spanning tussen de letterlijke issue-tekst en een eerder vastgelegd besluit,
+die de Architect niet zelf oploste maar aan Bram voorlegde (twee opties) —
+Bram koos optie A: "Ja, nu meebouwen" (zie "Besloten door Bram
+(2026-09-25)").
 
-**Voorstel (Architect-aanbeveling, optie B hieronder), voor het geval Bram
-akkoord geeft:**
+**Vastgesteld (Bram, optie A — "Ja, nu meebouwen"):**
 
 1. **Hergebruik, geen herbouw, van issue #24's bestaande machinerie**
    (`docs/features/lid-account-invite.md`, [ADR 0006](../adr/0006-privileged-auth-admin-calls-via-server-actie-naast-rpc.md)
@@ -370,27 +555,36 @@ akkoord geeft:**
    (stille no-op), geen rolcheck op de aanroeper (zelfkoppeling), case-
    insensitieve e-mailmatch, `pin_hash`-scrub verplicht
    (`0010_pin_hash_kolombeveiliging.sql`'s precedent). Aangeroepen vanuit
-   `/portal/callback` met `portalServer.ts` (sessie-gebonden client — zelfde
-   technische noodzaak als `link_invited_member_account`: `auth.email()` is
-   alleen gevuld binnen een echte sessie).
+   `/auth/callback` (niet meer een portal-only route, zie Schermflow →
+   `/auth/callback`), met de sessie-gebonden client die die route al voor de
+   uitwisseling koos — `portalServer.ts` bij `next=portal`, `server.ts` bij
+   `next=bar` (in dat laatste geval een harmless no-op: er is dan hooguit
+   een `bardienst`/`beheerder`-sessie, die nooit aan de harde `role =
+   'lid'`-filter hierboven voldoet). Zelfde technische noodzaak als
+   `link_invited_member_account`: `auth.email()` is alleen gevuld binnen een
+   echte sessie.
    **Volledig pgTAP-testbaar** (ADR 0006 → "Aanvulling" → Gevolgen, zelfde
    argument: geen Auth-Admin-API-afhankelijkheid binnen de RPC zelf).
-3. **Met deze uitbreiding is `shouldCreateUser: false`** voor
-   `usePortalLogin().signInWithMagicLink` (zelfde reden als `BeheerLogin.tsx`
-   vandaag al kiest: geen ongekoppelde, ruis-`auth.users`-rijen voor
-   willekeurige e-mailadressen — alleen al-uitgenodigde adressen krijgen
-   daadwerkelijk een werkende link). Zie Open vraag 2 voor het alternatief
-   (`true`) en waarom dat een apart afwegingspunt blijft.
+3. **`shouldCreateUser: true`** voor `usePortalLogin().signInWithMagicLink`
+   (Besloten door Bram, punt 2 — "zelfbediening voor iedereen") — dit was
+   eerder Open vraag 2, met `false` als het toenmalige Architect-voorstel;
+   Bram koos expliciet `true`. Zie Schermflow → punt 1 voor de volledige
+   motivatie/afweging. Een `auth.users`-rij zonder matchende, uitgenodigde
+   `lid`-rij is dus geen fout meer maar een verwacht, onschadelijk resultaat
+   — `link_lid_member_account()`'s harde `role = 'lid'`- en
+   `invited_at is not null`-filter (hieronder) is de enige plek die bepaalt
+   of er daadwerkelijk gekoppeld wordt.
 
-**Niet voorgesteld, expliciet buiten dit voorstel:** het "kies een
+**Niet voorgesteld, expliciet buiten scope:** het "kies een
 wachtwoord"-onboardingscherm na een eerste magic link (chat30) — dat blijft,
-zoals hierboven bij "Onderzocht in /designs/" gemotiveerd, #17's scope, ook
-onder dit voorstel.
+zoals hierboven bij "Onderzocht in /designs/" gemotiveerd, #17's scope.
 
 ## Rolzichtbaarheid
 
-- `PortalLogin.tsx`/`/portal/callback`/`/portal/wachtwoord-herstellen` zijn
+- `PortalLogin.tsx`/`/auth/callback`/`/portal/wachtwoord-herstellen` zijn
   zichtbaar zonder sessie — dat is het punt, zelfde als `BeheerLogin.tsx`.
+  `/auth/callback` toont zelf nooit iets (redirect-only, zie Schermflow),
+  dus "zichtbaar zonder sessie" betekent hier alleen "werkt zonder sessie".
 - Een sessie die wél bestaat maar niet naar een actief `lid`-record herleidt
   (device-cookie kan dit sowieso niet meer, zie Cookie-isolatie; wél
   mogelijk: een bardienst/beheerder-e-mailadres dat op de portal probeert in
@@ -402,9 +596,8 @@ onder dit voorstel.
   dat zowel een `bardienst`/`beheerder`- als een `lid`-rol-record met
   hetzelfde `auth_user_id` zou hebben bestaat vandaag niet (elk `members`-
   record heeft precies één rol) — geen extra afhandeling nodig.
-- `link_lid_member_account()` (voorstel): geen rolcheck op de aanroeper,
-  harde `role = 'lid'`-filter op het doelrecord — zie "Ledenkoppeling"
-  hierboven.
+- `link_lid_member_account()`: geen rolcheck op de aanroeper, harde
+  `role = 'lid'`-filter op het doelrecord — zie "Ledenkoppeling" hierboven.
 
 ## Randgevallen
 
@@ -418,21 +611,64 @@ onder dit voorstel.
 | `updateUser` weigert op sterkte/gelijk wachtwoord | Zelfde meldingen als `wachtwoord-vergeten.md` → Randgevallen (`weak_password`/`same_password`), ongewijzigd hergebruikt via `usePortalWachtwoordHerstellen.ts`. |
 | Te veel mails (Supabase's projectbrede mail-limiet, gedeeld met bar/beheer) | Neutrale melding, zelfde als `wachtwoord-vergeten.md` → Randgevallen "Te veel mails" — geen apart limiet per shell, Supabase kent er maar één per project. |
 | Seed-/CI-data voor de wachtwoord-pad-e2e-test | `supabase/seed.sql` heeft nog geen `lid`-rol fixture met zowel gekoppelde `auth_user_id` als een gezet wachtwoord (nodig om het wachtwoordpad te testen zonder dat #17's onboardingscherm bestaat — zelfde bootstrap-precedent als Femke Bos/Sanne Bakker voor bardienst/beheerder). Developer/Tester voegen die toe. |
-| `link_lid_member_account()` (voorstel): e-mailcollision, dubbele/gelijktijdige koppeling, gewone her-login van een al gekoppeld lid | Zelfde gedrag/motivatie als `link_invited_member_account`, zie `lid-account-invite.md` → Randgevallen — stille no-op, geaccepteerd risico, niet opnieuw uitgeschreven hier. |
+| `link_lid_member_account()`: e-mailcollision, dubbele/gelijktijdige koppeling, gewone her-login van een al gekoppeld lid | Zelfde gedrag/motivatie als `link_invited_member_account`, zie `lid-account-invite.md` → Randgevallen — stille no-op, geaccepteerd risico, niet opnieuw uitgeschreven hier. |
+| `/auth/callback` ontvangt een ontbrekende of onbekende `?next=`-waarde | Valt terug op `next=bar` (zie Schermflow → `/auth/callback`) — geen open redirect, geen fout, zelfde eindgedrag als `/beheer/callback` vandaag. |
 | **a11y** | `e2e/a11y.spec.ts` scant `/portal` al (bestaande entry-route) — uitbreiden met de nieuwe stateful weergaven: methode-keuze, "link verstuurd"-bevestiging, wachtwoord-vergeten-aanvraag/-verstuurd, `/portal/wachtwoord-herstellen` (formulier + "link ongeldig"), en `PortalShellHome`'s "ingelogd, geen sessie"-branch — zelfde patroon als `wachtwoord-vergeten.md`/`bezetting-beheren.md`'s precedent voor nieuwe stateful schermen. |
 
 ## Dashboard-instellingen (Bram, geen code — pas ná deploy)
 
-1. **Nieuwe mailtemplate-links** (Authentication → Emails, zelfde patroon
+**Voormalige Open vraag 3 is beantwoord** (Besloten door Bram, punt 3: "Eén
+gedeelde, neutrale callback-route") — de twee bullets hieronder zijn de
+concrete uitwerking daarvan, geen open punt meer, wél nog een verplichte
+ná-deploy-actie plus één verificatiestap.
+
+1. **Mailtemplate-links wijzigen** (Authentication → Emails, zelfde patroon
    als ADR 0008 → "Dashboardstappen"):
-   - **Magic Link (portal):** momenteel deelt de portal dezelfde
-     "Magic Link"-template als `/beheer` (er is er maar één per project) —
-     die template kan niet naar twee routes tegelijk linken. **Dit is een
-     scherpe randvoorwaarde, geen detail**: zie Open vraag 3.
-   - **Reset Password (portal):** zelfde probleem — één "Reset Password"-
-     template voor het hele project, moet straks naar `/beheer/
-     wachtwoord-herstellen` én `/portal/wachtwoord-herstellen` kunnen
-     wijzen. Zie Open vraag 3.
+   - **Magic Link (gedeeld door `/beheer` én `/portal` — er is er maar één
+     per project):**
+     `{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=email`
+     — vervangt de huidige hardcoded
+     `{{ .SiteURL }}/beheer/callback?token_hash=...`. **Geen `{{ .SiteURL }}`
+     ervoor** — `{{ .RedirectTo }}` is zelf al de volledige URL
+     (`emailRedirectTo` bevat altijd al `window.location.origin`,
+     bijvoorbeeld `https://app.example/auth/callback?next=bar`); die
+     nogmaals voorafgaan door `{{ .SiteURL }}` zou de origin dubbel
+     opnemen. `{{ .RedirectTo }}` moet hier de waarde zijn die
+     `useBeheerLogin.ts`/`usePortalLogin.ts` meegeven via `emailRedirectTo`
+     (`${origin}/auth/callback?next=bar` resp.
+     `${origin}/auth/callback?next=portal`, zie Schermflow →
+     `/auth/callback`) — **controleer bij het invullen dat
+     `{{ .RedirectTo }}` in dit project daadwerkelijk die waarde bevat**
+     (zie de "Verificatieafhankelijkheid"-paragraaf in Schermflow →
+     `/auth/callback`; als dat niet zo blijkt, is dat een nieuwe, kleine
+     vraag terug naar de Architect, geen aanname hier op de plek).
+   - **Reset Password (gedeeld door `/beheer` én `/portal`, zelfde
+     eenmaligheid):**
+     `{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=recovery`
+     — vervangt de huidige hardcoded
+     `{{ .SiteURL }}/beheer/wachtwoord-herstellen?token_hash=...`. Zelfde
+     "geen `{{ .SiteURL }}`-prefix"-punt als hierboven. `{{ .RedirectTo }}`
+     is hier al gewoon `${origin}/beheer/wachtwoord-herstellen` resp.
+     `${origin}/portal/wachtwoord-herstellen` (de bestaande/geplande
+     `redirectTo`-waarden van `useWachtwoordHerstellen.ts`/
+     `usePortalWachtwoordHerstellen.ts`, ongewijzigd) — **geen nieuwe route
+     nodig voor dit pad**, zie Schermflow → Wachtwoord vergeten.
+   - **`/beheer/callback` blijft ongewijzigd bestaan** (geen migratie/
+     deprecation in dit ticket) — zie Betrokken shell(s). Zolang het
+     Magic Link-sjabloon nog niet is omgezet (of voor een mail die vóór de
+     omzetting al verstuurd is) landt die mail nog op de oude URL en werkt
+     hij precies zoals vandaag; ná de omzetting ontvangt die route simpelweg
+     geen nieuwe mail meer. Geen forcering om 'm op te ruimen — een latere,
+     losse opruimticket kan dat doen zodra er voldoende vertrouwen is dat er
+     geen oude mail meer onderweg is (magic links zijn sowieso ~1 uur
+     geldig, dus dat venster is kort).
+   - **Redirect URLs-allowlist** (Authentication → URL Configuration):
+     `{{ .SiteURL }}/auth/callback` moet op de toegestane-redirects-lijst
+     staan, naast de al bestaande `/beheer/callback`/
+     `/beheer/wachtwoord-herstellen` — anders wijst `emailRedirectTo`/
+     `redirectTo` naar een niet-toegestane URL en weigert Supabase de
+     aanroep zelf al (vóór er ooit een mail verstuurd wordt). Voeg ook
+     `/portal/wachtwoord-herstellen` toe.
 2. Zelfde wachtwoordregels als `wachtwoord-vergeten.md` → Dashboard-
    instellingen (minimale lengte 8, alle vier de tekensoorten) — al
    projectbreed ingesteld, geen nieuwe actie nodig, geldt automatisch ook
@@ -464,81 +700,45 @@ onder dit voorstel.
 - **Eigen SMTP-provider** (Supabase's mail-limiet) — ongewijzigd buiten
   scope, zelfde als `wachtwoord-vergeten.md`.
 
-## Open vragen voor Bram
+## Besloten door Bram (2026-09-25)
 
-Twee echte, niet uit bestaande architectuur/precedenten af te leiden vragen
-— de Developer begint pas nadat deze beantwoord zijn. Alles hierboven wat
-niet van het antwoord afhangt (het inlogscherm zelf, de cookie-isolatie,
-`/portal/wachtwoord-herstellen`, de neutrale meldingen) staat al vast en kan
-sowieso gebouwd worden.
+Drie punten, expliciet vastgesteld — geen aanname, geen heropening door de
+Developer. Dit vervangt de eerdere conceptversie's "Open vragen voor Bram";
+alles in dit document hierboven is al bijgewerkt op deze drie antwoorden.
 
-### 1. Bouwt #15 ook de koppeling van een `lid`-rol `members`-record aan een `auth_user_id` (en zo ja: welke vorm)?
-
-`docs/features/lid-account-invite.md` legt vast dat dit bij #15 hoort ("geen
-nieuw ticket hier"), maar issue #15's eigen tekst/acceptatiecriteria (zoals
-aan mij gegeven) noemen dit nergens. Twee opties:
-
-- **A — Ja, bouw het nu, via optie B hierboven** ("Ledenkoppeling voor rol
-  `lid`"): hergebruik van #24's bestaande invite-machinerie
-  (`mark_member_invite_sent`'s eligibility uitbreiden,
-  `LidBeherenOverlay.tsx`'s Inloggegevens-blok ook voor `lid`, nieuwe
-  `link_lid_member_account()`-RPC + migratie `0021`). Dit is mijn
-  aanbeveling — consistent met het al bestaande #24-patroon, met ADR 0006 →
-  "Aanvulling" → "Reikwijdte" die #15 al met naam noemt als verwachte
-  toepassing, en met wat Bram in `lid-account-invite.md` al vastlegde. Het
-  vergroot deze ticket wel aanzienlijk: een nieuwe migratie, een nieuwe RPC,
-  en een wijziging aan een al gebouwd/gereviewed scherm
-  (`LidBeherenOverlay.tsx`).
-- **B — Nee, alleen het inlogscherm nu**, zoals de issue-tekst letterlijk
-  zegt. Koppeling blijft voorlopig handmatig (Supabase Studio, zelfde
-  bootstrap-patroon als het allereerste beheerder-account, Femke Bos in
-  `seed.sql`) — bruikbaar voor een eerste productie-lid, niet
-  zelfbedienend. De koppel-/invite-uitbreiding voor `lid` wordt dan een apart
-  vervolgticket, ondanks wat `lid-account-invite.md` eerder vastlegde.
-
-**Zonder een keuze hier bouwt de Developer geen koppelmechanisme** (optie B
-als impliciete default) — geen aanname, expliciete keuze nodig omdat er een
-vastgelegd besluit ligt dat de andere kant op wijst.
-
-### 2. Zelfbediening (`shouldCreateUser: true`) of alleen al-uitgenodigde adressen (`shouldCreateUser: false`) voor de portal-magic-link?
-
-Alleen relevant als optie A hierboven gekozen wordt (bij optie B is dit
-zonder koppelmechanisme sowieso irrelevant — er is dan niets om aan te
-koppelen). Mijn voorstel hierboven gaat uit van `false` (consistent met
-`BeheerLogin.tsx`'s bestaande keuze, en met "invite" als het woord dat
-`lid-account-invite.md` zelf gebruikt), maar `true` (iedereen die een geldig
-e-mailadres opgeeft krijgt een link; koppeling gebeurt alsnog alleen als het
-adres matcht met een bestaande, geëmailde `lid`-rij) is ook verdedigbaar —
-en heeft zelfs een structureel voordeel: bij `true` bestaat issue #70's
-enumeratielek niet (élk adres krijgt hetzelfde "sturen we een link"-resultaat,
-er is geen asymmetrie tussen bekend/onbekend om te verbergen), terwijl bij
-`false` de neutrale-melding-laag (Schermflow → "Neutrale melding") het actief
-moet maskeren. Dit is een productbeslissing (hoe laagdrempelig moet een lid
-zelf een portal-account kunnen "claimen") die niet uit CLAUDE.md/ADR's af te
-leiden is.
-
-### 3. Mailtemplates: één "Magic Link"/"Reset Password"-template per Supabase-project, twee bestemmingen nodig
-
-Zowel `/beheer` als `/portal` hebben straks een eigen callback-/
-herstelroute, maar Supabase's dashboard kent maar één "Magic Link"- en één
-"Reset Password"-template voor het hele project (geen per-gebruiker-rol of
-per-audience-variant). ADR 0008 loste dit nog niet op omdat er tot nu toe
-maar één bestemming was. Twee denkbare richtingen, geen van beide door mij
-gekozen:
-
-- De template linkt naar een **neutrale, gedeelde route** (bv. `/auth/
-  callback`) die zelf, op basis van welk `members`-record het e-mailadres
-  matcht (of op basis van een parameter die de aanvragende pagina al
-  meegeeft), doorstuurt naar `/beheer` of `/portal`.
-- **Twee Supabase-projecten** (één voor bar/beheer, één voor portal) — een
-  veel grotere infrastructuurwijziging, waarschijnlijk niet wat Bram wil,
-  maar technisch het enige alternatief dat écht twee onafhankelijke
-  templates geeft.
-
-Zonder antwoord hier is `/portal/callback` wel bouwbaar en testbaar (met een
-handmatig samengestelde `token_hash`-link, zoals de bestaande
-`/beheer`-e2e-tests al doen), maar de **daadwerkelijke productie-mail** komt
-pas aan op de juiste plek zodra dit is opgelost — dezelfde soort
-"Dashboardstappen ná deploy"-afhankelijkheid als ADR 0008 al kende, alleen nu
-met een echte inhoudelijke keuze erbij in plaats van alleen een
-dashboard-actie.
+1. **Lid-koppeling: ja, nu meebouwen (optie A).** #15 bouwt ook de koppeling
+   van een `lid`-rol `members`-record aan een `auth_user_id`, niet alleen het
+   inlogscherm — via hergebruik van #24's bestaande invite-machinerie:
+   `mark_member_invite_sent`'s eligibility breidt uit naar `role in
+   ('bardienst', 'beheerder', 'lid')`, `LidBeherenOverlay.tsx`'s
+   "Inloggegevens"-blok wordt ook getoond voor `role === 'lid'` (zonder
+   Pincode-regel), en een nieuwe RPC `link_lid_member_account()` +
+   migratie `0021_lid_account_koppelen.sql` doet de koppeling zelf. Zie
+   "Ledenkoppeling voor rol `lid`" voor de volledige uitwerking. Dit lost de
+   spanning op tussen `lid-account-invite.md`'s eerdere vastlegging ("lid-rol
+   invites volgen pas als onderdeel van #15 zelf") en #15's eigen, kalere
+   issue-tekst — de eerdere vastlegging wint.
+2. **`shouldCreateUser: true` — zelfbediening voor iedereen.**
+   `usePortalLogin().signInWithMagicLink` gebruikt
+   `shouldCreateUser: true`, niet `false`. Elk geldig e-mailadres krijgt een
+   werkende magic link, ook zonder (nog niet geëmailde) `lid`-rij erachter —
+   `link_lid_member_account()`'s eigen, harde filter bepaalt daarna of er
+   iets te koppelen valt. Vastgesteld boven `false`
+   (bardienst/beheerder-consistentie) vanwege een structureel voordeel: bij
+   `true` bestaat issue #70's enumeratielek voor de portal niet — elk adres
+   doorloopt exact hetzelfde pad, er is geen asymmetrie tussen bekend/
+   onbekend om achteraf te moeten maskeren. Zie Schermflow → punt 1.
+3. **Mailtemplates: één gedeelde, neutrale callback-route (`/auth/
+   callback`), geen twee Supabase-projecten.** De template stuurt door naar
+   `/beheer` of `/portal` op basis van een parameter die de aanvragende
+   pagina zelf al meegeeft (`?next=bar`/`?next=portal`, via
+   `emailRedirectTo`/`{{ .RedirectTo }}`) — niet op basis van
+   member-record-matching (de andere mogelijkheid die de conceptversie
+   noemde); zie Schermflow → `/auth/callback` voor de volledige motivatie,
+   inclusief waarom member-matching hier niet werkt (cookie-isolatie, ADR
+   0009, vereist dat de juiste cookie-client al vaststaat vóór de
+   sessie-uitwisseling). Dit raakt ook een al gebouwde, gemergede route
+   (`/beheer/callback`, #14/#42/ADR 0008): die **blijft ongewijzigd
+   bestaan**, geen migratie/deprecation in dit ticket — zie Betrokken
+   shell(s) en Dashboard-instellingen voor de precieze afbakening van wat
+   wél en niet verandert.
