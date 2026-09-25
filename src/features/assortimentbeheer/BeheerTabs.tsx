@@ -6,8 +6,9 @@ import { ProductenLijst } from "./ProductenLijst";
 import { NegatieveLimietInstellingen } from "./NegatieveLimietInstellingen";
 import { ActiviteitstypesInstellingen } from "./ActiviteitstypesInstellingen";
 import { LedenLijst } from "../ledenbeheer/LedenLijst";
+import { LogboekLijst } from "../logboek/LogboekLijst";
 
-type Tab = "assortiment" | "leden" | "instellingen";
+type Tab = "assortiment" | "leden" | "instellingen" | "logboek";
 
 /**
  * Navigatie tussen Assortiment (bestaande `ProductenLijst`, ongewijzigd),
@@ -25,6 +26,12 @@ type Tab = "assortiment" | "leden" | "instellingen";
  * Tabvolgorde (Assortiment/Leden/Instellingen) is aan de Developer, geen
  * architectuurkeuze (docs/features/ledenbeheer.md → Betrokken shell).
  *
+ * Logboek is de vierde tab (docs/features/logboek.md → Betrokken shell,
+ * `LogboekLijst` — `src/features/logboek/`), achteraan de balk: de eerste
+ * drie tabs bewerken de huidige staat (assortiment, leden, instellingen),
+ * Logboek is er alleen een terugblik op — tabvolgorde is expliciet aan de
+ * Developer gelaten (docs/features/logboek.md → Navigatie).
+ *
  * Elk tabblad blijft alleen gemount terwijl het actief is (zelfde
  * mount/unmount-lifecycle als `DienstTabs`, geen hidden-toggle) — zo krijgt
  * elke tab bij elke terugkeer altijd een verse leeshook-lezing.
@@ -36,15 +43,18 @@ type Tab = "assortiment" | "leden" | "instellingen";
  */
 export function BeheerTabs({
   name,
+  role,
   onSignOut,
 }: {
   name: string;
+  role: "bardienst" | "beheerder";
   onSignOut: () => void;
 }) {
   const [tab, setTab] = useState<Tab>("assortiment");
   const assortimentTabId = useId();
   const ledenTabId = useId();
   const instellingenTabId = useId();
+  const logboekTabId = useId();
 
   return (
     <main className="flex min-h-screen w-full flex-col bg-canvas font-sans text-ink antialiased">
@@ -124,6 +134,23 @@ export function BeheerTabs({
           >
             Instellingen
           </button>
+          {role === "beheerder" && (
+            <button
+              type="button"
+              role="tab"
+              id={logboekTabId}
+              aria-selected={tab === "logboek"}
+              aria-controls="logboek-panel"
+              onClick={() => setTab("logboek")}
+              className={`flex h-9 items-center whitespace-nowrap rounded-[10px] px-[15px] text-[12.5px] font-extrabold transition-colors ${
+                tab === "logboek"
+                  ? "bg-ink text-white"
+                  : "text-muted-strong hover:bg-border-subtle"
+              }`}
+            >
+              Logboek
+            </button>
+          )}
         </div>
 
         <div className="ml-auto flex flex-none items-center gap-2.5">
@@ -208,6 +235,17 @@ export function BeheerTabs({
               — responsief, scrollbaar raster (issue #18, chat37.md), geen
               vierde tab. Zie docs/features/activiteittypes.md → Schermflow §1. */}
             <ActiviteitstypesInstellingen />
+          </div>
+        )}
+
+        {tab === "logboek" && role === "beheerder" && (
+          <div
+            id="logboek-panel"
+            role="tabpanel"
+            aria-labelledby={logboekTabId}
+            className="flex min-h-0 flex-1 flex-col gap-5"
+          >
+            <LogboekLijst />
           </div>
         )}
       </div>
