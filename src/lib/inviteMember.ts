@@ -127,7 +127,7 @@ export async function sendMemberInvite(
   //    (docs/features/portal-login.md → "Ledenkoppeling voor rol `lid`",
   //    Besloten door Bram punt 1): een beheerder kan zo ook een `lid`-rol
   //    member een magic-link-invite sturen — de koppeling zelf gebeurt
-  //    daarna via `link_lid_member_account()` (0021), niet via
+  //    daarna via `link_lid_member_account()` (0022), niet via
   //    `link_invited_member_account()`, dat op zijn beurt nooit een `lid`-rij
   //    koppelt (geen `role`-filter daar, maar ook geen `role = 'lid'`-match
   //    nodig — beide RPC's draaien altijd allebei, zie

@@ -1,5 +1,5 @@
 -- Negative-test coverage for `link_lid_member_account()`
--- (supabase/migrations/0021_lid_account_koppelen.sql,
+-- (supabase/migrations/0022_lid_account_koppelen.sql,
 -- docs/features/portal-login.md → "Ledenkoppeling voor rol `lid`"). Run with
 -- `npm run db:test` (= `supabase test db`, vereist `supabase start` /
 -- Docker lokaal).

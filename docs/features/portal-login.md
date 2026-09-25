@@ -248,7 +248,7 @@ RPC's (zelfde constatering als `wachtwoord-vergeten.md` → "Geldlaag,
 datamodel, RPC's").
 
 **Nieuwe RPC: `link_lid_member_account() returns members`**, nieuwe migratie
-`supabase/migrations/0021_lid_account_koppelen.sql`, voor de koppeling — zie
+`supabase/migrations/0022_lid_account_koppelen.sql`, voor de koppeling — zie
 "Ledenkoppeling voor rol `lid`" hieronder. Vastgesteld, onderdeel van de
 kern (Besloten door Bram, punt 1).
 
@@ -495,7 +495,7 @@ Bram koos optie A: "Ja, nu meebouwen" (zie "Besloten door Bram
      `lid`-rol member (met e-mailadres, `ledenbeheer-email.md`) een
      magic-link-invite sturen.
 2. **Nieuwe RPC `link_lid_member_account() returns members`**
-   (`supabase/migrations/0021_lid_account_koppelen.sql`), zelfde vorm als
+   (`supabase/migrations/0022_lid_account_koppelen.sql`), zelfde vorm als
    `link_invited_member_account()` maar met een harde `role = 'lid'`-filter
    — **bewust nooit** een `bardienst`/`beheerder`-rij, ook niet als het
    e-mailadres toevallig matcht. Dit is geen stijlkeuze: zonder deze filter
@@ -713,7 +713,7 @@ alles in dit document hierboven is al bijgewerkt op deze drie antwoorden.
    ('bardienst', 'beheerder', 'lid')`, `LidBeherenOverlay.tsx`'s
    "Inloggegevens"-blok wordt ook getoond voor `role === 'lid'` (zonder
    Pincode-regel), en een nieuwe RPC `link_lid_member_account()` +
-   migratie `0021_lid_account_koppelen.sql` doet de koppeling zelf. Zie
+   migratie `0022_lid_account_koppelen.sql` doet de koppeling zelf. Zie
    "Ledenkoppeling voor rol `lid`" voor de volledige uitwerking. Dit lost de
    spanning op tussen `lid-account-invite.md`'s eerdere vastlegging ("lid-rol
    invites volgen pas als onderdeel van #15 zelf") en #15's eigen, kalere
