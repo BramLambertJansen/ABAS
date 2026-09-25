@@ -143,8 +143,11 @@ function accountStatusText(member: LedenbeheerLid): string {
  * actie toont zijn eigen succes-toast binnen de overlay zelf.
  *
  * Uitgebreid met een alleen-lezen "Inloggegevens"-sectie
- * (docs/features/auth-methode-per-lid.md, #42) — zichtbaar zodra
- * `member.role` (laatst opgeslagen rol) `bardienst`/`beheerder` is. Geen
+ * (docs/features/auth-methode-per-lid.md, #42) — sinds
+ * docs/features/portal-login.md → "Ledenkoppeling voor rol `lid`" (Besloten
+ * door Bram, 2026-09-25, punt 1) zichtbaar voor élke rol, niet langer alleen
+ * `bardienst`/`beheerder`: alleen de Pincode-regel blijft role-gated (een
+ * `lid` heeft nooit een PIN, CLAUDE.md → "Dienst & bezetting"). Geen
  * bewerkbare selector: onder ADR 0005 is de enige schrijfactie (PIN aan/uit)
  * zelfbediening via `set_own_pin` ("Mijn account"), niet iets een beheerder
  * hier namens een ander lid doet — zie de spec → "Besloten door de
@@ -427,22 +430,33 @@ export function LidBeherenOverlay({
         </div>
       </div>
 
-      {member.role !== "lid" && (
-        <div className="flex flex-col gap-2 rounded-control border border-border p-3.5">
-          <div className="flex flex-col gap-0.5">
-            <span className="text-sm font-bold text-ink">Inloggegevens</span>
+      {/* docs/features/portal-login.md → "Ledenkoppeling voor rol `lid`",
+          Besloten door Bram punt 1: zichtbaar voor élke rol, niet langer
+          alleen bardienst/beheerder — een beheerder kan zo ook een
+          `lid`-rol member een magic-link-invite sturen (portal-login,
+          eligibility uitgebreid in src/lib/inviteMember.ts). Voor
+          `role === 'lid'` geen Pincode-regel (`has_pin` is een
+          bardienst/beheerder-concept, CLAUDE.md → "Dienst & bezetting" —
+          een lid heeft nooit een PIN), wel de Wachtwoordaccount-status +
+          invite-knop, ongewijzigd gedrag verder. */}
+      <div className="flex flex-col gap-2 rounded-control border border-border p-3.5">
+        <div className="flex flex-col gap-0.5">
+          <span className="text-sm font-bold text-ink">Inloggegevens</span>
+          {member.role !== "lid" && (
             <span className="text-xs font-medium text-muted">
               pincode is alleen-lezen — dit lid beheert &apos;m zelf via &quot;Mijn account&quot;
             </span>
-          </div>
-          <div className="flex items-center justify-between rounded-control bg-canvas px-3.5 py-3">
-            <span className="text-[10.5px] font-bold uppercase tracking-wide text-muted">
-              Wachtwoordaccount
-            </span>
-            <span className="text-sm font-extrabold text-ink">
-              {accountStatusText(member)}
-            </span>
-          </div>
+          )}
+        </div>
+        <div className="flex items-center justify-between rounded-control bg-canvas px-3.5 py-3">
+          <span className="text-[10.5px] font-bold uppercase tracking-wide text-muted">
+            Wachtwoordaccount
+          </span>
+          <span className="text-sm font-extrabold text-ink">
+            {accountStatusText(member)}
+          </span>
+        </div>
+        {member.role !== "lid" && (
           <div className="flex items-center justify-between rounded-control bg-canvas px-3.5 py-3">
             <span className="text-[10.5px] font-bold uppercase tracking-wide text-muted">
               Pincode
@@ -451,27 +465,27 @@ export function LidBeherenOverlay({
               {member.hasPin ? "ingesteld" : "niet ingesteld"}
             </span>
           </div>
-          {member.email !== null && (
-            <div className="flex flex-col gap-1.5">
-              <button
-                type="button"
-                disabled={member.hasAccount || inviteMutation.status === "pending"}
-                onClick={sendInvite}
-                className="flex h-11 w-full items-center justify-center rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:bg-track disabled:text-muted"
-              >
-                {member.invitedAt === null ? "Invite versturen" : "Invite opnieuw versturen"}
-              </button>
-              <span className="text-xs font-medium text-muted">
-                {member.hasAccount
-                  ? "dit lid heeft al een account — een nieuwe uitnodiging is niet nodig"
-                  : member.invitedAt === null
-                    ? "stuurt een e-mail met een inloglink voor dit lid"
-                    : "stuurt de inloglink opnieuw — bijvoorbeeld als de vorige e-mail gemist is"}
-              </span>
-            </div>
-          )}
-        </div>
-      )}
+        )}
+        {member.email !== null && (
+          <div className="flex flex-col gap-1.5">
+            <button
+              type="button"
+              disabled={member.hasAccount || inviteMutation.status === "pending"}
+              onClick={sendInvite}
+              className="flex h-11 w-full items-center justify-center rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:bg-track disabled:text-muted"
+            >
+              {member.invitedAt === null ? "Invite versturen" : "Invite opnieuw versturen"}
+            </button>
+            <span className="text-xs font-medium text-muted">
+              {member.hasAccount
+                ? "dit lid heeft al een account — een nieuwe uitnodiging is niet nodig"
+                : member.invitedAt === null
+                  ? "stuurt een e-mail met een inloglink voor dit lid"
+                  : "stuurt de inloglink opnieuw — bijvoorbeeld als de vorige e-mail gemist is"}
+            </span>
+          </div>
+        )}
+      </div>
 
       <button
         type="button"

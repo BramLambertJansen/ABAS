@@ -85,9 +85,16 @@ export function useBeheerLogin() {
           // RPC (actor_not_found still rejects it, no members row
           // references it) but noise this app doesn't want to create.
           shouldCreateUser: false,
+          // docs/features/portal-login.md → Betrokken shell, punt 2 /
+          // Schermflow → `/auth/callback`: gedeelde callback voor `/beheer`
+          // én `/portal` (Besloten door Bram, punt 3) — `?next=bar` stuurt
+          // `/auth/callback` naar `server.ts` (de bar/beheer-cookienaam) en
+          // uiteindelijk terug naar `/beheer`. `/beheer/callback` zelf blijft
+          // ongewijzigd bestaan (backward-compat voor een mail die nog naar
+          // de oude URL wijst).
           emailRedirectTo:
             typeof window !== "undefined"
-              ? `${window.location.origin}/beheer/callback`
+              ? `${window.location.origin}/auth/callback?next=bar`
               : undefined,
         },
       });

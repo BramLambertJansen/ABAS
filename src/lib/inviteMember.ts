@@ -119,12 +119,21 @@ export async function sendMemberInvite(
     return { ok: false, errorCode: "member_not_found" };
   }
 
-  // 3. Eligibility: role in ('bardienst', 'beheerder') en auth_user_id is
-  //    null en email is not null. Niet eligible -> geen fout, no-op (spec →
-  //    RPC's punt 3.3) — de role-voorwaarde is de server-side afdwinging van
-  //    Besloten-door-Bram-punt-1, onafhankelijk van wat de UI toont.
+  // 3. Eligibility: role in ('bardienst', 'beheerder', 'lid') en
+  //    auth_user_id is null en email is not null. Niet eligible -> geen
+  //    fout, no-op (lid-account-invite.md → RPC's punt 3.3) — de
+  //    role-voorwaarde is de server-side afdwinging van de eligibility-eis,
+  //    onafhankelijk van wat de UI toont. Uitgebreid met 'lid'
+  //    (docs/features/portal-login.md → "Ledenkoppeling voor rol `lid`",
+  //    Besloten door Bram punt 1): een beheerder kan zo ook een `lid`-rol
+  //    member een magic-link-invite sturen — de koppeling zelf gebeurt
+  //    daarna via `link_lid_member_account()` (0021), niet via
+  //    `link_invited_member_account()`, dat op zijn beurt nooit een `lid`-rij
+  //    koppelt (geen `role`-filter daar, maar ook geen `role = 'lid'`-match
+  //    nodig — beide RPC's draaien altijd allebei, zie
+  //    src/app/auth/callback/route.ts).
   const eligible =
-    (member.role === "bardienst" || member.role === "beheerder") &&
+    (member.role === "bardienst" || member.role === "beheerder" || member.role === "lid") &&
     member.auth_user_id === null &&
     member.email !== null;
 

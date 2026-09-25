@@ -160,6 +160,52 @@ update members set auth_user_id = (
   pin_hash = null
 where name = 'Sanne Bakker';
 
+-- Lid e-mail/wachtwoord account for Anna de Vries — docs/features/
+-- portal-login.md → Randgevallen: "supabase/seed.sql heeft nog geen
+-- lid-rol fixture met zowel gekoppelde auth_user_id als een gezet
+-- wachtwoord (nodig om het wachtwoordpad te testen zonder dat #17's
+-- onboardingscherm bestaat)". Anna de Vries already had `pin_hash is null`
+-- (a `lid` never gets a PIN, CLAUDE.md → "Dienst & bezetting"), so linking
+-- her here has no either/or consequence to unwind, unlike Femke
+-- Bos/Sanne Bakker above. Same local-dev-only direct
+-- auth.users/auth.identities insert as the three accounts above, still
+-- never seeded into a real deployment.
+insert into auth.users (
+  instance_id, id, aud, role, email, encrypted_password,
+  email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
+  created_at, updated_at,
+  confirmation_token, email_change, email_change_token_new, recovery_token
+) values (
+  '00000000-0000-0000-0000-000000000000',
+  gen_random_uuid(),
+  'authenticated',
+  'authenticated',
+  'anna.de.vries@aurora.local',
+  crypt('local-lid-dev-only', gen_salt('bf')),
+  now(),
+  '{"provider":"email","providers":["email"]}',
+  '{}',
+  now(), now(),
+  '', '', '', ''
+);
+
+insert into auth.identities (
+  id, user_id, provider_id, identity_data, provider,
+  last_sign_in_at, created_at, updated_at
+)
+select gen_random_uuid(), id, id::text,
+  format('{"sub":"%s","email":"%s"}', id::text, email)::jsonb,
+  'email', now(), now(), now()
+from auth.users where email = 'anna.de.vries@aurora.local';
+
+update members set
+  auth_user_id = (
+    select id from auth.users where email = 'anna.de.vries@aurora.local'
+  ),
+  email = 'anna.de.vries@aurora.local',
+  pin_hash = null
+where name = 'Anna de Vries';
+
 insert into products (name, category, price_cents) values
   ('Pils',   'Bier', 250),
   ('Radler', 'Bier', 250),
