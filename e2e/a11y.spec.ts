@@ -335,6 +335,61 @@ test.describe("beheer ingelogde staat (a11y)", () => {
     expect(results.violations, JSON.stringify(results.violations, null, 2))
       .toEqual([]);
   });
+
+  /**
+   * docs/features/logboek.md (#19) → Randgevallen → "A11y": "Tester moet
+   * het bestaande scenario uitbreiden met de Logboek-tab — dezelfde soort
+   * toevoeging als bij Instellingen destijds, geen nieuw scenario-type."
+   * Same shape as the Assortiment-/Instellingen-/Leden-tab scenarios above,
+   * for the new fourth tab (`LogboekLijst.tsx`, `src/features/logboek/`).
+   *
+   * Two `analyze()` calls in one test rather than a second test — same
+   * "one test per screen, several passes as the screen's own state changes"
+   * shape as the Dienst-scherm test's open-filter-dropdown second pass
+   * above — because the spec's Randgevallen table also calls out the
+   * Assortiment-/Leden-filterchip's "Nog niets vastgelegd"-lege-staat (geen
+   * databron, geen foutmelding) as a state worth covering here, not a new
+   * scenario type of its own.
+   */
+  test("beheer (/beheer) Logboek-tab (ingelogd) has no WCAG2A/AA violations", async ({
+    page,
+  }) => {
+    await loginAsBeheerder(page);
+
+    await page.getByRole("tab", { name: "Logboek" }).click();
+    await page
+      .getByRole("heading", { name: "Logboek" })
+      .waitFor({ state: "visible", timeout: 15_000 });
+    // Wait for the list to settle (rows or an empty state) so the scan
+    // doesn't catch the "Logboek laden…" intermediate state — same
+    // reasoning as the Dienst-scherm test's "Boekingen laden…" wait above.
+    await page
+      .getByText("Logboek laden…")
+      .waitFor({ state: "hidden", timeout: 15_000 });
+
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+
+    expect(results.violations, JSON.stringify(results.violations, null, 2))
+      .toEqual([]);
+
+    // Randgevallen → "Assortiment-/Leden-filter aangetikt": geen databron,
+    // dus de "Nog niets vastgelegd"-lege-staat — geen foutmelding.
+    await page.getByRole("button", { name: "Assortiment" }).click();
+    await page
+      .getByText("Nog niets vastgelegd")
+      .waitFor({ state: "visible", timeout: 15_000 });
+
+    const filteredResults = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+
+    expect(
+      filteredResults.violations,
+      JSON.stringify(filteredResults.violations, null, 2)
+    ).toEqual([]);
+  });
 });
 
 /**

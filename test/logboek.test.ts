@@ -133,6 +133,22 @@ test("filterLogboek: 'assortiment' en 'leden' leveren nooit iets op", () => {
   assert.deepEqual(filterLogboek(entries, { query: "", filter: "leden" }), []);
 });
 
+test("filterLogboek: gastverkoop (memberName null) is doorzoekbaar op 'losse verkoop'", () => {
+  // spec → Randgevallen: "Gastverkoop (orders.member_id is null)" —
+  // memberName: null mag geen "onbekend lid"-verzinsel worden, en moet nog
+  // altijd matchen op de vaste tekst waarmee de rij zelf getoond wordt
+  // (describeRow hierboven).
+  const guest = entry({ id: "d", memberName: null });
+  assert.deepEqual(
+    filterLogboek([guest], { query: "losse verkoop", filter: "alles" }).map((e) => e.id),
+    ["d"]
+  );
+  assert.deepEqual(
+    filterLogboek([guest], { query: "anna", filter: "alles" }).map((e) => e.id),
+    []
+  );
+});
+
 test("filterLogboek zoekt hoofdletterongevoelig op lid, boeker, product en actie-tekst", () => {
   const ids = (q: string) =>
     filterLogboek(entries, { query: q, filter: "alles" }).map((e) => e.id);
