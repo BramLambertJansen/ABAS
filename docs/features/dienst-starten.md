@@ -82,10 +82,14 @@ door de stafkeuze-lijst al te filteren op die rollen.
   Verificatie), dus deze foutstaat is wat `check:a11y` in CI daadwerkelijk
   rendert en scant.
 - **Twee gelijktijdig geopende diensten** (race condition: twee tikken op
-  "start" binnen hetzelfde moment) — expliciet **buiten scope** hier, apart
-  genoteerd als [issue #29](https://github.com/BramLambertJansen/ABAS/issues/29)
-  zodat dit scherm niet ongevraagd de bestaande, al gemergede
-  `start_shift`-RPC of de bijbehorende tests uit #3 hoeft aan te passen.
+  "start" binnen hetzelfde moment, of een tweede tabblad) — oorspronkelijk
+  buiten scope, later opgelost in
+  [issue #29](https://github.com/BramLambertJansen/ABAS/issues/29)
+  (`0021_start_shift_een_open_dienst.sql`): `start_shift` weigert met
+  `shift_already_open` zolang er een dienst open is (advisory-lock, dus ook
+  bij een echte gelijktijdige aanroep). Het scherm toont daarvoor geen
+  foutmelding maar haalt de al open dienst op, net als na een geslaagde
+  start.
 
 ## Expliciet buiten scope
 
@@ -109,8 +113,6 @@ door de stafkeuze-lijst al te filteren op die rollen.
   hiervoor, hoort eerder bij #12.
 - Lockout/rate-limit na foute pogingen — settled als "geen scope voor MVP"
   in #3.
-- Race-condition-bescherming tegen twee gelijktijdig open diensten — apart
-  genoteerd als #29, zie hierboven.
 
 ## `useShell()`-contract
 

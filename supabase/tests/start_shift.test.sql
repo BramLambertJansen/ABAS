@@ -11,9 +11,16 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(13);
+select plan(17);
 
 -- ── Fixtures ──────────────────────────────────────────────────────────
+-- #29: start_shift weigert zodra er al een open dienst is. `db:test` draait
+-- in check:all ná de e2e-suite, tegen dezelfde lokale database, en die
+-- laat een dienst open staan (a11y.spec.ts → ensureShiftStarted). Die
+-- eerst sluiten, binnen deze teruggedraaide transactie, zodat dit bestand
+-- niet afhangt van wat er eerder draaide.
+update shifts set ended_at = now() where ended_at is null;
+
 insert into members (id, name, role, pin_hash, balance_cents, archived) values
   ('00000000-0000-0000-0000-000000000050', 'Correct Pin',   'bardienst', crypt('1234', gen_salt('bf')), 0, false),
   ('00000000-0000-0000-0000-000000000051', 'No Pin Set',    'bardienst', null,                          0, false),
@@ -86,6 +93,53 @@ select is(
   'the started shift stores the given activity_type_id'
 );
 
+-- ── 1b) #29: een tweede start_shift terwijl de dienst uit 1) nog open
+-- staat, wordt geweigerd — en voegt geen dienst toe.
+select throws_ok(
+  $$ select start_shift(
+       '00000000-0000-0000-0000-000000000054'::uuid,
+       '1234',
+       '00000000-0000-0000-0000-0000000000b0'::uuid
+     ) $$,
+  'P0001', 'shift_already_open',
+  'start_shift rejects starting a shift while another shift is still open'
+);
+
+select is(
+  (select count(*)::int from shifts where ended_at is null),
+  1,
+  'the rejected start_shift left exactly one open shift'
+);
+
+-- De check staat vóór de lid/PIN-checks (#29): ook een foute PIN krijgt
+-- shift_already_open, niet invalid_pin.
+select throws_ok(
+  $$ select start_shift(
+       '00000000-0000-0000-0000-000000000050'::uuid,
+       '9999',
+       '00000000-0000-0000-0000-0000000000b0'::uuid
+     ) $$,
+  'P0001', 'shift_already_open',
+  'shift_already_open is checked before the PIN'
+);
+
+-- Dienst uit 1) sluiten, zodat de afwijzingen hieronder hun eigen foutcode
+-- geven in plaats van shift_already_open.
+update shifts set ended_at = now() where ended_at is null;
+
+-- 1c) Na het sluiten kan er weer een dienst gestart worden — de check
+-- kijkt naar open diensten, niet naar diensten in het algemeen.
+select lives_ok(
+  $$ select start_shift(
+       '00000000-0000-0000-0000-000000000050'::uuid,
+       '1234',
+       '00000000-0000-0000-0000-0000000000b0'::uuid
+     ) $$,
+  'start_shift succeeds again once the previous shift is closed'
+);
+
+update shifts set ended_at = now() where ended_at is null;
+
 -- ── 2) wrong PIN ────────────────────────────────────────────────────────
 select throws_ok(
   $$ select start_shift(
@@ -149,6 +203,8 @@ select is(
   1,
   'the starter with both a pin_hash and an auth_user_id lands in the roster as its only member'
 );
+
+update shifts set ended_at = now() where ended_at is null;
 
 -- ── 7) #18: activiteittype is verplicht — a null p_activity_type_id is
 -- rejected (docs/features/activiteittypes.md → "Beantwoorde vraag", the one
