@@ -26,7 +26,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(15);
+select plan(17);
 
 -- ── 1) Niets in public is uitvoerbaar zonder sessie ──────────────────────
 
@@ -138,6 +138,21 @@ select ok(
 select ok(
   has_function_privilege('authenticated', 'public.reverse_order_as_admin(uuid,text)', 'EXECUTE'),
   'reverse_order_as_admin blijft aanroepbaar voor een ingelogde sessie'
+);
+
+-- Added for 0021_lid_account_koppelen.sql (#15, docs/features/portal-login.md):
+-- named checks naast the blanket "geen enkele functie in public"-assertions
+-- above (die dekken deze functie al automatisch, maar een falende run zou
+-- daar alleen "er zijn er N te veel" tonen, niet wélke — vandaar ook hier
+-- een benoemde check, zelfde stijl als list_members_admin/reverse_order_*).
+select ok(
+  not has_function_privilege('anon', 'public.link_lid_member_account()', 'EXECUTE'),
+  'link_lid_member_account is niet aanroepbaar zonder sessie'
+);
+
+select ok(
+  has_function_privilege('authenticated', 'public.link_lid_member_account()', 'EXECUTE'),
+  'link_lid_member_account blijft aanroepbaar voor een ingelogde sessie'
 );
 
 select * from finish();
