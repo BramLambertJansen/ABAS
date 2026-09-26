@@ -213,6 +213,56 @@ insert into products (name, category, price_cents) values
   ('Water',  'Fris', 120),
   ('Chips',  'Snacks', 150);
 
+-- Lid e-mail/wachtwoord account for Piet Bakker — added by the Tester for
+-- #16 (docs/features/portal-dashboard.md → Randgevallen "A11y"): the
+-- laag-saldo-variant and the lege-transacties-staat both need a seeded
+-- `lid` that can actually log in to /portal. Piet Bakker already covers
+-- both at once without a new member row: his seeded balance (-840) is
+-- already below the €10 laag-saldo-drempel (`app_settings.
+-- low_balance_threshold_cents`, default 1000), and — unlike Anna de Vries
+-- below — he gets no orders/order_lines/top_ups/order_reversals fixtures,
+-- so his Saldo-/Transacties-tabblad stay in the "Nog geen transacties"
+-- lege staat. Same local-dev-only direct auth.users/auth.identities
+-- insert as the three accounts above, still never seeded into a real
+-- deployment. `pin_hash` was already null (a `lid` never gets a PIN,
+-- CLAUDE.md → "Dienst & bezetting"), so — same as Anna de Vries — linking
+-- an account here has no either/or consequence to unwind.
+insert into auth.users (
+  instance_id, id, aud, role, email, encrypted_password,
+  email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
+  created_at, updated_at,
+  confirmation_token, email_change, email_change_token_new, recovery_token
+) values (
+  '00000000-0000-0000-0000-000000000000',
+  gen_random_uuid(),
+  'authenticated',
+  'authenticated',
+  'piet.bakker@aurora.local',
+  crypt('local-lid-laag-saldo-dev-only', gen_salt('bf')),
+  now(),
+  '{"provider":"email","providers":["email"]}',
+  '{}',
+  now(), now(),
+  '', '', '', ''
+);
+
+insert into auth.identities (
+  id, user_id, provider_id, identity_data, provider,
+  last_sign_in_at, created_at, updated_at
+)
+select gen_random_uuid(), id, id::text,
+  format('{"sub":"%s","email":"%s"}', id::text, email)::jsonb,
+  'email', now(), now(), now()
+from auth.users where email = 'piet.bakker@aurora.local';
+
+update members set
+  auth_user_id = (
+    select id from auth.users where email = 'piet.bakker@aurora.local'
+  ),
+  email = 'piet.bakker@aurora.local',
+  pin_hash = null
+where name = 'Piet Bakker';
+
 -- Portal-dashboard fixtures for Anna de Vries (#16, docs/features/
 -- portal-dashboard.md → Randgevallen "Seed-/CI-data"): "supabase/seed.sql's
 -- bestaande lid-fixture ... heeft nog geen orders/order_lines/top_ups/
