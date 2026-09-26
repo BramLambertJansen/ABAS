@@ -160,15 +160,48 @@ test.describe("portal (a11y)", () => {
   /**
    * `PortalShellHome`'s "signed-in"-branch — Anna de Vries (seeded `lid`-rol
    * e-mail/wachtwoord-account, `supabase/seed.sql`), zelfde fixture als
-   * e2e/portal-login.spec.ts's wachtwoordpad-test.
+   * e2e/portal-login.spec.ts's wachtwoordpad-test. Scant sinds #16
+   * (docs/features/portal-dashboard.md) het nieuwe `PortalDashboard` — de
+   * oude "Welkom, {naam}"-placeholder bestaat niet meer, dus dit scenario
+   * wacht nu op het (standaard geopende) Saldo-tabblad in plaats daarvan.
+   * Uitgebreide scenario's (Transacties-tabblad, laag-saldo-variant, lege
+   * staat) zijn aan de Tester (spec → Randgevallen → "a11y").
    */
   test("portal (/portal) ingelogde staat (Anna de Vries) has no WCAG2A/AA violations", async ({
     page,
   }) => {
     await portalLoginMetWachtwoord(page, "anna.de.vries@aurora.local", "local-lid-dev-only");
     await page
-      .getByRole("heading", { name: "Welkom, Anna de Vries" })
+      .getByRole("heading", { name: "Hoi Anna" })
       .waitFor({ state: "visible", timeout: 15_000 });
+    await page.getByText("HUIDIG SALDO").waitFor({ state: "visible" });
+
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+
+    expect(results.violations, JSON.stringify(results.violations, null, 2))
+      .toEqual([]);
+  });
+
+  /**
+   * Minimale sanity-check bovenop het scenario hierboven: het Transacties-
+   * tabblad is bereikbaar en axe-schoon met de gevulde seed-data (Anna de
+   * Vries heeft sinds #16 een bestelling, een opwaardering en een
+   * teruggedraaide bestelling, `supabase/seed.sql`). Geen uitputtende
+   * dekking (filters, maandgroepering, lege staat) — dat is de Tester's
+   * werk, zie spec → Randgevallen → "a11y".
+   */
+  test("portal (/portal) Transacties-tabblad (Anna de Vries) has no WCAG2A/AA violations", async ({
+    page,
+  }) => {
+    await portalLoginMetWachtwoord(page, "anna.de.vries@aurora.local", "local-lid-dev-only");
+    await page
+      .getByRole("heading", { name: "Hoi Anna" })
+      .waitFor({ state: "visible", timeout: 15_000 });
+
+    await page.getByRole("tab", { name: "Transacties" }).click();
+    await page.getByText("Bestelling").first().waitFor({ state: "visible", timeout: 15_000 });
 
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa"])

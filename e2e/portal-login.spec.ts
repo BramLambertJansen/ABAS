@@ -101,8 +101,11 @@ async function generateMagicLinkTokenHash(email: string): Promise<string> {
   return body.hashed_token;
 }
 
-const welkomHeading = (page: Page, naam: string) =>
-  page.getByRole("heading", { name: `Welkom, ${naam}` });
+// Sinds #16 (docs/features/portal-dashboard.md) is de ingelogde staat
+// `PortalDashboard`, niet langer de "Welkom, {naam}"-placeholder — de
+// header toont de voornaam ("Hoi {firstName}"), zie PortalDashboard.tsx.
+const dashboardHeading = (page: Page, firstName: string) =>
+  page.getByRole("heading", { name: `Hoi ${firstName}` });
 
 test.describe("live backend (echte lokale Supabase, supabase/seed.sql)", () => {
   /**
@@ -125,12 +128,12 @@ test.describe("live backend (echte lokale Supabase, supabase/seed.sql)", () => {
     const emailVeld = page.locator('input[type="email"]');
     await emailVeld.waitFor({ state: "visible", timeout: 15_000 });
 
-    // Geen "Welkom, …"-staat (signed-in) en geen deniedMessage-alert (dat
+    // Geen "Hoi …"-staat (signed-in) en geen deniedMessage-alert (dat
     // zou immers ook een — zij het geweigerde — sessie veronderstellen):
     // gewoon het kale inlogformulier, alsof er geen sessie bestaat, exact
     // wat usePortalSession() voor `sb-portal-auth-token`-afwezigheid hoort
     // te rapporteren.
-    await expect(page.getByRole("heading", { name: /^Welkom,/ })).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: /^Hoi / })).toHaveCount(0);
     await expect(page.getByText("Dit account is niet gekoppeld aan een lid.")).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Stuur mij een inloglink" })).toBeVisible();
   });
@@ -143,7 +146,7 @@ test.describe("live backend (echte lokale Supabase, supabase/seed.sql)", () => {
   test("wachtwoordpad: Anna de Vries logt in en komt op de ingelogde staat", async ({ page }) => {
     await portalLoginMetWachtwoord(page, "anna.de.vries@aurora.local", "local-lid-dev-only");
 
-    await expect(welkomHeading(page, "Anna de Vries")).toBeVisible({ timeout: 15_000 });
+    await expect(dashboardHeading(page, "Anna")).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText("Ingelogd als anna.de.vries@aurora.local.")).toBeVisible();
   });
 
@@ -164,7 +167,7 @@ test.describe("live backend (echte lokale Supabase, supabase/seed.sql)", () => {
     await page.goto(`/auth/callback?token_hash=${tokenHash}&type=magiclink&next=portal`);
 
     await expect(page).toHaveURL(/\/portal$/);
-    await expect(welkomHeading(page, "Anna de Vries")).toBeVisible({ timeout: 15_000 });
+    await expect(dashboardHeading(page, "Anna")).toBeVisible({ timeout: 15_000 });
     await expect(page.getByText("Ingelogd als anna.de.vries@aurora.local.")).toBeVisible();
   });
 
@@ -172,7 +175,7 @@ test.describe("live backend (echte lokale Supabase, supabase/seed.sql)", () => {
    * Rolzichtbaarheid — een sessie die wél bestaat maar niet naar een actief
    * `lid`-record herleidt (hier: een `bardienst`-account dat op de portal
    * probeert in te loggen) toont de neutrale `denied`-melding, geen
-   * "Welkom …". Hergebruikt de al geseede Sanne Bakker
+   * "Hoi …". Hergebruikt de al geseede Sanne Bakker
    * (`bardienst`-e-mail/wachtwoord-account, `supabase/seed.sql`) — geen
    * nieuwe fixture nodig.
    */
@@ -184,7 +187,7 @@ test.describe("live backend (echte lokale Supabase, supabase/seed.sql)", () => {
     await expect(
       page.getByText("Dit account is niet gekoppeld aan een lid.")
     ).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByRole("heading", { name: /^Welkom,/ })).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: /^Hoi / })).toHaveCount(0);
     // Het inlogformulier blijft bruikbaar — geen dead end. Nog steeds methode
     // Wachtwoord (deniedMessage wist de gekozen methode niet), dus de
     // knoptekst is "Inloggen", niet de magic-link-tekst.
@@ -205,7 +208,7 @@ test.describe("live backend (echte lokale Supabase, supabase/seed.sql)", () => {
     await expect(page).toHaveURL(/\/portal$/);
     const emailVeld = page.locator('input[type="email"]');
     await emailVeld.waitFor({ state: "visible", timeout: 15_000 });
-    await expect(page.getByRole("heading", { name: /^Welkom,/ })).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: /^Hoi / })).toHaveCount(0);
   });
 });
 

@@ -212,3 +212,68 @@ insert into products (name, category, price_cents) values
   ('Cola',   'Fris', 200),
   ('Water',  'Fris', 120),
   ('Chips',  'Snacks', 150);
+
+-- Portal-dashboard fixtures for Anna de Vries (#16, docs/features/
+-- portal-dashboard.md → Randgevallen "Seed-/CI-data"): "supabase/seed.sql's
+-- bestaande lid-fixture ... heeft nog geen orders/order_lines/top_ups/
+-- order_reversals-rijen" — one ordinary order, one top-up and one reversed
+-- order, so /portal's new Saldo/Transacties tabs have both a filled state
+-- (this fixture) and, for every other seeded `lid` (Piet Bakker), still the
+-- empty state to exercise. One closed shift carries all three, same shape
+-- as a real bar-tablet dienst; `place_order`/`top_up`/`reverse_order_at_bar`
+-- aren't called here (no session to call them as during seeding), so the
+-- balance a real dienst would have produced is applied by hand below.
+insert into shifts (id, started_by, ended_at) values
+  ('00000000-0000-0000-0000-000000000900',
+   (select id from members where name = 'Tom Willems'),
+   now() - interval '1 day');
+
+insert into shift_members (shift_id, member_id) values
+  ('00000000-0000-0000-0000-000000000900', (select id from members where name = 'Tom Willems'));
+
+-- Een gewone, niet-teruggedraaide bestelling: 2× Pils.
+insert into orders (id, shift_id, member_id, served_by, total_cents, created_at) values
+  ('00000000-0000-0000-0000-000000000901',
+   '00000000-0000-0000-0000-000000000900',
+   (select id from members where name = 'Anna de Vries'),
+   (select id from members where name = 'Tom Willems'),
+   500,
+   now() - interval '1 day');
+
+insert into order_lines (order_id, product_id, qty, unit_cents) values
+  ('00000000-0000-0000-0000-000000000901', (select id from products where name = 'Pils'), 2, 250);
+
+-- Een teruggedraaide bestelling: 1× Chips, later teruggeboekt.
+insert into orders (id, shift_id, member_id, served_by, total_cents, created_at) values
+  ('00000000-0000-0000-0000-000000000902',
+   '00000000-0000-0000-0000-000000000900',
+   (select id from members where name = 'Anna de Vries'),
+   (select id from members where name = 'Sanne Bakker'),
+   150,
+   now() - interval '2 days');
+
+insert into order_lines (order_id, product_id, qty, unit_cents) values
+  ('00000000-0000-0000-0000-000000000902', (select id from products where name = 'Chips'), 1, 150);
+
+insert into order_reversals (order_id, reason, reversed_by, via, shift_id, refunded_cents) values
+  ('00000000-0000-0000-0000-000000000902',
+   'verkeerd product getikt',
+   (select id from members where name = 'Sanne Bakker'),
+   'bar',
+   '00000000-0000-0000-0000-000000000900',
+   150);
+
+-- Een opwaardering, contant.
+insert into top_ups (id, shift_id, member_id, amount_cents, method, served_by, created_at) values
+  ('00000000-0000-0000-0000-000000000903',
+   '00000000-0000-0000-0000-000000000900',
+   (select id from members where name = 'Anna de Vries'),
+   1000,
+   'cash',
+   (select id from members where name = 'Tom Willems'),
+   now() - interval '3 days');
+
+-- Saldo-effect van bovenstaande drie rijen, met de hand toegepast (geen RPC
+-- tijdens het seeden): -500 (bestelling 1) + 0 (bestelling 2, teruggeboekt)
+-- + 1000 (opwaardering) = +500 op het startsaldo van €12,40.
+update members set balance_cents = balance_cents + 500 where name = 'Anna de Vries';

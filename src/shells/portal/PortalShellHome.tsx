@@ -2,22 +2,21 @@
 
 import { usePortalSession } from "@/hooks/queries/usePortalSession";
 import { PortalLogin } from "@/features/portal-login/PortalLogin";
+import { PortalDashboard } from "@/features/portal-dashboard/PortalDashboard";
 
 /**
  * `/portal`'s entrypoint — docs/features/portal-login.md → Betrokken shell,
- * "Gewijzigd". Echte branch op `usePortalSession()`, niet langer een
- * statische placeholder:
+ * "Gewijzigd", nu verder uitgebreid door docs/features/portal-dashboard.md
+ * (#16) → Betrokken shell, "Gewijzigd". Echte branch op
+ * `usePortalSession()`:
  *
  *   - geen sessie → `PortalLogin` (het inlogformulier).
  *   - sessie die niet naar een actief `lid`-record herleidt → dezelfde
  *     neutrale "niet gekoppeld"-melding, getoond via `PortalLogin`'s
  *     `deniedMessage` (zelfde vorm als `Assortimentbeheer.tsx`'s gebruik van
  *     `BeheerLogin`'s `deniedMessage`).
- *   - actieve `lid`-sessie → minimale, nog steeds placeholder "ingelogd
- *     als {naam}" + uitlog-knop. Er is nog geen saldo-/transactiescherm
- *     (later ticket) — dit is precies genoeg om acceptatiecriterium 4 ("de
- *     portal toont geen ingelogde staat totdat het lid daadwerkelijk zelf
- *     inlogt") objectief te kunnen verifiëren.
+ *   - actieve `lid`-sessie → `PortalDashboard` (eigen saldo + transacties,
+ *     #16) in plaats van de eerdere "Welkom, {naam}"-placeholder.
  */
 export default function PortalShellHome() {
   const session = usePortalSession();
@@ -34,19 +33,11 @@ export default function PortalShellHome() {
 
   if (session.status === "signed-in") {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-canvas p-6 text-center font-sans text-ink">
-        <h1 className="text-xl font-extrabold tracking-tight">Welkom, {session.name}</h1>
-        <p className="max-w-xs text-sm font-medium text-muted">
-          Ingelogd als {session.email}.
-        </p>
-        <button
-          type="button"
-          onClick={() => session.signOut()}
-          className="flex h-11 items-center justify-center rounded-control border border-border bg-white px-5 text-sm font-bold text-ink transition-colors hover:border-ink"
-        >
-          Uitloggen
-        </button>
-      </main>
+      <PortalDashboard
+        name={session.name}
+        email={session.email}
+        onSignOut={() => session.signOut()}
+      />
     );
   }
 
