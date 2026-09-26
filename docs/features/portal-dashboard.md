@@ -1,9 +1,9 @@
 # Portal-dashboard: eigen saldo + transacties
 
-**Concept — nog niet goedgekeurd door Bram.** Introduceert een nieuwe
+**Geaccordeerd door Bram (2026-09-26).** Introduceert een nieuwe
 architectuurbeslissing (RPC-gated naamresolutie i.p.v. RLS-verruiming) — zie
 [ADR 0010](../adr/0010-portal-transacties-naam-via-rpc-niet-rls-verruiming.md),
-ter goedkeuring samen met deze spec.
+mee geaccordeerd.
 
 Spec voor [issue #16](https://github.com/BramLambertJansen/ABAS/issues/16).
 Volgt op [#15](https://github.com/BramLambertJansen/ABAS/issues/15)
