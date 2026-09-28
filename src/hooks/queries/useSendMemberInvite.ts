@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { reportClientError } from "@/lib/clientErrors";
+import { createClient } from "@/lib/supabase/client";
 
 /** Error codes de server-side invite-actie (src/lib/inviteMember.ts,
  *  aangeroepen via src/app/(bar)/beheer/invite/route.ts) daadwerkelijk
@@ -71,6 +73,10 @@ export function useSendMemberInvite() {
 
       if (!result.ok) {
         const code = toErrorCode(result.errorCode);
+        // Alleen een onverwachte uitkomst melden; de bekende codes zijn
+        // domeinuitkomsten. `result` bevat geen `code`-veld, dus
+        // classifyLoadError maakt er `server` zonder code van.
+        if (code === "unknown") reportClientError(createClient, "useSendMemberInvite", result);
         setState({ status: "error", code });
         return { invited: null, invitedAt: null, errorCode: code };
       }
@@ -80,7 +86,7 @@ export function useSendMemberInvite() {
       }
       return { invited: false, invitedAt: null, errorCode: null };
     } catch (err) {
-      console.error("useSendMemberInvite:", err);
+      reportClientError(createClient, "useSendMemberInvite", err);
       setState({ status: "error", code: "unknown" });
       return { invited: null, invitedAt: null, errorCode: "unknown" };
     }

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { reportClientError } from "@/lib/clientErrors";
 import { loadErrorMessage } from "@/lib/loadErrors";
 
 /** Omzet + opwaarderingen voor het "Dienst afsluiten"-overzicht. Eén cijfer
@@ -98,7 +99,7 @@ export function useShiftSummary(
     } catch (err) {
       // Never surface the raw error on a bar tablet mid-service — log it
       // for whoever's debugging, show a fixed Dutch message at the bar.
-      console.error("useShiftSummary:", err);
+      reportClientError(createClient, "useShiftSummary", err);
       setState({
         status: "error",
         message: loadErrorMessage("Kan het overzicht niet laden.", err),

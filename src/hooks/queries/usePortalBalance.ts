@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/portalClient";
+import { reportClientError } from "@/lib/clientErrors";
 
 /**
  * Eigen naam + `balance_cents` van de ingelogde `lid`-sessie —
@@ -69,7 +70,7 @@ export function usePortalBalance(): State & { refetch: () => void } {
         },
       });
     } catch (err) {
-      console.error("usePortalBalance:", err);
+      reportClientError(createClient, "usePortalBalance", err);
       setState({
         status: "error",
         message: "Kan het saldo niet laden. Controleer de verbinding.",

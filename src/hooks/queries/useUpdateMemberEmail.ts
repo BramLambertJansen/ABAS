@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { reportClientError } from "@/lib/clientErrors";
 import type { LedenbeheerLid } from "./useAlleLeden";
 
 /** Error codes `update_member_email` (0008_ledenbeheer_email.sql) actually
@@ -65,6 +66,7 @@ export function useUpdateMemberEmail() {
 
       if (error) {
         const code = toErrorCode(error.message);
+        if (code === "unknown") reportClientError(supabase, "useUpdateMemberEmail", error);
         setState({ status: "error", code });
         return { member: null, errorCode: code };
       }
@@ -93,6 +95,7 @@ export function useUpdateMemberEmail() {
       };
     } catch (err) {
       const code = toErrorCode(err instanceof Error ? err.message : undefined);
+      if (code === "unknown") reportClientError(createClient, "useUpdateMemberEmail", err);
       setState({ status: "error", code });
       return { member: null, errorCode: code };
     }

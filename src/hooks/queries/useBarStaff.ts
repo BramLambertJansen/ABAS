@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { reportClientError } from "@/lib/clientErrors";
 import { loadErrorMessage } from "@/lib/loadErrors";
 
 export type BarStaffMember = {
@@ -50,7 +51,7 @@ export function useBarStaff(): State & { refetch: () => void } {
     } catch (err) {
       // Same rule as useOpenShift: never show the raw error on the
       // tablet, log it for debugging instead.
-      console.error("useBarStaff:", err);
+      reportClientError(createClient, "useBarStaff", err);
       setState({
         status: "error",
         message: loadErrorMessage("Kan de bardienst-lijst niet laden.", err),

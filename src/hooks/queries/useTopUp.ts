@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { reportClientError } from "@/lib/clientErrors";
 
 /** Error codes `top_up` (0001_init.sql) actually raises, per
  *  docs/features/opwaarderen.md → RPC's / Randgevallen. Anything else
@@ -74,6 +75,7 @@ export function useTopUp() {
       });
       if (error) {
         const code = toErrorCode(error.message);
+        if (code === "unknown") reportClientError(supabase, "useTopUp", error);
         setState({ status: "error", code });
         return { ok: false, code };
       }
@@ -82,6 +84,7 @@ export function useTopUp() {
       return { ok: true, amountCents: topUpRow.amount_cents };
     } catch (err) {
       const code = toErrorCode(err instanceof Error ? err.message : undefined);
+      if (code === "unknown") reportClientError(createClient, "useTopUp", err);
       setState({ status: "error", code });
       return { ok: false, code };
     }

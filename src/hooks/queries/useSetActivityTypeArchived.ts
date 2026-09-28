@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { reportClientError } from "@/lib/clientErrors";
 import type { AlleActiviteitType } from "./useAlleActiviteitTypes";
 
 /** Foutcodes die `set_activity_type_archived` (0019_activiteittypes.sql)
@@ -50,7 +51,9 @@ export function useSetActivityTypeArchived() {
       });
 
       if (error) {
-        setState({ status: "error", code: toErrorCode(error.message) });
+        const code = toErrorCode(error.message);
+        if (code === "unknown") reportClientError(supabase, "useSetActivityTypeArchived", error);
+        setState({ status: "error", code });
         return null;
       }
       setState({ status: "idle" });
@@ -60,10 +63,9 @@ export function useSetActivityTypeArchived() {
         archived: data.archived as boolean,
       };
     } catch (err) {
-      setState({
-        status: "error",
-        code: toErrorCode(err instanceof Error ? err.message : undefined),
-      });
+      const code = toErrorCode(err instanceof Error ? err.message : undefined);
+      if (code === "unknown") reportClientError(createClient, "useSetActivityTypeArchived", err);
+      setState({ status: "error", code });
       return null;
     }
   }

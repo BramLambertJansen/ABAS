@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { reportClientError } from "@/lib/clientErrors";
 
 /** Error codes `start_shift` (0001_init.sql, uitgebreid in
  *  0019_activiteittypes.sql met een verplichte p_activity_type_id, en in
@@ -82,6 +83,7 @@ export function useStartShift() {
       });
       if (error) {
         const code = toErrorCode(error.message);
+        if (code === "unknown") reportClientError(supabase, "useStartShift", error);
         setState({ status: "error", code });
         return { ok: false, code };
       }
@@ -89,6 +91,7 @@ export function useStartShift() {
       return { ok: true };
     } catch (err) {
       const code = toErrorCode(err instanceof Error ? err.message : undefined);
+      if (code === "unknown") reportClientError(createClient, "useStartShift", err);
       setState({ status: "error", code });
       return { ok: false, code };
     }

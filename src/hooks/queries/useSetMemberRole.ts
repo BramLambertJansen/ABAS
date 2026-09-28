@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { reportClientError } from "@/lib/clientErrors";
 import type { LedenbeheerLid } from "./useAlleLeden";
 
 /** Error codes `set_member_role` (0007_ledenbeheer.sql) actually raises.
@@ -57,7 +58,9 @@ export function useSetMemberRole() {
       });
 
       if (error) {
-        setState({ status: "error", code: toErrorCode(error.message) });
+        const code = toErrorCode(error.message);
+        if (code === "unknown") reportClientError(supabase, "useSetMemberRole", error);
+        setState({ status: "error", code });
         return null;
       }
       setState({ status: "idle" });
@@ -85,10 +88,9 @@ export function useSetMemberRole() {
         invitedAt: data.invited_at as string | null,
       };
     } catch (err) {
-      setState({
-        status: "error",
-        code: toErrorCode(err instanceof Error ? err.message : undefined),
-      });
+      const code = toErrorCode(err instanceof Error ? err.message : undefined);
+      if (code === "unknown") reportClientError(createClient, "useSetMemberRole", err);
+      setState({ status: "error", code });
       return null;
     }
   }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { reportClientError } from "@/lib/clientErrors";
 
 /** `end_shift` (0001_init.sql) never raises — no `raise exception` in its
  *  body, just an `update ... where ended_at is null`. Anything that ends up
@@ -36,12 +37,14 @@ export function useEndShift() {
         p_shift_id: shiftId,
       });
       if (error) {
+        reportClientError(supabase, "useEndShift", error);
         setState({ status: "error", code: toErrorCode() });
         return false;
       }
       setState({ status: "idle" });
       return true;
-    } catch {
+    } catch (err) {
+      reportClientError(createClient, "useEndShift", err);
       setState({
         status: "error",
         code: toErrorCode(),

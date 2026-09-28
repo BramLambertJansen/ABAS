@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { reportClientError } from "@/lib/clientErrors";
 import { loadErrorMessage } from "@/lib/loadErrors";
 
 /** Niet-gearchiveerde `activity_types`, alfabetisch op naam — de keuze bij
@@ -45,7 +46,7 @@ export function useActiviteitTypes(): State & { refetch: () => void } {
     } catch (err) {
       // Nooit de rauwe fout op een bar-tablet tonen — loggen voor wie
       // debugt, een vast Nederlands bericht op het scherm zelf.
-      console.error("useActiviteitTypes:", err);
+      reportClientError(createClient, "useActiviteitTypes", err);
       setState({
         status: "error",
         message: loadErrorMessage("Kan de activiteittypes niet laden.", err),

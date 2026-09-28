@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { reportClientError } from "@/lib/clientErrors";
 import type { AssortimentProduct } from "./useAlleProducten";
 
 /** Error codes `update_product_price` (0005_assortimentbeheer.sql) actually
@@ -51,7 +52,9 @@ export function useUpdateProductPrice() {
       });
 
       if (error) {
-        setState({ status: "error", code: toErrorCode(error.message) });
+        const code = toErrorCode(error.message);
+        if (code === "unknown") reportClientError(supabase, "useUpdateProductPrice", error);
+        setState({ status: "error", code });
         return null;
       }
       setState({ status: "idle" });
@@ -63,10 +66,9 @@ export function useUpdateProductPrice() {
         archived: data.archived as boolean,
       };
     } catch (err) {
-      setState({
-        status: "error",
-        code: toErrorCode(err instanceof Error ? err.message : undefined),
-      });
+      const code = toErrorCode(err instanceof Error ? err.message : undefined);
+      if (code === "unknown") reportClientError(createClient, "useUpdateProductPrice", err);
+      setState({ status: "error", code });
       return null;
     }
   }

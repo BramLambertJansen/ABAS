@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { reportClientError } from "@/lib/clientErrors";
 import { loadErrorMessage } from "@/lib/loadErrors";
 
 /** Elk `activity_types`-type, gearchiveerd of niet — de Instellingen-kaart
@@ -48,7 +49,7 @@ export function useAlleActiviteitTypes(): State & { refetch: () => void } {
 
       setState({ status: "ready", activityTypes });
     } catch (err) {
-      console.error("useAlleActiviteitTypes:", err);
+      reportClientError(createClient, "useAlleActiviteitTypes", err);
       setState({
         status: "error",
         message: loadErrorMessage("Kan de activiteittypes niet laden.", err),

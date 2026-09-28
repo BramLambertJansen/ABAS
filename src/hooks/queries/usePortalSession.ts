@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/portalClient";
+import { logLocalError, reportClientError } from "@/lib/clientErrors";
 
 /**
  * Tracks whether `/portal` has an actual `lid`-session — analoog aan
@@ -63,7 +64,7 @@ export function usePortalSession(): PortalSessionState & {
           }
           setState({ status: "signed-in", email, name: data.name as string });
         } catch (err) {
-          console.error("usePortalSession (role lookup):", err);
+          reportClientError(supabase, "usePortalSession", err);
           if (!cancelled) {
             setState({ status: "denied", message: DENIED_MESSAGE });
           }
@@ -91,7 +92,7 @@ export function usePortalSession(): PortalSessionState & {
       });
       unsubscribe = () => subscription.unsubscribe();
     } catch (err) {
-      console.error("usePortalSession:", err);
+      logLocalError("usePortalSession", err);
       setState({ status: "signed-out" });
     }
 
@@ -106,7 +107,7 @@ export function usePortalSession(): PortalSessionState & {
       const supabase = createClient();
       await supabase.auth.signOut();
     } catch (err) {
-      console.error("usePortalSession (signOut):", err);
+      logLocalError("usePortalSession (signOut)", err);
     }
   }
 

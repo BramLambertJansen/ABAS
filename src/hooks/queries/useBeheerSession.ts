@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { logLocalError, reportClientError } from "@/lib/clientErrors";
 
 /**
  * Tracks whether `/beheer` has an actual bardienst/beheerder session, not
@@ -118,7 +119,7 @@ export function useBeheerSession(): BeheerSessionState & {
           // Can't confirm a bardienst/beheerder-koppeling — fail closed
           // (never "signed-in" without a confirmed match), log for
           // debugging.
-          console.error("useBeheerSession (role lookup):", err);
+          reportClientError(supabase, "useBeheerSession", err);
           if (!cancelled) {
             setState({
               status: "denied",
@@ -150,7 +151,7 @@ export function useBeheerSession(): BeheerSessionState & {
       });
       unsubscribe = () => subscription.unsubscribe();
     } catch (err) {
-      console.error("useBeheerSession:", err);
+      logLocalError("useBeheerSession", err);
       setState({ status: "signed-out" });
     }
 
@@ -169,7 +170,7 @@ export function useBeheerSession(): BeheerSessionState & {
       // the shared device session on the next bar-shell request, no action
       // needed here beyond signing out (ADR 0002 → Beslissing, stap 3).
     } catch (err) {
-      console.error("useBeheerSession (signOut):", err);
+      logLocalError("useBeheerSession (signOut)", err);
     }
   }
 

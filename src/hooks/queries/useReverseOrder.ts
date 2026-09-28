@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { reportClientError } from "@/lib/clientErrors";
 
 /** Foutcodes van reverse_order_at_bar / reverse_order_as_admin
  *  (0020_bestelling_terugdraaien.sql, docs/features/
@@ -67,6 +68,7 @@ function useReverseRpc() {
       const { data, error } = await supabase.rpc(fn, args);
       if (error) {
         const code = toErrorCode(error.message);
+        if (code === "unknown") reportClientError(supabase, "useReverseOrder", error);
         setState({ status: "error", code });
         return { ok: false, code };
       }
@@ -77,6 +79,7 @@ function useReverseRpc() {
       };
     } catch (err) {
       const code = toErrorCode(err instanceof Error ? err.message : undefined);
+      if (code === "unknown") reportClientError(createClient, "useReverseOrder", err);
       setState({ status: "error", code });
       return { ok: false, code };
     }

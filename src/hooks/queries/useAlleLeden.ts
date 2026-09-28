@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { logLocalError, reportClientError } from "@/lib/clientErrors";
 import { loadErrorMessage } from "@/lib/loadErrors";
 
 /** A row from `members`, projected for ledenbeheer — eigen hook, geen
@@ -60,6 +61,12 @@ type State =
  *  die melding zijn wifi controleren. De schrijf-hooks in deze map mapten
  *  deze codes al wél — zie useUpdateMemberName.ts e.a., en
  *  LidBeherenOverlay.tsx voor dezelfde copy. */
+function isDomainOutcome(err: unknown): boolean {
+  const rpcErrorMessage =
+    typeof err === "object" && err !== null ? (err as { message?: unknown }).message : undefined;
+  return rpcErrorMessage === "no_admin_role" || rpcErrorMessage === "actor_not_found";
+}
+
 function errorMessageFor(err: unknown): string {
   const rpcErrorMessage =
     typeof err === "object" && err !== null ? (err as { message?: unknown }).message : undefined;
@@ -114,7 +121,10 @@ export function useAlleLeden(): State & { refetch: () => void } {
         // en zou elke rechtenweigering als verbindingsfout eindigen.
         // Zelfde vorm als de schrijf-hooks in deze map, die de
         // `error`-tak ook naast de catch afhandelen.
-        console.error("useAlleLeden:", error);
+        // no_admin_role/actor_not_found zijn domeinuitkomsten (zie
+        // errorMessageFor), geen fout om te melden.
+        if (!isDomainOutcome(error)) reportClientError(supabase, "useAlleLeden", error);
+        else logLocalError("useAlleLeden", error);
         setState({ status: "error", message: errorMessageFor(error) });
         return;
       }
@@ -138,7 +148,7 @@ export function useAlleLeden(): State & { refetch: () => void } {
       // al afgehandeld. Nooit de rauwe fout tonen op een bar-tablet: loggen
       // voor wie debugt, vaste Nederlandse boodschap, zelfde patroon als
       // useMembers/useAlleProducten.
-      console.error("useAlleLeden:", err);
+      reportClientError(createClient, "useAlleLeden", err);
       setState({
         status: "error",
         message: errorMessageFor(err),

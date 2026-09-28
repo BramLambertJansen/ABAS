@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { reportClientError } from "@/lib/clientErrors";
 
 /** Error codes `remove_shift_member` (0001_init.sql, fixed by
  *  supabase/migrations/0003_remove_shift_member_requires_open_shift.sql to
@@ -38,16 +39,17 @@ export function useRemoveShiftMember() {
         p_member_id: memberId,
       });
       if (error) {
-        setState({ status: "error", code: toErrorCode(error.message) });
+        const code = toErrorCode(error.message);
+        if (code === "unknown") reportClientError(supabase, "useRemoveShiftMember", error);
+        setState({ status: "error", code });
         return false;
       }
       setState({ status: "idle" });
       return true;
     } catch (err) {
-      setState({
-        status: "error",
-        code: toErrorCode(err instanceof Error ? err.message : undefined),
-      });
+      const code = toErrorCode(err instanceof Error ? err.message : undefined);
+      if (code === "unknown") reportClientError(createClient, "useRemoveShiftMember", err);
+      setState({ status: "error", code });
       return false;
     }
   }

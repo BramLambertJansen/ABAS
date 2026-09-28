@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { reportClientError } from "@/lib/clientErrors";
 import { loadErrorMessage } from "@/lib/loadErrors";
 
 export type AppSettings = {
@@ -49,7 +50,7 @@ export function useAppSettings(): State & { refetch: () => void } {
     } catch (err) {
       // Same rule as useOpenShift: never show the raw error on the
       // tablet, log it for debugging instead.
-      console.error("useAppSettings:", err);
+      reportClientError(createClient, "useAppSettings", err);
       setState({
         status: "error",
         message: loadErrorMessage("Kan de instellingen niet laden.", err),

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { reportClientError } from "@/lib/clientErrors";
 import { loadErrorMessage } from "@/lib/loadErrors";
 
 /** A row from `products` — the assortiment, read (not written) by
@@ -59,7 +60,7 @@ export function useAlleProducten(): State & { refetch: () => void } {
     } catch (err) {
       // Never surface the raw error on a bar tablet — log it for whoever's
       // debugging, show a fixed Dutch message, same rule as useOpenShift.
-      console.error("useAlleProducten:", err);
+      reportClientError(createClient, "useAlleProducten", err);
       setState({
         status: "error",
         message: loadErrorMessage("Kan het assortiment niet laden.", err),

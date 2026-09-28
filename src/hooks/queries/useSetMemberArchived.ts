@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { reportClientError } from "@/lib/clientErrors";
 import type { LedenbeheerLid } from "./useAlleLeden";
 
 /** Error codes `set_member_archived` (0007_ledenbeheer.sql) actually
@@ -53,7 +54,9 @@ export function useSetMemberArchived() {
       });
 
       if (error) {
-        setState({ status: "error", code: toErrorCode(error.message) });
+        const code = toErrorCode(error.message);
+        if (code === "unknown") reportClientError(supabase, "useSetMemberArchived", error);
+        setState({ status: "error", code });
         return null;
       }
       setState({ status: "idle" });
@@ -77,10 +80,9 @@ export function useSetMemberArchived() {
         invitedAt: data.invited_at as string | null,
       };
     } catch (err) {
-      setState({
-        status: "error",
-        code: toErrorCode(err instanceof Error ? err.message : undefined),
-      });
+      const code = toErrorCode(err instanceof Error ? err.message : undefined);
+      if (code === "unknown") reportClientError(createClient, "useSetMemberArchived", err);
+      setState({ status: "error", code });
       return null;
     }
   }

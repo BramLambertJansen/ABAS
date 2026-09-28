@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { reportClientError } from "@/lib/clientErrors";
 
 /** Error codes `update_negative_limit` (0006_negatieve_saldolimiet.sql)
  *  actually raises. Anything else falls through to "unknown". */
@@ -47,16 +48,17 @@ export function useUpdateNegativeLimit() {
       });
 
       if (error) {
-        setState({ status: "error", code: toErrorCode(error.message) });
+        const code = toErrorCode(error.message);
+        if (code === "unknown") reportClientError(supabase, "useUpdateNegativeLimit", error);
+        setState({ status: "error", code });
         return null;
       }
       setState({ status: "idle" });
       return data.negative_limit_cents as number;
     } catch (err) {
-      setState({
-        status: "error",
-        code: toErrorCode(err instanceof Error ? err.message : undefined),
-      });
+      const code = toErrorCode(err instanceof Error ? err.message : undefined);
+      if (code === "unknown") reportClientError(createClient, "useUpdateNegativeLimit", err);
+      setState({ status: "error", code });
       return null;
     }
   }

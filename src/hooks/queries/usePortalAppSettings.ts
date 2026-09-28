@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/portalClient";
+import { reportClientError } from "@/lib/clientErrors";
 
 /**
  * `app_settings.low_balance_threshold_cents`, gelezen via `portalClient.ts`
@@ -43,7 +44,7 @@ export function usePortalAppSettings(): State & { refetch: () => void } {
         },
       });
     } catch (err) {
-      console.error("usePortalAppSettings:", err);
+      reportClientError(createClient, "usePortalAppSettings", err);
       setState({
         status: "error",
         message: "Kan de instellingen niet laden. Controleer de verbinding.",
