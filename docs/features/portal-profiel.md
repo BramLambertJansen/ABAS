@@ -1,6 +1,9 @@
 # Portal-profiel: naam, wachtwoord en eigen bar-PIN
 
-**Status: concept, wacht op akkoord van Bram.**
+**Status: besluiten 1–6 genomen (2026-09-28), vraag 7 (teksten) open.**
+Introduceert een nieuwe architectuurbeslissing, zie
+[ADR 0012](../adr/0012-portal-eigen-data-voor-elke-rol.md), geaccepteerd
+samen met besluit 1.
 
 Spec voor [issue #17](https://github.com/BramLambertJansen/ABAS/issues/17).
 Volgt op [#15](https://github.com/BramLambertJansen/ABAS/issues/15)
@@ -10,13 +13,13 @@ gebouwd, `docs/features/portal-dashboard.md`) en
 [#3](https://github.com/BramLambertJansen/ABAS/issues/3) (PIN-opslag/hashing,
 `docs/ARCHITECTURE.md` → "PIN storage/hashing (settled, 2026-08-26)").
 
-Deze spec staat of valt met **open vraag 1** (onder "Nog te beslissen door
-Bram"): de portal laat vandaag alleen rol `lid` binnen, en daarmee kan
-**geen enkel lid dat ook bardienst/beheerder is** het profielscherm ooit
-bereiken. Het PIN-deel van het acceptatiecriterium is zonder een beslissing
-daarover niet te bouwen. De rest van dit document is geschreven onder de
-aanbevolen optie (1A); waar een andere keuze iets verandert, staat dat
-erbij.
+De portal liet tot nu toe alleen rol `lid` binnen. Daardoor kon **geen enkel
+lid dat ook bardienst/beheerder is** het profielscherm bereiken, en was het
+PIN-deel van het acceptatiecriterium niet te bouwen. Bram heeft besloten dat
+de portal het lid-deel wordt voor elke rol (besluit 1, ADR 0012). Zie
+"Besloten door Bram (2026-09-28)" onderaan voor alle zes besluiten; dit
+document is daarop bijgewerkt. Alleen de teksten voor de PIN-rij en
+PIN-sheet (vraag 7) staan nog open.
 
 Bouwt voort op ADR
 [0002](../adr/0002-beheeracties-vereisen-eigen-e-mail-sessie.md) (actorcheck
@@ -26,7 +29,9 @@ via `auth.uid()`, `select * into v_actor`),
 [0007](../adr/0007-rol-lid-leest-alleen-eigen-rijen.md) (rol `lid` leest
 alleen eigen rijen) en
 [0009](../adr/0009-portal-sessie-eigen-cookienaam.md) (portal gebruikt
-`portalClient.ts`/`portalServer.ts`, afgedwongen door `check:arch`).
+`portalClient.ts`/`portalServer.ts`, afgedwongen door `check:arch`) en
+[0012](../adr/0012-portal-eigen-data-voor-elke-rol.md) (portal voor elke rol,
+alleen eigen data, leeshooks scopen expliciet).
 
 ## Onderzocht in /designs/
 
@@ -68,13 +73,14 @@ alleen eigen rijen) en
 - `designs/chats/chat10.md` regel 9 (Bram): *"op de telefoon kan een
   gebruiker alleen maar het LID gedeelte zien — dus saldo, transacties, en
   instellingen voor het account (pincode zetten, wachtwoord wijzigen, naam
-  wijzigen)"*. Dit ondersteunt optie 1A: "een gebruiker" op de telefoon ziet
-  het lid-deel, ongeacht de rol. De pincode staat in dezelfde zin, en die is
+  wijzigen)"*. Dit is de basis van besluit 1: "een gebruiker" op de
+  telefoon ziet het lid-deel, ongeacht de rol. De pincode staat in dezelfde zin, en die is
   alleen zinvol voor bar-rollen.
 - `designs/chats/chat30.md` (regel 9): het onboardingscherm "wachtwoord
   kiezen" na een eerste magic link. `portal-login.md` en
   `lid-account-invite.md` hebben dat allebei bij #17 neergelegd, maar de
-  issue-tekst van #17 noemt het niet. Zie open vraag 5.
+  issue-tekst van #17 noemt het niet. Buiten scope, apart vervolgticket
+  (besluit 5).
 
 ## Onderzocht in de code: wat al bestaat
 
@@ -90,7 +96,10 @@ alleen eigen rijen) en
 | `Overlay.tsx` | `src/components/` | De `case "sheet"`-tak is een placeholder die dezelfde gecentreerde dialoog toont als `"modal"` (regel 139–146). Dit ticket is de **eerste echte portal-consument** van een secundaire weergave (`portal-dashboard.md` → Expliciet buiten scope voorspelde dat). Zie useShell()-contract. |
 | `PinPad.tsx` | `src/features/dienst-starten/` | Puntjes plus 12-toetsenraster, maar vast op de donkere `rail-*`-tokens en met `StaffHeader`. Zie Schermflow → PIN voor hoe het raster gedeeld wordt. |
 | `PortalDashboard.tsx` | `src/features/portal-dashboard/` | Krijgt een derde tabblad "Account". |
-| `usePortalSession.ts` | `src/hooks/queries/` | Laat nu alleen `role === 'lid'` door (regel 60). Onder optie 1A wordt dat verruimd. |
+| `usePortalSession.ts` | `src/hooks/queries/` | Laat nu alleen `role === 'lid'` door (regel 60). Wordt verruimd (besluit 1, ADR 0012). |
+| `PortalShellHome.tsx` | `src/shells/portal/` | Heeft een **eigen** `usePortalSession()`-instantie en geeft `session.name` door aan `PortalDashboard` (header "Hoi {voornaam}"). Een `refetch()` op een andere instantie van dezelfde hook ververst deze niet, zie Schermflow → Naam. |
+| `useBarStaff.ts` | `src/hooks/queries/` | De stafkeuze op het bar-tablet filtert op `.eq("has_pin", true)` (regel 45). Een lid zonder PIN staat er dus niet in. Relevant voor het testplan. |
+| `start_shift(p_member_id, p_pin, p_activity_type_id)` | `0021_start_shift_een_open_dienst.sql` | Weigert `pin_hash is null` of een foute PIN met `invalid_pin`, vereist een activiteitstype, en weigert een tweede open dienst. Relevant voor het testplan. |
 
 ## Doel
 
@@ -144,13 +153,17 @@ gedragswijziging) of `src/middleware.ts`.
   `portal-dashboard/`. Zonder die regel zou een import van
   `@/lib/supabase/client` in de nieuwe map niet worden tegengehouden. Dat
   is dezelfde reden die `portal-dashboard.md` → Betrokken shell al gaf.
-- **Gewijzigd (alleen onder optie 1A):** `src/hooks/queries/usePortalSession.ts`
-  — de rolfilter `data.role !== "lid"` vervalt. Een sessie die naar een
+- **Gewijzigd:** `src/hooks/queries/usePortalSession.ts` (besluit 1, ADR
+  0012) — de rolfilter `data.role !== "lid"` vervalt. Een sessie die naar een
   `members`-rij herleidt, met welke rol ook, is `signed-in`. De state krijgt
   `role` (en `archived`, zie Randgevallen) erbij. De `denied`-staat blijft
-  bestaan voor een sessie zonder gekoppelde `members`-rij. Dit wijzigt een
-  beslissing uit `portal-login.md` → Rolzichtbaarheid, dus hoort er een ADR
-  bij. Zie "ADR".
+  bestaan voor een sessie zonder gekoppelde `members`-rij.
+  `docs/features/portal-login.md` → Rolzichtbaarheid wordt daarop bijgewerkt
+  (Docs-rol), met een verwijzing naar ADR 0012.
+- **Gewijzigd:** `src/shells/portal/PortalShellHome.tsx` — geeft
+  `session.refetch` door aan `PortalDashboard` (nieuwe prop, bijvoorbeeld
+  `onProfileChanged`), en die weer aan het Account-tabblad. Zie Schermflow →
+  Naam voor waarom dat nodig is.
 
 ## Datamodel
 
@@ -181,7 +194,7 @@ functie kan per constructie alleen de rij van de aanroeper schrijven.
   `auth.users`-rij en een gearchiveerd lid af.
 - **Geen rolcheck.** `lid`, `bardienst` en `beheerder` mogen allemaal de
   eigen naam wijzigen. Dat is precies wat het issue vraagt ("een lid kan de
-  eigen naam wijzigen"). Onder open vraag 2 optie 2C vervalt deze RPC.
+  eigen naam wijzigen"), en wat Bram besloot (besluit 2: vrij, geen spoor).
 - Validatie letterlijk zoals `update_member_name`: `v_name := trim(p_name)`;
   `null` of `''` → `invalid_name`. Geen maximumlengte en geen
   uniciteitseis, want die heeft `update_member_name` ook niet. Een verschil
@@ -219,8 +232,9 @@ auth-call, geen `.from()`/`.rpc()`, en valt dus niet onder
 `check:policy`/`check:rls`. Zelfde constatering als `wachtwoord-vergeten.md` →
 "Geldlaag, datamodel, RPC's". De sterkte-eisen dwingt Supabase serverside af
 (dashboard-instelling uit `wachtwoord-vergeten.md` → Dashboard-instellingen).
-De client-checklist is alleen UX. Hoe het huidige wachtwoord wordt
-gecontroleerd hangt af van open vraag 3.
+De client-checklist is alleen UX. Het huidige wachtwoord wordt niet gevraagd:
+de ingelogde sessie is genoeg (besluit 3). Andere sessies van hetzelfde
+account blijven actief (besluit 4), dus er volgt geen `signOut`.
 
 **Let op, één account:** een bardienst/beheerder heeft één `auth.users`-rij
 voor portal én `/beheer`. Een wachtwoordwijziging in de portal wijzigt dus
@@ -237,9 +251,9 @@ herkent ze daaraan (`scripts/check-arch.mjs` regel 68–72) en dwingt
 - **`usePortalProfiel.ts`** (lezen): `members.select("name, role, archived,
   has_pin").eq("auth_user_id", session.user.id).maybeSingle()`, met een
   expliciete `auth_user_id`-filter en zonder te leunen op RLS. Dat is
-  hetzelfde patroon als `usePortalBalance.ts`, en nodig omdat onder optie 1A
-  een bardienst/beheerder-sessie via RLS álle `members`-rijen kan lezen
-  (ADR 0007 beperkt alleen rol `lid`). Met `refetch()`. Loading/error-staten
+  hetzelfde patroon als `usePortalBalance.ts`, en verplicht volgens ADR 0012
+  → Beslissing 2: een bardienst/beheerder-sessie kan via RLS álle
+  `members`-rijen lezen (ADR 0007 beperkt alleen rol `lid`). Met `refetch()`. Loading/error-staten
   volgen hetzelfde netwerk-/serverfoutonderscheid als de andere
   portal-leeshooks (#68). De e-mail voor de profielkaart komt uit
   `usePortalSession()` (`session.user.email`), niet uit `members.email`: die
@@ -247,10 +261,17 @@ herkent ze daaraan (`scripts/check-arch.mjs` regel 68–72) en dwingt
 - **`usePortalUpdateOwnName.ts`** → `rpc("update_own_name", { p_name })`,
   foutcodes `actor_not_found | invalid_name | unknown`.
 - **`usePortalWachtwoordWijzigen.ts`** → `auth.updateUser({ password })`,
-  foutcodes `weak_password | same_password | rate_limited | unknown`. Geen
-  `signOut()` na afloop, in tegenstelling tot de herstelflow. Wat er met het
-  huidige wachtwoord gebeurt: zie open vraag 3.
+  foutcodes `weak_password | same_password | reauth_required | rate_limited
+  | unknown`. `reauth_required` komt uit `error.code ===
+  "reauthentication_needed"` of `"reauthentication_not_valid"`. Dat zijn de
+  codes die `@supabase/auth-js` in `node_modules` kent (geverifieerd
+  2026-09-28), en ze komen terug als Supabase "Secure password change" aan
+  staat en de sessie buiten het venster valt (zie Randgevallen). Geen
+  huidig-wachtwoordveld en geen `signOut()` na afloop (besluiten 3 en 4), in
+  tegenstelling tot de herstelflow.
 - **`usePortalSetOwnPin.ts`** → `rpc("set_own_pin", { p_pin })`.
+- Onverwachte fouten gaan via `src/lib/clientErrors.ts`, niet via een kale
+  `console.error`. `check:policy` dwingt dat af in `src/hooks/queries/`.
 
 **Duplicatie voorkomen (CLAUDE.md → "Componenten zijn herbruikbaar totdat
 bewezen anders").** Dat de hooks zelf aparte bestanden zijn, is de erkende
@@ -309,7 +330,9 @@ tab-patroon (mount/unmount per tab, dus bij elk bezoek verse data).
   opnieuw bouwen), naam, e-mailadres.
 - **Kop "GEGEVENS"**, lijst met rijen (elke rij is een `<button>`, titel plus
   hint plus `›` met `aria-hidden`):
-  1. **Naam wijzigen**, hint: huidige naam.
+  1. **Naam wijzigen, alleen als niet `archived`**, hint: huidige naam.
+     Zelfde reden als bij de PIN-rij: `update_own_name` weigert een
+     gearchiveerd lid (`actor_not_found`), dus de rij zou dode UI zijn.
   2. **Wachtwoord wijzigen**, hint: geen. De hint uit het prototype ("laatst
      gewijzigd 3 maanden geleden") vervalt: daar is geen databron voor, en
      een verzonnen waarde is onjuist. Zelfde afweging als
@@ -334,9 +357,13 @@ tab-patroon (mount/unmount per tab, dus bij elk bezoek verse data).
   `disabled`, #77-patroon) zolang `trim(naam) === ''` of de naam gelijk is aan
   de huidige, en tijdens pending.
 - Opslaan → `update_own_name`. Bij succes: sheet sluit, toast **"Naam
-  bijgewerkt"** (prototype), `usePortalProfiel().refetch()` én
-  `usePortalSession().refetch()`, zodat de header ("Hoi {voornaam}")
-  meeverandert.
+  bijgewerkt"** (prototype), `usePortalProfiel().refetch()` én de
+  **doorgegeven** `onProfileChanged()` (dat is `session.refetch` van
+  `PortalShellHome.tsx`, zie Betrokken shell). De header ("Hoi {voornaam}")
+  krijgt zijn naam van de sessie-instantie in `PortalShellHome.tsx`. Een
+  eigen `usePortalSession()`-aanroep in de sheet maakt een tweede,
+  losstaande instantie, en die `refetch()` ververst de header niet. Die weg
+  is dus uitdrukkelijk niet toegestaan.
 - Fout: `invalid_name` → "vul een naam in"; `actor_not_found` → "dit account
   is niet (meer) gekoppeld aan een actief lid — log opnieuw in"; `unknown` →
   "er ging iets mis, probeer het opnieuw". Gebruik dezelfde toon en vorm als
@@ -346,17 +373,19 @@ tab-patroon (mount/unmount per tab, dus bij elk bezoek verse data).
 ### 2. Sheet "Wachtwoord wijzigen"
 
 - Titel **"Wachtwoord wijzigen"**.
-- Onder de aanbevolen optie 3A: `NieuwWachtwoordVelden` (Nieuw + Herhalen +
-  checklist), knoppen **Annuleer** / **Wijzigen**. Onder 3B of 3C komt
-  daarboven een veld "Huidig wachtwoord" (`autoComplete="current-password"`),
-  zie open vraag 3.
+- `NieuwWachtwoordVelden` (Nieuw + Herhalen + checklist), knoppen
+  **Annuleer** / **Wijzigen**. Geen veld "Huidig wachtwoord" (besluit 3); het
+  prototype toont dat veld wel, maar controleert het nergens.
 - Wijzigen is `aria-disabled` tot `checkPassword(nieuw).isValid && nieuw ===
   herhaal`, en tijdens pending.
 - Bij succes: sheet sluit, toast **"Wachtwoord gewijzigd"** (prototype). De
-  sessie blijft actief. Wat er met andere sessies gebeurt: open vraag 4.
+  sessie blijft actief, en andere sessies ook (besluit 4).
 - Fouten: exact de teksten die `wachtwoord-vergeten.md` → Randgevallen al
   vastlegt voor `weak_password`/`same_password`, plus
-  `RATE_LIMITED_MESSAGE` uit `authErrors.ts`. Geen nieuwe teksten.
+  `RATE_LIMITED_MESSAGE` uit `authErrors.ts`. `reauth_required` → **"log
+  opnieuw in en probeer het nog eens"**, met de Uitloggen-actie van de
+  header als weg terug. Die tekst is een voorstel van de Architect, in
+  dezelfde toon als de bestaande meldingen in `MijnAccountOverlay.tsx`.
 
 ### 3. Sheet "Pincode instellen" → "Pincode herhalen"
 
@@ -398,7 +427,7 @@ Alleen bereikbaar vanuit de PIN-rij, dus alleen voor bardienst/beheerder.
 | Rol / staat | Naam | Wachtwoord | PIN-rij |
 |---|---|---|---|
 | `lid` | ja | ja | **nee, niet gerenderd** |
-| `bardienst` / `beheerder` (onder 1A) | ja | ja | ja |
+| `bardienst` / `beheerder` | ja | ja | ja |
 | gearchiveerd (elke rol) | nee | ja | nee |
 | sessie zonder `members`-rij | n.v.t., `denied`-staat (bestaand) | — | — |
 
@@ -417,28 +446,29 @@ Alleen bereikbaar vanuit de PIN-rij, dus alleen voor bardienst/beheerder.
   hem terugdraaien, maar hij staat niet als open vraag omdat elk ander gedrag
   van de UI een bestaande RPC zou tegenspreken.
 - Beheer ziet naamwijzigingen, net als nu bij een beheerwijziging, alleen als
-  de nieuwe naam in Ledenbeheer en overal waar de naam getoond wordt. Of er
-  meer bij hoort: open vraag 2.
+  de nieuwe naam in Ledenbeheer en overal waar de naam getoond wordt. Er komt
+  geen logboekregel of ander spoor (besluit 2).
 
 ## Randgevallen
 
 | Geval | Gedrag |
 |---|---|
-| Lid wijzigt naam, oude transacties | Namen zijn geen snapshot. Elke plek die `served_by`/`reversed_by`/`member_id` naar een naam oplost (dienstoverzicht, logboek, `list_own_transactions`) toont voortaan de nieuwe naam, ook voor historie. Dat gebeurt nu ook al na `update_member_name` door beheer. Geen wijziging, wel expliciet benoemd: zie open vraag 2. |
+| Lid wijzigt naam, oude transacties | Namen zijn geen snapshot. Elke plek die `served_by`/`reversed_by`/`member_id` naar een naam oplost (dienstoverzicht, logboek, `list_own_transactions`) toont voortaan de nieuwe naam, ook voor historie. Dat gebeurt nu ook al na `update_member_name` door beheer. Geaccepteerd (besluit 2). |
 | Lid kiest een naam die een ander lid al heeft | Toegestaan, er is geen uniciteitseis (ook niet bij `update_member_name`). Op het bar-tablet kunnen dan twee gelijke namen in de ledenlijst of stafkeuze staan. Geaccepteerd risico, zelfde als vandaag via beheer. |
 | Naam alleen spaties | Client: Opslaan `aria-disabled`. Server: `invalid_name`. |
 | Naamwijziging terwijl het bar-tablet open staat | De bar-tablet toont de nieuwe naam bij de volgende fetch van `useMembers`/`useBarStaff`. Geen live-subscriptie, zelfde afweging als `portal-dashboard.md` → Randgevallen. |
 | Rol wijzigt terwijl het Account-tabblad open staat (beheer maakt bardienst → lid) | PIN-rij blijft zichtbaar tot een refetch. Een PIN-actie geeft dan `no_bar_role` → bestaande tekst "dit account kan geen pincode instellen — vraag een beheerder", en de sheet doet een `refetch()` zodat de rij verdwijnt. Wat er met een al ingestelde `pin_hash` gebeurt bij degradatie naar `lid` is `set_member_role`'s zaak, niet van dit ticket. |
 | Lid wordt gearchiveerd terwijl het tabblad open staat | Naam-/PIN-actie → `actor_not_found` → melding plus `refetch()`, waarna de rijen verdwijnen (zie Rolzichtbaarheid). |
-| PIN ingesteld in de portal, daarna dienst starten op het bar-tablet | Werkt direct: `start_shift` leest dezelfde `pin_hash`. Dit is de kern van het acceptatiecriterium, e2e-test hieronder. |
+| PIN ingesteld in de portal, daarna dienst starten op het bar-tablet | Werkt direct: `start_shift` leest dezelfde `pin_hash`, en `useBarStaff` toont het lid in de stafkeuze zodra `has_pin` waar is. Kern van het acceptatiecriterium, zie Testplan (db-test voor het starten, e2e voor de stafkeuze). |
+| PIN verwijderd in de portal | Het lid verdwijnt bij de volgende fetch uit de stafkeuze op het bar-tablet (`useBarStaff`, `.eq("has_pin", true)`). Een directe `start_shift`-aanroep geeft `invalid_pin`. Bar-modus via e-mail → "Bar" blijft werken, want dat is de wachtwoordweg (ADR 0005). |
 | Bardienst stelt dezelfde PIN in als een collega | Toegestaan en onzichtbaar, want de hashes zijn gezouten. `start_shift` kiest het lid via de stafkeuze, niet via de PIN. Geen wijziging. |
 | Zwakke PIN (`0000`, `1234`) | Toegestaan, `set_own_pin` weigert alleen verkeerde formaten. Geen nieuwe regel zonder beslissing van Bram. Buiten scope. |
-| Portal-sessie van bardienst, `/beheer`-sessie op het tablet met hetzelfde account | Losse cookies (ADR 0009), losse sessies. Een PIN- of naamwijziging in de portal is op `/beheer` zichtbaar na een refetch. Een wachtwoordwijziging: zie open vraag 4. |
-| Lid heeft alleen via magic link ingelogd en nooit een wachtwoord gezet | Onder 3A: werkt direct, de sheet functioneert dan als "wachtwoord instellen". Onder 3B: onmogelijk, want er is geen huidig wachtwoord om in te vullen. Dit is het hoofdargument in open vraag 3. |
-| `updateUser` vereist herauthenticatie (Supabase "Secure password change" staat aan en de sessie is ouder dan het venster) | Supabase geeft dan een fout in plaats van te wijzigen. Het gedrag hangt van een dashboard-instelling af die deze repo niet kan inzien (lokaal `supabase/config.toml` zet hem niet). **De Developer controleert de instelling van het gehoste project** en noteert de uitkomst in de PR. Onder 3A met de instelling aan, vang de fout op met "log opnieuw in en probeer het nog eens" in plaats van `unknown`. |
+| Portal-sessie van bardienst, `/beheer`-sessie op het tablet met hetzelfde account | Losse cookies (ADR 0009), losse sessies. Een PIN- of naamwijziging in de portal is op `/beheer` zichtbaar na een refetch. Een wachtwoordwijziging logt de `/beheer`-sessie niet uit (besluit 4); het nieuwe wachtwoord geldt bij de volgende login. |
+| Lid heeft alleen via magic link ingelogd en nooit een wachtwoord gezet | Werkt direct, want er wordt geen huidig wachtwoord gevraagd (besluit 3). De sheet functioneert dan als "wachtwoord instellen". Een verplichte onboardingstap hiervoor is buiten scope (besluit 5). |
+| `updateUser` vereist herauthenticatie (Supabase "Secure password change" staat aan en de sessie is ouder dan het venster) | Supabase geeft dan een fout in plaats van te wijzigen. Het gedrag hangt van een dashboard-instelling af die deze repo niet kan inzien (lokaal `supabase/config.toml` zet hem niet). **De Developer controleert de instelling van het gehoste project** en noteert de uitkomst in de PR. Ongeacht de uitkomst vangt de hook de fout op als `reauth_required` (zie Hooks), en de sheet toont "log opnieuw in en probeer het nog eens" in plaats van `unknown`. Geen `reauthenticate()`-nonce-flow (besluit 3). |
 | Rate limit op `updateUser` | `RATE_LIMITED_MESSAGE`, bestaand. |
 | Netwerkfout tijdens een van de drie acties | Sheet blijft open, invoer blijft staan (behalve bij de PIN: terug naar stap 1, geen PIN in state laten hangen), melding "er ging iets mis, probeer het opnieuw". |
-| **a11y** | Nieuwe stateful weergaven in `e2e/a11y.spec.ts` (axe): Account-tabblad als `lid` (zonder PIN-rij) en als bardienst (met PIN-rij), elk van de drie sheets open, PIN-sheet stap 2 en met foutmelding, naam-sheet met foutmelding. De bar-scenario's dekken de `PinPad`-refactor al af (dienst-starten). |
+| **a11y** | Nieuwe stateful weergaven in `e2e/a11y.spec.ts` (axe): Account-tabblad als `lid` (zonder PIN-rij) en als bardienst (met PIN-rij), elk van de drie sheets open, PIN-sheet stap 2 en met foutmelding, naam-sheet met foutmelding. De bar-scenario's dekken de `PinPad`-refactor al af (dienst-starten). Het bestaande scenario "portal (/portal) denied-staat (bardienst-account)" gaat over op een ongekoppeld account, zie Testplan → Bestaande tests. |
 
 ## Testplan
 
@@ -469,8 +499,29 @@ al generiek af, zonder aanpassing. Een expliciete
 in het nieuwe bestand mag, zodat de negatieve test ook bij de functie zelf
 staat.
 
-`set_own_pin.test.sql` blijft ongewijzigd: de RPC verandert niet, en de
-database weet niet of de aanroep uit de portal of uit `/beheer` komt.
+### `db:test` — kern-AC over de shells heen (`set_own_pin` → `start_shift`)
+
+De database weet niet of een `set_own_pin`-aanroep uit de portal of uit
+`/beheer` komt. "Aansluitend op de bestaande PIN-opslag" wordt daarom op
+RPC-niveau bewezen, niet met een e2e-test die een echte dienst start (zie
+e2e → waarom niet). Uitbreiding van `supabase/tests/set_own_pin.test.sql`,
+of een nieuw bestand `supabase/tests/set_own_pin_start_shift.test.sql`
+(Developer kiest):
+
+1. Als bardienst-fixture (via `request.jwt.claim.sub`): `set_own_pin('4821')`.
+   Daarna `start_shift(<fixture-id>, '4821', <geseed activiteitstype-id>)`
+   slaagt en geeft een dienst terug. `p_activity_type_id` is verplicht
+   (0021); neem een niet-gearchiveerd type uit de seed of een fixture in het
+   testbestand zelf.
+2. `start_shift` met een andere PIN → `invalid_pin`.
+3. Na `set_own_pin(null)`: `start_shift(<fixture-id>, '4821', …)` →
+   `invalid_pin` (de `pin_hash is null`-tak van 0021, regel 57).
+4. Alles binnen de transactie van de test (`begin … rollback`), zodat de
+   ene-open-dienst-guard van 0021 geen andere test raakt. Sluit een eventueel
+   al openstaande dienst uit de fixture-opzet vóór stap 1 in dezelfde
+   transactie, anders geeft stap 1 de foutcode van de open-dienst-guard in
+   plaats van een dienst.
+
 `check:rls` verandert niet: geen nieuwe tabel of policy.
 
 ### `test` (unit)
@@ -478,6 +529,7 @@ database weet niet of de aanroep uit de portal of uit `/beheer` komt.
 - `src/lib/ownPinErrors.ts`: mapping van alle bekende foutcodes plus
   fallback naar `unknown`.
 - Uitgebreid `src/lib/authErrors.ts`: `weak_password`/`same_password`/
+  `reauthentication_needed` en `reauthentication_not_valid` → `reauth_required`/
   rate-limit/onbekend.
 - Draaien de bestaande tests voor `passwordPolicy` al, dan hoeft daar niets
   bij.
@@ -491,33 +543,92 @@ database weet niet of de aanroep uit de portal of uit `/beheer` komt.
   is en beide velden gelijk zijn; `weak_password`/`same_password`/rate-limit
   tonen de bestaande teksten; succes → toast, sheet dicht, nog steeds
   ingelogd.
+- Wachtwoord-sheet, herauthenticatie: de mock laat `PUT /auth/v1/user`
+  antwoorden met `error_code: "reauthentication_needed"` → de sheet toont
+  "log opnieuw in en probeer het nog eens", niet de `unknown`-tekst.
 - PIN-sheet: ongelijke herhaling → "Codes komen niet overeen", terug naar
   stap 1, **geen** `set_own_pin`-request verstuurd (request-log van de mock).
 
 **Live backend** (lokale stack plus `seed.sql`, zelfde opzet als
-`portal-login.spec.ts` → "live backend"). Tests die seeddata wijzigen,
-herstellen die in een `afterEach` of draaien op een eigen fixture-lid, zodat
-andere specs niet omvallen:
+`portal-login.spec.ts` → "live backend").
 
-1. **Anna de Vries (`lid`)** logt in op `/portal` → Account-tabblad →
-   rijen Naam en Wachtwoord zichtbaar, **geen PIN-rij in de DOM**
-   (`toHaveCount(0)`, niet alleen `not.toBeVisible`).
-2. Anna wijzigt haar naam → toast, header toont de nieuwe voornaam, na
-   herladen staat de nieuwe naam er nog.
-3. **Sanne Bakker (`bardienst`, wachtwoordaccount, geen PIN in de seed)**
-   logt in op `/portal` (vereist 1A) → PIN-rij "niet ingesteld" → PIN
-   instellen en herhalen → toast, hint "ingesteld".
-4. **Kern-AC, over de shells heen:** daarna op `/` (bar-tablet, device-sessie)
-   Sanne kiezen in de stafkeuze plus de zojuist ingestelde PIN → dienst
-   start. Dit bewijst "aansluitend op de bestaande PIN-opslag/hashing" end to
-   end. Sluit de dienst in de teardown af (`end_shift`) en zet de PIN weer uit.
-5. Sanne verwijdert de PIN → hint "niet ingesteld" → op `/` weigert de
-   stafkeuze met PIN (bestaand gedrag van `start_shift` bij `pin_hash is
-   null`).
-6. Wachtwoord wijzigen als Anna → uitloggen → inloggen met het nieuwe
-   wachtwoord lukt, met het oude niet. Zet het wachtwoord in de teardown terug
-   via de Admin API (service-role, alleen in de testhelper, zoals
-   `generate_link` al doet).
+**Eigen fixture-accounts, geen gedeelde seedleden muteren.**
+`playwright.config.ts` draait met `fullyParallel: true`, en andere specs
+loggen tegelijk in als Anna de Vries, Sanne Bakker en Femke Bos. Een test die
+de naam, het wachtwoord of de PIN van zo'n gedeeld lid wijzigt, laat
+parallelle tests willekeurig falen, ook als hij in een `afterEach` herstelt.
+Daarom voegt de Developer aan `supabase/seed.sql` toe (exacte namen en
+e-mailadressen aan de Developer, met een herkenbaar `e2e`-voorvoegsel, en een
+lokaal-only wachtwoord in dezelfde vorm als de bestaande fixtures):
+
+| Fixture | Rol | Staat | Gebruikt door |
+|---|---|---|---|
+| profiel-lid-naam | `lid` | gekoppeld, wachtwoord | test 2 (naam wijzigen) |
+| profiel-lid-wachtwoord | `lid` | gekoppeld, wachtwoord | test 5 (wachtwoord wijzigen) |
+| profiel-bardienst | `bardienst` | gekoppeld, wachtwoord, **geen** PIN | tests 3–4 (PIN) |
+| ongekoppeld | — | alleen een `auth.users`-rij met wachtwoord, **geen** `members`-rij | bestaande denied-tests (zie hieronder) |
+
+Elke muterende test gebruikt precies één fixture die geen andere test
+gebruikt. Alleen-lezende tests (test 1) mogen een gedeeld lid gebruiken.
+
+1. **Anna de Vries (`lid`, alleen lezen)** logt in op `/portal` →
+   Account-tabblad → rijen Naam en Wachtwoord zichtbaar, **geen PIN-rij in de
+   DOM** (`toHaveCount(0)`, niet alleen `not.toBeVisible`).
+2. **profiel-lid-naam** wijzigt de naam → toast, header "Hoi {nieuwe
+   voornaam}" verandert **zonder herladen** (bewijst de doorgegeven refetch,
+   zie Schermflow → Naam), en na herladen staat de nieuwe naam er nog.
+3. **profiel-bardienst** logt in op `/portal` → PIN-rij "niet ingesteld" →
+   PIN instellen en herhalen → toast, hint "ingesteld". Dan "Pincode
+   verwijderen" → hint "niet ingesteld".
+4. **Stafkeuze op het bar-tablet** (read-only, geen dienst starten): na
+   stap 3's instellen staat profiel-bardienst in de stafkeuze op `/`, na het
+   verwijderen **niet meer** (`toHaveCount(0)`; `useBarStaff` filtert op
+   `has_pin`). Na verwijderen is er dus geen tegel om op te tikken, en een
+   "PIN geweigerd"-assertie kan niet. Het weigeren van een lege PIN is
+   `start_shift`'s zaak en zit in de db-test hierboven. **Plaatsing:** de
+   stafkeuze is alleen zichtbaar zolang er geen open dienst is, en de
+   bestaande bar-scenario's openen en sluiten de gedeelde dienst binnen
+   `test.describe.serial("stateful bar-shell scenarios (shared session)")` in
+   `e2e/a11y.spec.ts`. Deze stap draait daarom in die serial-groep, op een
+   moment dat er geen dienst open staat (vóór de eerste dienststart, zoals de
+   bestaande stafkeuzescan), of in een eigen serial-groep die met die groep
+   gecoördineerd wordt. Niet als losse parallelle test. De portal-kant (stap
+   3) mag in de groep zelf, of er vlak voor via de Admin API/RPC als
+   opzetstap.
+5. **profiel-lid-wachtwoord** wijzigt het wachtwoord → uitloggen → inloggen
+   met het nieuwe wachtwoord lukt, met het oude niet. Geen herstel nodig: de
+   fixture is van deze test alleen. Is herhaalbaarheid op een lokale stack
+   zonder `db reset` nodig, zet het wachtwoord dan in de teardown terug via de
+   Admin API (service-role, alleen in de testhelper, zoals `generate_link` al
+   doet).
+
+**Waarom geen e2e die op het bar-tablet een echte dienst start met de nieuwe
+PIN.** Dat vraagt de hele route stafkeuze → **activiteitkeuze** (verplichte
+stap in `DienstStarten.tsx`, `step "activity"`, omdat `start_shift`
+`p_activity_type_id` vereist) → PIN, én coördinatie met de ene open dienst
+die de database toestaat (0021) en die de serial-groep in `a11y.spec.ts`
+al gebruikt. De db-test bewijst dezelfde eigenschap (portal-PIN = de PIN die
+`start_shift` accepteert) zonder die gedeelde staat. Kiest de Developer toch
+voor een volledige e2e, dan moet die in de serial-groep, met de
+activiteitkeuze erin en met `end_shift` in de teardown.
+
+**Bestaande tests die door besluit 1 veranderen.** `e2e/portal-login.spec.ts`
+("een bardienst-account op /portal krijgt de neutrale 'niet
+gekoppeld'-melding", regel 183) en `e2e/a11y.spec.ts` ("portal (/portal)
+denied-staat (bardienst-account)", regel 378) loggen in als Sanne Bakker en
+verwachten "Dit account is niet gekoppeld aan een lid.". Na besluit 1 is
+Sanne gewoon `signed-in`, dus beide tests falen. Aanpassen:
+
+- Beide tests loggen in met de nieuwe **ongekoppelde** fixture (`auth.users`
+  zonder `members`-rij), en blijven verder gelijk (neutrale melding, geen
+  "Hoi …", a11y-scan). Zo blijft de `denied`-staat gedekt.
+- Nieuw in `portal-login.spec.ts`: Sanne Bakker (bardienst) op `/portal` →
+  `signed-in`, Saldo toont **haar eigen** saldo (€21,00), en de
+  Transacties-tab toont geen transacties van anderen. Dat is de
+  testverwachting uit ADR 0012 → Gevolgen. Alleen lezen, dus Sanne mag
+  gedeeld gebruikt worden.
+- Test- en commentaarteksten die "bardienst → denied" als bedoeld gedrag
+  beschrijven (bijvoorbeeld `a11y.spec.ts` regel 373–376) meebijwerken.
 
 ### Gates
 
@@ -528,26 +639,23 @@ warnings.
 
 ## ADR
 
-- **Onder optie 1A is een nieuwe ADR nodig**, voorgesteld als *ADR 0012 —
-  Portal is het lid-deel voor iedereen met een gekoppeld `members`-record,
-  niet alleen voor rol `lid`*. Die wijzigt `portal-login.md` → Rolzichtbaarheid
-  ("sessie die niet naar een actief `lid`-record herleidt → `denied`"), wat
-  een volgende portal-feature anders als vaste grens zou lezen. De ADR moet
-  vastleggen: (a) de portal toont voor elke rol alleen eigen data; (b) elke
-  portal-leeshook filtert daarom **expliciet** op de eigen
-  `auth_user_id`/`caller_member_id()`, en mag nooit leunen op de
-  RLS-narrowing van ADR 0007, omdat een bardienst/beheerder-sessie die
-  narrowing niet heeft (dit is nu toevallig zo in `usePortalBalance.ts` en
-  `list_own_transactions()`, en wordt daarmee een regel); (c) of dit een
-  gate verdient (een `check:policy`-regel "elke `.from()` in een
-  `usePortal*`-hook heeft een `.eq("auth_user_id", …)` of gaat via een
-  zelf-scopende RPC") of reviewwerk blijft. Aanbeveling voor (c): eerst
-  reviewwerk, want de regel is lastig betrouwbaar statisch te lezen. Het
-  staat wel in de ADR, zodat het niet vergeten wordt. ADR 0003
-  (modus-keuze bar óf beheer) wordt niet geraakt: de portal is geen derde
-  modus op het bar-tablet, maar een aparte shell met een eigen cookie (ADR
-  0009). ADR 0005 wordt niet geraakt. De ADR wordt geschreven zodra Bram
-  voor 1A kiest, en landt in dezelfde PR als deze spec.
+- **[ADR 0012 — De portal toont voor elke rol alleen eigen data;
+  portal-leeshooks filteren expliciet op de eigen rij](../adr/0012-portal-eigen-data-voor-elke-rol.md)**,
+  geaccepteerd met besluit 1. Wijzigt de sessie-gate uit `portal-login.md` →
+  Rolzichtbaarheid. Kern voor de Developer:
+  - elke **root-read van lid-eigen data** (`members`, `orders`, `top_ups`,
+    `order_reversals`) in een `usePortal*`-hook filtert expliciet op de eigen
+    `auth_user_id`, of gaat via een zelf-scopende RPC zonder doel-parameter.
+    Nooit leunen op de RLS-narrowing van ADR 0007, want een
+    bardienst/beheerder-sessie heeft die niet;
+  - **afgeleide reads** mogen filteren op id's die uit zo'n eigen-rij-read
+    komen (zoals `usePortalTransactions.ts` `order_lines` ophaalt voor de
+    order-id's uit `list_own_transactions()`);
+  - **globale data** zonder eigen rij en zonder persoonsgegevens
+    (`app_settings`, zoals `usePortalAppSettings.ts`, en `products`) valt
+    buiten de regel;
+  - reviewwerk, geen gate (zie ADR → Gevolgen voor wanneer dat verandert).
+  ADR 0003 en 0005 worden niet geraakt.
 - **Geen ADR voor `update_own_name`**: dat volgt het bestaande
   zelfbedieningspatroon van `set_own_pin` (0014) één op één.
 - **Geen ADR voor de `Overlay.tsx`-sheet-tak**: die was al voorzien in het
@@ -567,118 +675,42 @@ warnings.
 - **Naam, wachtwoord en PIN wijzigen voor een ander lid.** Blijft
   `update_member_name`/Ledenbeheer (beheer).
 - **`MijnAccountOverlay.tsx` ombouwen of uitbreiden** (naam/wachtwoord op
-  `/beheer`). Zie open vraag 6.
+  `/beheer`). Besluit 6.
+- **Logboekregel of ander spoor bij een naamwijziging.** Besluit 2.
+- **Huidig wachtwoord vragen, of herauthenticatie via een gemailde code.**
+  Besluit 3.
+- **Andere sessies uitloggen na een wachtwoordwijziging.** Besluit 4.
+- **Onboardingstap "kies een wachtwoord" na de eerste magic link** (chat30).
+  Besluit 5: apart vervolgticket. `portal-login.md` en `lid-account-invite.md`
+  verwijzen hiervoor nog naar #17; Docs werkt die verwijzing bij naar het
+  vervolgticket zodra dat een nummer heeft.
 - **PIN-sterkteregels, lockout na foute pogingen.** `docs/ARCHITECTURE.md` →
   "No lockout/rate-limit in MVP" blijft staan.
 - **Sleepgebaar om een sheet te sluiten.** Zie useShell()-contract.
-- **Onboardingwizard na de eerste magic link** (chat30), tenzij Bram bij open
-  vraag 5 anders beslist.
+
+## Besloten door Bram (2026-09-28)
+
+1. **Portal voor elke rol (1A).** Bardienst en beheerder loggen in op de
+   portal en zien daar het lid-deel: eigen saldo, eigen transacties, eigen
+   profiel, plus de PIN-rij. Vastgelegd in
+   [ADR 0012](../adr/0012-portal-eigen-data-voor-elke-rol.md). Verwerkt in
+   Betrokken shell (`usePortalSession.ts`), Hooks, Rolzichtbaarheid en
+   Testplan (bestaande denied-tests).
+2. **Naam vrij wijzigen, geen spoor (2A).** Het lid wijzigt, iedereen ziet de
+   nieuwe naam, ook bij oude transacties. Zelfde als nu wanneer beheer een
+   naam wijzigt. Geen logboekregel.
+3. **Geen huidig wachtwoord nodig (3A).** De ingelogde sessie is genoeg.
+   Alleen Nieuw plus Herhalen. Werkt ook voor een lid dat alleen via magic
+   link inlogde. Staat Supabase "Secure password change" aan, dan vangt de
+   hook `reauth_required` op met een "log opnieuw in"-melding, zonder
+   nonce-flow.
+4. **Andere sessies blijven actief (4A).** Geen `signOut({ scope: "others"
+   })` na een wachtwoordwijziging.
+5. **Onboarding "kies een wachtwoord" buiten scope.** Apart vervolgticket.
+6. **Naam en wachtwoord alleen in de portal (6A).** `/beheer` → "Mijn
+   account" blijft zoals het is (PIN aan/uit).
 
 ## Nog te beslissen door Bram
-
-**1. (Blokkerend) Mag een bardienst/beheerder inloggen op de portal?**
-Vandaag weigert `usePortalSession.ts` elke rol behalve `lid` (`denied`, "Dit
-account is niet gekoppeld aan een lid."), zoals `portal-login.md` →
-Rolzichtbaarheid besloot. Dan kan een bardienst het profielscherm nooit
-bereiken, en is "PIN instellen, alleen voor leden met bar/beheer-rol" in de
-portal onbereikbare code.
-- **1A — Ja: de portal is het lid-deel voor iedereen met een gekoppeld
-  `members`-record.** Een bardienst of beheerder ziet op de telefoon eigen
-  saldo, transacties en profiel, plus de PIN-rij. Vereist ADR 0012 (zie ADR)
-  en een kleine wijziging in `usePortalSession.ts`. Technisch veilig
-  vandaag: `usePortalBalance.ts` filtert expliciet op `auth_user_id`, en
-  `list_own_transactions()` op `caller_member_id()`. Bardienst/beheerder
-  hebben een eigen saldo (seed: Tom €9,80, Sanne €21,00) maar nu geen enkele
-  plek om hun eigen transacties te zien.
-- **1B — Nee: de portal blijft alleen voor `lid`.** Een bardienst/beheerder
-  zet de PIN alleen via `/beheer` → "Mijn account" (bestaat al). Voor de
-  portal valt het PIN-deel van #17 weg: de PIN-rij wordt nooit gebouwd,
-  omdat elk portal-lid rol `lid` heeft. Een bardienst kan dan ook naam en
-  wachtwoord niet in de portal wijzigen (zie vraag 6).
-- **Aanbeveling: 1A.** Het issue gaat er letterlijk van uit ("als het lid
-  óók bardienst/beheerder is"), Bram's eigen woorden in `chat10.md` ("op de
-  telefoon kan een gebruiker alleen maar het LID gedeelte zien") wijzen die
-  kant op, en het lost een echt gat op (bar-rollen zien nu hun eigen
-  transacties nergens). Het risico, dat een bardienst-sessie via RLS breed
-  kan lezen, is beheersbaar met de regel uit ADR 0012 (b).
-
-**2. Naam wijzigen: helemaal vrij, of met een spoor voor beheer?**
-De naam staat op het bar-tablet (ledenlijst, stafkeuze), in dienstoverzicht
-en logboek, en wordt niet gesnapshot, dus ook oude transacties tonen de
-nieuwe naam.
-- **2A — Vrij, geen spoor.** Het lid wijzigt, iedereen ziet de nieuwe naam.
-  Zelfde als nu wanneer beheer een naam wijzigt.
-- **2B — Vrij, met logboekregel voor beheer** ("Anna de Vries heet nu Anna
-  Jansen"). Het logboek heeft nu geen databron voor ledenmutaties (de chip
-  "Leden" is altijd leeg, `logboek.ts`), dus dit vraagt een nieuwe
-  audittabel plus RLS plus tests. Dat is een eigen ticket, en waarschijnlijk
-  ook nodig voor beheerwijzigingen.
-- **2C — Niet in de portal; naam wijzigt alleen beheer.** De Naam-rij en
-  `update_own_name` vervallen.
-- **Aanbeveling: 2A.** Het is wat issue en prototype vragen, er is geen
-  geldrisico, en het is gelijk aan wat beheer al kan. Hebben leden die zich
-  bewust onherkenbaar noemen later een risico, dan is 2B een los ticket dat
-  beide paden tegelijk dekt.
-
-**3. Moet het huidige wachtwoord ingevuld worden bij wijzigen?**
-Het prototype toont het veld, maar controleert het niet.
-- **3A — Nee, de ingelogde sessie is genoeg.** Alleen Nieuw plus Herhalen.
-  Werkt ook voor een lid dat alleen via magic link inlogde en nooit een
-  wachtwoord had. Zelfde vertrouwensniveau als `set_own_pin` en de naam
-  (sessie = bewijs). Risico: wie een ontgrendelde telefoon met open portal
-  in handen krijgt, kan het wachtwoord wijzigen. Voor bardienst/beheerder is
-  dat ook het `/beheer`-wachtwoord.
-- **3B — Ja, client-side hercontrole** via `signInWithPassword(eigen e-mail,
-  huidig)` vóór `updateUser`. Blokkeert het scenario met de onbeheerde
-  telefoon, maar werkt niet voor een lid zonder wachtwoord (magic-link-only),
-  en het is geen serverside garantie (een aanvaller met de sessie kan
-  `updateUser` direct aanroepen).
-- **3C — Serverside herauthenticatie via Supabase** (instelling "Secure
-  password change" plus `reauthenticate()`, dat een code mailt). Echte
-  garantie, maar een mailstap bij elke wijziging buiten het venster, en het
-  hangt van Supabase-dashboardgedrag af dat hier niet te verifiëren is.
-- **Aanbeveling: 3A.** Het lid kan altijd al via "Wachtwoord vergeten"
-  (alleen de mailbox is nodig) een nieuw wachtwoord zetten, dus 3B voegt
-  weinig echte bescherming toe en sluit magic-link-leden uit. Moet de
-  onbeheerde telefoon wel afgedekt worden, dan is 3C de enige variant die
-  het echt dekt.
-
-**4. Andere sessies uitloggen na een wachtwoordwijziging?**
-- **4A — Nee** (Supabase-standaard): andere sessies van hetzelfde account
-  blijven werken tot ze verlopen.
-- **4B — Ja**, `signOut({ scope: "others" })` na succes. Let op: voor een
-  bardienst/beheerder logt dat ook een lopende `/beheer`-sessie op het
-  bar-tablet uit (zelfde `auth.users`-rij). De device-sessie van de bar niet,
-  want dat is een ander account.
-- **Aanbeveling: 4A** voor v1. Een wachtwoordwijziging is hier meestal
-  gemak, geen reactie op een lek. Wie een lek vermoedt, heeft baat bij 4B.
-  Dat kan later een losse knop "overal uitloggen" worden.
-
-**5. Hoort het onboardingscherm "kies een wachtwoord" na de eerste magic
-link (chat30) bij dit ticket?** `portal-login.md` en `lid-account-invite.md`
-wijzen het aan #17 toe. De issue-tekst noemt het niet.
-- **5A — Buiten scope, eigen ticket.** Onder 3A kan een magic-link-lid via
-  Account → Wachtwoord wijzigen alsnog een wachtwoord zetten (functioneel
-  "instellen"), maar wordt daar niet naartoe geleid. Voor een uitgenodigde
-  bardienst/beheerder (verplicht wachtwoord, ADR 0005) blijft de route nu
-  "Wachtwoord vergeten", of onder 1A het portal-profiel.
-- **5B — Binnen scope:** na de eerste magic-link-login (portal en `/beheer`)
-  een verplichte stap "kies een wachtwoord". Dat raakt `/auth/callback`,
-  vraagt een manier om "heeft nog geen wachtwoord" te detecteren (Supabase
-  geeft dat niet aan de client; dat vraagt een nieuwe RPC die in `auth.users`
-  kijkt of een nieuwe vlag) en raakt ook bar/beheer. Groter dan de rest van
-  #17 bij elkaar.
-- **Aanbeveling: 5A.** Wel expliciet een vervolgticket aanmaken, zodat de
-  twee specs die ernaar verwijzen niet naar een lege plek wijzen.
-
-**6. Naam en wachtwoord ook in `/beheer` → "Mijn account"?**
-- **6A — Nee, alleen de portal.** Onder 1A doet een bardienst/beheerder dat
-  op de telefoon.
-- **6B — Ja**, `MijnAccountOverlay.tsx` krijgt dezelfde rijen, met
-  bar-client-hooks.
-- **Aanbeveling: 6A.** Het issue gaat over de portal, en onder 1A is er
-  voor elke rol een plek. Kiest Bram 1B, dan is 6B de enige manier waarop
-  een bardienst naam en wachtwoord kan wijzigen, en hoort het wel in scope.
 
 **7. Teksten voor de PIN-rij en PIN-sheet (bar-PIN, niet portal-PIN).**
 De prototypeteksten verwijzen naar inloggen op de portal, en dat klopt hier
