@@ -160,15 +160,21 @@ test.describe("portal (a11y)", () => {
   /**
    * `PortalShellHome`'s "signed-in"-branch — Anna de Vries (seeded `lid`-rol
    * e-mail/wachtwoord-account, `supabase/seed.sql`), zelfde fixture als
-   * e2e/portal-login.spec.ts's wachtwoordpad-test.
+   * e2e/portal-login.spec.ts's wachtwoordpad-test. Scant sinds #16
+   * (docs/features/portal-dashboard.md) het nieuwe `PortalDashboard` — de
+   * oude "Welkom, {naam}"-placeholder bestaat niet meer, dus dit scenario
+   * wacht nu op het (standaard geopende) Saldo-tabblad in plaats daarvan.
+   * Uitgebreide scenario's (Transacties-tabblad, laag-saldo-variant, lege
+   * staat) zijn aan de Tester (spec → Randgevallen → "a11y").
    */
   test("portal (/portal) ingelogde staat (Anna de Vries) has no WCAG2A/AA violations", async ({
     page,
   }) => {
     await portalLoginMetWachtwoord(page, "anna.de.vries@aurora.local", "local-lid-dev-only");
     await page
-      .getByRole("heading", { name: "Welkom, Anna de Vries" })
+      .getByRole("heading", { name: "Hoi Anna" })
       .waitFor({ state: "visible", timeout: 15_000 });
+    await page.getByText("HUIDIG SALDO").waitFor({ state: "visible" });
 
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa"])
@@ -176,6 +182,164 @@ test.describe("portal (a11y)", () => {
 
     expect(results.violations, JSON.stringify(results.violations, null, 2))
       .toEqual([]);
+  });
+
+  /**
+   * Minimale sanity-check bovenop het scenario hierboven: het Transacties-
+   * tabblad is bereikbaar en axe-schoon met de gevulde seed-data (Anna de
+   * Vries heeft sinds #16 een bestelling, een opwaardering en een
+   * teruggedraaide bestelling, `supabase/seed.sql`). Geen uitputtende
+   * dekking (filters, maandgroepering, lege staat) — dat is de Tester's
+   * werk, zie spec → Randgevallen → "a11y".
+   */
+  test("portal (/portal) Transacties-tabblad (Anna de Vries) has no WCAG2A/AA violations", async ({
+    page,
+  }) => {
+    await portalLoginMetWachtwoord(page, "anna.de.vries@aurora.local", "local-lid-dev-only");
+    await page
+      .getByRole("heading", { name: "Hoi Anna" })
+      .waitFor({ state: "visible", timeout: 15_000 });
+
+    await page.getByRole("tab", { name: "Transacties" }).click();
+    await page.getByText("Bestelling").first().waitFor({ state: "visible", timeout: 15_000 });
+
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+
+    expect(results.violations, JSON.stringify(results.violations, null, 2))
+      .toEqual([]);
+  });
+
+  /**
+   * docs/features/portal-dashboard.md (#16) → Randgevallen → "a11y": de
+   * laag-saldo-variant, nog niet gedekt door het scenario hierboven (Anna
+   * de Vries zit boven de €10-drempel). Piet Bakker (seeded `lid`,
+   * `supabase/seed.sql`) heeft een saldo van -€8,40 — al onder de drempel
+   * zonder dat er nog iets voor deze test bij hoefde — en krijgt hier een
+   * eigen e-mail/wachtwoord-account (Tester-toevoeging, zelfde patroon als
+   * Anna de Vries' account in `portal-login.md`). Scant de "Saldo bijna
+   * op"-kaart op het standaard geopende Saldo-tabblad.
+   */
+  test("portal (/portal) laag-saldo-variant (Piet Bakker) has no WCAG2A/AA violations", async ({
+    page,
+  }) => {
+    await portalLoginMetWachtwoord(page, "piet.bakker@aurora.local", "local-lid-laag-saldo-dev-only");
+    await page
+      .getByRole("heading", { name: "Hoi Piet" })
+      .waitFor({ state: "visible", timeout: 15_000 });
+    await page.getByText("Saldo bijna op").waitFor({ state: "visible" });
+
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+
+    expect(results.violations, JSON.stringify(results.violations, null, 2))
+      .toEqual([]);
+  });
+
+  /**
+   * docs/features/portal-dashboard.md (#16) → Randgevallen → "a11y": de
+   * lege-transacties-staat, op beide tabbladen. Piet Bakker heeft — anders
+   * dan Anna de Vries — geen enkele `orders`/`top_ups`-rij
+   * (`supabase/seed.sql`), dus dit is tegelijk de kandidaat-fixture die de
+   * spec noemde ("lege-staat-fixture", zie de Developer's verslag) en de
+   * laag-saldo-fixture hierboven — bewust één en dezelfde seed-rij, geen
+   * losse toggle. Scant eerst de "Deze maand"-lege-staat op het al open
+   * Saldo-tabblad, dan dezelfde lege-staat op het Transacties-tabblad.
+   */
+  test("portal (/portal) lege-transacties-staat (Piet Bakker) has no WCAG2A/AA violations", async ({
+    page,
+  }) => {
+    await portalLoginMetWachtwoord(page, "piet.bakker@aurora.local", "local-lid-laag-saldo-dev-only");
+    await page
+      .getByRole("heading", { name: "Hoi Piet" })
+      .waitFor({ state: "visible", timeout: 15_000 });
+    await page.getByText("Nog geen transacties").waitFor({ state: "visible", timeout: 15_000 });
+
+    const saldoResults = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+    expect(saldoResults.violations, JSON.stringify(saldoResults.violations, null, 2))
+      .toEqual([]);
+
+    await page.getByRole("tab", { name: "Transacties" }).click();
+    await page.getByText("Nog geen transacties").waitFor({ state: "visible", timeout: 15_000 });
+
+    const txResults = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+    expect(txResults.violations, JSON.stringify(txResults.violations, null, 2))
+      .toEqual([]);
+  });
+
+  /**
+   * docs/features/portal-dashboard.md (#16) → Randgevallen → "a11y": het
+   * Transacties-tabblad met de filters en de maandgroepering, tegen Anna de
+   * Vries' gevulde seed-data (een bestelling, een teruggedraaide bestelling,
+   * een opwaardering — `supabase/seed.sql`). Het bestaande
+   * "Transacties-tabblad"-scenario hierboven scant alleen de standaardstaat
+   * (filter "Alles"); dit scenario schakelt daadwerkelijk tussen de drie
+   * filters (`aria-pressed`, `TransactiesTab.tsx`) en scant elke staat
+   * apart, zelfde "één test, meerdere passes bij wisselende schermstaat"
+   * vorm als de Logboek-tab-test verderop in dit bestand. De maandgroepering
+   * zelf (een `<section aria-label="{maand}">` per maand,
+   * `TransactiesTab.tsx`) wordt hier niet op een letterlijke maandnaam
+   * getoetst (die hangt af van de dag waarop de test draait) — de
+   * "Einde van de lijst"-voettekst bewijst dat de groepen daadwerkelijk
+   * gerenderd zijn.
+   */
+  test("portal (/portal) Transacties-tabblad met filters en maandgroepering (Anna de Vries) has no WCAG2A/AA violations", async ({
+    page,
+  }) => {
+    await portalLoginMetWachtwoord(page, "anna.de.vries@aurora.local", "local-lid-dev-only");
+    await page
+      .getByRole("heading", { name: "Hoi Anna" })
+      .waitFor({ state: "visible", timeout: 15_000 });
+
+    await page.getByRole("tab", { name: "Transacties" }).click();
+    await page.getByText("Einde van de lijst").waitFor({ state: "visible", timeout: 15_000 });
+
+    // Filter "Alles" (standaard): zowel een bestelling als een opwaardering
+    // zichtbaar.
+    await page.getByText("Bestelling").first().waitFor({ state: "visible" });
+    await page.getByText("Opgewaardeerd").first().waitFor({ state: "visible" });
+
+    const allesResults = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+    expect(allesResults.violations, JSON.stringify(allesResults.violations, null, 2))
+      .toEqual([]);
+
+    // Filter "Uitgaven": de opwaardering verdwijnt, de (ook teruggedraaide)
+    // bestellingen blijven staan (spec → Schermflow §2: "het is en blijft
+    // een bestelling").
+    const uitgavenFilter = page.getByRole("button", { name: "Uitgaven" });
+    await uitgavenFilter.click();
+    await expect(uitgavenFilter).toHaveAttribute("aria-pressed", "true");
+    await page.getByText("Bestelling").first().waitFor({ state: "visible" });
+    await expect(page.getByText("Opgewaardeerd")).toHaveCount(0);
+
+    const uitgavenResults = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+    expect(uitgavenResults.violations, JSON.stringify(uitgavenResults.violations, null, 2))
+      .toEqual([]);
+
+    // Filter "Opwaarderingen": het omgekeerde.
+    const opwaarderingenFilter = page.getByRole("button", { name: "Opwaarderingen" });
+    await opwaarderingenFilter.click();
+    await expect(opwaarderingenFilter).toHaveAttribute("aria-pressed", "true");
+    await page.getByText("Opgewaardeerd").first().waitFor({ state: "visible" });
+    await expect(page.getByText("Bestelling")).toHaveCount(0);
+
+    const opwaarderingenResults = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+    expect(
+      opwaarderingenResults.violations,
+      JSON.stringify(opwaarderingenResults.violations, null, 2)
+    ).toEqual([]);
   });
 
   /**
