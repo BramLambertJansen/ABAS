@@ -5,15 +5,18 @@ import { createClient } from "@/lib/supabase/portalClient";
 import { reportClientError } from "@/lib/clientErrors";
 
 /**
- * Eigen naam + `balance_cents` van de ingelogde `lid`-sessie —
- * docs/features/portal-dashboard.md → Betrokken shell. Platte `select` via
- * `portalClient.ts` (ADR 0009, niet `@/lib/supabase/client`): `members_select`
- * (0015) staat een `lid`-sessie toch al alleen de eigen rij toe, dus geen RPC
- * nodig — alleen de servernaam-op-een-andere-rij (`usePortalTransactions.ts`)
- * heeft dat wél (ADR 0010).
+ * Eigen naam + `balance_cents` van de ingelogde portal-sessie, voor elke rol
+ * (ADR 0012) — docs/features/portal-dashboard.md → Betrokken shell. Platte
+ * `select` via `portalClient.ts` (ADR 0009, niet `@/lib/supabase/client`);
+ * geen RPC nodig, alleen de servernaam-op-een-andere-rij
+ * (`usePortalTransactions.ts`) heeft dat wél (ADR 0010).
  *
- * Zoekt op `auth_user_id`, niet op een meegegeven id: dezelfde eigen-sessie-
- * lookup als `usePortalSession.ts`, geen los memberId-argument nodig.
+ * De expliciete `.eq("auth_user_id", …)` is wat deze read tot de eigen rij
+ * beperkt, niet RLS: `members_select` (0015, ADR 0007) versmalt alleen een
+ * `lid`-sessie tot de eigen rij, een bardienst/beheerder-sessie leest via
+ * RLS álle `members`-rijen (ADR 0012 → Beslissing 2). Zoekt op
+ * `auth_user_id`, niet op een meegegeven id: dezelfde eigen-sessie-lookup
+ * als `usePortalSession.ts`, geen los memberId-argument nodig.
  */
 export type PortalBalance = {
   name: string;

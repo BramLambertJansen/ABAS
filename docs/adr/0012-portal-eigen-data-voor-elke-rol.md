@@ -1,6 +1,6 @@
 # 0012 — De portal toont voor elke rol alleen eigen data; portal-leeshooks filteren expliciet op de eigen rij
 
-Status: **geaccepteerd** (Bram, 2026-09-28; besluit 1A bij
+Status: **geaccepteerd, geïmplementeerd (2026-09-28, PR #110)** (Bram, 2026-09-28; besluit 1A bij
 [`docs/features/portal-profiel.md`](../features/portal-profiel.md), issue
 #17, tekst goedgekeurd in PR #104). Wijzigt de sessie-gate uit
 [`docs/features/portal-login.md`](../features/portal-login.md) →
