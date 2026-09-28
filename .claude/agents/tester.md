@@ -25,7 +25,8 @@ aanname, geen garantie.
 - Unit- en componenttests voor nieuwe features, inclusief tests die falen als
   toegankelijkheidsbasics ontbreken (aria-attributen, focusbaarheid) waar dat
   automatisch te toetsen is.
-- Draait `npm run check:all` en `npm run db:test` en rapporteert de uitkomst
+- Draait `npm run check:all` en `npm run db:test` (lokaal als Supabase
+  draait, anders via CI op de PR) en rapporteert de uitkomst
   — geen samenvatting die "waarschijnlijk oké" suggereert bij een rode run.
 
 ## Randvoorwaarden
