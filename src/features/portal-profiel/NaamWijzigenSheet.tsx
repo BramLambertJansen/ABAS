@@ -2,6 +2,7 @@
 
 import { useId, useState, type FormEvent } from "react";
 import { Overlay } from "@/components/Overlay";
+import { TekstVeld } from "@/components/TekstVeld";
 import {
   usePortalUpdateOwnName,
   type UpdateOwnNameErrorCode,
@@ -44,7 +45,6 @@ export function NaamWijzigenSheet({
 }) {
   const [name, setName] = useState(currentName);
   const mutation = usePortalUpdateOwnName();
-  const inputId = useId();
   const errorId = useId();
 
   const trimmed = name.trim();
@@ -70,25 +70,20 @@ export function NaamWijzigenSheet({
       onClose={onClose}
     >
       <form onSubmit={submit} className="flex flex-col gap-[14px]" noValidate>
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor={inputId} className="text-xs font-bold text-muted">
-            Volledige naam
-          </label>
-          <input
-            id={inputId}
-            type="text"
-            autoComplete="name"
-            required
-            value={name}
-            onChange={(event) => {
-              setName(event.target.value);
-              if (mutation.errorCode) mutation.reset();
-            }}
-            aria-invalid={mutation.errorCode === "invalid_name"}
-            aria-describedby={mutation.errorCode ? errorId : undefined}
-            className="h-[54px] rounded-2xl border border-border bg-white px-4 text-sm font-semibold text-ink outline-none focus:border-accent"
-          />
-        </div>
+        <TekstVeld
+          label="Volledige naam"
+          tone="light"
+          type="text"
+          autoComplete="name"
+          required
+          value={name}
+          onChange={(event) => {
+            setName(event.target.value);
+            if (mutation.errorCode) mutation.reset();
+          }}
+          aria-invalid={mutation.errorCode === "invalid_name"}
+          aria-describedby={mutation.errorCode ? errorId : undefined}
+        />
 
         <p id={errorId} className="text-sm font-bold text-danger empty:-mt-[14px]" role="alert">
           {mutation.errorCode ? errorMessage(mutation.errorCode) : ""}

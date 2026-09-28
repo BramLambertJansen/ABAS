@@ -1111,6 +1111,37 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
    * from the app's own behaviour. The scan below re-starts nothing — the
    * next test in this block calls `ensureShiftStarted()` as usual.
    */
+  async function ensureNoOpenShift(page: Page) {
+    await page.goto("/");
+
+    const verkoopTab = page.getByRole("tab", { name: "Verkoop" });
+    const staffButton = page.getByRole("button", { name: STAFF_BUTTON_NAME });
+
+    // Same "race both landing states rather than pre-guessing which one
+    // shows first" reasoning as ensureShiftStarted() above.
+    await Promise.race([
+      verkoopTab.waitFor({ state: "visible", timeout: 15_000 }),
+      staffButton.waitFor({ state: "visible", timeout: 15_000 }),
+    ]);
+
+    if (await staffButton.isVisible()) return;
+
+    await page.getByRole("tab", { name: "Dienst" }).click();
+    await page
+      .getByRole("heading", { name: "Dienst", exact: true })
+      .waitFor({ state: "visible", timeout: 15_000 });
+    await page.getByRole("button", { name: "Dienst afsluiten" }).click();
+
+    // Scope the confirm to the dialog: the trigger button behind it has
+    // the same accessible name, and Playwright's name matching ignores
+    // case, so an unscoped locator would be a strict-mode violation.
+    const dialog = page.getByRole("dialog", { name: "Dienst afsluiten" });
+    await dialog.waitFor({ state: "visible" });
+    await dialog.getByRole("button", { name: "dienst afsluiten" }).click();
+
+    await staffButton.waitFor({ state: "visible", timeout: 15_000 });
+  }
+
   /**
    * docs/features/portal-profiel.md (#17) → Testplan → e2e stap 3 + 4: een
    * PIN die de bardienst zelf in de portal zet, zet hem in de stafkeuze op
@@ -1181,37 +1212,6 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
 
     await portal.close();
   });
-
-  async function ensureNoOpenShift(page: Page) {
-    await page.goto("/");
-
-    const verkoopTab = page.getByRole("tab", { name: "Verkoop" });
-    const staffButton = page.getByRole("button", { name: STAFF_BUTTON_NAME });
-
-    // Same "race both landing states rather than pre-guessing which one
-    // shows first" reasoning as ensureShiftStarted() above.
-    await Promise.race([
-      verkoopTab.waitFor({ state: "visible", timeout: 15_000 }),
-      staffButton.waitFor({ state: "visible", timeout: 15_000 }),
-    ]);
-
-    if (await staffButton.isVisible()) return;
-
-    await page.getByRole("tab", { name: "Dienst" }).click();
-    await page
-      .getByRole("heading", { name: "Dienst", exact: true })
-      .waitFor({ state: "visible", timeout: 15_000 });
-    await page.getByRole("button", { name: "Dienst afsluiten" }).click();
-
-    // Scope the confirm to the dialog: the trigger button behind it has
-    // the same accessible name, and Playwright's name matching ignores
-    // case, so an unscoped locator would be a strict-mode violation.
-    const dialog = page.getByRole("dialog", { name: "Dienst afsluiten" });
-    await dialog.waitFor({ state: "visible" });
-    await dialog.getByRole("button", { name: "dienst afsluiten" }).click();
-
-    await staffButton.waitFor({ state: "visible", timeout: 15_000 });
-  }
 
   /**
    * docs/features/dienst-starten.md (#6) → the PIN-entry screen
