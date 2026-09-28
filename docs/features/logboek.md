@@ -308,7 +308,7 @@ Leden-tab.
 | **Zoekterm/filter levert niets op, terwijl er wél data bestaat** | "Niets gevonden"-lege-staat. |
 | **Gastverkoop** (`orders.member_id is null`) | `memberName: null`, getoond zoals `useShiftLedger` dat al doet — geen crash, geen "onbekend lid"-verzinsel waar het schema `null` als geldige waarde kent (0001_init.sql commentaar: "guest/pin sale"). |
 | **> 200 boekingen totaal** | Alleen de meest recente 200 worden opgehaald/getoond (zie RPC's/leeshook) — geen paginering in deze eerste bouw, geen foutmelding, gewoon een stille cap. |
-| **Kan het logboek niet laden** (netwerkfout) | Vaste Nederlandse foutmelding, zelfde patroon als `useShiftLedger`/`useMemberOrders` ("Kan het logboek niet laden. Controleer de verbinding."), geen crash. |
+| **Kan het logboek niet laden** | Vaste Nederlandse foutmelding via `loadErrorMessage` (`src/lib/loadErrors.ts`, #68), zelfde als de andere lees-hooks: bij een netwerkfout "Kan het logboek niet laden. Controleer de verbinding.", bij een serverfout "… Er ging iets mis aan de serverkant — meld dit bij de beheerder (code …)." Geen ruwe fout, geen crash. |
 | **A11y** | `/beheer`'s ingelogde staat wordt vandaag al gescand voor Assortiment/Leden/Instellingen (zie `docs/features/negatieve-saldolimiet.md` → Randgevallen voor die geschiedenis). Tester moet het bestaande scenario uitbreiden met de Logboek-tab — dezelfde soort toevoeging als bij Instellingen destijds, geen nieuw scenario-type. |
 
 ## Expliciet buiten scope

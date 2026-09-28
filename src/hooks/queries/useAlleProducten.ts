@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { loadErrorMessage } from "@/lib/loadErrors";
 
 /** A row from `products` — the assortiment, read (not written) by
  *  Assortimentbeheer's productenlijst. Writes go through create_product/
@@ -61,7 +62,7 @@ export function useAlleProducten(): State & { refetch: () => void } {
       console.error("useAlleProducten:", err);
       setState({
         status: "error",
-        message: "Kan het assortiment niet laden. Controleer de verbinding.",
+        message: loadErrorMessage("Kan het assortiment niet laden.", err),
       });
     }
   }, []);

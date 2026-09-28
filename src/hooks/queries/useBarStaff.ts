@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { loadErrorMessage } from "@/lib/loadErrors";
 
 export type BarStaffMember = {
   id: string;
@@ -52,7 +53,7 @@ export function useBarStaff(): State & { refetch: () => void } {
       console.error("useBarStaff:", err);
       setState({
         status: "error",
-        message: "Kan de bardienst-lijst niet laden. Controleer de verbinding.",
+        message: loadErrorMessage("Kan de bardienst-lijst niet laden.", err),
       });
     }
   }, []);

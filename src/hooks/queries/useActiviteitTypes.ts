@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { loadErrorMessage } from "@/lib/loadErrors";
 
 /** Niet-gearchiveerde `activity_types`, alfabetisch op naam — de keuze bij
  *  het starten van een dienst (docs/features/activiteittypes.md →
@@ -47,7 +48,7 @@ export function useActiviteitTypes(): State & { refetch: () => void } {
       console.error("useActiviteitTypes:", err);
       setState({
         status: "error",
-        message: "Kan de activiteittypes niet laden. Controleer de verbinding.",
+        message: loadErrorMessage("Kan de activiteittypes niet laden.", err),
       });
     }
   }, []);

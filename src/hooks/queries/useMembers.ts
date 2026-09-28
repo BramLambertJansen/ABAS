@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { loadErrorMessage } from "@/lib/loadErrors";
 
 export type MemberOption = {
   id: string;
@@ -50,7 +51,7 @@ export function useMembers(): State & { refetch: () => void } {
       console.error("useMembers:", err);
       setState({
         status: "error",
-        message: "Kan de ledenlijst niet laden. Controleer de verbinding.",
+        message: loadErrorMessage("Kan de ledenlijst niet laden.", err),
       });
     }
   }, []);

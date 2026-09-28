@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { loadErrorMessage } from "@/lib/loadErrors";
 
 /** Omzet + opwaarderingen voor het "Dienst afsluiten"-overzicht. Eén cijfer
  *  voor omzet, één voor opwaarderingen — geen op-rekening/pin-splitsing,
@@ -100,7 +101,7 @@ export function useShiftSummary(
       console.error("useShiftSummary:", err);
       setState({
         status: "error",
-        message: "Kan het overzicht niet laden. Controleer de verbinding.",
+        message: loadErrorMessage("Kan het overzicht niet laden.", err),
       });
     }
   }, [shiftId]);
