@@ -250,7 +250,8 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
             className="text-sm font-bold text-white outline-none"
             role="status"
           >
-            We hebben een inloglink gestuurd naar {login.magicLinkSentTo}.
+            Als er een account bij {login.magicLinkSentTo} hoort, hebben we een inloglink
+            gestuurd.
           </p>
           <p className="text-xs font-medium text-rail-muted">
             Open de link in de mail om in te loggen — dat mag ook op een ander apparaat.

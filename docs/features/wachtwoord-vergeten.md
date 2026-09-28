@@ -256,7 +256,8 @@ kwam of anders werd:
 ### Opvolgissues
 
 - [#70](https://github.com/BramLambertJansen/ABAS/issues/70) — de
-  magic-link-knop lekt nog of een e-mailadres bestaat.
+  magic-link-knop lekte of een e-mailadres bestaat. Gebouwd 2026-09-28:
+  elke uitkomst geeft nu de neutrale melding.
 - [#71](https://github.com/BramLambertJansen/ABAS/issues/71) — a11y-flake
   op de Leden-tab door `transition-colors`.
 - [#72](https://github.com/BramLambertJansen/ABAS/issues/72) — focus na
