@@ -1,6 +1,6 @@
 # Portal-profiel: naam, wachtwoord en eigen bar-PIN
 
-**Status: besluiten 1–6 genomen (2026-09-28), vraag 7 (teksten) open.**
+**Status: geaccordeerd door Bram (2026-09-28): besluiten 1–7, alle teksten en ADR 0012.**
 Introduceert een nieuwe architectuurbeslissing, zie
 [ADR 0012](../adr/0012-portal-eigen-data-voor-elke-rol.md), geaccepteerd
 samen met besluit 1.
@@ -17,9 +17,8 @@ De portal liet tot nu toe alleen rol `lid` binnen. Daardoor kon **geen enkel
 lid dat ook bardienst/beheerder is** het profielscherm bereiken, en was het
 PIN-deel van het acceptatiecriterium niet te bouwen. Bram heeft besloten dat
 de portal het lid-deel wordt voor elke rol (besluit 1, ADR 0012). Zie
-"Besloten door Bram (2026-09-28)" onderaan voor alle zes besluiten; dit
-document is daarop bijgewerkt. Alleen de teksten voor de PIN-rij en
-PIN-sheet (vraag 7) staan nog open.
+"Besloten door Bram (2026-09-28)" onderaan voor alle zeven besluiten; dit
+document is daarop bijgewerkt. Er staat niets meer open.
 
 Bouwt voort op ADR
 [0002](../adr/0002-beheeracties-vereisen-eigen-e-mail-sessie.md) (actorcheck
@@ -69,7 +68,7 @@ alleen eigen data, leeshooks scopen expliciet).
   Het issue maakt er expliciet de **bar-PIN** van (`members.pin_hash`,
   gebruikt door `start_shift` op het bar-tablet). Tekst uit het prototype die
   naar portal-inloggen verwijst ("in te loggen zonder wachtwoord", "op dit
-  toestel") klopt daardoor niet en wordt vervangen, zie open vraag 7.
+  toestel") klopt daardoor niet en wordt vervangen, zie besluit 7.
 - `designs/chats/chat10.md` regel 9 (Bram): *"op de telefoon kan een
   gebruiker alleen maar het LID gedeelte zien — dus saldo, transacties, en
   instellingen voor het account (pincode zetten, wachtwoord wijzigen, naam
@@ -240,7 +239,7 @@ account blijven actief (besluit 4), dus er volgt geen `signOut`.
 voor portal én `/beheer`. Een wachtwoordwijziging in de portal wijzigt dus
 ook het wachtwoord waarmee dit lid op `/beheer` inlogt. Dat is correct (één
 account, ADR 0005) en hoort in de uitlegtekst van de sheet voor bar-rollen,
-zie open vraag 7.
+zie besluit 7.
 
 ## Hooks (`src/hooks/queries/`)
 
@@ -339,7 +338,7 @@ tab-patroon (mount/unmount per tab, dus bij elk bezoek verse data).
      `portal-dashboard.md` bij "bijgewerkt vandaag HH:MM".
   3. **PIN-rij, alleen als `role` in (`bardienst`, `beheerder`) en niet
      `archived`**, hint: "ingesteld"/"niet ingesteld" (uit `has_pin`). Label:
-     zie open vraag 7. Voor rol `lid` wordt de rij **niet gerenderd** (niet
+     zie besluit 7. Voor rol `lid` wordt de rij **niet gerenderd** (niet
      uitgeschakeld, niet verborgen met CSS).
 - **"MELDINGEN" (laag-saldo-mail) wordt niet gebouwd,** zie Expliciet buiten
   scope.
@@ -384,14 +383,14 @@ tab-patroon (mount/unmount per tab, dus bij elk bezoek verse data).
   vastlegt voor `weak_password`/`same_password`, plus
   `RATE_LIMITED_MESSAGE` uit `authErrors.ts`. `reauth_required` → **"log
   opnieuw in en probeer het nog eens"**, met de Uitloggen-actie van de
-  header als weg terug. Die tekst is een voorstel van de Architect, in
-  dezelfde toon als de bestaande meldingen in `MijnAccountOverlay.tsx`.
+  header als weg terug. Die tekst stelde de Architect op;
+  Bram keurde hem goed (2026-09-28).
 
 ### 3. Sheet "Pincode instellen" → "Pincode herhalen"
 
 Alleen bereikbaar vanuit de PIN-rij, dus alleen voor bardienst/beheerder.
 
-- **Stap 1**, titel **"Pincode instellen"**: uitlegtekst (open vraag 7), vier
+- **Stap 1**, titel **"Pincode instellen"**: uitlegtekst (besluit 7), vier
   puntjes plus cijfertoetsenbord. Na het vierde cijfer automatisch naar stap 2.
 - **Stap 2**, titel **"Pincode herhalen"**, tekst **"Voer dezelfde 4 cijfers
   nog een keer in."** (prototype en `MijnAccountOverlay.tsx`, letterlijk).
@@ -709,12 +708,10 @@ warnings.
 5. **Onboarding "kies een wachtwoord" buiten scope.** Apart vervolgticket.
 6. **Naam en wachtwoord alleen in de portal (6A).** `/beheer` → "Mijn
    account" blijft zoals het is (PIN aan/uit).
-
-## Nog te beslissen door Bram
-
-**7. Teksten voor de PIN-rij en PIN-sheet (bar-PIN, niet portal-PIN).**
+7. **Teksten voor de PIN-rij en PIN-sheet (bar-PIN, niet portal-PIN): akkoord
+   zoals voorgesteld.**
 De prototypeteksten verwijzen naar inloggen op de portal, en dat klopt hier
-niet. Voorstel, afgeleid van de al goedgekeurde tekst in
+niet. De teksten zijn afgeleid van de al goedgekeurde tekst in
 `MijnAccountOverlay.tsx`:
 - Rij: **"Pincode voor de bar-tablet"** (prototype: "Pincode voor snel
   inloggen").
@@ -723,7 +720,8 @@ niet. Voorstel, afgeleid van de al goedgekeurde tekst in
   loggen zonder wachtwoord.")
 - Uitleg in de wachtwoord-sheet, alleen voor bardienst/beheerder: **"Dit is
   ook je wachtwoord voor beheer op de bar-tablet."**
-- Graag akkoord of eigen tekst. De overige teksten (toasts, titels, "Voer
-  dezelfde 4 cijfers nog een keer in.", de uitleg in de naam-sheet) komen
-  letterlijk uit het prototype of uit bestaande schermen, en staan niet ter
-  discussie tenzij Bram dat wil.
+- De overige teksten (toasts, titels, "Voer dezelfde 4 cijfers nog een keer
+  in.", de uitleg in de naam-sheet) komen letterlijk uit het prototype of uit
+  bestaande schermen. De foutteksten die de Architect opstelde
+  (`reauth_required`, lege naam, niet-gekoppeld account) zijn ook
+  goedgekeurd.

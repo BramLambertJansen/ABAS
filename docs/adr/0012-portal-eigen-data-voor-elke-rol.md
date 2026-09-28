@@ -1,8 +1,8 @@
 # 0012 — De portal toont voor elke rol alleen eigen data; portal-leeshooks filteren expliciet op de eigen rij
 
-Status: **voorgesteld** — richting gekozen door Bram (2026-09-28, besluit 1A bij
+Status: **geaccepteerd** (Bram, 2026-09-28; besluit 1A bij
 [`docs/features/portal-profiel.md`](../features/portal-profiel.md), issue
-#17); tekst wacht op akkoord in PR #104. Wijzigt de sessie-gate uit
+#17, tekst goedgekeurd in PR #104). Wijzigt de sessie-gate uit
 [`docs/features/portal-login.md`](../features/portal-login.md) →
 Rolzichtbaarheid. Vult [ADR 0007](0007-rol-lid-leest-alleen-eigen-rijen.md)
 en [ADR 0009](0009-portal-sessie-eigen-cookienaam.md) aan en vervangt geen
