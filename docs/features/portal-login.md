@@ -286,9 +286,9 @@ expliciet verplaatst bij elke weergavewissel (WCAG 2.4.3, zelfde
   laagdrempeliger, zie "Besloten door Bram" punt 2.
 - **Wachtwoord** (`usePortalLogin().signInWithPassword(email, password)`):
   `signInWithPassword({ email, password })`, via `portalClient.ts`. Faalt
-  met "onjuist e-mailadres of wachtwoord" — dit pad lekt geen
-  accountbestaan (issue #70: "Het wachtwoordpad... lekt niet en blijft
-  zoals het is"), geen wijziging nodig t.o.v. hoe `BeheerLogin.tsx` dit al
+  met "onjuist e-mailadres of wachtwoord" — de melding maakt geen
+  onderscheid tussen onbekend adres en fout wachtwoord (issue #70; een
+  timingverschil is niet uitgesloten, zie ADR 0013), geen wijziging nodig t.o.v. hoe `BeheerLogin.tsx` dit al
   doet.
 - **Neutrale melding voor magic link (issue #70, "Hetzelfde geldt straks
   voor de portal-login (#15)")**: elke uitkomst van `signInWithMagicLink` —
@@ -604,7 +604,7 @@ zoals hierboven bij "Onderzocht in /designs/" gemotiveerd, #17's scope.
 | Geval | Gedrag |
 |---|---|
 | Bar-sessie actief (device-cookie), lid navigeert naar `/portal` | Geen ingelogde staat (ADR 0009, cookie-isolatie) — `PortalLogin.tsx` toont het inlogformulier. Kernscenario van acceptatiecriterium 4. |
-| Magic link/wachtwoord-login voor een e-mailadres zonder (gekoppeld) `lid`-account | Magic link: neutrale "als er een account bij ... hoort"-melding, geen sessie tot stand gekomen als het adres onbekend is bij Supabase zelf; wachtwoord: "onjuist e-mailadres of wachtwoord" (lekt niet, issue #70). |
+| Magic link/wachtwoord-login voor een e-mailadres zonder (gekoppeld) `lid`-account | Magic link: neutrale "als er een account bij ... hoort"-melding, geen sessie tot stand gekomen als het adres onbekend is bij Supabase zelf; wachtwoord: "onjuist e-mailadres of wachtwoord" (geen onderscheid in de melding, issue #70, ADR 0013). |
 | Sessie bestaat, herleidt niet naar een actief `lid`-record | `usePortalSession()` → `denied`, neutrale melding, zie Rolzichtbaarheid. |
 | Mail op de telefoon geopend, aangevraagd op een andere pc/telefoon | Werkt (ADR 0008, `token_hash`, apparaat-onafhankelijk). |
 | Link verlopen/al gebruikt (`/portal/wachtwoord-herstellen`) | "Deze link is verlopen of al gebruikt. Vraag een nieuwe aan." + terug naar de aanvraagweergave — zelfde tekst/gedrag als `/beheer/wachtwoord-herstellen`. |

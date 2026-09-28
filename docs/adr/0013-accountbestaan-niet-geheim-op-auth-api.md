@@ -25,9 +25,11 @@ Die signalen komen van GoTrue zelf, niet van onze code:
 
 Iedereen kan dus `POST /auth/v1/otp` met `create_user: false` sturen, en
 dat staat los van wat `/beheer` of `/portal` zelf meestuurt.
-`/auth/v1/recover` lekt op dezelfde manier via timing en 429. Zolang de
-portal magic-link-login aanbiedt (CLAUDE.md → Auth), blijft dat endpoint
-open.
+Zolang de portal en `/beheer` magic-link-login aanbieden (CLAUDE.md →
+Auth), blijft `/auth/v1/otp` open. Los daarvan lekt `/auth/v1/recover` via
+timing en 429; dat endpoint hangt aan wachtwoordherstel
+(`resetPasswordForEmail`, `wachtwoord-vergeten.md`), niet aan de magic link.
+Magic link weghalen sluit dat tweede lek dus niet.
 
 Twee eerdere teksten gingen uit van het tegendeel:
 
@@ -38,13 +40,13 @@ Twee eerdere teksten gingen uit van het tegendeel:
 
 Een volgende feature zou op die aanname kunnen voortbouwen. Daarom dit ADR.
 
-## Beslissing (voorstel, variant D)
+## Beslissing (variant D, gekozen door Bram 2026-09-28)
 
 1. **Accountbestaan geldt niet als geheim tegenover iemand met de
    anon-key**, zolang het Supabase-project e-mail-OTP of magic link
    aanbiedt. Dit is een aanvaard risico: het verraadt dat een adres een
-   account heeft, niet welke rol. Het vraagt wel een expliciet akkoord van
-   Bram.
+   account heeft, niet welke rol. Bram heeft dit risico op 2026-09-28
+   expliciet aanvaard.
 2. **De app vertelt het zelf nooit.** Elk auth-formulier dat een mail laat
    versturen (magic link, wachtwoordherstel) toont bij elke uitkomst
    dezelfde neutrale melding, ook bij een 422 of 429. Dit is het patroon
@@ -60,7 +62,7 @@ Een volgende feature zou op die aanname kunnen voortbouwen. Daarom dit ADR.
    met een eigen magic-link-flow via `auth.admin.generateLink` en
    e-mail-OTP uit. Dat raakt de portal en vervangt een Supabase-functie.
 
-## Variant C (alleen als Bram daarvoor kiest): magic link weg van `/beheer`
+## Variant C (niet gekozen): magic link weg van `/beheer`
 
 Aanvulling op variant D, geen vervanging. `/beheer` biedt alleen nog e-mail
 + wachtwoord (+ "Wachtwoord vergeten?"). Dat amendeert ADR 0002 → Context
@@ -99,6 +101,6 @@ instelscherm, #17) komt alleen via de herstelflow binnen.
   `e2e/portal-login.spec.ts` leggen de neutrale melding per foutcode al
   vast (422, 429, 500). Nieuwe auth-formulieren volgen dat patroon, en dat
   blijft reviewwerk.
-- **`docs/ARCHITECTURE.md`**, na akkoord: een korte regel onder de
-  auth-secties, met een verwijzing naar dit ADR. CLAUDE.md verandert niet,
+- **`docs/ARCHITECTURE.md`**: een korte regel onder "Auth-methode & modus",
+  met een verwijzing naar dit ADR (toegevoegd bij acceptatie). CLAUDE.md verandert niet,
   want dit is een uitwerking en geen nieuwe kernregel.
