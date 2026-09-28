@@ -256,8 +256,27 @@ Er valt dan niets te koppelen.
    waarde te loggen. Is de configuratie ongeldig: `{ fout:
    "niet_geconfigureerd" }`.
 4. Klopt de code wel: zet het cookie (`cookies().set(...)`, flags zoals
-   hierboven) en `redirect("/")`. De eerstvolgende request door de
-   middleware logt dan als device in (tabelrij 1).
+   hierboven) en geef `{ gekoppeld: true }` terug. Het scherm doet daarna
+   `window.location.replace("/")`, en bij die request logt de middleware
+   als device in (tabelrij 1). Geen `redirect("/")` vanuit de actie. Next.js
+   rendert het redirect-doel dan in dezelfde response mee en laat de
+   `Set-Cookie` van die interne render vallen (`actionsForbiddenHeaders`),
+   zodat de device-sessie de browser nooit bereikt. Afwijking van de
+   oorspronkelijke spec, akkoord Bram 2026-09-28.
+
+Verder door Bram bevestigd (2026-09-28):
+
+- Een secret is alleen geldig als het na normalisatie uit base32-tekens
+  bestaat en minstens 26 tekens lang is. Anders geldt het als "niet
+  geconfigureerd".
+- De server weigert een cookie waarvan `iat` ouder is dan 400 dagen, ook als
+  de browser het nog meestuurt.
+- Elke request met een geldig cookie ververst het (hooguit één keer per dag),
+  ongeacht het soort sessie.
+- Het veld is `required`: bij een leeg veld verschijnt de melding van de
+  browser zelf.
+- Bij een netwerk- of serverfout tijdens het koppelen komt er geen tekst. Het
+  formulier blijft staan en de fout gaat alleen naar `console.error`.
 
 Server Actions hebben een ingebouwde Origin-check. Een aparte CSRF-maatregel
 is niet nodig, en een aanvaller zonder de code heeft er ook niets aan.
