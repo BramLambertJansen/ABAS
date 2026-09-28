@@ -114,6 +114,41 @@ test("uitstellen: de melding wacht tot Afrekenen dicht is, en komt dan meteen (b
   await expect(page.getByRole("dialog")).toHaveCount(1);
 });
 
+test("race: grens en een tik op Afrekenen in dezelfde klokstap → melding pas na het sluiten (besluit 7, ADR 0012)", async ({
+  page,
+}) => {
+  await openBar(page, 6 * HOUR_MS - 3 * MINUTE_MS);
+
+  await page.getByRole("button", { name: /^Pils,/ }).click();
+  await page.getByLabel("Zoek lid op naam").fill("Anna");
+  await page.getByRole("button", { name: /Anna de Vries/ }).click();
+  await expect(page.getByRole("button", { name: "Tik afrekenen" })).toBeEnabled();
+
+  // Een timer op de (nep)klok die afgaat ná de 30s-tick van de melding in
+  // dezelfde fastForward: de tick maakt de melding "aan de beurt", en nog
+  // vóór diens passieve effect de teller leest, opent de tik Afrekenen.
+  await page.evaluate((delayMs) => {
+    setTimeout(() => {
+      const knop = Array.from(document.querySelectorAll("button")).find((b) =>
+        b.textContent?.includes("Tik afrekenen")
+      );
+      knop?.click();
+    }, delayMs);
+  }, 5 * MINUTE_MS);
+
+  await page.clock.fastForward("05:00");
+
+  const afrekenen = page.getByRole("dialog", { name: /^Afrekenen bij/ });
+  await expect(afrekenen).toBeVisible();
+  await page.waitForTimeout(500);
+  await expect(page.getByRole("dialog")).toHaveCount(1);
+
+  await afrekenen.getByRole("button", { name: "annuleren" }).click();
+
+  await expect(melding(page)).toBeVisible();
+  await expect(page.getByRole("dialog")).toHaveCount(1);
+});
+
 test("annuleren in het afsluitoverzicht telt als 'Nog bezig' (besluit 8)", async ({ page }) => {
   await openBar(page, 6 * HOUR_MS + 5 * MINUTE_MS);
 

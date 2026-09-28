@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, type ReactNode } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, type ReactNode } from "react";
 import { useShell } from "@/lib/shell/ShellProvider";
 import { useRegisterOverlay } from "./OverlayPresence";
 
@@ -46,8 +46,11 @@ export function Overlay({
   const registerOverlay = useRegisterOverlay();
 
   // ADR 0012: tel mee zolang deze overlay gemount is. `registerOverlay` is
-  // stabiel, dus dit draait alleen bij mount en unmount.
-  useEffect(() => registerOverlay(), [registerOverlay]);
+  // stabiel, dus dit draait alleen bij mount en unmount. Layout-effect, niet
+  // passief: de teller moet al bijgewerkt zijn voordat een passief effect
+  // elders (DienstTeLangOpenMelding) hem leest, anders ziet dat nog 0 terwijl
+  // deze overlay al in beeld staat.
+  useLayoutEffect(() => registerOverlay(), [registerOverlay]);
 
   // Move focus in on mount, return it to whatever triggered the overlay on
   // unmount (parent conditionally mounts/unmounts this, never toggles a

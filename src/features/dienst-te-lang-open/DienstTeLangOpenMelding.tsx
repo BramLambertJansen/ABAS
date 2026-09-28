@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Overlay } from "@/components/Overlay";
 import { useOpenOverlayCount } from "@/components/OverlayPresence";
 import { DienstAfsluitenOverlay } from "@/features/dienst-afsluiten/DienstAfsluitenOverlay";
@@ -62,6 +62,20 @@ export function DienstTeLangOpenMelding({
     }
   }, [view, openOverlayCount, now, snoozedAtMs, shift.startedAt]);
 
+  // `view` klikt vast in een passief effect, op basis van de teller van dat
+  // moment. Opent er tussen dat effect en de volgende render nog een andere
+  // Overlay (bv. een tik op "Tik afrekenen" in dezelfde frame), dan zou de
+  // melding er alsnog bovenop komen. Daarom rendert de eigen Overlay pas als
+  // de teller ook nú 0 is — of als hij al in beeld stond, want dan telt hij
+  // zichzelf mee. Tot die tijd blijft `view` staan en verschijnt de melding
+  // zodra de andere overlay dicht is (besluit 7, ADR 0012).
+  const meldingShownRef = useRef(false);
+  const meldingVisible =
+    view === "melding" && (meldingShownRef.current || openOverlayCount === 0);
+  useLayoutEffect(() => {
+    meldingShownRef.current = meldingVisible;
+  }, [meldingVisible]);
+
   // "Nog bezig", Escape/achtergrond (besluit 10) en annuleren in het
   // afsluitoverzicht (besluit 8) zijn allemaal dezelfde keuze. Snooze vanaf
   // de tik zelf, niet vanaf de laatste tick (besluit 6).
@@ -82,7 +96,7 @@ export function DienstTeLangOpenMelding({
     );
   }
 
-  if (view !== "melding") return null;
+  if (!meldingVisible) return null;
 
   return (
     <Overlay
