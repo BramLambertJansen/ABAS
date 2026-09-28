@@ -1,5 +1,5 @@
 -- Negatieve tests voor 0025_client_errors.sql (#94,
--- docs/features/foutlogging.md → Tests en gates, ADR 0011). Run met
+-- docs/features/foutlogging.md → Tests en gates, ADR 0012). Run met
 -- `npm run db:test` (= `supabase test db`, vereist `supabase start` /
 -- Docker lokaal).
 --
