@@ -6,151 +6,169 @@ Volgt op [#68](https://github.com/BramLambertJansen/ABAS/issues/68) (PR #93,
 [#67](https://github.com/BramLambertJansen/ABAS/issues/67) (migratie 0019
 ontbrak in productie, PostgREST gaf een schemafout).
 
-**Status: Concept — wacht op beslissingen van Bram.** Niets hieronder is
-gekozen. Per open beslissing staan de opties en een **aanbeveling**
-(zo gemarkeerd), meer niet. De Developer begint pas na akkoord.
+**Status: Goedgekeurd op hoofdlijnen — open: retentie/opruimen van de
+logtabel, wie de log leest.** Zie "Open beslissingen voor Bram"; migratie,
+RPC en helper hangen daar niet van af.
 
 ## Probleem
 
-Sinds #93 toont elke lees-hook in `src/hooks/queries/` een korte foutcode op
-het scherm (`42P01`, `PGRST202`), maar de ruwe fout gaat nog steeds alleen
-naar `console.error` (44 aanroepen in `src/hooks/queries/`). Op een bar-tablet
-kijkt niemand in die console. Bij #67 wisten we pas van de fout doordat
-iemand hem meldde, en de details moesten achteraf gereconstrueerd worden.
-Doel: een fout die een lid of bardienst ziet, moet ook zonder melding
-terug te vinden zijn: welke hook, welke code, welke build, wanneer.
+Sinds #93 toont elke lees-hook een korte foutcode op het scherm, maar de
+ruwe fout gaat alleen naar `console.error` (44 aanroepen in
+`src/hooks/queries/`), en op een bar-tablet kijkt niemand in die console.
+Doel: een fout die een lid of bardienst ziet, is ook zonder melding terug te
+vinden — welke hook, welke code, welke build, wanneer.
+
+## Besloten door Bram (2026-09-28)
+
+1. **Bestemming: Supabase-tabel + insert-RPC** (was optie B). Bram koos eerst
+   A (Route Handler → Vercel-logs), tot bleek dat productie op Vercel
+   **Hobby** draait: runtime-logs ~1 uur, geen log drains. Een fout van
+   vrijdagavond is maandag weg, dus A is bijna waardeloos. Het nadeel van B
+   blijft: de log deelt het foutdomein met Supabase. Een totale storing of
+   een ontbrekende migratie van déze tabel wordt niet gelogd; een
+   #67-achtige fout in een *andere* tabel of functie wel.
+2. **`message` mag mee, alleen voor schemafouten** (`PGRST2xx`, SQLSTATE-klasse
+   `42`), afgekapt. Bij andere codes kan `message` waarden bevatten
+   (`23505`: "Key (email)=(…)"), daar gaat hij niet mee.
+3. **Reikwijdte: lees- én schrijf-hooks, inclusief `usePlaceOrder`/`useTopUp`**,
+   alleen onverwachte fouten. Domeinuitkomsten die een RPC bewust teruggeeft
+   (`insufficient_balance`, `product_not_available`, `served_by_not_in_roster`
+   en dergelijke) zijn geen fout en worden niet gelogd.
+4. **Dedupe aan de clientkant**, per (hook, code), venster van 5 minuten, met
+   een telling.
+5. **`check:policy`-regel "geen kale `console.error` in `src/hooks/queries/`"
+   komt mee.**
+
+**Gevolg van 1 (geen nieuwe beslissing):** de RPC is, zoals elke RPC sinds
+0018, alleen voor `authenticated`. Fouten van vóór het inloggen worden niet
+gelogd en de auth-hooks vallen buiten scope. Bram's "ja" op een sessieloos
+endpoint gold voor A en vervalt; `anon` krijgt geen `EXECUTE`.
 
 ## Betrokken shell(s)
 
-Allebei, via één gedeelde helper in `src/lib/`, aangeroepen vanuit de hooks.
-Geen UI-wijziging: de bestaande meldingen uit `loadErrors.ts` blijven zoals
-ze zijn. Features en shells merken niets (`check:arch` blijft ongewijzigd).
+Beide, via één helper in `src/lib/` die de hooks aanroepen. Geen UI-wijziging;
+features en shells merken niets.
 
-## Open beslissing 1: bestemming
+## Datamodel — migratie `0025_client_errors.sql`
 
-| Optie | Voor | Tegen, in déze codebase |
+Tabel `client_errors`, append-only. Alleen allowlist-velden:
+
+| Kolom | Type / grens | Bron |
 |---|---|---|
-| **A. Eigen Route Handler → `console.error` op de server → Vercel-logs** | Geen migratie, geen RLS/REVOKE, geen nieuwe dependency, geen derde partij. Staat los van Supabase: juist bij een #67-achtige fout (PostgREST/schema kapot) komt de melding nog aan. De server kan zelf commit-sha en tijd toevoegen, de client hoeft die niet te sturen. | Retentie en zoekmogelijkheden hangen af van het Vercel-plan (nog na te gaan); geen alerting, je moet zelf gaan kijken. Het endpoint is sessieloos, dus iedereen met de URL kan er regels in schrijven (bij een strikt schema alleen onschuldige ruis). **Middleware:** de matcher sluit alleen `/portal` uit, dus een route buiten `/portal` zou bij een portal-browser de device-login triggeren (het cookieprobleem uit ADR 0009). De route moet expliciet uit de matcher. |
-| **B. Supabase-tabel + insert-RPC** | Doorzoekbaar met SQL, blijft zo lang als we willen, later eventueel te tonen in beheer. Past in het RPC-patroon. | Zelfde foutdomein als wat we willen loggen: een Supabase-storing of een ontbrekende migratie van de logtabel zelf, en de melding verdwijnt. Nieuwe tabel betekent RLS + negatieve test (`check:rls`), `REVOKE` op directe writes, `EXECUTE` alleen voor `authenticated` (0018). Fouten vóór het inloggen (portal-login, wachtwoord-herstellen) kunnen dan niet gelogd worden, tenzij `anon` `EXECUTE` krijgt: dat breekt 0018 en vraagt een ADR. Via de service-role-client schrijven (ADR 0006) verruimt dat ADR voor iets dat geen `auth.admin`-call is. |
-| **C. Externe dienst (Sentry o.i.d.)** | Dedupe, alerting, stacktraces en releases zitten er standaard in. | Nieuwe dependency en een externe verwerker van data van leden. Standaard worden IP-adres, URL en breadcrumbs meegestuurd, dus PII moet expliciet uit (beslissing 2). Stacktraces en `message` gaan standaard mee, precies wat `loadErrors.ts` bewust van het scherm houdt. Een account en kosten die bij Bram liggen. |
+| `id` | `bigint generated always as identity`, pk | db |
+| `created_at` | `timestamptz not null default now()` | db (servertijd, niet de klok van de tablet) |
+| `hook` | `text not null`, `^use[A-Za-z]{1,60}$` | client; `usePortal*` impliceert de portal, dus geen aparte shell-kolom |
+| `kind` | `text not null`, `in ('network','server')` | `classifyLoadError` |
+| `code` | `text null`, zelfde regex als `SAFE_CODE_RE` | `classifyLoadError` |
+| `message` | `text null`, max 300 tekens | alleen als `code` begint met `PGRST2` of `42`, anders forceert de RPC `null` |
+| `path` | `text not null`, begint met `/`, zonder query-string, max 200 | `location.pathname` |
+| `occurrences` | `int not null`, 1–10000 | dedupe-telling |
+| `build` | `text null`, max 40 | `NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA` (door Vercel gezet), leeg lokaal/CI |
 
-**Aanbeveling: A.** Die optie heeft het kleinste oppervlak en overleeft het
-incident dat de aanleiding was. De helper aan de clientkant wordt zo
-opgezet dat een latere overstap naar B of C alleen de server-kant raakt.
+Bewust **geen** kolom voor `auth.uid()`, member-id, naam, e-mail, saldo,
+RPC-argumenten, `details`/`hint`, stack, IP of user-agent. Rechten volgens
+bestaand patroon: RLS aan, **geen policies**, `revoke all on client_errors
+from authenticated, anon`; Studio leest als postgres-rol, buiten RLS.
 
-## Open beslissing 2: welke velden
+## RPC — `log_client_error`
 
-Wel veilig (vaste vocabulaire, geen gebruikers- of servergegevens):
-hook-naam (`"useProducts"`), `kind` en `code` uit `classifyLoadError`, shell
-(`bar`/`portal`), route-pad zonder query-string (de huidige paden bevatten
-geen ids), tijdstip en build (aan de serverkant), en een teller bij dedupe.
+`log_client_error(p_hook text, p_kind text, p_code text, p_message text,
+p_path text, p_occurrences int, p_build text) returns void` — `security
+definer`, `set search_path = public`, `grant execute … to authenticated`,
+`revoke … from public, anon` (0018).
 
-Niet: naam, e-mail, saldo, member-id of `auth.uid()`, RPC-argumenten
-(bedragen, product-ids), `details`/`hint`, stacktrace, IP-adres en
-user-agent (dat laatste grenst bovendien aan device-sniffing).
+- De RPC valideert alle grenzen uit de tabel zelf (de client kapt ook af,
+  maar de RPC is de waarheid). Ongeldige invoer: `raise` met een vaste code,
+  die de helper negeert. Serverside wordt `message` `null` buiten
+  `PGRST2`/`42` en gaat de query-string van `path` af.
+- **Geen `caller_is_lid()`-weigering** (anders dan 0023): een portal-lid
+  moet zijn leesfout kunnen melden; geen bar-RPC, lekt niets (`void`).
+- RPC i.p.v. `insert`-policy: grenzen op één plek, niet te omzeilen, en
+  hetzelfde `REVOKE`-patroon als de rest.
 
-Twijfelgeval: **`message`**. Bij schemafouten (`PGRST2xx`, SQLSTATE-klasse
-`42`) bevat die de naam van de ontbrekende tabel of functie, en dat is
-precies wat bij #67 had geholpen. Bij andere codes kan hij waarden bevatten
-(bv. `23505`: "Key (email)=(…) already exists"). **Aanbeveling:** `message`
-alleen meesturen voor schemafouten, anders weglaten. De server kapt hem af
-op een vaste lengte.
+## Client-helper — `src/lib/clientErrors.ts`
 
-## Open beslissing 3: welke hooks
+- Pure payload-bouwer (hook, err, pathname): allowlist plus
+  `classifyLoadError`, `message` alleen voor schemacodes; geen vrij object.
+- Pure dedupe per (hook, code), in geheugen per pagina-load: de eerste
+  melding gaat direct, herhalingen binnen 5 minuten tellen op en gaan mee met
+  de eerste melding ná het venster. Wat openstaat bij sluiten gaat verloren
+  (geen persistente buffer, CLAUDE.md → Shells).
+- `reportClientError(client, hook, err)`: `console.error` (voor lokaal
+  debuggen) en daarna fire-and-forget de RPC. Blokkeert en gooit nooit, en
+  een mislukte melding wordt niet opnieuw gemeld. De hook geeft **zijn eigen
+  client** mee: `check:arch` staat `portalClient.ts` alleen in
+  portal-bestanden toe (ADR 0009), en `src/lib/` is dat niet. Geen directe
+  `@supabase/*`-import, geen `admin.ts`.
+- Netwerkfouten: best effort; mislukt de melding, dan loopt de telling door.
+- `logLocalError(hook, err)`: alleen `console.error`, voor hooks buiten scope,
+  zodat de `check:policy`-regel overal kan gelden.
 
-- **Alleen de lees-hooks** (die al `loadErrorMessage` gebruiken): klein, en
-  deze klasse gaf #67.
-- **Ook de schrijf-hooks, inclusief `usePlaceOrder`/`useTopUp`**: alleen de
-  *onverwachte* fouten, niet de domeinuitkomsten die de RPC bewust teruggeeft
-  (`insufficient_balance`, `product_not_available`, `served_by_not_in_roster`
-  en dergelijke zijn normaal gedrag en geen fout). Voor geld-RPC's geldt
-  hetzelfde veldenlijstje als hierboven: nooit bedrag of lid.
-- **Ook de auth-hooks** (`usePortalLogin`, `useWachtwoordHerstellen`, …):
-  daar is de fout vaak pre-sessie. Met optie A kan dat, met B niet (zie
-  hierboven).
+## Hooks
 
-**Aanbeveling:** lees- én schrijf-hooks, alleen onverwachte fouten, zelfde
-velden. Een mislukte `place_order` tijdens een dienst is voor de beheerder
-minstens zo belangrijk als een mislukte lijst. Auth-hooks alleen als Bram
-optie A kiest.
+- **In scope** (`reportClientError`): alle lees-hooks en de onverwachte-fout-tak
+  van alle schrijf-hooks, inclusief `usePlaceOrder`/`useTopUp`. De vertakking
+  "domeinuitkomst vs. onverwacht" bestaat al per hook; alleen de tweede tak
+  meldt. De Reviewer controleert dat, want geen gate kan het zien.
+- **Buiten scope** (`logLocalError`): pre-sessie-hooks (`usePortalLogin`,
+  `useWachtwoordHerstellen`, `usePortalWachtwoordHerstellen`) en de
+  `signOut`-takken. `useBeheerSession`/`usePortalSession` melden alleen in
+  de tak mét sessie (rol-lookup); de Developer bepaalt die tak per hook.
 
-## Open beslissing 4: dedupe / rate-limit
+## Tests en gates
 
-Feit: geen enkele hook pollt vandaag (`refetchInterval`/`setInterval` op
-queries komen in `src/` niet voor). Herhaling ontstaat door opnieuw mounten,
-`refetch()` na een actie, of een bardienstlid dat op "opnieuw" tikt. Toch kan
-een kapotte hook op een tablet die de hele avond aanstaat honderden keren
-dezelfde fout geven.
+- **`supabase/tests/client_errors.test.sql`** (pgTAP): als `authenticated`
+  faalt `select`/`insert`/`update`/`delete` op `client_errors` met `42501`.
+  `anon` heeft geen `EXECUTE` (benoemd in `rpc_execute_grants.test.sql`; de
+  tellende assertie dekt het al). Ongeldige `kind`/`code`/`hook`/`occurrences`
+  worden geweigerd. `message` wordt `null` bij `code = '23505'`. Een
+  lid-sessie kán melden (bewust anders dan 0023). Er wordt geen uid opgeslagen.
+- **`check:rls`:** vindt de tabel automatisch; geen geldtabel, dus niet in
+  `MONEY_TABLES`.
+- **`check:policy` (nieuwe regel):** een bestand onder `src/hooks/queries/`
+  met `console.error(` faalt, met een verwijzing naar `src/lib/clientErrors.ts`.
+  De helper zelf staat in `src/lib/` en valt erbuiten. Werk de kop van
+  `check-policy.mjs` en de gate-tabel in CLAUDE.md bij.
+- **`test`:** payload-allowlist (incl. `message`-afknippen) en dedupe.
+- **Geen wijziging** aan `check:arch` en `src/middleware.ts` (de
+  matcher-aanpassing was alleen nodig voor optie A).
 
-- **Clientkant, in geheugen:** per (hook, code) maximaal één melding per
-  tijdvenster per pagina-load, met een teller die bij de volgende melding
-  meegaat. Goedkoop, pure logica, dus testbaar in `test`.
-- **Serverkant:** alleen relevant bij B/C. Bij A volstaat een limiet op
-  de grootte van de body.
+## ADR
 
-**Aanbeveling:** alleen aan de clientkant, venster van 5 minuten (Bram
-kiest het getal). Geen persistente buffer (geen `localStorage`): meldingen
-tijdens een netwerkstoring gaan verloren. Dat past bij "geen offline-eisen"
-(CLAUDE.md → Shells).
+**Ja: `docs/adr/0011-client-fouten-via-rpc-zonder-actor.md`, samen met de
+bouw.** Het legt drie dingen vast die een volgende feature kan tegenspreken:
+een schrijf-RPC zonder geld die open staat voor elke `authenticated`,
+inclusief een lid (tegenover 0023); bewust géén actor opslaan (tegenover
+ADR 0002), met een vaste allowlist van velden; en bewust géén
+`anon`-uitzondering op 0018, met als geaccepteerd gevolg dat fouten van vóór
+het inloggen niet gelogd worden.
 
-## Gedrag (ongeacht de keuzes)
+## Randgevallen
 
-- Melden is fire-and-forget: het blokkeert nooit de UI, gooit nooit, en een
-  mislukte melding wordt niet opnieuw gemeld (geen lus).
-- `console.error` blijft naast de melding bestaan voor wie lokaal debugt.
-- De helper maakt de payload zelf op basis van een allowlist. Hij accepteert
-  geen vrij object van de aanroeper, zodat een hook niet per ongeluk een
-  rij met naam/saldo meestuurt.
-- In `next dev` en CI (geen env) zou melden alleen console-ruis geven. Hoe
-  de helper zich daar gedraagt beslist de Developer, maar CI mag er niet
-  door falen.
-
-## Rolzichtbaarheid
-
-Geen scherm. Bij A: wie toegang heeft tot het Vercel-project. Bij B: niemand
-via de app zolang er geen leesscherm is (buiten scope). Bij C: wie toegang
-heeft tot het account van de dienst.
-
-## Gevolgen voor gates, ADR, migratie
-
-- **ADR: ja, 0011**, geschreven zodra Bram gekozen heeft. "Waar gaan
-  client-fouten heen en wat mag erin" is een beslissing die een volgende
-  feature kan tegenspreken. Bij B of C weegt dat zwaarder (nieuw schrijfpad
-  zonder geld, resp. een externe verwerker).
-- **Migratie:** alleen bij B (tabel, RLS, `REVOKE`, RPC met `EXECUTE`
-  ingetrokken voor `PUBLIC`, pgTAP-negatieve test).
-- **`check:arch`:** geen wijziging. De helper in `src/lib/` importeert geen
-  SDK en geen `admin.ts`.
-- **`check:policy`:** geen wijziging nodig. **Aanbevolen nieuwe regel:**
-  een kale `console.error(` in `src/hooks/queries/` is een fout, alleen de
-  centrale helper is toegestaan. Dat is een regex-check (zie CLAUDE.md →
-  "Regel over regels") en voorkomt dat hook 45 het weer vergeet.
-- **`check:rls`:** alleen bij B, automatisch (nieuwe tabel wordt gevonden).
-  Geen geldtabel, dus geen toevoeging aan `MONEY_TABLES`.
-- **`src/middleware.ts`:** bij A het pad van de route uit de matcher halen.
-- **`test`:** payload-allowlist en dedupe als pure functies.
+- Een hook die de hele avond faalt: maximaal ~12 rijen per uur per (hook,
+  code) per tabblad, elk met een telling. Faalt `log_client_error` zelf, dan
+  slikt de helper dat (geen lus). Zonder env (CI, lokaal) faalt de aanroep
+  stil en is `build` `null`.
+- Geen server-side rate-limit: elke ingelogde sessie, ook die van een lid,
+  kan rijen toevoegen binnen de grenzen van de RPC. Bij alleen
+  `authenticated` en deze schaal is dat aanvaardbaar; de groei van de tabel
+  valt onder open beslissing (a).
 
 ## Expliciet buiten scope
 
-Een logscherm in beheer. Alerting of notificaties. Server-side fouten
-(Route Handlers, middleware; die staan al in de serverlogs). Performance- of
-gebruiksstatistieken. Een persistente offline-buffer. Het ombouwen van
-`loadErrors.ts` zelf.
+Fouten van vóór het inloggen, alerting, server-side fouten (Route Handlers,
+middleware), statistieken, een offline-buffer, het ombouwen van
+`loadErrors.ts`, een leesscherm (zie b).
 
 ## Open beslissingen voor Bram
 
-1. Bestemming: A (Route Handler → Vercel-logs), B (Supabase-tabel + RPC) of
-   C (externe dienst, en zo ja welke)?
-2. Bij A: welk Vercel-plan draait productie, en is de logretentie daarvan
-   genoeg, of wil je er later een log drain bij?
-3. Mag `message` mee voor schemafouten (`PGRST2xx`/`42xxx`), of alleen code
-   en `kind`?
-4. Reikwijdte: alleen lees-hooks, ook schrijf-hooks (inclusief `place_order`
-   / `top_up`, alleen onverwachte fouten), en ook auth-hooks van vóór het
-   inloggen?
-5. Dedupe-venster: één melding per (hook, code) per hoeveel minuten?
-6. Is een sessieloos meld-endpoint (iedereen met de URL kan er ruis in
-   schrijven, geen data eruit) acceptabel, zoals bij #34 voor de
-   device-login?
-7. Moet de voorgestelde `check:policy`-regel ("geen kale `console.error` in
-   `src/hooks/queries/`") meekomen in deze feature?
+a. **Retentie en opruimen van `client_errors`:** hoe lang bewaren (bv. 30 of
+   90 dagen), en hoe opruimen: `pg_cron`-job in de migratie (automatisch,
+   eerste `pg_cron`-gebruik in deze codebase) of handmatig een `delete` in
+   Studio wanneer het nodig is? *Aanbeveling:* 90 dagen via `pg_cron`,
+   omdat handmatig opruimen bij een vrijwilligersclub niet gebeurt.
+b. **Wie leest de log:** alleen Supabase Studio (niets te bouwen), of ook een
+   beheerscherm in `shells/bar`? Dat laatste wordt een aparte feature, met
+   een lees-RPC met ADR-0002-actorcheck (`beheerder`) en een eigen spec.
+   *Aanbeveling:* voorlopig alleen Studio, een scherm pas als Studio in de
+   praktijk te omslachtig blijkt.
