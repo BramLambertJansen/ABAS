@@ -13,6 +13,9 @@ import config from "../tailwind.config.ts";
 const colors = config.theme?.extend?.colors as {
   accent: { DEFAULT: string; hover: string; active: string };
   rail: { DEFAULT: string };
+  success: string;
+  track: string;
+  canvas: string;
 };
 
 function luminance(hex: string): number {
@@ -44,4 +47,16 @@ test("witte tekst op accent-active haalt AA", () => {
 
 test("de oude accent-hover (#d94d1a) zou deze test laten falen", () => {
   assert.ok(contrast(colors.rail.DEFAULT, "#d94d1a") < AA);
+});
+
+// SALDO-badge in het Logboek (text-success op bg-track, 9px vet — telt als
+// kleine tekst) en de groene bedragen/regels op wit en canvas (#88).
+test("text-success op track, wit en canvas haalt AA (#88)", () => {
+  for (const bg of [colors.track, "#ffffff", colors.canvas]) {
+    assert.ok(contrast(colors.success, bg) >= AA, `success op ${bg}`);
+  }
+});
+
+test("de oude success (#157f4a) zou op track falen", () => {
+  assert.ok(contrast("#157f4a", colors.track) < AA);
 });
