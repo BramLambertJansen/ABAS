@@ -73,13 +73,15 @@ export function useBeheerLogin() {
   }
 
   /**
-   * Lekt nooit een foutcode (issue #70 — geen e-mail-enumeratie): met
+   * Toont nooit een foutcode (issue #70): met
    * `shouldCreateUser: false` geeft Supabase voor een onbekend adres een
    * fout, en de mail-rate-limit raakt alleen een bestaand adres. Elke
    * uitkomst eindigt dus in dezelfde `magic_link_sent`-staat, fouten alleen
    * gelogd — zelfde patroon als `usePortalLogin.ts` en
-   * `useWachtwoordResetAanvragen`. Het wachtwoordpad lekt niet en houdt
-   * zijn foutcodes.
+   * `useWachtwoordResetAanvragen`. Het wachtwoordpad houdt zijn foutcodes;
+   * die maken geen onderscheid tussen onbekend adres en fout wachtwoord. Dit is een UI-maskering: via de Auth-API zelf blijft
+   * af te leiden of een adres een account heeft (ADR 0013, bewust
+   * geaccepteerd).
    */
   async function signInWithMagicLink(email: string): Promise<void> {
     setState({ status: "pending" });
