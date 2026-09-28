@@ -578,7 +578,8 @@ Bram koos optie A: "Ja, nu meebouwen" (zie "Besloten door Bram
 
 **Niet voorgesteld, expliciet buiten scope:** het "kies een
 wachtwoord"-onboardingscherm na een eerste magic link (chat30) — dat blijft,
-zoals hierboven bij "Onderzocht in /designs/" gemotiveerd, #17's scope.
+zoals hierboven bij "Onderzocht in /designs/" gemotiveerd, buiten #15. Het
+was aan #17 toegewezen, is daar buiten scope verklaard en staat nu in #106.
 
 ## Rolzichtbaarheid
 
@@ -600,7 +601,11 @@ zoals hierboven bij "Onderzocht in /designs/" gemotiveerd, #17's scope.
   `members`-rij** (device-cookie kan dit sowieso niet meer, zie
   Cookie-isolatie; wél mogelijk: een `auth.users`-rij zonder gekoppeld
   lid). Die toont "Dit account is niet gekoppeld aan een lid.", dezelfde
-  neutrale melding als voorheen. Tot #17 kreeg ook een
+  neutrale melding als voorheen. Let op: `usePortalSession` zet dezelfde
+  `denied`-staat ook als de `members`-lookup zelf faalt (netwerk-, RLS- of
+  PostgREST-fout, na `reportClientError`). `denied` betekent dus "geen
+  gekoppeld lid gevonden", niet per se "er bestaat geen gekoppeld lid". Een
+  aparte laadfout-staat is niet gebouwd. Tot #17 kreeg ook een
   bardienst/beheerder-sessie deze staat (`data.role !== "lid"`), zoals deze
   spec oorspronkelijk voorschreef. Die regel is vervallen.
 - `link_lid_member_account()`: geen rolcheck op de aanroeper, harde
@@ -693,8 +698,8 @@ ná-deploy-actie plus één verificatiestap.
 - **Pincode op de portal** (device-local snelkoppeling) — zie "Onderzocht in
   /designs/". Geen kader vraagt erom voor #15.
 - **"Kies een wachtwoord"-onboardingscherm na de eerste magic link** (chat30)
-  — #17's scope, zelfde grens als voor bardienst/beheerder
-  (`lid-account-invite.md`).
+  — #106 (was aan #17 toegewezen, daar buiten scope verklaard), zelfde grens
+  als voor bardienst/beheerder (`lid-account-invite.md`).
 - **Zelf opwaarderen via de portal (iDEAL)** — CLAUDE.md → Domein noemt dit
   expliciet als "latere fase", ongewijzigd.
 - **Saldo-/transactieschermen** — `PortalShellHome`'s "ingelogd"-branch is
