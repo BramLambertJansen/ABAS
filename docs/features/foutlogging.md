@@ -25,14 +25,18 @@ vinden — welke hook, welke code, welke build, wanneer.
    blijft: de log deelt het foutdomein met Supabase. Een totale storing of
    een ontbrekende migratie van déze tabel wordt niet gelogd; een
    #67-achtige fout in een *andere* tabel of functie wel.
-2. **`message` mag mee, alleen voor schemafouten** (`PGRST2xx`, SQLSTATE-klasse
-   `42`), afgekapt. Bij andere codes kan `message` waarden bevatten
-   (`23505`: "Key (email)=(…)"), daar gaat hij niet mee.
+2. **Geen `message`.** Eerst besloten als "alleen bij schemafouten,
+   afgekapt", herzien na review (PR #96): elke ingelogde gebruiker kan de
+   RPC zelf aanroepen met een nep-code als `42P01` en vrije tekst (e-mail,
+   saldo) in `message` zetten. Een door de client aangeleverde code bewijst
+   niet dat de tekst uit een echte schemafout komt. Zonder vrij tekstveld
+   klopt "geen PII" wel. Bij een schemafout staan hook en code in de log;
+   de details reproduceer je lokaal.
 3. **Reikwijdte: lees- én schrijf-hooks, inclusief `usePlaceOrder`/`useTopUp`**,
    alleen onverwachte fouten. Domeinuitkomsten die een RPC bewust teruggeeft
    (`insufficient_balance`, `product_not_available`, `served_by_not_in_roster`
    en dergelijke) zijn geen fout en worden niet gelogd.
-4. **Dedupe aan de clientkant**, per (hook, code), venster van 5 minuten, met
+4. **Dedupe aan de clientkant**, per (hook, kind, code), venster van 5 minuten, met
    een telling.
 5. **`check:policy`-regel "geen kale `console.error` in `src/hooks/queries/`"
    komt mee.**
@@ -63,10 +67,9 @@ Tabel `client_errors`, append-only. Alleen allowlist-velden:
 | `hook` | `text not null`, `^use[A-Za-z]{1,60}$` | client; `usePortal*` impliceert de portal, dus geen aparte shell-kolom |
 | `kind` | `text not null`, `in ('network','server')` | `classifyLoadError` |
 | `code` | `text null`, zelfde regex als `SAFE_CODE_RE` | `classifyLoadError` |
-| `message` | `text null`, max 300 tekens | alleen als `code` begint met `PGRST2` of `42`, anders forceert de RPC `null` |
-| `path` | `text not null`, begint met `/`, zonder query-string, max 200 | `location.pathname` |
+| `path` | `text not null`, `^/[a-z/-]{0,100}$` (geen cijfers, `@` of `.`; geen app-route heeft een dynamisch segment met een id) | `location.pathname`, zonder query-string |
 | `occurrences` | `int not null`, 1–10000 | dedupe-telling |
-| `build` | `text null`, max 40 | `NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA` (door Vercel gezet), leeg lokaal/CI |
+| `build` | `text null`, `^[0-9a-f]{7,40}$` | `NEXT_PUBLIC_BUILD_SHA`, in `next.config.mjs` expliciet gezet uit `process.env.VERCEL_GIT_COMMIT_SHA` (niet vertrouwen op Vercels automatische `NEXT_PUBLIC_`-variant, die is een projectinstelling); leeg lokaal/CI |
 
 Bewust **geen** kolom voor `auth.uid()`, member-id, naam, e-mail, saldo,
 RPC-argumenten, `details`/`hint`, stack, IP of user-agent. Rechten volgens
@@ -74,23 +77,29 @@ bestaand patroon: RLS aan, **geen policies**, `revoke all on client_errors
 from authenticated, anon`; Studio leest als postgres-rol, buiten RLS.
 
 **Opruimen (beslissing 6):** dezelfde migratie doet `create extension if not
-exists pg_cron` en plant een dagelijkse job die rijen met `created_at <
-now() - interval '90 days'` verwijdert. Er komt een index op `created_at`.
+exists pg_cron`, maakt een functie `purge_client_errors()` die rijen met
+`created_at < now() - interval '90 days'` verwijdert (`security definer`,
+`EXECUTE` voor niemand behalve de eigenaar), en plant een dagelijkse job die
+alleen `select purge_client_errors()` aanroept. Zo is de opruimlogica
+direct testbaar en staat de job-definitie niet los te typen. Er komt een index op `created_at`.
 Dit is het eerste gebruik van `pg_cron` in deze codebase. De Developer
 controleert dat de lokale Supabase uit `db:test`/CI de extensie heeft,
 en meldt het in plaats van eromheen te bouwen als dat niet zo is.
 
 ## RPC — `log_client_error`
 
-`log_client_error(p_hook text, p_kind text, p_code text, p_message text,
+`log_client_error(p_hook text, p_kind text, p_code text,
 p_path text, p_occurrences int, p_build text) returns void` — `security
 definer`, `set search_path = public`, `grant execute … to authenticated`,
 `revoke … from public, anon` (0018).
 
 - De RPC valideert alle grenzen uit de tabel zelf (de client kapt ook af,
   maar de RPC is de waarheid). Ongeldige invoer: `raise` met een vaste code,
-  die de helper negeert. Serverside wordt `message` `null` buiten
-  `PGRST2`/`42` en gaat de query-string van `path` af.
+  die de helper negeert. Elk veld heeft een strak formaat (zie Datamodel),
+  zodat er via een directe aanroep geen e-mailadres, bedrag of id in kan:
+  geen vrij tekstveld. Restrisico, bewust aanvaard: iemand kan letters in
+  `hook` of `path` coderen, en dat komt alleen terecht in een log die
+  alleen via Studio leesbaar is.
 - **Geen `caller_is_lid()`-weigering** (anders dan 0023): een portal-lid
   moet zijn leesfout kunnen melden; geen bar-RPC, lekt niets (`void`).
 - RPC i.p.v. `insert`-policy: grenzen op één plek, niet te omzeilen, en
@@ -99,8 +108,8 @@ definer`, `set search_path = public`, `grant execute … to authenticated`,
 ## Client-helper — `src/lib/clientErrors.ts`
 
 - Pure payload-bouwer (hook, err, pathname): allowlist plus
-  `classifyLoadError`, `message` alleen voor schemacodes; geen vrij object.
-- Pure dedupe per (hook, code), in geheugen per pagina-load: de eerste
+  `classifyLoadError`; geen `message`, geen vrij object.
+- Pure dedupe per (hook, kind, code), in geheugen per pagina-load: de eerste
   melding gaat direct, herhalingen binnen 5 minuten tellen op en gaan mee met
   de eerste melding ná het venster. Wat openstaat bij sluiten gaat verloren
   (geen persistente buffer, CLAUDE.md → Shells).
@@ -131,15 +140,19 @@ definer`, `set search_path = public`, `grant execute … to authenticated`,
   faalt `select`/`insert`/`update`/`delete` op `client_errors` met `42501`.
   `anon` heeft geen `EXECUTE` (benoemd in `rpc_execute_grants.test.sql`; de
   tellende assertie dekt het al). Ongeldige `kind`/`code`/`hook`/`occurrences`
-  worden geweigerd. `message` wordt `null` bij `code = '23505'`. Een
+  worden geweigerd, net als een `path` met cijfers, `@` of `.` en een `build` die geen hex is. Een
   lid-sessie kán melden (bewust anders dan 0023). Er wordt geen uid opgeslagen.
+  Retentie: `purge_client_errors()` verwijdert een rij van 91 dagen oud en
+  laat een van 89 dagen staan; `cron.job` bevat precies één job voor deze
+  functie met het verwachte schema; `authenticated` kan de functie niet
+  uitvoeren.
 - **`check:rls`:** vindt de tabel automatisch; geen geldtabel, dus niet in
   `MONEY_TABLES`.
 - **`check:policy` (nieuwe regel):** een bestand onder `src/hooks/queries/`
   met `console.error(` faalt, met een verwijzing naar `src/lib/clientErrors.ts`.
   De helper zelf staat in `src/lib/` en valt erbuiten. Werk de kop van
   `check-policy.mjs` en de gate-tabel in CLAUDE.md bij.
-- **`test`:** payload-allowlist (incl. `message`-afknippen) en dedupe.
+- **`test`:** payload-allowlist (geen `message`, `path` zonder query-string en cijfers) en dedupe.
 - **Geen wijziging** aan `check:arch` en `src/middleware.ts` (de
   matcher-aanpassing was alleen nodig voor optie A).
 
