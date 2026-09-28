@@ -1,8 +1,8 @@
 # Tablet koppelen: de gedeelde device-sessie alleen voor een gekoppelde tablet
 
-**Status: concept, wacht op akkoord van Bram.** Geschreven 2026-09-28. Er
-wordt niets gebouwd tot Bram de spec heeft goedgekeurd en de open vragen
-onderaan beantwoord zijn. De architectuurbeslissing zelf staat in
+**Status: goedgekeurd door Bram (2026-09-28), op de UI-teksten na (open
+vraag 5).** Geschreven 2026-09-28. Het scherm `/koppel` wordt pas gebouwd
+als die teksten er zijn. De architectuurbeslissing zelf staat in
 [ADR 0011](../adr/0011-device-sessie-alleen-voor-gekoppelde-tablet.md).
 Vervolg op [issue #34](https://github.com/BramLambertJansen/ABAS/issues/34):
 dit vervangt het daar geaccepteerde risico.
@@ -552,45 +552,33 @@ Volgorde, buiten een dienst:
   tablet blijft het open.
 - **Offline/PWA-gedrag**: ongewijzigd (CLAUDE.md → Shells).
 
-## Open vragen voor Bram
+## Open vragen voor Bram — beantwoord 2026-09-28
 
-1. **Looptijd van het koppelcookie.** (a) Vast, bv. N dagen, daarna opnieuw
-   koppelen. Houd rekening met de browsergrens van 400 dagen. (b) Glijdend:
-   de middleware geeft bij gebruik een nieuw cookie uit (bv. hooguit één
-   keer per dag), zodat een tablet die in gebruik is nooit verloopt en een
-   ongebruikt of gekopieerd cookie na N dagen stilte dood is. Welke, en
-   hoeveel dagen?
-2. **Wie mag koppelen, en waar bewaar je de code?** Is de code alleen
-   genoeg, of moet koppelen ook een ingelogde beheerder-sessie vereisen?
-   Dan kan `/koppel` het formulier alleen tonen ná een e-maillogin als
-   beheerder (ADR 0002). Dat maakt herleidbaar wie koppelde, maar kost een
-   extra stap en raakt ADR 0003 (modus-keuze). En wie heeft de code:
-   alleen Bram, alle beheerders, de gedeelde wachtwoordkluis van de
-   vereniging?
-3. **Is "alle tablets opnieuw koppelen" bij rotatie acceptabel?** Met één
-   tablet is dat één keer een code invoeren. Pas als per tablet intrekken
-   nodig wordt, hoort er een tabel met gekoppelde apparaten bij, en dan een
-   nieuwe ADR. Klopt het dat dit voorlopig niet nodig is?
-4. **Formaat van de code.** Het moet minstens 128 bit zijn (zie
-   Configuratie), en je typt de code op een tablet in. Mogelijke vormen: 26
-   tekens base32 in groepjes (`ABCDE-FGHIJ-…`, hoofdletterongevoelig,
-   streepjes en spaties genegeerd), of een woordenreeks van ~10
-   willekeurige woorden. Welke? Dat bepaalt ook of het veld `type="text"` of
-   `type="password"` is.
-5. **UI-teksten** op `/koppel`: de kop, de uitleg, het veldlabel, de
-   knoptekst, de melding bij een verkeerde code, de melding bij "niet
-   geconfigureerd", en of er een verwijzing naar `/portal` op moet (en met
-   welke tekst). Let op chat23: normaal "applicatie", niet "tablet". Hier is
-   het apparaat juist het onderwerp. Wil je "apparaat", "tablet" of iets
-   anders?
-6. **Welke Vercel-omgevingen krijgen een device-sessie?** Alleen
-   Production, of ook Preview? En zo ja, met een eigen secret? Draaien
-   previews tegen dezelfde Supabase-omgeving als productie?
-7. **Bar-modus via e-mail op een niet-gekoppeld apparaat** (ModusKeuze →
-   "Bar", ADR 0003). Blijft dat werken, zoals nu en zoals deze spec
-   aanneemt? Of moet bar-modus alleen op een gekoppelde tablet kunnen? Het
-   is een persoonlijke, geauthenticeerde sessie, maar "achter de bar" is het
-   dan niet meer per se.
+Nummering gelijk gehouden, zodat de verwijzingen "open vraag N" hierboven
+blijven kloppen. Vraag 5 staat nog open.
+
+1. **Looptijd van het koppelcookie: glijdend.** De middleware geeft bij
+   gebruik hooguit één keer per dag een nieuw cookie uit, met een
+   `Max-Age` van 400 dagen, de browsergrens. Een tablet die in gebruik is
+   verloopt dus nooit. Een ongebruikt of gekopieerd cookie is na 400 dagen
+   stilte dood. `iat` in de cookiewaarde is het moment van uitgifte en
+   wordt bij elke verversing vernieuwd.
+2. **Alleen de code is genoeg**, er is geen beheerder-sessie nodig om te
+   koppelen. Bram en het bestuur bewaren de code. Een beheerder-login bij
+   het koppelen kan later nog.
+3. **Ja.** Bij rotatie worden alle tablets opnieuw gekoppeld. Er komt geen
+   tabel met gekoppelde apparaten.
+4. **26 tekens base32 in groepjes** (`ABCDE-FGHIJ-…`). De code is
+   hoofdletterongevoelig; streepjes en spaties worden genegeerd. Het veld
+   is `type="text"` met `autocomplete="off"`, zodat je ziet wat je typt:
+   je voert de code één keer in, bij de installatie.
+5. **UI-teksten: nog open.** Wordt niet gebouwd voordat Bram ze heeft
+   aangeleverd.
+6. **Alleen Production.** Preview-omgevingen krijgen geen
+   `BAR_DEVICE_SECRET` en dus nooit een device-sessie. Daar werkt de bar
+   alleen via e-mail → "Bar".
+7. **Ja.** Bar-modus via e-mail blijft ook werken op een niet-gekoppeld
+   apparaat (ADR 0003, ongewijzigd).
 
 ## Verhouding tot bestaande beslissingen
 

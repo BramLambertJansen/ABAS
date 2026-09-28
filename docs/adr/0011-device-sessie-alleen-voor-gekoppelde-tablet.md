@@ -1,6 +1,6 @@
 # 0011 — De gedeelde device-sessie komt alleen tot stand op een gekoppelde tablet
 
-Status: **concept, wacht op akkoord van Bram** (2026-09-28). Hoort bij
+Status: **geaccepteerd** (2026-09-28). Hoort bij
 [`docs/features/tablet-koppelen.md`](../features/tablet-koppelen.md).
 **Vervangt** het geaccepteerde risico uit
 [issue #34](https://github.com/BramLambertJansen/ABAS/issues/34)
