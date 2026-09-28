@@ -59,7 +59,7 @@ aanroepen voor dezelfde bestelling op elkaar wachten.
 
 | RPC | Wie | Controles, in volgorde |
 |---|---|---|
-| `reverse_order_at_bar(p_order_id, p_shift_id, p_reason, p_reversed_by)` | de gedeelde bar-sessie | `shift_not_open` → `order_not_found` → `order_not_in_shift` → `reversed_by_not_on_shift` → `reason_required` / `reason_too_long` → `already_reversed` |
+| `reverse_order_at_bar(p_order_id, p_shift_id, p_reason, p_reversed_by)` | de gedeelde bar-sessie | `no_bar_role` (lid-sessie, 0023) → `shift_not_open` → `order_not_found` → `order_not_in_shift` → `reversed_by_not_on_shift` → `reason_required` / `reason_too_long` → `already_reversed` |
 | `reverse_order_as_admin(p_order_id, p_reason)` | een beheerder via `auth.uid()` | `actor_not_found` / `no_admin_role` → `order_not_found` → `reason_required` / `reason_too_long` → `already_reversed` |
 
 De client stuurt nooit een bedrag. EXECUTE heeft alleen `authenticated`
@@ -94,6 +94,7 @@ Vaste teksten in `src/features/bestelling-terugdraaien/messages.ts`:
 
 | Code | Melding |
 |---|---|
+| `no_bar_role` | dit account mag niet op de bar werken — log uit en log in als bardienst (alleen bar, lid-sessie — 0023, #100) |
 | `shift_not_open` | deze dienst is al afgesloten — terugdraaien kan nu alleen nog via beheer |
 | `order_not_in_shift` | deze bestelling hoort niet bij de open dienst — terugdraaien kan alleen via beheer |
 | `reversed_by_not_on_shift` | wie terugdraait staat niet (meer) in de bezetting — kies opnieuw (de keuze wordt gewist en de bezetting opnieuw opgehaald) |

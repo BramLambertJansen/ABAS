@@ -141,8 +141,10 @@ zoals ze in `0001_init.sql` staan.
    Postgres-foutmelding alleen loggen, nooit tonen), rij blijft in de oude
    staat. Typed error-code union per actie (zelfde patroon als
    `useStartShift.ts` → `StartShiftErrorCode`): voor toevoegen
-   `shift_not_open | member_not_eligible | unknown`, voor verwijderen (na de
-   RPC-fix hierboven) `shift_not_open | unknown`.
+   `no_bar_role | shift_not_open | member_not_eligible | unknown`, voor
+   verwijderen (na de RPC-fix hierboven) `no_bar_role | shift_not_open |
+   unknown`. `no_bar_role` (lid-sessie, sinds 0023, #100) toont bij beide
+   "dit account mag niet op de bar werken — log uit en log in als bardienst".
 5. **Overlay sluiten** → terug naar het dienst-actief-scherm; de
    bezetting-sectie toont de actuele lijst (refetch van de nieuwe leeshook).
 
