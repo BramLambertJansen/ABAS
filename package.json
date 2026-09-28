@@ -12,10 +12,11 @@
     "check:arch": "node scripts/check-arch.mjs",
     "check:policy": "node scripts/check-policy.mjs",
     "check:rls": "node scripts/check-rls.mjs",
+    "check:migrations": "node scripts/check-migrations.mjs",
     "check:a11y": "playwright test",
     "db:test": "supabase test db",
-    "check:fast": "npm run lint && npm run typecheck && npm run test && npm run check:arch && npm run check:policy && npm run check:rls",
-    "check:all": "npm run lint && npm run typecheck && npm run test && npm run build && npm run check:arch && npm run check:policy && npm run check:rls && npm run check:a11y && npm run db:test",
+    "check:fast": "npm run lint && npm run typecheck && npm run test && npm run check:arch && npm run check:policy && npm run check:rls && npm run check:migrations",
+    "check:all": "npm run lint && npm run typecheck && npm run test && npm run build && npm run check:arch && npm run check:policy && npm run check:rls && npm run check:migrations && npm run check:a11y && npm run db:test",
     "prepare": "node .husky/install.mjs"
   },
   "dependencies": {
