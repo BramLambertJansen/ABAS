@@ -6,8 +6,9 @@ tussenstap en bevestigde dat publieke signup op het gehoste project uit staat
 `supabase/tests/bar_rpcs_weigeren_lid.test.sql`, en geldt naast `top_up` en
 `place_order` ook voor `reverse_order_at_bar` — die kwam na deze analyse
 (`0020`) en had hetzelfde gat: een lid kon de eigen bestelling terugdraaien.
-Open: A3/A4 en B1–B3 (vragen 1, 3–6 hieronder), en of `end_shift`,
-`add_shift_member` en `remove_shift_member` dezelfde guard krijgen.
+Op Brams verzoek ook op `end_shift`, `add_shift_member` en
+`remove_shift_member`: geen geld, maar een lid kon een dienst afsluiten of de
+bezetting wijzigen. Open: A3/A4 en B1–B3 (vragen 1, 3–6 hieronder).
 
 Oorspronkelijke status: analyse, wacht op besluit van Bram. Het document legt
 vast wat er feitelijk geldt, welke twee beslissingen openstaan, en wat elke

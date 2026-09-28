@@ -14,7 +14,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(12);
+select plan(20);
 
 -- ── Fixtures (als superuser) ─────────────────────────────────────────────
 
@@ -106,6 +106,27 @@ select throws_ok(
   'reverse_order_at_bar weigert een lid-sessie'
 );
 
+-- 4b) Dienst afsluiten en bezetting wijzigen.
+select throws_ok(
+  $$ select end_shift('00000000-0000-0000-0000-0000000005d0'::uuid) $$,
+  'P0001', 'no_bar_role',
+  'end_shift weigert een lid-sessie'
+);
+select throws_ok(
+  $$ select add_shift_member(
+       '00000000-0000-0000-0000-0000000005d0'::uuid,
+       '00000000-0000-0000-0000-0000000005b1'::uuid) $$,
+  'P0001', 'no_bar_role',
+  'add_shift_member weigert een lid-sessie'
+);
+select throws_ok(
+  $$ select remove_shift_member(
+       '00000000-0000-0000-0000-0000000005d0'::uuid,
+       '00000000-0000-0000-0000-0000000005b1'::uuid) $$,
+  'P0001', 'no_bar_role',
+  'remove_shift_member weigert een lid-sessie'
+);
+
 reset role;
 
 -- 5–7) Niets is bewogen.
@@ -123,6 +144,15 @@ select is(
   (select count(*)::int from order_reversals where order_id = '00000000-0000-0000-0000-0000000005e0'),
   0,
   'de bestelling van het lid is niet teruggedraaid'
+);
+select ok(
+  (select ended_at is null from shifts where id = '00000000-0000-0000-0000-0000000005d0'),
+  'de dienst staat nog open'
+);
+select is(
+  (select count(*)::int from shift_members where shift_id = '00000000-0000-0000-0000-0000000005d0'),
+  1,
+  'de bezetting is ongewijzigd'
 );
 
 -- ── Device-sessie (geen members-rij): werkt als voorheen ─────────────────
@@ -185,6 +215,32 @@ select lives_ok(
        '[{"product_id":"00000000-0000-0000-0000-0000000005c0","qty":1}]'::jsonb,
        '00000000-0000-0000-0000-0000000005b1'::uuid) $$,
   'place_order slaagt voor een bardienst-sessie'
+);
+
+reset role;
+
+-- ── Device-sessie: bezetting en afsluiten werken als voorheen ────────────
+-- Als laatste, omdat dit de dienst afsluit waar de blokken hierboven op
+-- draaien.
+
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000005a2', true);
+set local role authenticated;
+
+select lives_ok(
+  $$ select add_shift_member(
+       '00000000-0000-0000-0000-0000000005d0'::uuid,
+       '00000000-0000-0000-0000-0000000005b1'::uuid) $$,
+  'add_shift_member slaagt voor de device-sessie'
+);
+select lives_ok(
+  $$ select remove_shift_member(
+       '00000000-0000-0000-0000-0000000005d0'::uuid,
+       '00000000-0000-0000-0000-0000000005b1'::uuid) $$,
+  'remove_shift_member slaagt voor de device-sessie'
+);
+select lives_ok(
+  $$ select end_shift('00000000-0000-0000-0000-0000000005d0'::uuid) $$,
+  'end_shift slaagt voor de device-sessie'
 );
 
 reset role;

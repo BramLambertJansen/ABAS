@@ -1,4 +1,6 @@
--- Bar-RPC's weigeren een lid-sessie (A2 uit docs/features/bar-rpc-autorisatie.md).
+-- Bar-RPC's weigeren een lid-sessie (A2 uit docs/features/bar-rpc-autorisatie.md):
+-- top_up, place_order, reverse_order_at_bar, end_shift, add_shift_member,
+-- remove_shift_member.
 --
 -- top_up, place_order en reverse_order_at_bar controleerden alleen dát er een
 -- sessie is (0018), niet wélke. Sinds portal-login (#15, 0022) kan een lid
@@ -15,7 +17,7 @@
 -- op de tablet. Bram heeft bevestigd dat signup uit staat (2026-09-28). A3
 -- (expliciet device-account, allowlist) vervangt dit later.
 --
--- Functielichamen zijn 1-op-1 overgenomen uit 0016/0017/0020 met alleen de
+-- Functielichamen zijn 1-op-1 overgenomen uit 0001/0003/0016/0017/0020 met alleen de
 -- guard erbij. Zelfde signatuur, dus de grants (0001/0018/0020) blijven staan;
 -- rpc_execute_grants.test.sql bewaakt dat.
 
@@ -225,5 +227,77 @@ begin
   returning * into v_reversal;
 
   return v_reversal;
+end;
+$$;
+
+-- De drie bezettings-/dienst-RPC's verplaatsen geen geld, maar een lid hoort
+-- ze evenmin aan te roepen: een lid kon een lopende dienst afsluiten of de
+-- bezetting wijzigen (en daarmee bepalen wie als `served_by` geldt).
+-- end_shift was `language sql`; plpgsql om de guard te kunnen raisen, verder
+-- hetzelfde statement. add_shift_member uit 0001, remove_shift_member uit
+-- 0003, verder ongewijzigd.
+
+create or replace function end_shift(p_shift_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  -- 0023: bar-RPC's zijn niet voor een lid-sessie (A2,
+  -- docs/features/bar-rpc-autorisatie.md). Vóór alle andere checks, zodat
+  -- een lid niets leert over diensten of bestellingen uit de foutcode.
+  if caller_is_lid() then
+    raise exception 'no_bar_role' using errcode = 'P0001';
+  end if;
+  update shifts set ended_at = now() where id = p_shift_id and ended_at is null;
+end;
+$$;
+
+create or replace function add_shift_member(p_shift_id uuid, p_member_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  -- 0023: bar-RPC's zijn niet voor een lid-sessie (A2,
+  -- docs/features/bar-rpc-autorisatie.md). Vóór alle andere checks, zodat
+  -- een lid niets leert over diensten of bestellingen uit de foutcode.
+  if caller_is_lid() then
+    raise exception 'no_bar_role' using errcode = 'P0001';
+  end if;
+  if not exists (select 1 from shifts where id = p_shift_id and ended_at is null) then
+    raise exception 'shift_not_open' using errcode = 'P0001';
+  end if;
+  if not exists (
+    select 1 from members
+    where id = p_member_id and not archived and role in ('bardienst', 'beheerder')
+  ) then
+    raise exception 'member_not_eligible' using errcode = 'P0001';
+  end if;
+  insert into shift_members (shift_id, member_id)
+  values (p_shift_id, p_member_id)
+  on conflict do nothing;
+end;
+$$;
+
+create or replace function remove_shift_member(p_shift_id uuid, p_member_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  -- 0023: bar-RPC's zijn niet voor een lid-sessie (A2,
+  -- docs/features/bar-rpc-autorisatie.md). Vóór alle andere checks, zodat
+  -- een lid niets leert over diensten of bestellingen uit de foutcode.
+  if caller_is_lid() then
+    raise exception 'no_bar_role' using errcode = 'P0001';
+  end if;
+  if not exists (select 1 from shifts where id = p_shift_id and ended_at is null) then
+    raise exception 'shift_not_open' using errcode = 'P0001';
+  end if;
+  delete from shift_members where shift_id = p_shift_id and member_id = p_member_id;
 end;
 $$;
