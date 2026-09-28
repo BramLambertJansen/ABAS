@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { loadErrorMessage } from "@/lib/loadErrors";
 
 /** Meest recente boekingen, org-breed. */
 const LOGBOEK_LIMIT = 200;
@@ -170,7 +171,7 @@ export function useLogboek(): State & { refetch: () => void } {
       console.error("useLogboek:", err);
       setState({
         status: "error",
-        message: "Kan het logboek niet laden. Controleer de verbinding.",
+        message: loadErrorMessage("Kan het logboek niet laden.", err),
       });
     }
   }, []);

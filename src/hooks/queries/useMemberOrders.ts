@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { loadErrorMessage } from "@/lib/loadErrors";
 
 /** Eén bestelling van een lid, voor "bestelling terugdraaien" in beheer
  *  (docs/features/bestelling-terugdraaien.md → Beheer). */
@@ -63,7 +64,7 @@ export function useMemberOrders(
       console.error("useMemberOrders:", err);
       setState({
         status: "error",
-        message: "Kan de bestellingen van dit lid niet laden. Controleer de verbinding.",
+        message: loadErrorMessage("Kan de bestellingen van dit lid niet laden.", err),
       });
     }
   }, [memberId]);

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { loadErrorMessage } from "@/lib/loadErrors";
 
 export type AppSettings = {
   negativeLimitCents: number;
@@ -51,7 +52,7 @@ export function useAppSettings(): State & { refetch: () => void } {
       console.error("useAppSettings:", err);
       setState({
         status: "error",
-        message: "Kan de instellingen niet laden. Controleer de verbinding.",
+        message: loadErrorMessage("Kan de instellingen niet laden.", err),
       });
     }
   }, []);

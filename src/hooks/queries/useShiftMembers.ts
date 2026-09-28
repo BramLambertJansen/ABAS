@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { loadErrorMessage } from "@/lib/loadErrors";
 
 /** A row in the current bezetting — shift_members joined with the member's
  *  current name. No filter on role/archief here: a member whose role or
@@ -61,7 +62,7 @@ export function useShiftMembers(
       console.error("useShiftMembers:", err);
       setState({
         status: "error",
-        message: "Kan de bezetting niet laden. Controleer de verbinding.",
+        message: loadErrorMessage("Kan de bezetting niet laden.", err),
       });
     }
   }, [shiftId]);

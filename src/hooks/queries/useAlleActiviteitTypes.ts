@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { loadErrorMessage } from "@/lib/loadErrors";
 
 /** Elk `activity_types`-type, gearchiveerd of niet — de Instellingen-kaart
  *  (docs/features/activiteittypes.md → Schermflow §1), zelfde reden als
@@ -50,7 +51,7 @@ export function useAlleActiviteitTypes(): State & { refetch: () => void } {
       console.error("useAlleActiviteitTypes:", err);
       setState({
         status: "error",
-        message: "Kan de activiteittypes niet laden. Controleer de verbinding.",
+        message: loadErrorMessage("Kan de activiteittypes niet laden.", err),
       });
     }
   }, []);

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { loadErrorMessage } from "@/lib/loadErrors";
 
 /** A row from `members`, projected for ledenbeheer — eigen hook, geen
  *  uitbreiding van useMembers() (zie docs/features/ledenbeheer.md →
@@ -59,14 +60,16 @@ type State =
  *  die melding zijn wifi controleren. De schrijf-hooks in deze map mapten
  *  deze codes al wél — zie useUpdateMemberName.ts e.a., en
  *  LidBeherenOverlay.tsx voor dezelfde copy. */
-function errorMessageFor(rpcErrorMessage: string | undefined): string {
+function errorMessageFor(err: unknown): string {
+  const rpcErrorMessage =
+    typeof err === "object" && err !== null ? (err as { message?: unknown }).message : undefined;
   switch (rpcErrorMessage) {
     case "no_admin_role":
       return "dit account kan leden niet beheren — vraag een beheerder";
     case "actor_not_found":
       return "dit account is niet gekoppeld aan een lid — vraag een beheerder";
     default:
-      return "Kan de ledenlijst niet laden. Controleer de verbinding.";
+      return loadErrorMessage("Kan de ledenlijst niet laden.", err);
   }
 }
 
@@ -112,7 +115,7 @@ export function useAlleLeden(): State & { refetch: () => void } {
         // Zelfde vorm als de schrijf-hooks in deze map, die de
         // `error`-tak ook naast de catch afhandelen.
         console.error("useAlleLeden:", error);
-        setState({ status: "error", message: errorMessageFor(error.message) });
+        setState({ status: "error", message: errorMessageFor(error) });
         return;
       }
 
@@ -138,7 +141,7 @@ export function useAlleLeden(): State & { refetch: () => void } {
       console.error("useAlleLeden:", err);
       setState({
         status: "error",
-        message: errorMessageFor(undefined),
+        message: errorMessageFor(err),
       });
     }
   }, []);

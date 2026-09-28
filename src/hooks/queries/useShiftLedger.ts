@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { loadErrorMessage } from "@/lib/loadErrors";
 
 /** Eén boeking in de dienst: een bestelling (`orders`) of een opwaardering
  *  (`top_ups`). `amountCents` is altijd het positieve bedrag uit de
@@ -161,7 +162,7 @@ export function useShiftLedger(
       console.error("useShiftLedger:", err);
       setState({
         status: "error",
-        message: "Kan de boekingen van deze dienst niet laden. Controleer de verbinding.",
+        message: loadErrorMessage("Kan de boekingen van deze dienst niet laden.", err),
       });
     }
   }, [shiftId]);

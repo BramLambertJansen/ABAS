@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { loadErrorMessage } from "@/lib/loadErrors";
 
 export type Product = {
   id: string;
@@ -51,7 +52,7 @@ export function useProducts(): State & { refetch: () => void } {
       console.error("useProducts:", err);
       setState({
         status: "error",
-        message: "Kan het assortiment niet laden. Controleer de verbinding.",
+        message: loadErrorMessage("Kan het assortiment niet laden.", err),
       });
     }
   }, []);

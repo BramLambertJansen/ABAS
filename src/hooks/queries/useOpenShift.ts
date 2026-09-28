@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { loadErrorMessage } from "@/lib/loadErrors";
 
 /**
  * There is at most one open shift at a time on the shared bar-tablet
@@ -84,7 +85,7 @@ export function useOpenShift(): State & { refetch: () => void } {
       console.error("useOpenShift:", err);
       setState({
         status: "error",
-        message: "Kan niet controleren of er al een dienst open is. Controleer de verbinding.",
+        message: loadErrorMessage("Kan niet controleren of er al een dienst open is.", err),
       });
     }
   }, []);
