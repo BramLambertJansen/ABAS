@@ -870,7 +870,11 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
    * so running first (same worker, in declaration order, per
    * `.serial()`'s own guarantee) is what keeps the staff picker — and this
    * step right after it — reachable rather than already replaced by
-   * DienstTabs. Doesn't pick an activity or type a PIN (that would start a
+   * DienstTabs. Position alone isn't enough, though (#88): the later tests
+   * in this block leave a shift open, so a second run against the same
+   * local Postgres — or a CI retry of this block — landed on DienstTabs
+   * and timed out waiting for the staff button. `ensureNoOpenShift()`
+   * closes any such leftover first. Doesn't pick an activity or type a PIN (that would start a
    * shift as a side effect of an a11y-only scan, same reasoning as the
    * dienst-afsluiten-overlay test below not clicking its own confirm
    * button).
@@ -878,7 +882,7 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
   test("bar shell (/) activiteitkeuze-stap (dienst starten) has no WCAG2A/AA violations", async ({
     page,
   }) => {
-    await page.goto("/");
+    await ensureNoOpenShift(page);
 
     const staffButton = page.getByRole("button", { name: STAFF_BUTTON_NAME });
     await staffButton.waitFor({ state: "visible", timeout: 15_000 });
@@ -924,13 +928,14 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
    * activiteitkeuze-stap, not back to staff selection).
    *
    * Placed second in this block (after the a11y-only scan above, before
-   * `ensureShiftStarted()`'s own tests), same "no shift open yet"
-   * ordering-dependency as that first test.
+   * `ensureShiftStarted()`'s own tests); like that first test it closes a
+   * leftover shift via `ensureNoOpenShift()` rather than assuming none is
+   * open (#88).
    */
   test("bar shell (/) activiteitkeuze toont na 'terug' vanaf de PIN-stap weer de placeholder", async ({
     page,
   }) => {
-    await page.goto("/");
+    await ensureNoOpenShift(page);
 
     const staffButton = page.getByRole("button", { name: STAFF_BUTTON_NAME });
     await staffButton.waitFor({ state: "visible", timeout: 15_000 });
@@ -963,8 +968,9 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
   /**
    * The inverse of `ensureShiftStarted()`: leaves the shared session with
    * *no* open shift, so `/` renders the stafkeuze/PIN-entry screen rather
-   * than DienstTabs. Only the pincode-invoer scenario below needs this —
-   * that screen is unreachable while a shift is open, and on a Playwright
+   * than DienstTabs. The two activiteitkeuze scenarios above and the
+   * pincode-invoer scenario below need this — those screens are unreachable
+   * while a shift is open, and on a Playwright
    * retry in CI (`retries: 1`) the previous attempt's shift is still open
    * against the same local Postgres.
    *

@@ -27,6 +27,8 @@ cp .env.example .env.local   # vul in, of gebruik `supabase start`'s output
 npm run dev
 ```
 
-`npm run check:all` moet groen zijn voor elke commit (lint, typecheck, build,
-architectuur-/policy-/RLS-gates, a11y, db-tests) — zie `CLAUDE.md` →
-Verificatie voor wat elke gate bewaakt.
+De pre-commit hook draait `npm run check:fast` (lint, typecheck, unittests,
+architectuur-/policy-/RLS-gates — geen database nodig). CI draait op elke PR
+de volledige `npm run check:all` (plus build, a11y, db-tests) en is de gate
+vóór merge. Lokaal `check:all` draaien kan met `supabase start`, maar is niet
+verplicht. Zie `CLAUDE.md` → Verificatie voor wat elke gate bewaakt.

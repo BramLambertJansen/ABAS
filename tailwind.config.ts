@@ -73,7 +73,10 @@ const config: Config = {
           light: "#cfd3d8",
           error: "#ff7c4a",
         },
-        success: "#157f4a",
+        // Prototype's #157f4a haalt 5.04:1 op wit maar maar 4.29:1 op
+        // `track` (de SALDO-badge in het Logboek, #88) — donkerder gezet tot
+        // 4.96:1 op track, zelfde tint. Zie test/accentContrast.test.ts.
+        success: "#127443",
         warning: {
           bg: "#fdf2d6",
           fg: "#8a5a10",

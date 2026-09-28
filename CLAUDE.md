@@ -15,8 +15,13 @@ te schrijven.
 
 ## Verificatie
 
-`npm run check:all` moet groen zijn voor elke commit. De pre-commit hook draait
-dit; CI draait het opnieuw. Bypassen is geen normale werkwijze.
+CI is de gate: `npm run check:all` draait op elke PR en moet groen zijn vóór
+merge. Werkwijze: committen, pushen, PR, en fixen wat CI rood maakt. De
+pre-commit hook draait alleen `check:fast` (alles zonder database: lint,
+typecheck, `test`, `check:arch`/`policy`/`rls`) — `build`, `check:a11y` en
+`db:test` hebben een draaiende Supabase nodig en laten we aan CI over. CI
+draait alleen op PR's: bij de eerste push van een branch meteen een PR openen,
+bestaat die al dan alleen committen en pushen.
 
 | Gate | Bewaakt |
 |---|---|

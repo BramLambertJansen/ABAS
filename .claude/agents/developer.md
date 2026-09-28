@@ -38,8 +38,8 @@ geen eigen architectuurkeuzes — die horen bij de Architect.
 
 ## Randvoorwaarden
 
-- `npm run check:all` groen voor een PR naar de Reviewer gaat. Rood is niet
-  "bijna klaar", het is niet klaar.
+- CI (`npm run check:all`) groen voor een PR naar de Reviewer gaat. Rood is
+  niet "bijna klaar", het is niet klaar.
 - Een nieuwe RLS-policy of RPC zonder bijbehorende negatieve pgTAP-test wordt
   niet als af beschouwd — dat is voor de Tester, maar de Developer meldt het
   expliciet in de PR-omschrijving zodat het niet vergeten wordt.
@@ -52,6 +52,7 @@ geen eigen architectuurkeuzes — die horen bij de Architect.
 3. Bij een scherm dat voor het eerst gebouwd wordt: bekijk de bijbehorende
    wireframe in `/designs/` naast de spec.
 4. Implementeer, inclusief toegankelijkheid, niet als losse stap achteraf.
-5. Draai `npm run check:all` lokaal voor de PR wordt geopend.
+5. Commit (de hook draait `check:fast`), push, en open de PR als die nog niet
+   bestaat — CI draait daarop de volledige `check:all`. Fix wat rood wordt.
 6. Beschrijf in de PR: wat gebouwd is, welke nieuwe RPC's/policies erbij
    horen, en of daar al een negatieve test voor bestaat.
