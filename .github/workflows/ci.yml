@@ -27,9 +27,13 @@ jobs:
       # van de pijplijn, naast lint/typecheck.
       - run: npm test
 
+      # Vaste versie, geen `latest`: `latest` vraagt bij elke run de GitHub
+      # API welke release de nieuwste is, en een 500 of rate limit daarop
+      # maakte CI rood zonder dat er een test faalde (PR #96, 2026-09-28).
+      # Bijwerken is een bewuste wijziging hier.
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.118.0
 
       # `build`/`check:a11y` need a live Supabase instance now too, not just
       # `db:test` — e2e/a11y.spec.ts (docs/features/bezetting-beheren.md, #7)
