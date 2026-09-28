@@ -1,6 +1,7 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { loginMetWachtwoord, portalLoginMetWachtwoord } from "./helpers/supabaseMock";
+import { koppelTablet, koppelformulier, openKoppelscherm } from "./helpers/tabletKoppelen";
 
 /**
  * The WCAG-AA gate CLAUDE.md calls for: axe-core against every shell's
@@ -10,7 +11,11 @@ import { loginMetWachtwoord, portalLoginMetWachtwoord } from "./helpers/supabase
  * npm run check:all.
  */
 const routes = [
-  { name: "bar shell", path: "/" },
+  // docs/features/tablet-koppelen.md → e2e en CI: zonder koppeling stuurt
+  // de middleware `/` door naar `/koppel`, dus dat scherm staat hier. Het
+  // gekoppelde `/` wordt gescand in het stateful block hieronder
+  // (activiteitkeuze, pincode, Verkoop, …).
+  { name: "tablet koppelen", path: "/koppel" },
   { name: "portal shell", path: "/portal" },
   { name: "beheer login", path: "/beheer" },
   // docs/features/wachtwoord-vergeten.md — aanvraagweergave, en het
@@ -54,6 +59,28 @@ for (const { name, path } of routes) {
  * daarom met reducedMotion "reduce", en globals.css zet overgangen dan uit.
  * Deze test bewaakt dat die twee samen blijven werken.
  */
+/**
+ * docs/features/tablet-koppelen.md → Testplan → "A11y": de foutstaat van
+ * het koppelscherm (melding in role="alert", veld leeg met focus) als eigen
+ * scan. Leunt niet op de schermteksten, alleen op rol.
+ */
+test("tablet koppelen (/koppel) foutstaat na een verkeerde code has no WCAG2A/AA violations", async ({
+  page,
+}) => {
+  await openKoppelscherm(page);
+  const formulier = koppelformulier(page);
+  await formulier.getByRole("textbox").fill("AAAAA-AAAAA-AAAAA-AAAAA-AAAAA-A");
+  await formulier.getByRole("button").click();
+  await expect(formulier.getByRole("alert")).toHaveText(/\S/);
+
+  const results = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa"])
+    .analyze();
+
+  expect(results.violations, JSON.stringify(results.violations, null, 2))
+    .toEqual([]);
+});
+
 test("a11y-scans draaien zonder kleurovergangen (#71)", async ({ page }) => {
   await page.goto("/beheer");
 
@@ -783,7 +810,8 @@ test.describe("beheer ingelogde staat (a11y)", () => {
  *
  * Needs a live Supabase instance reachable at build/run time
  * (NEXT_PUBLIC_SUPABASE_URL/NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
- * SUPABASE_DEVICE_EMAIL/PASSWORD) seeded with supabase/seed.sql — see
+ * SUPABASE_DEVICE_EMAIL/PASSWORD, plus BAR_DEVICE_SECRET for the koppeling
+ * each test starts with — ADR 0011) seeded with supabase/seed.sql — see
  * docs/ARCHITECTURE.md → "Local/CI device account" for how CI provisions
  * that. Confirmed actually passing in real CI as of PR #40 (merged
  * 2026-08-26), which also fixed two pre-existing bugs (`useOpenShift`'s
@@ -803,6 +831,13 @@ test.describe("beheer ingelogde staat (a11y)", () => {
 const STAFF_BUTTON_NAME = /^Tom Willems\b/;
 
 test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
+  // docs/features/tablet-koppelen.md → e2e en CI: elke test krijgt een
+  // verse browsercontext, dus zonder koppeling geen abas_tablet-cookie en
+  // geen device-sessie. Eén formulier-POST per test via de echte flow.
+  test.beforeEach(async ({ page }) => {
+    await koppelTablet(page);
+  });
+
   /** Starts a shift as the demo "Tom Willems" bardienst account (PIN 1234,
    *  per seed.sql's comment: "Demo PIN for every bar/beheer member below is
    *  1234") if none is open yet on this shared session, or reuses whichever
@@ -1015,8 +1050,8 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
    * docs/features/dienst-starten.md (#6) → the PIN-entry screen
    * (PinPad.tsx). Added at the app-review of 2026-09-21: this was the only
    * interactive screen in the app with no axe coverage at all. The routes
-   * loop at the top of this file scans `/`, but that lands on the
-   * stafkeuze — the numpad only renders after picking a bardienst, and
+   * loop at the top of this file used to scan `/` (now `/koppel`, ADR
+   * 0011), but that landed on the stafkeuze — the numpad only renders after picking a bardienst, and
    * `ensureShiftStarted()` clicks straight through it without scanning.
    *
    * Scans the pad in its empty, pre-entry state and deliberately enters no
