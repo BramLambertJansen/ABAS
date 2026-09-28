@@ -1439,4 +1439,39 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
     await dialog.waitFor({ state: "visible" });
     await expect(dialog).toBeFocused();
   });
+
+  /**
+   * docs/features/dienst-te-lang-open.md → Testgevallen → check:a11y: de
+   * melding "Dienst staat nog open" (DienstTeLangOpenMelding.tsx, een
+   * Overlay.tsx-consument). `started_at` in de database blijft staan; de
+   * browserklok gaat met Playwright's `page.clock` ruim 6 uur vooruit.
+   * Tikt na de scan "Nog bezig", zodat de dienst hier niet met een open
+   * melding achterblijft (elke volgende test krijgt sowieso een verse
+   * pagina met de echte klok).
+   */
+  test("bar shell (/) dienst-te-lang-open-melding has no WCAG2A/AA violations", async ({
+    page,
+  }) => {
+    await page.clock.install();
+    await ensureShiftStarted(page);
+
+    // Ook een dienst die een eerdere test in dit block net startte, staat
+    // na deze sprong meer dan 6 uur open.
+    await page.clock.fastForward("06:05:00");
+
+    const dialog = page.getByRole("dialog", { name: "Dienst staat nog open" });
+    await dialog.waitFor({ state: "visible", timeout: 15_000 });
+    await expect(dialog).toBeFocused();
+    await expect(dialog).toHaveAccessibleDescription(/^Deze dienst staat al \d+ uur open\. Klopt dat\?$/);
+
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+
+    expect(results.violations, JSON.stringify(results.violations, null, 2))
+      .toEqual([]);
+
+    await dialog.getByRole("button", { name: "Nog bezig" }).click();
+    await expect(dialog).toBeHidden();
+  });
 });
