@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { isRateLimitedMessage } from "@/lib/authErrors";
+import { logLocalError } from "@/lib/clientErrors";
 import { createClient } from "@/lib/supabase/client";
 
 /**
@@ -108,10 +109,10 @@ export function useBeheerLogin() {
         },
       });
       if (error) {
-        console.error("useBeheerLogin (signInWithMagicLink):", error.message);
+        logLocalError("useBeheerLogin (signInWithMagicLink)", error.message);
       }
     } catch (err) {
-      console.error("useBeheerLogin (signInWithMagicLink):", err);
+      logLocalError("useBeheerLogin (signInWithMagicLink)", err);
     }
     setState({ status: "magic_link_sent", email });
   }
