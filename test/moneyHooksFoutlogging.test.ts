@@ -166,3 +166,32 @@ for (const [name, fn, run] of [
     assert.equal(fakeMoney().reports[0].hook, name === "useReverseOrderAtBar" ? "useReverseOrder" : name);
   });
 }
+
+// Dezelfde zes hooks, andere takken (#100): een gegooide Error met
+// message `no_bar_role` gaat door de catch-tak (toErrorCode op
+// err.message) en is daar óók een domeinuitkomst; een bijna-code
+// (hoofdletters) is dat niet en wordt wel gemeld — de hooks vergelijken
+// exact.
+for (const [name, run] of [
+  ["usePlaceOrder", async () => (await placeOrder()).ok],
+  ["useTopUp", async () => (await topUp()).ok],
+  [
+    "useReverseOrderAtBar",
+    async () => (await useReverseOrderAtBar().reverse("o", SHIFT, "reden", SERVER)).ok,
+  ],
+  ["useAddShiftMember", () => useAddShiftMember().addShiftMember(SHIFT, MEMBER)],
+  ["useRemoveShiftMember", () => useRemoveShiftMember().removeShiftMember(SHIFT, MEMBER)],
+  ["useEndShift", () => useEndShift().endShift(SHIFT)],
+] as const) {
+  test(`${name} meldt een gegooide no_bar_role niet (catch-tak)`, async () => {
+    fakeMoney().next = { kind: "throw", error: new Error("no_bar_role") };
+    assert.equal(await run(), false);
+    assert.deepEqual(fakeMoney().reports, []);
+  });
+
+  test(`${name} behandelt NO_BAR_ROLE (bijna-code) als onverwacht en meldt hem`, async () => {
+    rpcError("NO_BAR_ROLE");
+    assert.equal(await run(), false);
+    assert.equal(fakeMoney().reports.length, 1);
+  });
+}
