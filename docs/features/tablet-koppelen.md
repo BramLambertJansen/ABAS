@@ -1,8 +1,6 @@
 # Tablet koppelen: de gedeelde device-sessie alleen voor een gekoppelde tablet
 
-**Status: goedgekeurd door Bram (2026-09-28), op de UI-teksten na (open
-vraag 5).** Geschreven 2026-09-28. Het scherm `/koppel` wordt pas gebouwd
-als die teksten er zijn. De architectuurbeslissing zelf staat in
+**Status: goedgekeurd door Bram (2026-09-28).** Geschreven 2026-09-28. De architectuurbeslissing zelf staat in
 [ADR 0011](../adr/0011-device-sessie-alleen-voor-gekoppelde-tablet.md).
 Vervolg op [issue #34](https://github.com/BramLambertJansen/ABAS/issues/34):
 dit vervangt het daar geaccepteerde risico.
@@ -555,7 +553,7 @@ Volgorde, buiten een dienst:
 ## Open vragen voor Bram — beantwoord 2026-09-28
 
 Nummering gelijk gehouden, zodat de verwijzingen "open vraag N" hierboven
-blijven kloppen. Vraag 5 staat nog open.
+blijven kloppen.
 
 1. **Looptijd van het koppelcookie: glijdend.** De middleware geeft bij
    gebruik hooguit één keer per dag een nieuw cookie uit, met een
@@ -572,8 +570,16 @@ blijven kloppen. Vraag 5 staat nog open.
    hoofdletterongevoelig; streepjes en spaties worden genegeerd. Het veld
    is `type="text"` met `autocomplete="off"`, zodat je ziet wat je typt:
    je voert de code één keer in, bij de installatie.
-5. **UI-teksten: nog open.** Wordt niet gebouwd voordat Bram ze heeft
-   aangeleverd.
+5. **UI-teksten** (bevestigd door Bram, 2026-09-28). Kop "Tablet
+   koppelen". Uitleg "Deze tablet is nog niet gekoppeld aan de bar. Vul de
+   koppelcode in; die heb je maar één keer nodig. De code staat bij het
+   bestuur." Veldlabel "Koppelcode", knop "Koppelen". Bij een foute code:
+   "Deze code klopt niet. Controleer hem en probeer het opnieuw." Als
+   koppelen niet is geconfigureerd: "Koppelen is op deze omgeving niet
+   ingesteld. Log in met je e-mailadres om de bar te gebruiken." De
+   verwijzing naar de portal staat aan: "Ben je lid en wil je je saldo
+   bekijken?" met de link "Ga naar het portaal" naar `/portal`. De teksten
+   staan in `src/features/tablet-koppelen/teksten.ts`.
 6. **Alleen Production.** Preview-omgevingen krijgen geen
    `BAR_DEVICE_SECRET` en dus nooit een device-sessie. Daar werkt de bar
    alleen via e-mail → "Bar".
