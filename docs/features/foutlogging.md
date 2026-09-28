@@ -6,9 +6,7 @@ Volgt op [#68](https://github.com/BramLambertJansen/ABAS/issues/68) (PR #93,
 [#67](https://github.com/BramLambertJansen/ABAS/issues/67) (migratie 0019
 ontbrak in productie, PostgREST gaf een schemafout).
 
-**Status: Goedgekeurd op hoofdlijnen — open: retentie/opruimen van de
-logtabel, wie de log leest.** Zie "Open beslissingen voor Bram"; migratie,
-RPC en helper hangen daar niet van af.
+**Status: Goedgekeurd door Bram (2026-09-28).** Klaar voor de Developer.
 
 ## Probleem
 
@@ -38,6 +36,11 @@ vinden — welke hook, welke code, welke build, wanneer.
    een telling.
 5. **`check:policy`-regel "geen kale `console.error` in `src/hooks/queries/`"
    komt mee.**
+6. **Retentie: 90 dagen, opruimen via `pg_cron`.** Automatisch, omdat
+   handmatig opruimen bij een vrijwilligersclub er niet van komt.
+7. **Lezen: alleen Supabase Studio.** Geen leesscherm en geen lees-RPC.
+   Een beheerscherm komt pas als Studio in de praktijk te omslachtig blijkt,
+   en is dan een aparte feature met een eigen spec.
 
 **Gevolg van 1 (geen nieuwe beslissing):** de RPC is, zoals elke RPC sinds
 0018, alleen voor `authenticated`. Fouten van vóór het inloggen worden niet
@@ -69,6 +72,13 @@ Bewust **geen** kolom voor `auth.uid()`, member-id, naam, e-mail, saldo,
 RPC-argumenten, `details`/`hint`, stack, IP of user-agent. Rechten volgens
 bestaand patroon: RLS aan, **geen policies**, `revoke all on client_errors
 from authenticated, anon`; Studio leest als postgres-rol, buiten RLS.
+
+**Opruimen (beslissing 6):** dezelfde migratie doet `create extension if not
+exists pg_cron` en plant een dagelijkse job die rijen met `created_at <
+now() - interval '90 days'` verwijdert. Er komt een index op `created_at`.
+Dit is het eerste gebruik van `pg_cron` in deze codebase. De Developer
+controleert dat de lokale Supabase uit `db:test`/CI de extensie heeft,
+en meldt het in plaats van eromheen te bouwen als dat niet zo is.
 
 ## RPC — `log_client_error`
 
@@ -152,23 +162,14 @@ het inloggen niet gelogd worden.
 - Geen server-side rate-limit: elke ingelogde sessie, ook die van een lid,
   kan rijen toevoegen binnen de grenzen van de RPC. Bij alleen
   `authenticated` en deze schaal is dat aanvaardbaar; de groei van de tabel
-  valt onder open beslissing (a).
+  wordt begrensd door de 90-dagenretentie (beslissing 6).
 
 ## Expliciet buiten scope
 
 Fouten van vóór het inloggen, alerting, server-side fouten (Route Handlers,
 middleware), statistieken, een offline-buffer, het ombouwen van
-`loadErrors.ts`, een leesscherm (zie b).
+`loadErrors.ts`, een leesscherm (zie beslissing 7).
 
 ## Open beslissingen voor Bram
 
-a. **Retentie en opruimen van `client_errors`:** hoe lang bewaren (bv. 30 of
-   90 dagen), en hoe opruimen: `pg_cron`-job in de migratie (automatisch,
-   eerste `pg_cron`-gebruik in deze codebase) of handmatig een `delete` in
-   Studio wanneer het nodig is? *Aanbeveling:* 90 dagen via `pg_cron`,
-   omdat handmatig opruimen bij een vrijwilligersclub niet gebeurt.
-b. **Wie leest de log:** alleen Supabase Studio (niets te bouwen), of ook een
-   beheerscherm in `shells/bar`? Dat laatste wordt een aparte feature, met
-   een lees-RPC met ADR-0002-actorcheck (`beheerder`) en een eigen spec.
-   *Aanbeveling:* voorlopig alleen Studio, een scherm pas als Studio in de
-   praktijk te omslachtig blijkt.
+Geen.
