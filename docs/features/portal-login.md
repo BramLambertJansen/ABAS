@@ -287,22 +287,22 @@ expliciet verplaatst bij elke weergavewissel (WCAG 2.4.3, zelfde
   laagdrempeliger, zie "Besloten door Bram" punt 2.
 - **Wachtwoord** (`usePortalLogin().signInWithPassword(email, password)`):
   `signInWithPassword({ email, password })`, via `portalClient.ts`. Faalt
-  met "onjuist e-mailadres of wachtwoord" — dit pad lekt geen
-  accountbestaan (issue #70: "Het wachtwoordpad... lekt niet en blijft
-  zoals het is"), geen wijziging nodig t.o.v. hoe `BeheerLogin.tsx` dit al
+  met "onjuist e-mailadres of wachtwoord" — de melding maakt geen
+  onderscheid tussen onbekend adres en fout wachtwoord (issue #70; een
+  timingverschil is niet uitgesloten, zie ADR 0013), geen wijziging nodig t.o.v. hoe `BeheerLogin.tsx` dit al
   doet.
 - **Neutrale melding voor magic link (issue #70, "Hetzelfde geldt straks
   voor de portal-login (#15)")**: elke uitkomst van `signInWithMagicLink` —
   geslaagd, onbekend adres, rate limit, onbekende fout — toont dezelfde
   melding: "Als er een account bij {email} hoort, hebben we een inloglink
   gestuurd." Geen onderscheid naar foutcode zoals `BeheerLogin.tsx` dat
-  destijds nog wel maakte (dat was daar de eigen #70-fix, sinds 2026-09-28
-  gebouwd; deze spec bouwde het hier meteen goed).
+  destijds nog wel maakte.
   Exact hetzelfde patroon als `wachtwoord-vergeten.md`'s
   `useWachtwoordResetAanvragen` (altijd `status: "sent"`, fout alleen
   gelogd via `console.error`) — `usePortalLogin.ts`'s
-  `signInWithMagicLink` volgt die vorm, en sinds #70 doet
-  `useBeheerLogin.ts` dat ook.
+  `signInWithMagicLink` volgt die vorm. `/beheer` toont sinds #99 dezelfde
+  neutrale melding; dat is alleen een UI-maskering, zie
+  `beheer-magic-link-enumeratie.md` en ADR 0013.
 
 ### 2. `/auth/callback` — gedeelde callback voor `/beheer` én `/portal` (Besloten door Bram, punt 3)
 
@@ -616,7 +616,7 @@ was aan #17 toegewezen, is daar buiten scope verklaard en staat nu in #106.
 | Geval | Gedrag |
 |---|---|
 | Bar-sessie actief (device-cookie), lid navigeert naar `/portal` | Geen ingelogde staat (ADR 0009, cookie-isolatie) — `PortalLogin.tsx` toont het inlogformulier. Kernscenario van acceptatiecriterium 4. |
-| Magic link/wachtwoord-login voor een e-mailadres zonder (gekoppeld) `lid`-account | Magic link: neutrale "als er een account bij ... hoort"-melding, geen sessie tot stand gekomen als het adres onbekend is bij Supabase zelf; wachtwoord: "onjuist e-mailadres of wachtwoord" (lekt niet, issue #70). |
+| Magic link/wachtwoord-login voor een e-mailadres zonder (gekoppeld) `lid`-account | Magic link: neutrale "als er een account bij ... hoort"-melding, geen sessie tot stand gekomen als het adres onbekend is bij Supabase zelf; wachtwoord: "onjuist e-mailadres of wachtwoord" (geen onderscheid in de melding, issue #70, ADR 0013). |
 | Sessie bestaat, herleidt niet naar een gekoppeld `members`-record (sinds ADR 0012 elke rol; tot #17: niet naar een `lid`-record) | `usePortalSession()` → `denied`, neutrale melding, zie Rolzichtbaarheid. |
 | Mail op de telefoon geopend, aangevraagd op een andere pc/telefoon | Werkt (ADR 0008, `token_hash`, apparaat-onafhankelijk). |
 | Link verlopen/al gebruikt (`/portal/wachtwoord-herstellen`) | "Deze link is verlopen of al gebruikt. Vraag een nieuwe aan." + terug naar de aanvraagweergave — zelfde tekst/gedrag als `/beheer/wachtwoord-herstellen`. |
@@ -707,9 +707,8 @@ ná-deploy-actie plus één verificatiestap.
 - **Wachtwoord wijzigen terwijl ingelogd** — #17, inmiddels gebouwd
   (`docs/features/portal-profiel.md`, PR #110).
 - **`/beheer`'s eigen #70-fix** — deze spec bouwde alleen de portal-kant
-  (zie Schermflow → "Neutrale melding"). Sinds 2026-09-28 volgt
-  `useBeheerLogin.ts` hetzelfde patroon, met `shouldCreateUser: false`
-  behouden: fouten worden gemaskeerd in plaats van vermeden.
+  (zie Schermflow → "Neutrale melding"). Zie
+  `beheer-magic-link-enumeratie.md` (#70).
 - **Eigen SMTP-provider** (Supabase's mail-limiet) — ongewijzigd buiten
   scope, zelfde als `wachtwoord-vergeten.md`.
 

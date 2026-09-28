@@ -4,10 +4,12 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { reportClientError } from "@/lib/clientErrors";
 
-/** `end_shift` (0001_init.sql) never raises — no `raise exception` in its
- *  body, just an `update ... where ended_at is null`. Anything that ends up
- *  here is therefore a network failure or otherwise unexpected error, not a
- *  code the RPC itself produced. Same `toErrorCode`-fallback shape as the
+/** `end_shift` raises only `no_bar_role` (0023, a lid-sessie). That falls
+ *  under "unknown" on purpose and is reported via `reportClientError`: a
+ *  lid-sessie in `shells/bar` calling a bar-RPC is an anomaly we want to see
+ *  in `client_errors`, not a user-facing case (Bram, #100). Otherwise just
+ *  an `update ... where ended_at is null`, so anything else here is a network
+ *  failure or otherwise unexpected error. Same `toErrorCode`-fallback shape as the
  *  other shift/bezetting mutation hooks (useAddShiftMember.ts,
  *  useRemoveShiftMember.ts) for consistency, even though the union is
  *  trivially small here. */

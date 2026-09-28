@@ -529,6 +529,14 @@ held under the assumption (since corrected by ADR 0002) that there'd never
 be a separate beheer session. The mode concept is real again at the
 architecture level; #6's screens themselves are unaffected, see ADR 0003.
 
+**Accountbestaan is niet geheim op de Auth-API** (ADR
+[0013](adr/0013-accountbestaan-niet-geheim-op-auth-api.md), accepted
+2026-09-28, #70). With the public anon-key anyone can tell whether an e-mail
+address has an account (`/auth/v1/otp` with `create_user: false`,
+`/auth/v1/recover` timing/429). The app only guarantees that its own UI never
+says so: every mail-sending auth form shows the same neutral message. UI
+masking is not a fix for enumeration; don't present it as one.
+
 ## Dienst & bezetting (settled, 2026-08-24)
 
 Revives the prototype's "crew"/"wie werkt er mee" concept (`chat18.md`,
