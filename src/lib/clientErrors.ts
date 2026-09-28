@@ -187,8 +187,17 @@ export function reportClientError(client: ClientErrorClientSource, hook: string,
     payload.p_occurrences = occurrences;
 
     const restore = () => restoreOccurrences(dedupeState, key, occurrences);
-    const rpcClient = typeof client === "function" ? client() : client;
-    Promise.resolve(rpcClient.rpc("log_client_error", payload)).then(
+    let pending: PromiseLike<{ error: unknown }>;
+    try {
+      const rpcClient = typeof client === "function" ? client() : client;
+      pending = rpcClient.rpc("log_client_error", payload);
+    } catch {
+      // Synchroon falen (factory of rpc gooit): de telling is al
+      // geregistreerd, dus teruggeven — anders valt deze fout 5 minuten weg.
+      restore();
+      return;
+    }
+    Promise.resolve(pending).then(
       ({ error }) => {
         if (error) restore();
       },
