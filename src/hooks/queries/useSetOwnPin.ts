@@ -3,36 +3,22 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { reportClientError } from "@/lib/clientErrors";
+import { toSetOwnPinErrorCode, type SetOwnPinErrorCode } from "@/lib/ownPinErrors";
 
-/** Error codes `set_own_pin` (0014_pin_zelfbediening.sql) actually raises.
- *  Anything else valt terug op "unknown". `actor_not_found`/`no_bar_role`
- *  should never actually surface from "Mijn account" in practice (you can
- *  only reach that screen via an individual e-mail/wachtwoord-sessie that
- *  already resolved to an active bardienst/beheerder row, see
- *  useBeheerSession.ts) — kept anyway, same defensive reasoning as
- *  dienst-starten's `no_bar_role`/`member_not_found` messaging for a
- *  role/archive change that lands between screens. */
-export type SetOwnPinErrorCode =
-  | "invalid_pin_format"
-  | "actor_not_found"
-  | "no_bar_role"
-  | "unknown";
+/** Mapping en type staan in src/lib/ownPinErrors.ts, gedeeld met
+ *  usePortalSetOwnPin.ts (docs/features/portal-profiel.md → Hooks).
+ *  `actor_not_found`/`no_bar_role` should never actually surface from
+ *  "Mijn account" in practice (you can only reach that screen via an
+ *  individual e-mail/wachtwoord-sessie that already resolved to an active
+ *  bardienst/beheerder row, see useBeheerSession.ts) — kept anyway, same
+ *  defensive reasoning as dienst-starten's `no_bar_role`/`member_not_found`
+ *  messaging for a role/archive change that lands between screens. */
+export type { SetOwnPinErrorCode };
 
 type State =
   | { status: "idle" }
   | { status: "pending" }
   | { status: "error"; code: SetOwnPinErrorCode };
-
-function toErrorCode(message: string | undefined): SetOwnPinErrorCode {
-  if (
-    message === "invalid_pin_format" ||
-    message === "actor_not_found" ||
-    message === "no_bar_role"
-  ) {
-    return message;
-  }
-  return "unknown";
-}
 
 /** Self-service PIN-toggle for the currently signed-in individual
  *  (docs/features/auth-methode-per-lid.md → RPC's). `p_pin` null = PIN
@@ -48,7 +34,7 @@ export function useSetOwnPin() {
       const { error } = await supabase.rpc("set_own_pin", { p_pin: pin });
 
       if (error) {
-        const code = toErrorCode(error.message);
+        const code = toSetOwnPinErrorCode(error.message);
         if (code === "unknown") reportClientError(supabase, "useSetOwnPin", error);
         setState({ status: "error", code });
         return false;
@@ -56,7 +42,7 @@ export function useSetOwnPin() {
       setState({ status: "idle" });
       return true;
     } catch (err) {
-      const code = toErrorCode(err instanceof Error ? err.message : undefined);
+      const code = toSetOwnPinErrorCode(err instanceof Error ? err.message : undefined);
       if (code === "unknown") reportClientError(createClient, "useSetOwnPin", err);
       setState({ status: "error", code });
       return false;

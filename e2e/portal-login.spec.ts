@@ -1,4 +1,3 @@
-import { execSync } from "node:child_process";
 import { test, expect, type Page } from "@playwright/test";
 import {
   SUPABASE_HEADERS,
@@ -8,6 +7,7 @@ import {
   portalLoginMetWachtwoord,
 } from "./helpers/supabaseMock";
 import { koppelTablet } from "./helpers/tabletKoppelen";
+import { supabaseStatus } from "./helpers/supabaseAdmin";
 
 /**
  * docs/features/portal-login.md (#15) — gedrag van `/portal`'s inlogscherm,
@@ -60,23 +60,6 @@ test.use({ baseURL: "http://localhost:3100" });
 // ---------------------------------------------------------------------------
 // Live-backend bouwstenen
 // ---------------------------------------------------------------------------
-
-let cachedStatus: { apiUrl: string; serviceRoleKey: string } | null = null;
-
-function supabaseStatus(): { apiUrl: string; serviceRoleKey: string } {
-  if (cachedStatus) return cachedStatus;
-  let raw: string;
-  try {
-    raw = execSync("supabase status -o json", { encoding: "utf8" });
-  } catch {
-    // Lokaal (buiten CI) staat de CLI niet altijd los van npm op het PATH —
-    // zelfde fallback als de rest van deze repo's tooling.
-    raw = execSync("npx supabase status -o json", { encoding: "utf8" });
-  }
-  const parsed = JSON.parse(raw) as { API_URL: string; SERVICE_ROLE_KEY: string };
-  cachedStatus = { apiUrl: parsed.API_URL, serviceRoleKey: parsed.SERVICE_ROLE_KEY };
-  return cachedStatus;
-}
 
 /** Genereert een échte, geldige `token_hash` voor een magic link — zonder
  *  een mail te versturen/lezen (`supabase/config.toml` heeft hier lokaal
@@ -173,17 +156,17 @@ test.describe("live backend (echte lokale Supabase, supabase/seed.sql)", () => {
   });
 
   /**
-   * Rolzichtbaarheid — een sessie die wél bestaat maar niet naar een actief
-   * `lid`-record herleidt (hier: een `bardienst`-account dat op de portal
-   * probeert in te loggen) toont de neutrale `denied`-melding, geen
-   * "Hoi …". Hergebruikt de al geseede Sanne Bakker
-   * (`bardienst`-e-mail/wachtwoord-account, `supabase/seed.sql`) — geen
-   * nieuwe fixture nodig.
+   * Rolzichtbaarheid — een sessie die wél bestaat maar niet naar een
+   * `members`-record herleidt toont de neutrale `denied`-melding, geen
+   * "Hoi …". Sinds ADR 0012 (docs/features/portal-profiel.md, #17, besluit
+   * 1) is een bardienst-account op de portal gewoon `signed-in` (zie de test
+   * hieronder); de `denied`-staat wordt daarom gedekt met het ongekoppelde
+   * seed-account (`auth.users` zonder `members`-rij, `supabase/seed.sql`).
    */
-  test("een bardienst-account op /portal krijgt de neutrale 'niet gekoppeld'-melding, geen toegang", async ({
+  test("een ongekoppeld account op /portal krijgt de neutrale 'niet gekoppeld'-melding, geen toegang", async ({
     page,
   }) => {
-    await portalLoginMetWachtwoord(page, "sanne.bakker@aurora.local", "local-bardienst-dev-only");
+    await portalLoginMetWachtwoord(page, "e2e.ongekoppeld@aurora.local", "local-e2e-ongekoppeld-dev-only");
 
     await expect(
       page.getByText("Dit account is niet gekoppeld aan een lid.")
@@ -193,6 +176,32 @@ test.describe("live backend (echte lokale Supabase, supabase/seed.sql)", () => {
     // Wachtwoord (deniedMessage wist de gekozen methode niet), dus de
     // knoptekst is "Inloggen", niet de magic-link-tekst.
     await expect(page.getByRole("button", { name: "Inloggen" })).toBeVisible();
+  });
+
+  /**
+   * ADR 0012 → Gevolgen, testverwachting: een bardienst-sessie op `/portal`
+   * ziet alleen de eigen data, ook al leest die sessie via RLS álle
+   * `members`/`orders`/`top_ups`. Sanne Bakker (seed: €21,00, zelf geen
+   * bestellingen of opwaarderingen — ze draaide wel een bestelling van Anna
+   * de Vries terug) mag dus alleen haar eigen saldo zien, en een lege
+   * transactielijst. Alleen lezen, dus het gedeelde seedlid mag hier.
+   */
+  test("een bardienst-account op /portal is signed-in en ziet alleen het eigen saldo en de eigen transacties", async ({
+    page,
+  }) => {
+    await portalLoginMetWachtwoord(page, "sanne.bakker@aurora.local", "local-bardienst-dev-only");
+
+    await expect(dashboardHeading(page, "Sanne")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("Dit account is niet gekoppeld aan een lid.")).toHaveCount(0);
+    await expect(page.getByText("HUIDIG SALDO")).toBeVisible();
+    await expect(page.getByText(/21,00/).first()).toBeVisible();
+
+    await page.getByRole("tab", { name: "Transacties" }).click();
+    await expect(page.getByText("Nog geen transacties")).toBeVisible({ timeout: 15_000 });
+    // Anna de Vries' seedtransacties (bestelling, opwaardering, terugdraaiing)
+    // mogen hier nooit verschijnen.
+    await expect(page.getByText("Bestelling", { exact: true })).toHaveCount(0);
+    await expect(page.getByText("Opgewaardeerd", { exact: true })).toHaveCount(0);
   });
 
   /**

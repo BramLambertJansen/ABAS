@@ -49,6 +49,9 @@ const PORTAL_ONLY_DIRS = [
   // een vierde, portal-only featuremap naast portal-login/ — geen bar-
   // tegenhanger om generiek voor te bouwen, zelfde reden als de andere drie.
   "src/features/portal-dashboard/",
+  // docs/features/portal-profiel.md (#17) → Betrokken shell, "Gewijzigd":
+  // het Account-tabblad en zijn sheets, zelfde reden als portal-dashboard/.
+  "src/features/portal-profiel/",
 ];
 const SHARED_AUTH_CALLBACK_FILE = "src/app/auth/callback/route.ts";
 

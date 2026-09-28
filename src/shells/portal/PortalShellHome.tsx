@@ -11,12 +11,14 @@ import { PortalDashboard } from "@/features/portal-dashboard/PortalDashboard";
  * `usePortalSession()`:
  *
  *   - geen sessie → `PortalLogin` (het inlogformulier).
- *   - sessie die niet naar een actief `lid`-record herleidt → dezelfde
- *     neutrale "niet gekoppeld"-melding, getoond via `PortalLogin`'s
- *     `deniedMessage` (zelfde vorm als `Assortimentbeheer.tsx`'s gebruik van
+ *   - sessie zonder gekoppeld `members`-record → dezelfde neutrale "niet
+ *     gekoppeld"-melding, getoond via `PortalLogin`'s `deniedMessage`
+ *     (zelfde vorm als `Assortimentbeheer.tsx`'s gebruik van
  *     `BeheerLogin`'s `deniedMessage`).
- *   - actieve `lid`-sessie → `PortalDashboard` (eigen saldo + transacties,
- *     #16) in plaats van de eerdere "Welkom, {naam}"-placeholder.
+ *   - sessie met een `members`-record, elke rol (ADR 0012, #17) →
+ *     `PortalDashboard` (eigen saldo, transacties en account).
+ *     `session.refetch` gaat mee als `onProfileChanged`: dit is de
+ *     instantie waar de header zijn naam vandaan haalt.
  */
 export default function PortalShellHome() {
   const session = usePortalSession();
@@ -37,6 +39,7 @@ export default function PortalShellHome() {
         name={session.name}
         email={session.email}
         onSignOut={() => session.signOut()}
+        onProfileChanged={session.refetch}
       />
     );
   }

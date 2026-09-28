@@ -5,15 +5,19 @@ import { createClient } from "@/lib/supabase/portalClient";
 import { logLocalError, reportClientError } from "@/lib/clientErrors";
 
 /**
- * Tracks whether `/portal` has an actual `lid`-session — analoog aan
- * `useBeheerSession.ts`, eigen bestand (portalClient.ts, ADR 0009, zie
- * docs/features/portal-login.md → "Herbruik"). Een sessie die bestaat maar
- * niet naar een actief `lid`-record herleidt (bv. een
- * bardienst/beheerder-e-mailadres, of geen gekoppeld `members`-record)
- * rapporteert `denied` met dezelfde neutrale melding voor élk zo'n geval —
- * geen onderscheid naar "wel een account, verkeerde rol" versus "geen
- * account" (spec → Rolzichtbaarheid, hetzelfde neutraliteitsprincipe als de
- * rest van deze spec).
+ * Tracks whether `/portal` has a session that resolves to a `members`-row —
+ * analoog aan `useBeheerSession.ts`, eigen bestand (portalClient.ts, ADR
+ * 0009, zie docs/features/portal-login.md → "Herbruik").
+ *
+ * Sinds ADR 0012 (docs/features/portal-profiel.md, #17, besluit 1) is de
+ * portal het lid-deel voor **elke** rol: een sessie die naar een
+ * `members`-rij herleidt is `signed-in`, ongeacht `role`. `role` en
+ * `archived` gaan mee in de state, zodat het Account-tabblad de PIN-rij
+ * alleen voor bar-rollen toont. Alleen een sessie zónder gekoppelde
+ * `members`-rij rapporteert `denied`, met dezelfde neutrale melding als
+ * voorheen. Let op (ADR 0012 → Beslissing 2): een bardienst/beheerder-sessie
+ * leest via RLS álle `members`-rijen, dus deze lookup filtert expliciet op
+ * de eigen `auth_user_id` — nooit op RLS leunen.
  *
  * Geen `archived`-filter op de members-lookup, in tegenstelling tot
  * `useBeheerSession.ts`: `0015_lid_leest_alleen_eigen_rijen.sql`'s
@@ -31,7 +35,15 @@ export type PortalSessionState =
   | { status: "loading" }
   | { status: "signed-out" }
   | { status: "denied"; message: string }
-  | { status: "signed-in"; email: string; name: string };
+  | {
+      status: "signed-in";
+      email: string;
+      name: string;
+      role: PortalMemberRole;
+      archived: boolean;
+    };
+
+export type PortalMemberRole = "lid" | "bardienst" | "beheerder";
 
 const DENIED_MESSAGE = "Dit account is niet gekoppeld aan een lid.";
 
@@ -53,16 +65,22 @@ export function usePortalSession(): PortalSessionState & {
         try {
           const { data, error } = await supabase
             .from("members")
-            .select("name, role")
+            .select("name, role, archived")
             .eq("auth_user_id", userId)
             .maybeSingle();
           if (cancelled) return;
           if (error) throw error;
-          if (!data || data.role !== "lid") {
+          if (!data) {
             setState({ status: "denied", message: DENIED_MESSAGE });
             return;
           }
-          setState({ status: "signed-in", email, name: data.name as string });
+          setState({
+            status: "signed-in",
+            email,
+            name: data.name as string,
+            role: data.role as PortalMemberRole,
+            archived: data.archived as boolean,
+          });
         } catch (err) {
           reportClientError(supabase, "usePortalSession", err);
           if (!cancelled) {
