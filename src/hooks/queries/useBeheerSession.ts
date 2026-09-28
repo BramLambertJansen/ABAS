@@ -5,9 +5,10 @@ import { createClient } from "@/lib/supabase/client";
 
 /**
  * Tracks whether `/beheer` has an actual bardienst/beheerder session, not
- * merely "any Supabase Auth session" — `src/middleware.ts` auto-signs the
- * shared bar-tablet device account in on almost every request (including
- * `/beheer`) whenever there's no session yet, so `supabase.auth.getSession()`
+ * merely "any Supabase Auth session" — on a gekoppelde tablet (ADR 0011)
+ * `src/middleware.ts` auto-signs the shared bar-tablet device account in on
+ * almost every request (including `/beheer`) whenever there's no session
+ * yet, so `supabase.auth.getSession()`
  * returning a `user` does NOT by itself mean an individual logged in via
  * `BeheerLogin.tsx` (ADR 0002's mechanism: `/beheer`'s own e-mail-login
  * *replaces* that shared session — "no session" and "the device session" are
@@ -165,8 +166,9 @@ export function useBeheerSession(): BeheerSessionState & {
       const supabase = createClient();
       await supabase.auth.signOut();
       // onAuthStateChange above picks up the resulting "signed-out" state —
-      // src/middleware.ts's existing `if (!session)` step re-establishes
-      // the shared device session on the next bar-shell request, no action
+      // src/middleware.ts re-establishes the shared device session on the
+      // next bar-shell request, alleen op een gekoppelde tablet (ADR 0011,
+      // docs/features/tablet-koppelen.md); elders volgt /koppel. No action
       // needed here beyond signing out (ADR 0002 → Beslissing, stap 3).
     } catch (err) {
       console.error("useBeheerSession (signOut):", err);
