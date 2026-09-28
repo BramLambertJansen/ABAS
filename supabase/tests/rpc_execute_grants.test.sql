@@ -26,7 +26,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(17);
+select plan(20);
 
 -- ── 1) Niets in public is uitvoerbaar zonder sessie ──────────────────────
 
@@ -153,6 +153,25 @@ select ok(
 select ok(
   has_function_privilege('authenticated', 'public.link_lid_member_account()', 'EXECUTE'),
   'link_lid_member_account blijft aanroepbaar voor een ingelogde sessie'
+);
+
+-- Added for 0025_client_errors.sql (#94, docs/features/foutlogging.md,
+-- ADR 0011): bewust géén anon-uitzondering — fouten van vóór het inloggen
+-- worden niet gelogd. purge_client_errors() is voor niemand behalve de
+-- eigenaar, ook niet voor authenticated.
+select ok(
+  not has_function_privilege('anon', 'public.log_client_error(text,text,text,text,integer,text)', 'EXECUTE'),
+  'log_client_error is niet aanroepbaar zonder sessie'
+);
+
+select ok(
+  has_function_privilege('authenticated', 'public.log_client_error(text,text,text,text,integer,text)', 'EXECUTE'),
+  'log_client_error blijft aanroepbaar voor een ingelogde sessie'
+);
+
+select ok(
+  not has_function_privilege('authenticated', 'public.purge_client_errors()', 'EXECUTE'),
+  'purge_client_errors is niet aanroepbaar voor een ingelogde sessie'
 );
 
 select * from finish();
