@@ -7,6 +7,7 @@ import {
   json,
   portalLoginMetWachtwoord,
 } from "./helpers/supabaseMock";
+import { koppelTablet } from "./helpers/tabletKoppelen";
 
 /**
  * docs/features/portal-login.md (#15) — gedrag van `/portal`'s inlogscherm,
@@ -111,14 +112,14 @@ test.describe("live backend (echte lokale Supabase, supabase/seed.sql)", () => {
   /**
    * Acceptatiecriterium 4 (ADR 0009) — het kernscenario van deze hele spec:
    * een bar-sessie (het gedeelde device-account dat `src/middleware.ts`
-   * server-side inlogt zodra een niet-`/portal`-route bezocht wordt) mag
-   * nooit als ingelogde staat op `/portal` verschijnen. Bezoekt eerst `/`
+   * server-side inlogt zodra een niet-`/portal`-route bezocht wordt, sinds
+   * ADR 0011 alleen op een gekoppelde tablet) mag nooit als ingelogde staat
+   * op `/portal` verschijnen. Koppelt eerst via `/koppel` en komt dan op `/`
    * (geeft het device-cookie de kans te zetten, zelfde manier als
-   * e2e/a11y.spec.ts's stateful bar-shell scenario's dat al impliciet doen),
-   * dan pas `/portal`.
+   * e2e/a11y.spec.ts's stateful bar-shell scenario's), dan pas `/portal`.
    */
   test("bar-sessie (device-cookie) op / toont geen ingelogde staat op /portal", async ({ page }) => {
-    await page.goto("/");
+    await koppelTablet(page);
     // Het device-cookie is een server-side Set-Cookie op de eerste request
     // naar een niet-/portal-route — geen UI om op te wachten, dus gewoon een
     // korte networkidle-wachttijd voor de middleware/eerste render.

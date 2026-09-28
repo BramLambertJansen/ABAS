@@ -65,6 +65,14 @@ jobs:
       # (staff picker onward) can never render far enough to scan. Root
       # cause of run 32998590441's bezetting-overlay timeout, not an a11y
       # regression — see supabase/seed.sql's comment on the device insert.
+      #
+      # BAR_DEVICE_SECRET (docs/features/tablet-koppelen.md, ADR 0011): since
+      # then the middleware only signs the device account in on a browser
+      # gekoppeld via /koppel. A fixed, local-only test secret of exactly the
+      # minimum format (26 characters base32, written in groups so the e2e
+      # flow also exercises the normalisation) — literal here for the same
+      # reason as local-device-dev-only. e2e/helpers/tabletKoppelen.ts
+      # reads it to go through the real /koppel flow.
       - name: Export local Supabase env vars
         run: |
           status=$(supabase status -o json)
@@ -73,6 +81,7 @@ jobs:
             echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$(echo "$status" | jq -r '.PUBLISHABLE_KEY')"
             echo "SUPABASE_DEVICE_EMAIL=device@aurora.local"
             echo "SUPABASE_DEVICE_PASSWORD=local-device-dev-only"
+            echo "BAR_DEVICE_SECRET=ABASC-ITEST-SECRE-TONLY-LOKAA-L"
           } >> "$GITHUB_ENV"
 
       - run: npm run build
