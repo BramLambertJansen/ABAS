@@ -300,8 +300,8 @@ expliciet verplaatst bij elke weergavewissel (WCAG 2.4.3, zelfde
   Exact hetzelfde patroon als `wachtwoord-vergeten.md`'s
   `useWachtwoordResetAanvragen` (altijd `status: "sent"`, fout alleen
   gelogd via `console.error`) — `usePortalLogin.ts`'s
-  `signInWithMagicLink` volgt die vorm, niet `useBeheerLogin.ts`'s huidige
-  (lekkende) vorm.
+  `signInWithMagicLink` volgt die vorm, en sinds #70 doet
+  `useBeheerLogin.ts` dat ook.
 
 ### 2. `/auth/callback` — gedeelde callback voor `/beheer` én `/portal` (Besloten door Bram, punt 3)
 
