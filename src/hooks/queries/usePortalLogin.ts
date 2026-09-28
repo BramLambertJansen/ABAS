@@ -17,8 +17,8 @@ import { logLocalError } from "@/lib/clientErrors";
  *   - `shouldCreateUser: true` (Besloten door Bram, punt 2) — elk geldig
  *     e-mailadres krijgt een werkende link, `link_lid_member_account()`
  *     bepaalt daarna of er iets te koppelen valt.
- *   - `signInWithMagicLink` lekt nooit een foutcode: elke uitkomst eindigt
- *     in dezelfde `magic_link_sent`-staat (issue #70 — geen
+ *   - `signInWithMagicLink` toont nooit een foutcode: elke uitkomst eindigt
+ *     in dezelfde `magic_link_sent`-staat (issue #70, UI-maskering, ADR 0013 — geen
  *     e-mail-enumeratie), fouten alleen gelogd. Exact hetzelfde patroon als
  *     `useWachtwoordResetAanvragen` in `useWachtwoordHerstellen.ts`. Alleen
  *     het wachtwoordpad heeft hier een zichtbare foutcode — dat pad lekt

@@ -295,13 +295,13 @@ expliciet verplaatst bij elke weergavewissel (WCAG 2.4.3, zelfde
   geslaagd, onbekend adres, rate limit, onbekende fout — toont dezelfde
   melding: "Als er een account bij {email} hoort, hebben we een inloglink
   gestuurd." Geen onderscheid naar foutcode zoals `BeheerLogin.tsx` dat
-  destijds nog wel maakte (dat was daar de eigen #70-fix, sinds 2026-09-28
-  gebouwd; deze spec bouwde het hier meteen goed).
+  destijds nog wel maakte.
   Exact hetzelfde patroon als `wachtwoord-vergeten.md`'s
   `useWachtwoordResetAanvragen` (altijd `status: "sent"`, fout alleen
   gelogd via `console.error`) — `usePortalLogin.ts`'s
-  `signInWithMagicLink` volgt die vorm, en sinds #70 doet
-  `useBeheerLogin.ts` dat ook.
+  `signInWithMagicLink` volgt die vorm. `/beheer` toont sinds #99 dezelfde
+  neutrale melding; dat is alleen een UI-maskering, zie
+  `beheer-magic-link-enumeratie.md` en ADR 0013.
 
 ### 2. `/auth/callback` — gedeelde callback voor `/beheer` én `/portal` (Besloten door Bram, punt 3)
 
@@ -694,9 +694,8 @@ ná-deploy-actie plus één verificatiestap.
   hier een placeholder, geen echt scherm; een later ticket bouwt dat.
 - **Wachtwoord wijzigen terwijl ingelogd** — #17, ongewijzigd.
 - **`/beheer`'s eigen #70-fix** — deze spec bouwde alleen de portal-kant
-  (zie Schermflow → "Neutrale melding"). Sinds 2026-09-28 volgt
-  `useBeheerLogin.ts` hetzelfde patroon, met `shouldCreateUser: false`
-  behouden: fouten worden gemaskeerd in plaats van vermeden.
+  (zie Schermflow → "Neutrale melding"). Zie
+  `beheer-magic-link-enumeratie.md` (#70).
 - **Eigen SMTP-provider** (Supabase's mail-limiet) — ongewijzigd buiten
   scope, zelfde als `wachtwoord-vergeten.md`.
 

@@ -2,11 +2,13 @@
 
 Spec voor [issue #70](https://github.com/BramLambertJansen/ABAS/issues/70).
 
-**Status: concept, wacht op akkoord van Bram.** Er is nog niets gekozen. De
-aanbeveling hieronder is een voorstel. Alle beslissingen die bij Bram liggen
-staan onderaan onder "Open vragen". De Developer begint pas na akkoord.
+**Status: besloten door Bram (2026-09-28): optie D.** Het restlek op
+API-niveau wordt geaccepteerd en vastgelegd in ADR 0013. De magic link op
+`/beheer` blijft. Er wordt niets gebouwd; alleen de documentcorrecties
+(punt 1–3) en de codecomments (punt 5) zijn doorgevoerd. Zie de antwoorden
+onder "Open vragen".
 
-Hoort bij het concept-[ADR 0013](../adr/0013-accountbestaan-niet-geheim-op-auth-api.md).
+Hoort bij [ADR 0013](../adr/0013-accountbestaan-niet-geheim-op-auth-api.md).
 Raakt ADR [0002](../adr/0002-beheeracties-vereisen-eigen-e-mail-sessie.md)
 (bij Bram's keuze "e-mail: magic link of wachtwoord"),
 [0003](../adr/0003-auth-methode-per-lid-en-vaste-modus-bar-beheer.md),
@@ -357,7 +359,25 @@ UI-wijziging ook niet meer.
 - Het portal-besluit `shouldCreateUser: true` zelf. Dat wordt alleen
   voorgelegd (Open vraag 3), niet gewijzigd.
 
-## Open vragen voor Bram
+## Open vragen voor Bram — beantwoord 2026-09-28
+
+- **Vraag 4 (restlek aanvaardbaar?): ja, optie D.**
+- **Vraag 1 (signup uit?): ja**, volgens Bram. Welke schakelaar precies, en
+  of wachtwoordlogin daar werkt (`supabase/auth#330`), is niet
+  geverifieerd.
+- **Vraag 6 (magic link op `/beheer` behouden?): ja.** ADR 0002 blijft
+  ongewijzigd. Daarmee vervallen vraag 5 (alleen relevant voor C) en
+  vraag 8 (alleen relevant voor A).
+- **Vraag 7 (#99-passages): vervangen**, volgens "Documentcorrecties" punt
+  1–3. Doorgevoerd.
+- **Vraag 2 (spike) en vraag 3 (portal-besluit `shouldCreateUser: true`):
+  niet beantwoord.** Niet nodig voor optie D. Vraag 3 blijft een apart
+  punt: de motivatie in `portal-login.md` klopt niet, en met signup uit
+  werkt de belofte "elk geldig adres krijgt een werkende link" in
+  productie waarschijnlijk niet. Punt 4 van "Documentcorrecties" (voetnoot)
+  wacht daarop.
+
+De oorspronkelijke vragen:
 
 1. **Staat signup in het gehoste Supabase-project echt uit?** Welke
    schakelaar precies: "Allow new users to sign up" onder Authentication →

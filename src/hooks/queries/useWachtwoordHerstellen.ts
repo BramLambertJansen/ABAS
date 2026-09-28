@@ -24,7 +24,8 @@ type RequestState =
  * echt gemaild wordt, dus alleen bij een bestaand adres — een aparte
  * "te veel pogingen"-melding zou verraden dat het adres een account heeft
  * (Reviewer PR #69, besloten door Bram 2026-09-23). Niet "fixen" door op
- * error.code/429 te matchen.
+ * error.code/429 te matchen. Het restlek via de Auth-API zelf is bewust
+ * geaccepteerd, zie ADR 0013.
  */
 export function useWachtwoordResetAanvragen() {
   const [state, setState] = useState<RequestState>({ status: "idle" });
