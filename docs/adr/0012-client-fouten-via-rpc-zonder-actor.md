@@ -5,9 +5,9 @@ als onderdeel van de door Bram
 goedgekeurde spec [`docs/features/foutlogging.md`](../features/foutlogging.md)
 (issue #94). Gemerged als "0011", tegelijk met
 [ADR 0011](0011-device-sessie-alleen-voor-gekoppelde-tablet.md) (#95);
-hernummerd naar 0012, inhoud ongewijzigd. De `comment on`-teksten in
-`0025_client_errors.sql` noemen nog "ADR 0011": dat is SQL in een al
-toegepaste migratie, niet aangepast. Amendeert niets; staat bewust tegenover
+hernummerd naar 0012, inhoud ongewijzigd. De verwijzingen in
+`0025_client_errors.sql` zijn meegenomen; dat is alleen commentaartekst, en
+Supabase volgt migraties op versienummer, niet op inhoud. Amendeert niets; staat bewust tegenover
 [ADR 0002](0002-beheeracties-vereisen-eigen-e-mail-sessie.md) (actor bij
 elke beheerschrijfactie) en tegenover het patroon van `0023` (bar-RPC's
 weigeren een lid-sessie), en past

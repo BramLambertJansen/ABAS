@@ -42,7 +42,7 @@ create table client_errors (
 );
 
 comment on table client_errors is
-  'Onverwachte client-fouten uit src/hooks/queries/ (docs/features/foutlogging.md, ADR 0011). Append-only, alleen via log_client_error(); lezen alleen via Studio. Geen actor, geen vrij tekstveld. Rijen ouder dan 90 dagen ruimt purge_client_errors() dagelijks op (pg_cron).';
+  'Onverwachte client-fouten uit src/hooks/queries/ (docs/features/foutlogging.md, ADR 0012). Append-only, alleen via log_client_error(); lezen alleen via Studio. Geen actor, geen vrij tekstveld. Rijen ouder dan 90 dagen ruimt purge_client_errors() dagelijks op (pg_cron).';
 
 -- Voor de dagelijkse opruiming (created_at < now() - 90 dagen) en voor
 -- "wat ging er gisteravond mis" in Studio.
@@ -94,7 +94,7 @@ end;
 $$;
 
 comment on function log_client_error(text, text, text, text, integer, text) is
-  'Schrijft één client-fout in client_errors (docs/features/foutlogging.md, ADR 0011). Voor elke authenticated sessie, ook een lid; slaat geen actor op. Ongeldige invoer: invalid_client_error.';
+  'Schrijft één client-fout in client_errors (docs/features/foutlogging.md, ADR 0012). Voor elke authenticated sessie, ook een lid; slaat geen actor op. Ongeldige invoer: invalid_client_error.';
 
 -- Alleen voor een ingelogde sessie, zelfde patroon als elke RPC sinds 0018:
 -- een nieuwe functie krijgt van Postgres standaard EXECUTE voor PUBLIC (en
