@@ -90,7 +90,11 @@ export function TabletKoppelen({
         </p>
       </AuroraMerk>
 
+      {/* method="post": wie vóór de hydratie al verstuurt, krijgt een
+          native POST (code in de body), nooit een GET met de code in de
+          URL (spec → "De code zit nooit in een URL"). */}
       <form
+        method="post"
         onSubmit={onSubmit}
         className="flex w-full max-w-sm flex-col gap-4 rounded-card border border-rail-border bg-rail-card p-6"
       >
