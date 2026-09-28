@@ -172,7 +172,7 @@ policy.
 ## RPC's
 
 **Nieuwe RPC: `list_own_transactions()`**, nieuwe migratie
-`supabase/migrations/0023_portal_eigen_transacties.sql`. Zie
+`supabase/migrations/0024_portal_eigen_transacties.sql`. Zie
 [ADR 0010](../adr/0010-portal-transacties-naam-via-rpc-niet-rls-verruiming.md)
 voor waarom dit een RPC is en geen verruiming van `members_select`.
 

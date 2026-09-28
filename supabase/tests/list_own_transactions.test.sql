@@ -1,5 +1,5 @@
 -- Negative-test coverage for list_own_transactions()
--- (supabase/migrations/0023_portal_eigen_transacties.sql,
+-- (supabase/migrations/0024_portal_eigen_transacties.sql,
 -- docs/features/portal-dashboard.md → RPC's, ADR 0010). Run with
 -- `npm run db:test` (= `supabase test db`, vereist `supabase start` /
 -- Docker lokaal).
