@@ -193,6 +193,16 @@ leave that one open until a screen actually needs to branch on it, same
 "don't build ahead of a second real case" reasoning as the `"sheet"` branch
 above.
 
+**Overlay presence (settled, 2026-09-28, ADR
+[0012](adr/0012-overlay-aanwezigheid-via-gedeelde-context.md))**: every
+`Overlay` registers itself on mount/unmount with a counter in
+`src/components/OverlayPresence.tsx`. `useOpenOverlayCount()` reads it; with
+no `OverlayPresenceProvider` above, registering is a no-op and the count is 0.
+The only provider sits in `DienstTabs`, for the "dienst staat nog open"-melding
+(`docs/features/dienst-te-lang-open.md`), which waits until no other overlay
+is open instead of stacking on top — two `Overlay`s at once fight over
+Escape/backdrop/focus-trap. A dialog built outside `Overlay` isn't counted.
+
 **First multi-screen bar navigation (settled, 2026-08-26)**: issue #8 is the
 first time `shells/bar` needed more than one screen behind an open shift.
 `src/features/verkoop/DienstTabs.tsx` renders the navigation (Verkoop,
