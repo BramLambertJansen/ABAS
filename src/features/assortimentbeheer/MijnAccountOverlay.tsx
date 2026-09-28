@@ -2,23 +2,10 @@
 
 import { useEffect, useId, useState } from "react";
 import { Overlay } from "@/components/Overlay";
-import { useSetOwnPin, type SetOwnPinErrorCode } from "@/hooks/queries/useSetOwnPin";
+import { useSetOwnPin } from "@/hooks/queries/useSetOwnPin";
+import { PIN_PATTERN, setOwnPinErrorMessage } from "@/lib/ownPinErrors";
 
 const TOAST_DURATION_MS = 3500;
-const PIN_PATTERN = /^[0-9]{4}$/;
-
-function errorMessage(code: SetOwnPinErrorCode): string {
-  switch (code) {
-    case "invalid_pin_format":
-      return "een pincode is 4 cijfers";
-    case "actor_not_found":
-      return "dit account is niet gekoppeld aan een lid — log opnieuw in";
-    case "no_bar_role":
-      return "dit account kan geen pincode instellen — vraag een beheerder";
-    case "unknown":
-      return "er ging iets mis, probeer het opnieuw";
-  }
-}
 
 /**
  * "Mijn account" — zelfbedienings-PIN-toggle
@@ -97,7 +84,7 @@ export function MijnAccountOverlay({
       </div>
 
       <p className="text-sm font-bold text-danger empty:-mt-4" role="alert">
-        {mutation.errorCode ? errorMessage(mutation.errorCode) : ""}
+        {mutation.errorCode ? setOwnPinErrorMessage(mutation.errorCode) : ""}
       </p>
 
       <div className="flex items-center justify-between rounded-control bg-canvas px-3.5 py-3">

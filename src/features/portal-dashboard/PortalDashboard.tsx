@@ -3,8 +3,9 @@
 import { useId, useState } from "react";
 import { SaldoTab } from "./SaldoTab";
 import { TransactiesTab } from "./TransactiesTab";
+import { AccountTab } from "@/features/portal-profiel/AccountTab";
 
-type Tab = "saldo" | "transacties";
+type Tab = "saldo" | "transacties" | "account";
 
 /**
  * `/portal`'s eerste echte inhoud achter een ingelogde `lid`-sessie —
@@ -12,8 +13,9 @@ type Tab = "saldo" | "transacties";
  * `PortalShellHome.tsx`'s "Welkom, {naam}"-placeholder (portal-login.md).
  *
  * Container: een kleine header (naam + "Uitloggen", het enige dat overblijft
- * van de placeholder — geen apart "Account"-tabblad, spec → Expliciet buiten
- * scope) boven een tab-omschakeling Saldo/Transacties, zelfde
+ * van de placeholder) boven een tab-omschakeling Saldo/Transacties/Account
+ * (Account sinds docs/features/portal-profiel.md, #17 — de Uitloggen-knop
+ * blijft in de header, geen tweede in het Account-tabblad), zelfde
  * `role="tablist"`-patroon als `DienstTabs.tsx`/`BeheerTabs.tsx` (spec →
  * Schermflow: twee bestaande, niet-gedeelde precedenten voor deze derde
  * kopie, geen blokkade voor dit ticket). Elk tabblad blijft alleen gemount
@@ -30,14 +32,20 @@ export function PortalDashboard({
   name,
   email,
   onSignOut,
+  onProfileChanged,
 }: {
   name: string;
   email: string;
   onSignOut: () => void;
+  /** `refetch` van de sessie-instantie in `PortalShellHome`, zodat de
+   *  header na een naamwijziging in het Account-tabblad meeververst
+   *  (portal-profiel.md → Schermflow §1). */
+  onProfileChanged: () => void;
 }) {
   const [tab, setTab] = useState<Tab>("saldo");
   const saldoTabId = useId();
   const transactiesTabId = useId();
+  const accountTabId = useId();
   const firstName = name.trim().split(/\s+/)[0] || name;
 
   return (
@@ -93,6 +101,19 @@ export function PortalDashboard({
         >
           Transacties
         </button>
+        <button
+          type="button"
+          role="tab"
+          id={accountTabId}
+          aria-selected={tab === "account"}
+          aria-controls="account-panel"
+          onClick={() => setTab("account")}
+          className={`flex h-10 flex-1 items-center justify-center rounded-xl text-sm font-bold transition-colors ${
+            tab === "account" ? "bg-white text-ink shadow-sm" : "text-muted-strong"
+          }`}
+        >
+          Account
+        </button>
       </div>
 
       {tab === "saldo" && (
@@ -114,6 +135,17 @@ export function PortalDashboard({
           className="flex min-h-0 flex-1 flex-col"
         >
           <TransactiesTab />
+        </div>
+      )}
+
+      {tab === "account" && (
+        <div
+          id="account-panel"
+          role="tabpanel"
+          aria-labelledby={accountTabId}
+          className="flex min-h-0 flex-1 flex-col"
+        >
+          <AccountTab email={email} onProfileChanged={onProfileChanged} />
         </div>
       )}
     </main>
