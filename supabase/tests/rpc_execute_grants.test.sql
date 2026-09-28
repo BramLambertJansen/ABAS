@@ -156,7 +156,7 @@ select ok(
 );
 
 -- Added for 0025_client_errors.sql (#94, docs/features/foutlogging.md,
--- ADR 0011): bewust géén anon-uitzondering — fouten van vóór het inloggen
+-- ADR 0012): bewust géén anon-uitzondering — fouten van vóór het inloggen
 -- worden niet gelogd. purge_client_errors() is voor niemand behalve de
 -- eigenaar, ook niet voor authenticated.
 select ok(

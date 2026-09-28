@@ -1,5 +1,5 @@
 /**
- * Client-fouten centraal loggen (#94, docs/features/foutlogging.md, ADR 0011).
+ * Client-fouten centraal loggen (#94, docs/features/foutlogging.md, ADR 0012).
  *
  * Sinds #93 toont elke hook in src/hooks/queries/ een korte foutcode op het
  * scherm, maar de ruwe fout ging alleen naar `console.error` — en op een
@@ -211,7 +211,7 @@ export function reportClientError(client: ClientErrorClientSource, hook: string,
 /**
  * Alleen `console.error`, voor hooks buiten scope (pre-sessie-hooks en
  * `signOut`-takken): daar is geen `authenticated`-sessie, dus de RPC zou
- * toch geweigerd worden (ADR 0011). Bestaat zodat de check:policy-regel
+ * toch geweigerd worden (ADR 0012). Bestaat zodat de check:policy-regel
  * "geen kale `console.error` in src/hooks/queries/" overal kan gelden.
  */
 export function logLocalError(label: string, err: unknown): void {

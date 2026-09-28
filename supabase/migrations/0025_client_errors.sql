@@ -1,5 +1,5 @@
 -- Client-fouten centraal loggen (#94, docs/features/foutlogging.md). Zie
--- docs/adr/0011-client-fouten-via-rpc-zonder-actor.md voor waarom dit een
+-- docs/adr/0012-client-fouten-via-rpc-zonder-actor.md voor waarom dit een
 -- schrijf-RPC is die open staat voor elke `authenticated` (ook een lid),
 -- bewust zonder actor, en bewust zonder `anon`-uitzondering op 0018.
 --
@@ -63,7 +63,7 @@ revoke all on client_errors from authenticated, anon;
 --
 -- Bewust géén caller_is_lid()-weigering (anders dan 0023): een portal-lid
 -- moet zijn leesfout kunnen melden. Geen bar-RPC, geen geld, en `void`
--- lekt niets terug. Bewust géén auth.uid() in de insert (ADR 0011).
+-- lekt niets terug. Bewust géén auth.uid() in de insert (ADR 0012).
 create or replace function log_client_error(
   p_hook text,
   p_kind text,
@@ -100,7 +100,7 @@ comment on function log_client_error(text, text, text, text, integer, text) is
 -- een nieuwe functie krijgt van Postgres standaard EXECUTE voor PUBLIC (en
 -- via Supabase's default privileges voor anon). Bewust géén
 -- anon-uitzondering: fouten van vóór het inloggen worden niet gelogd
--- (ADR 0011). supabase/tests/rpc_execute_grants.test.sql bewaakt dit.
+-- (ADR 0012). supabase/tests/rpc_execute_grants.test.sql bewaakt dit.
 grant execute on function log_client_error(text, text, text, text, integer, text) to authenticated;
 revoke execute on function log_client_error(text, text, text, text, integer, text) from public;
 revoke execute on function log_client_error(text, text, text, text, integer, text) from anon;

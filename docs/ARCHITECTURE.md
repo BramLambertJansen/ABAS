@@ -823,6 +823,24 @@ activiteittype en elke koppeling met het toekomstige Logboek-scherm blijven
 losse, nog niet gespecificeerde tickets (#19) — dit ticket levert alleen de
 datalaag.
 
+**Foutlogging (gebouwd en gemerged, #94, PR #98, 2026-09-28)**: ADR
+[0012](adr/0012-client-fouten-via-rpc-zonder-actor.md),
+`docs/features/foutlogging.md`. Onverwachte fouten uit `src/hooks/queries/`
+gaan via `reportClientError()` (`src/lib/clientErrors.ts`) naar de tabel
+`client_errors` (`0025_client_errors.sql`): alleen hook, `kind`/`code` uit
+`classifyLoadError`, gesaneerd pad, telling en build-SHA; geen actor, geen
+`message`. De hook geeft zijn eigen client (of de factory) mee, dus
+`src/lib/` importeert geen Supabase-client. Dedupe per (hook, kind, code)
+in geheugen, venster 5 minuten; fire-and-forget, gooit nooit. Schrijven
+alleen via `log_client_error()` (`security definer`, alleen
+`authenticated`, ook een lid, geen `anon`); de tabel heeft RLS aan, geen
+policies, alles ingetrokken. Lezen alleen in Supabase Studio.
+Pre-sessie-hooks en `signOut`-takken gebruiken `logLocalError()` (alleen
+console). Retentie 90 dagen via `purge_client_errors()` en pg_cron-job
+`purge_client_errors` (dagelijks 03:00 UTC), het eerste gebruik van
+pg_cron; op het gehoste project nog niet aangetoond. `check:policy` weert
+kale `console.error(` in `src/hooks/queries/`.
+
 ## Wat het prototype deed maar hier nog niet is besloten
 
 Listed for reference only — none of this is scoped in or out yet. Don't build

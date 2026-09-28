@@ -6,7 +6,9 @@ Volgt op [#68](https://github.com/BramLambertJansen/ABAS/issues/68) (PR #93,
 [#67](https://github.com/BramLambertJansen/ABAS/issues/67) (migratie 0019
 ontbrak in productie, PostgREST gaf een schemafout).
 
-**Status: Goedgekeurd door Bram (2026-09-28).** Klaar voor de Developer.
+**Status: Goedgekeurd door Bram (2026-09-28). Gebouwd en gemerged (PR #98,
+2026-09-28).** Waar de bouw afwijkt van of invulling geeft aan de spec:
+zie "Zoals gebouwd" onderaan.
 
 ## Probleem
 
@@ -158,8 +160,8 @@ definer`, `set search_path = public`, `grant execute … to authenticated`,
 
 ## ADR
 
-**Ja: `docs/adr/0011-client-fouten-via-rpc-zonder-actor.md`, samen met de
-bouw.** Het legt drie dingen vast die een volgende feature kan tegenspreken:
+**Ja: `docs/adr/0012-client-fouten-via-rpc-zonder-actor.md`, samen met de
+bouw** (gemerged als 0011, hernummerd omdat #95 dat nummer al had). Het legt drie dingen vast die een volgende feature kan tegenspreken:
 een schrijf-RPC zonder geld die open staat voor elke `authenticated`,
 inclusief een lid (tegenover 0023); bewust géén actor opslaan (tegenover
 ADR 0002), met een vaste allowlist van velden; en bewust géén
@@ -186,3 +188,32 @@ middleware), statistieken, een offline-buffer, het ombouwen van
 ## Open beslissingen voor Bram
 
 Geen.
+
+## Zoals gebouwd (PR #98, 2026-09-28)
+
+- **Cron-job:** naam `purge_client_errors`, schema `0 3 * * *`, dus dagelijks
+  om 03:00 UTC (pg_cron rekent in UTC), buiten elke bardienst. Met een
+  jobnaam, zodat een herhaalde `cron.schedule` de job bijwerkt in plaats van
+  een tweede aan te maken. `purge_client_errors()` heeft ook geen `EXECUTE`
+  voor `service_role`.
+- **pg_cron:** werkt in de lokale Supabase van `db:test`/CI. Op het gehoste
+  productieproject is nog niet aangetoond dat de extensie beschikbaar is en
+  de job draait.
+- **Ongeldige invoer:** één vaste fout, `invalid_client_error` met errcode
+  `P0001`, voor elk veld. Geen code per veld, want niemand handelt die af.
+- **Pad:** de client laat een pad met verboden tekens niet vallen, maar
+  saneert het (`sanitizePath`): query-string en fragment eraf, kleine
+  letters, alles buiten `a-z`, `/` en `-` weg, afgekapt op de tabellengte.
+  Blijft er geen geldig pad over, dan gaat `/` mee. Een hooknaam buiten het
+  formaat of een `build` die geen hex is, wordt niet verstuurd
+  respectievelijk `null`.
+- **Client-factory:** `reportClientError` accepteert een client óf de
+  `createClient`-functie zelf. In een `catch` kan het aanmaken van de client
+  juist de fout zijn geweest; die wordt dan in de helper gevangen in plaats
+  van in de hook te gooien.
+- **Telling bij mislukken:** geeft de RPC een error terug, wordt de promise
+  afgewezen of gooit de factory of `rpc()` synchroon, dan gaat de telling
+  terug in de dedupe-state en gaat ze mee met de eerste melding ná het
+  venster. Geen herhaalpoging.
+- **Opvolging:** de behandeling van `no_bar_role` loopt in
+  [issue #100](https://github.com/BramLambertJansen/ABAS/issues/100).
