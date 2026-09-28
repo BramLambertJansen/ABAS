@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { reportClientError } from "@/lib/clientErrors";
 import { loadErrorMessage } from "@/lib/loadErrors";
 
 /** Eén bestelling van een lid, voor "bestelling terugdraaien" in beheer
@@ -61,7 +62,7 @@ export function useMemberOrders(
 
       setState({ status: "ready", orders });
     } catch (err) {
-      console.error("useMemberOrders:", err);
+      reportClientError(createClient, "useMemberOrders", err);
       setState({
         status: "error",
         message: loadErrorMessage("Kan de bestellingen van dit lid niet laden.", err),

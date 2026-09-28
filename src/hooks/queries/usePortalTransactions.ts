@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/portalClient";
+import { reportClientError } from "@/lib/clientErrors";
 
 /**
  * Eén transactie van de ingelogde `lid`-sessie — 1-op-1 de kolommen van
@@ -110,7 +111,7 @@ export function usePortalTransactions(): State & { refetch: () => void } {
 
       setState({ status: "ready", transactions });
     } catch (err) {
-      console.error("usePortalTransactions:", err);
+      reportClientError(createClient, "usePortalTransactions", err);
       setState({
         status: "error",
         message: "Kan de transacties niet laden. Controleer de verbinding.",

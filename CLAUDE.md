@@ -26,7 +26,7 @@ bestaat die al dan alleen committen en pushen.
 | Gate | Bewaakt |
 |---|---|
 | `check:arch` | shells geïsoleerd, features shell-onwetend, Supabase-client privé, service-role-client nooit vanuit client-code |
-| `check:policy` | geen queries buiten de datalaag, geen device-sniffing |
+| `check:policy` | geen queries buiten de datalaag, geen device-sniffing, geen kale `console.error` in `src/hooks/queries/` (fouten via `src/lib/clientErrors.ts`) |
 | `check:rls` | elke tabel RLS, elke policy een negatieve test, geldtabellen REVOKED |
 | `check:a11y` | WCAG-AA (axe-core, elk shell-entrypoint) + `eslint-plugin-jsx-a11y`, `lint` faalt op warnings |
 | `test` | de pure client-logica (`src/lib/money.ts`, mandjelogica), contrast van de accent-tokens |

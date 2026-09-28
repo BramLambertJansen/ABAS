@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { reportClientError } from "@/lib/clientErrors";
 import type { LedenbeheerLid } from "./useAlleLeden";
 
 /** Error codes `update_member_name` (0007_ledenbeheer.sql) actually raises.
@@ -51,7 +52,9 @@ export function useUpdateMemberName() {
       });
 
       if (error) {
-        setState({ status: "error", code: toErrorCode(error.message) });
+        const code = toErrorCode(error.message);
+        if (code === "unknown") reportClientError(supabase, "useUpdateMemberName", error);
+        setState({ status: "error", code });
         return null;
       }
       setState({ status: "idle" });
@@ -79,10 +82,9 @@ export function useUpdateMemberName() {
         invitedAt: data.invited_at as string | null,
       };
     } catch (err) {
-      setState({
-        status: "error",
-        code: toErrorCode(err instanceof Error ? err.message : undefined),
-      });
+      const code = toErrorCode(err instanceof Error ? err.message : undefined);
+      if (code === "unknown") reportClientError(createClient, "useUpdateMemberName", err);
+      setState({ status: "error", code });
       return null;
     }
   }

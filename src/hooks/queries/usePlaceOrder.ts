@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { reportClientError } from "@/lib/clientErrors";
 
 /** Error codes `place_order` (0001_init.sql) actually raises, per
  *  docs/features/verkoop.md → RPC's / Randgevallen. Anything else (network
@@ -78,6 +79,7 @@ export function usePlaceOrder() {
       });
       if (error) {
         const code = toErrorCode(error.message);
+        if (code === "unknown") reportClientError(supabase, "usePlaceOrder", error);
         setState({ status: "error", code });
         return { ok: false, code };
       }
@@ -86,6 +88,7 @@ export function usePlaceOrder() {
       return { ok: true, totalCents: order.total_cents };
     } catch (err) {
       const code = toErrorCode(err instanceof Error ? err.message : undefined);
+      if (code === "unknown") reportClientError(createClient, "usePlaceOrder", err);
       setState({ status: "error", code });
       return { ok: false, code };
     }

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { reportClientError } from "@/lib/clientErrors";
 import { loadErrorMessage } from "@/lib/loadErrors";
 
 /**
@@ -82,7 +83,7 @@ export function useOpenShift(): State & { refetch: () => void } {
       // Never surface the raw error (package name, URLs, stack) on a bar
       // tablet mid-service — log it for whoever's debugging, show a fixed
       // Dutch message to whoever's standing at the bar.
-      console.error("useOpenShift:", err);
+      reportClientError(createClient, "useOpenShift", err);
       setState({
         status: "error",
         message: loadErrorMessage("Kan niet controleren of er al een dienst open is.", err),

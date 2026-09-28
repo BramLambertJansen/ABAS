@@ -1,0 +1,128 @@
+import { test, beforeEach } from "node:test";
+import assert from "node:assert/strict";
+import { register } from "node:module";
+
+import { fakeMoney, resetFakeMoney } from "./fakes/moneyHookCalls.ts";
+
+/**
+ * usePlaceOrder/useTopUp en foutlogging (docs/features/foutlogging.md →
+ * beslissing 3, #94): een domeinuitkomst die de RPC bewust teruggeeft
+ * (`insufficient_balance` en dergelijke) is geen fout en wordt niet gemeld;
+ * alleen de onverwachte tak (`unknown`) roept reportClientError aan.
+ *
+ * De hooks draaien ongewijzigd; `react`, de Supabase-client en
+ * clientErrors worden via een resolve-hook vervangen door nep-modules
+ * (test/fakes/money-hooks-resolve.mjs). De hook wordt als gewone functie
+ * aangeroepen — hij gebruikt alleen `useState`.
+ */
+register("./fakes/money-hooks-resolve.mjs", import.meta.url);
+
+const { usePlaceOrder } = await import("../src/hooks/queries/usePlaceOrder.ts");
+const { useTopUp } = await import("../src/hooks/queries/useTopUp.ts");
+
+const SHIFT = "00000000-0000-0000-0000-000000000001";
+const MEMBER = "00000000-0000-0000-0000-000000000002";
+const SERVER = "00000000-0000-0000-0000-000000000003";
+
+function placeOrder() {
+  return usePlaceOrder().placeOrder(SHIFT, MEMBER, [{ productId: "p", qty: 1 }], SERVER);
+}
+
+function topUp() {
+  return useTopUp().topUp(SHIFT, MEMBER, 1000, SERVER);
+}
+
+function rpcError(message: string, code = "P0001") {
+  fakeMoney().next = { kind: "result", data: null, error: { message, code } };
+}
+
+beforeEach(() => {
+  resetFakeMoney();
+});
+
+// Precies de codes die place_order (0023) bewust raiset en die de hook als
+// domeinuitkomst kent.
+const PLACE_ORDER_DOMAIN = [
+  "shift_not_open",
+  "served_by_not_on_shift",
+  "empty_order",
+  "invalid_qty",
+  "product_not_available",
+  "member_not_found",
+  "insufficient_balance",
+] as const;
+
+const TOP_UP_DOMAIN = [
+  "shift_not_open",
+  "served_by_not_on_shift",
+  "invalid_amount",
+  "amount_exceeds_max",
+  "member_not_found",
+] as const;
+
+for (const code of PLACE_ORDER_DOMAIN) {
+  test(`usePlaceOrder meldt domeinuitkomst ${code} niet`, async () => {
+    rpcError(code);
+    const result = await placeOrder();
+    assert.deepEqual(result, { ok: false, code });
+    assert.equal(fakeMoney().rpcCalls[0]?.fn, "place_order");
+    assert.deepEqual(fakeMoney().reports, []);
+  });
+}
+
+for (const code of TOP_UP_DOMAIN) {
+  test(`useTopUp meldt domeinuitkomst ${code} niet`, async () => {
+    rpcError(code);
+    const result = await topUp();
+    assert.deepEqual(result, { ok: false, code });
+    assert.equal(fakeMoney().rpcCalls[0]?.fn, "top_up");
+    assert.deepEqual(fakeMoney().reports, []);
+  });
+}
+
+test("usePlaceOrder meldt niets bij een geslaagde bestelling", async () => {
+  fakeMoney().next = { kind: "result", data: { total_cents: 250 }, error: null };
+  assert.deepEqual(await placeOrder(), { ok: true, totalCents: 250 });
+  assert.deepEqual(fakeMoney().reports, []);
+});
+
+test("useTopUp meldt niets bij een geslaagde opwaardering", async () => {
+  fakeMoney().next = { kind: "result", data: { amount_cents: 1000 }, error: null };
+  assert.deepEqual(await topUp(), { ok: true, amountCents: 1000 });
+  assert.deepEqual(fakeMoney().reports, []);
+});
+
+for (const [name, run, hook] of [
+  ["usePlaceOrder", placeOrder, "usePlaceOrder"],
+  ["useTopUp", topUp, "useTopUp"],
+] as const) {
+  test(`${name} meldt een onverwachte serverfout precies één keer, met de eigen client`, async () => {
+    const error = { message: 'relation "orders" does not exist', code: "42P01" };
+    fakeMoney().next = { kind: "result", data: null, error };
+    const result = await run();
+    assert.deepEqual(result, { ok: false, code: "unknown" });
+    assert.equal(fakeMoney().reports.length, 1);
+    assert.equal(fakeMoney().reports[0].hook, hook);
+    assert.equal(fakeMoney().reports[0].err, error);
+    assert.equal(fakeMoney().reports[0].clientIsFactory, false);
+  });
+
+  test(`${name} meldt een netwerkfout (gegooid) via de client-factory`, async () => {
+    const err = new TypeError("Failed to fetch");
+    fakeMoney().next = { kind: "throw", error: err };
+    const result = await run();
+    assert.deepEqual(result, { ok: false, code: "unknown" });
+    assert.equal(fakeMoney().reports.length, 1);
+    assert.equal(fakeMoney().reports[0].hook, hook);
+    assert.equal(fakeMoney().reports[0].err, err);
+    assert.equal(fakeMoney().reports[0].clientIsFactory, true);
+  });
+
+  // Een code die op een domeinuitkomst líjkt maar het niet exact is, is
+  // onverwacht: de hook vergelijkt exact, niet op prefix/hoofdletters.
+  test(`${name} behandelt een bijna-domeincode als onverwacht en meldt hem`, async () => {
+    rpcError("INSUFFICIENT_BALANCE");
+    assert.deepEqual(await run(), { ok: false, code: "unknown" });
+    assert.equal(fakeMoney().reports.length, 1);
+  });
+}

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { reportClientError } from "@/lib/clientErrors";
 import { loadErrorMessage } from "@/lib/loadErrors";
 
 /** A row in the current bezetting — shift_members joined with the member's
@@ -59,7 +60,7 @@ export function useShiftMembers(
     } catch (err) {
       // Never surface the raw error on a bar tablet mid-service — log it
       // for whoever's debugging, show a fixed Dutch message at the bar.
-      console.error("useShiftMembers:", err);
+      reportClientError(createClient, "useShiftMembers", err);
       setState({
         status: "error",
         message: loadErrorMessage("Kan de bezetting niet laden.", err),

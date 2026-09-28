@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { reportClientError } from "@/lib/clientErrors";
 import type { AlleActiviteitType } from "./useAlleActiviteitTypes";
 
 /** Foutcodes die `update_activity_type_name` (0019_activiteittypes.sql)
@@ -52,7 +53,9 @@ export function useUpdateActivityTypeName() {
       });
 
       if (error) {
-        setState({ status: "error", code: toErrorCode(error.message) });
+        const code = toErrorCode(error.message);
+        if (code === "unknown") reportClientError(supabase, "useUpdateActivityTypeName", error);
+        setState({ status: "error", code });
         return null;
       }
       setState({ status: "idle" });
@@ -62,10 +65,9 @@ export function useUpdateActivityTypeName() {
         archived: data.archived as boolean,
       };
     } catch (err) {
-      setState({
-        status: "error",
-        code: toErrorCode(err instanceof Error ? err.message : undefined),
-      });
+      const code = toErrorCode(err instanceof Error ? err.message : undefined);
+      if (code === "unknown") reportClientError(createClient, "useUpdateActivityTypeName", err);
+      setState({ status: "error", code });
       return null;
     }
   }

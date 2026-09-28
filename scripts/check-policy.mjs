@@ -1,10 +1,17 @@
 #!/usr/bin/env node
 // check:policy — CLAUDE.md → Verificatie: "geen queries buiten de datalaag,
-// geen client-side geld, geen device-sniffing, geen ongevalideerde
-// attributie". The attributie half of that (served_by validated against
-// the roster) is a database/RPC property — see supabase/tests/, not
-// checkable by scanning frontend source. This script covers what source
-// scanning actually can. First pass, see scripts/lib/scan.mjs.
+// geen device-sniffing, geen kale console.error in src/hooks/queries/".
+// What source scanning can't see (client never computes an amount,
+// served_by validated against the roster) is review work or a database
+// property — see CLAUDE.md → Verificatie and supabase/tests/. First pass,
+// see scripts/lib/scan.mjs.
+//
+// The console.error rule (docs/features/foutlogging.md, #94): a hook in
+// src/hooks/queries/ reports an unexpected error via reportClientError()
+// (or logLocalError() for pre-session hooks and signOut branches) from
+// src/lib/clientErrors.ts, which logs to the console itself. A bare
+// console.error there is an error that never reaches client_errors. The
+// helper lives in src/lib/ and falls outside this rule.
 import { walk, read, stripComments, fail } from "./lib/scan.mjs";
 
 const root = process.cwd();
@@ -12,6 +19,7 @@ const files = walk(`${root}/src`, root);
 const problems = [];
 
 const ALLOWED_QUERY_DIRS = ["src/hooks/queries/", "src/lib/"];
+const NO_BARE_CONSOLE_ERROR_DIR = "src/hooks/queries/";
 
 for (const file of files) {
   const source = stripComments(read(root, file));
@@ -21,6 +29,10 @@ for (const file of files) {
     !ALLOWED_QUERY_DIRS.some((d) => file.startsWith(d));
   if (queriesOutsideDataLayer) {
     problems.push(`${file}: calls supabase.from()/.rpc() outside src/hooks/queries/ or src/lib/`);
+  }
+
+  if (file.startsWith(NO_BARE_CONSOLE_ERROR_DIR) && /\bconsole\s*\.\s*error\s*\(/.test(source)) {
+    problems.push(`${file}: bare console.error() in src/hooks/queries/ — use reportClientError() or logLocalError() from src/lib/clientErrors.ts`);
   }
 
   if (/\bisMobile\b|\bmatchMedia\s*\(|\bnavigator\.userAgent\b/.test(source)) {

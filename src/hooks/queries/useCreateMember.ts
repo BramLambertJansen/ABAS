@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { reportClientError } from "@/lib/clientErrors";
 import type { LedenbeheerLid } from "./useAlleLeden";
 
 /** Error codes `create_member` (0007_ledenbeheer.sql, uitgebreid in
@@ -62,7 +63,9 @@ export function useCreateMember() {
       });
 
       if (error) {
-        setState({ status: "error", code: toErrorCode(error.message) });
+        const code = toErrorCode(error.message);
+        if (code === "unknown") reportClientError(supabase, "useCreateMember", error);
+        setState({ status: "error", code });
         return null;
       }
       setState({ status: "idle" });
@@ -89,10 +92,9 @@ export function useCreateMember() {
         invitedAt: data.invited_at as string | null,
       };
     } catch (err) {
-      setState({
-        status: "error",
-        code: toErrorCode(err instanceof Error ? err.message : undefined),
-      });
+      const code = toErrorCode(err instanceof Error ? err.message : undefined);
+      if (code === "unknown") reportClientError(createClient, "useCreateMember", err);
+      setState({ status: "error", code });
       return null;
     }
   }

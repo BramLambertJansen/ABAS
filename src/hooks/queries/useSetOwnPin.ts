@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { reportClientError } from "@/lib/clientErrors";
 
 /** Error codes `set_own_pin` (0014_pin_zelfbediening.sql) actually raises.
  *  Anything else valt terug op "unknown". `actor_not_found`/`no_bar_role`
@@ -47,16 +48,17 @@ export function useSetOwnPin() {
       const { error } = await supabase.rpc("set_own_pin", { p_pin: pin });
 
       if (error) {
-        setState({ status: "error", code: toErrorCode(error.message) });
+        const code = toErrorCode(error.message);
+        if (code === "unknown") reportClientError(supabase, "useSetOwnPin", error);
+        setState({ status: "error", code });
         return false;
       }
       setState({ status: "idle" });
       return true;
     } catch (err) {
-      setState({
-        status: "error",
-        code: toErrorCode(err instanceof Error ? err.message : undefined),
-      });
+      const code = toErrorCode(err instanceof Error ? err.message : undefined);
+      if (code === "unknown") reportClientError(createClient, "useSetOwnPin", err);
+      setState({ status: "error", code });
       return false;
     }
   }

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { reportClientError } from "@/lib/clientErrors";
 import { loadErrorMessage } from "@/lib/loadErrors";
 
 /** Meest recente boekingen, org-breed. */
@@ -168,7 +169,7 @@ export function useLogboek(): State & { refetch: () => void } {
     } catch (err) {
       // Nooit de ruwe fout tonen — loggen voor wie debugt, een vaste
       // Nederlandse melding op het scherm (spec → Randgevallen).
-      console.error("useLogboek:", err);
+      reportClientError(createClient, "useLogboek", err);
       setState({
         status: "error",
         message: loadErrorMessage("Kan het logboek niet laden.", err),

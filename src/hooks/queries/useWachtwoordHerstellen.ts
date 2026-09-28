@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { isRateLimitedMessage } from "@/lib/authErrors";
 import { createClient } from "@/lib/supabase/client";
+import { logLocalError } from "@/lib/clientErrors";
 
 /**
  * Wachtwoord vergeten op `/beheer` — docs/features/wachtwoord-vergeten.md.
@@ -36,10 +37,10 @@ export function useWachtwoordResetAanvragen() {
         redirectTo: `${window.location.origin}/beheer/wachtwoord-herstellen`,
       });
       if (error) {
-        console.error("useWachtwoordResetAanvragen:", error.message);
+        logLocalError("useWachtwoordResetAanvragen", error.message);
       }
     } catch (err) {
-      console.error("useWachtwoordResetAanvragen:", err);
+      logLocalError("useWachtwoordResetAanvragen", err);
     }
     setState({ status: "sent", email });
   }
@@ -101,7 +102,7 @@ export function useNieuwWachtwoordInstellen(tokenHash: string | null) {
           type: "recovery",
         });
         if (error) {
-          console.error("useNieuwWachtwoordInstellen (verifyOtp):", error.message);
+          logLocalError("useNieuwWachtwoordInstellen (verifyOtp)", error.message);
           setState({ status: "error", code: "link_invalid" });
           return false;
         }
@@ -110,7 +111,7 @@ export function useNieuwWachtwoordInstellen(tokenHash: string | null) {
 
       const { error } = await supabase.auth.updateUser({ password });
       if (error) {
-        console.error("useNieuwWachtwoordInstellen (updateUser):", error.message);
+        logLocalError("useNieuwWachtwoordInstellen (updateUser)", error.message);
         setState({ status: "error", code: toSetErrorCode(error) });
         return false;
       }
@@ -122,7 +123,7 @@ export function useNieuwWachtwoordInstellen(tokenHash: string | null) {
       setState({ status: "done" });
       return true;
     } catch (err) {
-      console.error("useNieuwWachtwoordInstellen:", err);
+      logLocalError("useNieuwWachtwoordInstellen", err);
       setState({ status: "error", code: "unknown" });
       return false;
     }

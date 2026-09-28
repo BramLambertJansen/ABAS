@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { reportClientError } from "@/lib/clientErrors";
 import { loadErrorMessage } from "@/lib/loadErrors";
 
 /** Eén boeking in de dienst: een bestelling (`orders`) of een opwaardering
@@ -159,7 +160,7 @@ export function useShiftLedger(
     } catch (err) {
       // Never surface the raw error on a bar tablet mid-service — log it
       // for whoever's debugging, show a fixed Dutch message at the bar.
-      console.error("useShiftLedger:", err);
+      reportClientError(createClient, "useShiftLedger", err);
       setState({
         status: "error",
         message: loadErrorMessage("Kan de boekingen van deze dienst niet laden.", err),

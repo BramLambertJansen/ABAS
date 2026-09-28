@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { isRateLimitedMessage } from "@/lib/authErrors";
 import { createClient } from "@/lib/supabase/portalClient";
+import { logLocalError } from "@/lib/clientErrors";
 
 /**
  * Wachtwoord vergeten op `/portal` — docs/features/portal-login.md →
@@ -39,10 +40,10 @@ export function usePortalWachtwoordHerstellen() {
         redirectTo: `${window.location.origin}/portal/wachtwoord-herstellen`,
       });
       if (error) {
-        console.error("usePortalWachtwoordHerstellen:", error.message);
+        logLocalError("usePortalWachtwoordHerstellen", error.message);
       }
     } catch (err) {
-      console.error("usePortalWachtwoordHerstellen:", err);
+      logLocalError("usePortalWachtwoordHerstellen", err);
     }
     setState({ status: "sent", email });
   }
@@ -103,7 +104,7 @@ export function usePortalNieuwWachtwoordInstellen(tokenHash: string | null) {
           type: "recovery",
         });
         if (error) {
-          console.error("usePortalNieuwWachtwoordInstellen (verifyOtp):", error.message);
+          logLocalError("usePortalNieuwWachtwoordInstellen (verifyOtp)", error.message);
           setState({ status: "error", code: "link_invalid" });
           return false;
         }
@@ -112,7 +113,7 @@ export function usePortalNieuwWachtwoordInstellen(tokenHash: string | null) {
 
       const { error } = await supabase.auth.updateUser({ password });
       if (error) {
-        console.error("usePortalNieuwWachtwoordInstellen (updateUser):", error.message);
+        logLocalError("usePortalNieuwWachtwoordInstellen (updateUser)", error.message);
         setState({ status: "error", code: toSetErrorCode(error) });
         return false;
       }
@@ -123,7 +124,7 @@ export function usePortalNieuwWachtwoordInstellen(tokenHash: string | null) {
       setState({ status: "done" });
       return true;
     } catch (err) {
-      console.error("usePortalNieuwWachtwoordInstellen:", err);
+      logLocalError("usePortalNieuwWachtwoordInstellen", err);
       setState({ status: "error", code: "unknown" });
       return false;
     }

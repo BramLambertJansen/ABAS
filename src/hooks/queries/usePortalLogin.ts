@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { isRateLimitedMessage } from "@/lib/authErrors";
 import { createClient } from "@/lib/supabase/portalClient";
+import { logLocalError } from "@/lib/clientErrors";
 
 /**
  * `/portal`'s own e-mail-inlogformulier — docs/features/portal-login.md →
@@ -88,10 +89,10 @@ export function usePortalLogin() {
         },
       });
       if (error) {
-        console.error("usePortalLogin (signInWithMagicLink):", error.message);
+        logLocalError("usePortalLogin (signInWithMagicLink)", error.message);
       }
     } catch (err) {
-      console.error("usePortalLogin (signInWithMagicLink):", err);
+      logLocalError("usePortalLogin (signInWithMagicLink)", err);
     }
     setState({ status: "magic_link_sent", email });
   }
