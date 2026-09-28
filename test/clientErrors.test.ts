@@ -1,4 +1,4 @@
-import { test } from "node:test";
+import { test, mock } from "node:test";
 import assert from "node:assert/strict";
 
 import {
@@ -10,6 +10,7 @@ import {
   registerOccurrence,
   reportClientError,
   restoreOccurrences,
+  sanitizeBuild,
   sanitizePath,
   type ClientErrorPayload,
 } from "../src/lib/clientErrors.ts";
@@ -214,3 +215,292 @@ test("reportClientError logt ook naar de console, voor lokaal debuggen", () => {
   }
   assert.deepEqual(logged, [["useTestConsole:", "boom"]]);
 });
+
+// ── Aanvullend (Tester, #94) ──────────────────────────────────────────────
+
+test("dedupe: network en server zonder code in dezelfde hook zijn aparte sleutels", () => {
+  const network = buildClientErrorPayload("useMembers", new TypeError("Failed to fetch"), "/", null)!;
+  const serverNoCode = buildClientErrorPayload("useMembers", { message: "boom" }, "/", null)!;
+  assert.equal(network.p_kind, "network");
+  assert.equal(network.p_code, null);
+  assert.equal(serverNoCode.p_kind, "server");
+  assert.equal(serverNoCode.p_code, null);
+  assert.notEqual(dedupeKey(network), dedupeKey(serverNoCode));
+});
+
+test("reportClientError: network en server zonder code in dezelfde hook worden allebei gemeld", () => {
+  const calls: ClientErrorPayload[] = [];
+  const client = {
+    rpc(_fn: "log_client_error", args: ClientErrorPayload) {
+      calls.push(args);
+      return Promise.resolve({ error: null });
+    },
+  };
+  silenceConsole(() => {
+    reportClientError(client, "useTestKindSplit", new TypeError("Failed to fetch"));
+    reportClientError(client, "useTestKindSplit", { message: "boom" });
+    // Herhaling van elk: binnen het venster, dus niet opnieuw.
+    reportClientError(client, "useTestKindSplit", new TypeError("Failed to fetch"));
+    reportClientError(client, "useTestKindSplit", { message: "boom" });
+  });
+  assert.deepEqual(
+    calls.map((c) => [c.p_kind, c.p_code]),
+    [
+      ["network", null],
+      ["server", null],
+    ],
+  );
+});
+
+test("venstergrens: net onder 5 minuten telt op, op en net over 5 minuten meldt", () => {
+  const justUnder = createDedupeState();
+  assert.equal(registerOccurrence(justUnder, KEY, 1_000), 1);
+  assert.equal(registerOccurrence(justUnder, KEY, 1_000 + DEDUPE_WINDOW_MS - 1), null);
+
+  const exactly = createDedupeState();
+  assert.equal(registerOccurrence(exactly, KEY, 1_000), 1);
+  assert.equal(registerOccurrence(exactly, KEY, 1_000 + DEDUPE_WINDOW_MS), 1);
+
+  const justOver = createDedupeState();
+  assert.equal(registerOccurrence(justOver, KEY, 1_000), 1);
+  assert.equal(registerOccurrence(justOver, KEY, 1_000 + DEDUPE_WINDOW_MS + 1), 1);
+});
+
+test("een nieuw venster begint bij de melding ná het venster, niet bij het oude begin", () => {
+  const state = createDedupeState();
+  assert.equal(registerOccurrence(state, KEY, 0), 1);
+  // Melding op 7 min start het nieuwe venster; 11 min valt daar nog binnen.
+  assert.equal(registerOccurrence(state, KEY, 7 * 60_000), 1);
+  assert.equal(registerOccurrence(state, KEY, 11 * 60_000), null);
+  assert.equal(registerOccurrence(state, KEY, 12 * 60_000), 2);
+});
+
+test("restoreOccurrences zonder bestaande sleutel doet niets en wordt afgekapt op 10000", () => {
+  const state = createDedupeState();
+  restoreOccurrences(state, KEY, 5);
+  assert.equal(state.size, 0);
+  registerOccurrence(state, KEY, 0);
+  restoreOccurrences(state, KEY, MAX_OCCURRENCES * 2);
+  assert.equal(registerOccurrence(state, KEY, DEDUPE_WINDOW_MS), MAX_OCCURRENCES);
+});
+
+async function flush() {
+  await new Promise((resolve) => setImmediate(resolve));
+}
+
+for (const [label, outcome] of [
+  ["de RPC een error teruggeeft", () => Promise.resolve({ error: { code: "PGRST202" } })],
+  ["de RPC-promise afwijst", () => Promise.reject(new TypeError("Failed to fetch"))],
+] as const) {
+  test(`reportClientError: als ${label}, loopt de telling door naar de volgende melding`, async () => {
+    const hook = label.includes("afwijst") ? "useTestCarryReject" : "useTestCarryError";
+    mock.timers.enable({ apis: ["Date"], now: 1_000_000 });
+    try {
+      const calls: ClientErrorPayload[] = [];
+      let fail = true;
+      const client = {
+        rpc(_fn: "log_client_error", args: ClientErrorPayload) {
+          calls.push({ ...args });
+          return fail ? outcome() : Promise.resolve({ error: null });
+        },
+      };
+      silenceConsole(() => reportClientError(client, hook, { code: "42P01" }));
+      await flush();
+      assert.equal(calls.length, 1);
+      assert.equal(calls[0].p_occurrences, 1);
+
+      fail = false;
+      mock.timers.tick(1_000);
+      silenceConsole(() => reportClientError(client, hook, { code: "42P01" }));
+      await flush();
+      assert.equal(calls.length, 1, "binnen het venster geen tweede aanroep (geen herhaalpoging)");
+
+      mock.timers.tick(DEDUPE_WINDOW_MS);
+      silenceConsole(() => reportClientError(client, hook, { code: "42P01" }));
+      await flush();
+      assert.equal(calls.length, 2);
+      // 1 mislukt + 1 opgeteld + deze.
+      assert.equal(calls[1].p_occurrences, 3);
+    } finally {
+      mock.timers.reset();
+    }
+  });
+}
+
+test("reportClientError: een mislukte melding wordt niet zelf opnieuw gemeld (geen lus)", async () => {
+  const calls: ClientErrorPayload[] = [];
+  const client = {
+    rpc(_fn: "log_client_error", args: ClientErrorPayload) {
+      calls.push(args);
+      return Promise.resolve({ error: { code: "42501", message: "permission denied" } });
+    },
+  };
+  silenceConsole(() => reportClientError(client, "useTestNoLoop", { code: "42P01" }));
+  await flush();
+  await flush();
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].p_hook, "useTestNoLoop");
+});
+
+test("reportClientError: een hook zonder use-prefix roept de RPC niet aan, maar logt wel lokaal", () => {
+  const calls: unknown[] = [];
+  const logged: unknown[][] = [];
+  const original = console.error;
+  console.error = (...args: unknown[]) => {
+    logged.push(args);
+  };
+  try {
+    reportClientError(
+      {
+        rpc(_fn, args) {
+          calls.push(args);
+          return Promise.resolve({ error: null });
+        },
+      },
+      "fetchMembers",
+      { code: "42P01" },
+    );
+  } finally {
+    console.error = original;
+  }
+  assert.equal(calls.length, 0);
+  assert.equal(logged.length, 1);
+});
+
+test("reportClientError gooit niet als err zelf een getter heeft die gooit", () => {
+  const hostile = {
+    get code(): string {
+      throw new Error("getter");
+    },
+    get message(): string {
+      throw new Error("getter");
+    },
+  };
+  silenceConsole(() => {
+    assert.doesNotThrow(() =>
+      reportClientError({ rpc: () => Promise.resolve({ error: null }) }, "useTestHostileErr", hostile),
+    );
+  });
+});
+
+test("reportClientError stuurt het gesaneerde pad uit window.location mee", async () => {
+  const g = globalThis as unknown as { window?: unknown };
+  const had = "window" in g;
+  const previous = g.window;
+  g.window = { location: { pathname: "/Beheer/leden/42" } };
+  try {
+    const calls: ClientErrorPayload[] = [];
+    silenceConsole(() =>
+      reportClientError(
+        {
+          rpc(_fn, args) {
+            calls.push(args);
+            return Promise.resolve({ error: null });
+          },
+        },
+        "useTestWindowPath",
+        { code: "42P01" },
+      ),
+    );
+    assert.equal(calls[0]?.p_path, "/beheer/leden/");
+  } finally {
+    if (had) g.window = previous;
+    else delete g.window;
+  }
+});
+
+test("sanitizePath: elke uitkomst voldoet aan het RPC-formaat, ook bij vijandige invoer", () => {
+  const inputs = [
+    "",
+    "?",
+    "#",
+    "?email=jan@example.com",
+    "portal",
+    "/Portal",
+    "/jan%40example.com",
+    "/beheer/leden/00000000-0000-0000-0000-000000000001",
+    "/ruimte met spaties",
+    "/ü/é/ß",
+    "//dubbel//",
+    "/a_b.c",
+    "/" + "x".repeat(500),
+    "x".repeat(500),
+    "/€12,50",
+  ];
+  for (const input of inputs) {
+    const out = sanitizePath(input);
+    assert.match(out, /^\/[a-z/-]{0,100}$/, `sanitizePath(${JSON.stringify(input)}) = ${out}`);
+    assert.ok(!/[0-9@.?#%]/.test(out), `${out} bevat een verboden teken`);
+  }
+  assert.equal(sanitizePath("/Portal"), "/portal");
+  assert.equal(sanitizePath("/jan%40example.com"), "/janexamplecom");
+  assert.equal(sanitizePath("portal"), "/portal");
+});
+
+test("sanitizeBuild accepteert alleen 7–40 kleine hex-tekens", () => {
+  assert.equal(sanitizeBuild("abcdef1"), "abcdef1");
+  assert.equal(sanitizeBuild("abcdef"), null);
+  assert.equal(sanitizeBuild("a".repeat(40)), "a".repeat(40));
+  assert.equal(sanitizeBuild("a".repeat(41)), null);
+  assert.equal(sanitizeBuild("ABCDEF1"), null);
+  assert.equal(sanitizeBuild(" abcdef1"), null);
+  assert.equal(sanitizeBuild(null), null);
+});
+
+test("occurrences: NaN, Infinity en breuken worden een geldig geheel getal", () => {
+  assert.equal(buildClientErrorPayload("useMembers", {}, "/", null, Number.NaN)?.p_occurrences, 1);
+  assert.equal(buildClientErrorPayload("useMembers", {}, "/", null, Infinity)?.p_occurrences, 1);
+  assert.equal(buildClientErrorPayload("useMembers", {}, "/", null, 2.7)?.p_occurrences, 2);
+  assert.equal(buildClientErrorPayload("useMembers", {}, "/", null, MAX_OCCURRENCES)?.p_occurrences, MAX_OCCURRENCES);
+});
+
+for (const [label, hook, failing] of [
+  [
+    "de client-factory synchroon gooit",
+    "useTestCarryFactoryThrows",
+    (() => {
+      throw new Error("geen Supabase-config");
+    }) as () => { rpc(fn: "log_client_error", args: ClientErrorPayload): PromiseLike<{ error: unknown }> },
+  ],
+  [
+    "rpc() synchroon gooit",
+    "useTestCarryRpcThrows",
+    {
+      rpc(): PromiseLike<{ error: unknown }> {
+        throw new Error("sync");
+      },
+    },
+  ],
+] as const) {
+  test(`reportClientError: als ${label}, gooit hij niet en loopt de telling door na het venster`, async () => {
+    mock.timers.enable({ apis: ["Date"], now: 5_000_000 });
+    try {
+      silenceConsole(() => {
+        assert.doesNotThrow(() => reportClientError(failing, hook, { code: "42P01" }));
+      });
+
+      const calls: ClientErrorPayload[] = [];
+      const working = {
+        rpc(_fn: "log_client_error", args: ClientErrorPayload) {
+          calls.push({ ...args });
+          return Promise.resolve({ error: null });
+        },
+      };
+
+      // Binnen het venster: telt op, geen aanroep.
+      mock.timers.tick(1_000);
+      silenceConsole(() => reportClientError(working, hook, { code: "42P01" }));
+      assert.equal(calls.length, 0);
+
+      // Na het venster: 1 teruggegeven + 1 opgeteld + deze.
+      mock.timers.tick(DEDUPE_WINDOW_MS);
+      silenceConsole(() => reportClientError(working, hook, { code: "42P01" }));
+      await flush();
+      assert.equal(calls.length, 1);
+      assert.equal(calls[0].p_hook, hook);
+      assert.equal(calls[0].p_occurrences, 3);
+    } finally {
+      mock.timers.reset();
+    }
+  });
+}

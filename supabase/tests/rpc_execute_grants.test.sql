@@ -26,7 +26,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(20);
+select plan(23);
 
 -- ── 1) Niets in public is uitvoerbaar zonder sessie ──────────────────────
 
@@ -172,6 +172,24 @@ select ok(
 select ok(
   not has_function_privilege('authenticated', 'public.purge_client_errors()', 'EXECUTE'),
   'purge_client_errors is niet aanroepbaar voor een ingelogde sessie'
+);
+
+-- purge_client_errors() ook benoemd voor anon, PUBLIC en service_role
+-- (Tester, #94): 0025 trekt het voor alle vier expliciet in, en
+-- service_role valt buiten de tellende asserties van sectie 1.
+select ok(
+  not has_function_privilege('anon', 'public.purge_client_errors()', 'EXECUTE'),
+  'purge_client_errors is niet aanroepbaar zonder sessie'
+);
+
+select ok(
+  not has_function_privilege('public', 'public.purge_client_errors()', 'EXECUTE'),
+  'purge_client_errors is niet aanroepbaar via PUBLIC'
+);
+
+select ok(
+  not has_function_privilege('service_role', 'public.purge_client_errors()', 'EXECUTE'),
+  'purge_client_errors is niet aanroepbaar voor service_role (alleen de eigenaar via pg_cron)'
 );
 
 select * from finish();

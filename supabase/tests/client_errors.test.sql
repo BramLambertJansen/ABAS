@@ -24,7 +24,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(34);
+select plan(60);
 
 -- ── Fixtures (als superuser) ─────────────────────────────────────────────
 
@@ -210,6 +210,76 @@ select throws_ok(
   'een build korter dan 7 tekens wordt geweigerd'
 );
 
+-- Aanvullende grensgevallen (Tester, #94): de regexen zijn verankerd en
+-- hoofdlettergevoelig; een lege string is geen `null`.
+select throws_ok(
+  $$ select log_client_error('useMembers', 'Network', null, '/', 1, null) $$,
+  'P0001', 'invalid_client_error',
+  'kind is hoofdlettergevoelig (Network wordt geweigerd)'
+);
+select throws_ok(
+  $$ select log_client_error('useMembers', 'server', '', '/', 1, null) $$,
+  'P0001', 'invalid_client_error',
+  'een lege code wordt geweigerd (alleen null betekent geen code)'
+);
+select throws_ok(
+  $$ select log_client_error('use', 'server', null, '/', 1, null) $$,
+  'P0001', 'invalid_client_error',
+  'een hook die alleen uit use bestaat wordt geweigerd'
+);
+select throws_ok(
+  $$ select log_client_error('use Members', 'server', null, '/', 1, null) $$,
+  'P0001', 'invalid_client_error',
+  'een hook met een spatie wordt geweigerd'
+);
+select throws_ok(
+  $$ select log_client_error('use_members', 'server', null, '/', 1, null) $$,
+  'P0001', 'invalid_client_error',
+  'een hook met een underscore wordt geweigerd'
+);
+select throws_ok(
+  $$ select log_client_error('useMembers', 'server', null, '/', -1, null) $$,
+  'P0001', 'invalid_client_error',
+  'negatieve occurrences wordt geweigerd'
+);
+select throws_ok(
+  $$ select log_client_error('useMembers', 'server', null, '/Portal', 1, null) $$,
+  'P0001', 'invalid_client_error',
+  'een path met hoofdletters wordt geweigerd'
+);
+select throws_ok(
+  $$ select log_client_error('useMembers', 'server', null, '/beheer/leden#jan', 1, null) $$,
+  'P0001', 'invalid_client_error',
+  'een path met fragment wordt geweigerd'
+);
+select throws_ok(
+  $$ select log_client_error('useMembers', 'server', null, '/' || repeat('a', 101), 1, null) $$,
+  'P0001', 'invalid_client_error',
+  'een path langer dan 101 tekens wordt geweigerd'
+);
+select throws_ok(
+  $$ select log_client_error('useMembers', 'server', null, null, 1, null) $$,
+  'P0001', 'invalid_client_error',
+  'path null wordt geweigerd'
+);
+select throws_ok(
+  $$ select log_client_error('useMembers', 'server', null, '/', 1, repeat('a', 41)) $$,
+  'P0001', 'invalid_client_error',
+  'een build langer dan 40 tekens wordt geweigerd'
+);
+select throws_ok(
+  $$ select log_client_error('useMembers', 'server', null, '/', 1, '') $$,
+  'P0001', 'invalid_client_error',
+  'een lege build wordt geweigerd (alleen null betekent geen build)'
+);
+
+-- Een lid dat net gemeld heeft kan zijn eigen melding niet teruglezen.
+select throws_ok(
+  $$ select count(*) from client_errors where hook = 'usePortalBalance' $$,
+  '42501', 'permission denied for table client_errors',
+  'een lid-sessie kan na het melden de rij niet teruglezen'
+);
+
 -- ── 4) Er wordt geen uid opgeslagen ──────────────────────────────────────
 
 -- Opruimen alleen door de eigenaar.
@@ -244,6 +314,107 @@ select is(
        or to_jsonb(c)::text like '%00000000-0000-0000-0000-0000000006b0%'),
   0,
   'de auth-uid en member-id van de meldende sessie worden niet opgeslagen'
+);
+
+-- Catalogus (Tester, #94): geen policies (dus ook geen die later per
+-- ongeluk iets toelaat), RLS aan, en de RPC is een SECURITY DEFINER met
+-- vaste search_path. Geen trigger die er stilletjes iets bij schrijft.
+select is(
+  (select count(*)::integer from pg_policies
+    where schemaname = 'public' and tablename = 'client_errors'),
+  0,
+  'client_errors heeft geen enkele RLS-policy'
+);
+
+select ok(
+  (select relrowsecurity from pg_class where oid = 'public.client_errors'::regclass),
+  'RLS staat aan op client_errors'
+);
+
+select is(
+  (select count(*)::integer from pg_trigger
+    where tgrelid = 'public.client_errors'::regclass and not tgisinternal),
+  0,
+  'client_errors heeft geen triggers'
+);
+
+select ok(
+  (select prosecdef and proconfig @> array['search_path=public']
+     from pg_proc
+    where oid = 'public.log_client_error(text,text,text,text,integer,text)'::regprocedure),
+  'log_client_error is security definer met search_path=public'
+);
+
+select is(
+  (select count(*)::integer from information_schema.table_privileges
+    where table_schema = 'public' and table_name = 'client_errors'
+      and grantee in ('anon', 'authenticated', 'PUBLIC')),
+  0,
+  'anon, authenticated en PUBLIC hebben geen enkel tabelrecht op client_errors'
+);
+
+-- De check-constraints op de tabel zelf, los van de RPC: een tweede
+-- schrijver (bv. later een server-side logger) kan het formaat niet
+-- omzeilen. Als superuser, dus buiten RLS en grants.
+select throws_ok(
+  $$ insert into client_errors (hook, kind, path, occurrences)
+     values ('useMembers', 'server', '/beheer/leden/123', 1) $$,
+  '23514', null,
+  'de check-constraint weigert een path met cijfers ook bij een directe insert'
+);
+
+select throws_ok(
+  $$ insert into client_errors (hook, kind, code, path, occurrences)
+     values ('useMembers', 'server', 'jan@example.com', '/', 1) $$,
+  '23514', null,
+  'de check-constraint weigert een vrije-tekst-code ook bij een directe insert'
+);
+
+select throws_ok(
+  $$ insert into client_errors (hook, kind, path, occurrences)
+     values ('useMembers', 'server', '/', 10001) $$,
+  '23514', null,
+  'de check-constraint weigert occurrences boven 10000 ook bij een directe insert'
+);
+
+-- ── 4b) Geen toegang zonder sessie (anon) ────────────────────────────────
+--
+-- rpc_execute_grants.test.sql leest de ACL; hier een echte aanroep als
+-- anon, zodat ook een grant via een andere weg (rol-lidmaatschap) opvalt.
+
+set local role anon;
+
+select throws_ok(
+  $$ select * from client_errors $$,
+  '42501', 'permission denied for table client_errors',
+  'select op client_errors is geblokkeerd voor anon'
+);
+
+select throws_ok(
+  $$ insert into client_errors (hook, kind, path, occurrences)
+     values ('useMembers', 'server', '/', 1) $$,
+  '42501', 'permission denied for table client_errors',
+  'insert op client_errors is geblokkeerd voor anon'
+);
+
+select throws_ok(
+  $$ select log_client_error('useMembers', 'server', null, '/', 1, null) $$,
+  '42501', 'permission denied for function log_client_error',
+  'anon kan log_client_error niet aanroepen'
+);
+
+select throws_ok(
+  $$ select purge_client_errors() $$,
+  '42501', 'permission denied for function purge_client_errors',
+  'anon kan purge_client_errors niet uitvoeren'
+);
+
+reset role;
+
+select is(
+  (select count(*)::integer from client_errors),
+  3,
+  'na de geweigerde anon-pogingen staan er nog steeds precies drie rijen'
 );
 
 -- ── 5) Retentie: 90 dagen ────────────────────────────────────────────────
