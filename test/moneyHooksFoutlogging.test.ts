@@ -9,6 +9,8 @@ import { fakeMoney, resetFakeMoney } from "./fakes/moneyHookCalls.ts";
  * beslissing 3, #94): een domeinuitkomst die de RPC bewust teruggeeft
  * (`insufficient_balance` en dergelijke) is geen fout en wordt niet gemeld;
  * alleen de onverwachte tak (`unknown`) roept reportClientError aan.
+ * Onderaan dezelfde check voor `no_bar_role` in de vier andere bar-hooks
+ * (0023_bar_rpcs_weigeren_lid.sql, #100).
  *
  * De hooks draaien ongewijzigd; `react`, de Supabase-client en
  * clientErrors worden via een resolve-hook vervangen door nep-modules
@@ -19,6 +21,10 @@ register("./fakes/money-hooks-resolve.mjs", import.meta.url);
 
 const { usePlaceOrder } = await import("../src/hooks/queries/usePlaceOrder.ts");
 const { useTopUp } = await import("../src/hooks/queries/useTopUp.ts");
+const { useReverseOrderAtBar } = await import("../src/hooks/queries/useReverseOrder.ts");
+const { useAddShiftMember } = await import("../src/hooks/queries/useAddShiftMember.ts");
+const { useRemoveShiftMember } = await import("../src/hooks/queries/useRemoveShiftMember.ts");
+const { useEndShift } = await import("../src/hooks/queries/useEndShift.ts");
 
 const SHIFT = "00000000-0000-0000-0000-000000000001";
 const MEMBER = "00000000-0000-0000-0000-000000000002";
@@ -43,6 +49,7 @@ beforeEach(() => {
 // Precies de codes die place_order (0023) bewust raiset en die de hook als
 // domeinuitkomst kent.
 const PLACE_ORDER_DOMAIN = [
+  "no_bar_role",
   "shift_not_open",
   "served_by_not_on_shift",
   "empty_order",
@@ -53,6 +60,7 @@ const PLACE_ORDER_DOMAIN = [
 ] as const;
 
 const TOP_UP_DOMAIN = [
+  "no_bar_role",
   "shift_not_open",
   "served_by_not_on_shift",
   "invalid_amount",
@@ -124,5 +132,37 @@ for (const [name, run, hook] of [
     rpcError("INSUFFICIENT_BALANCE");
     assert.deepEqual(await run(), { ok: false, code: "unknown" });
     assert.equal(fakeMoney().reports.length, 1);
+  });
+}
+
+// no_bar_role (0023) in de andere bar-hooks: bekende domeinuitkomst, geen
+// melding. Een onverwachte fout blijft wél gemeld — anders bewijst de eerste
+// test niets.
+for (const [name, fn, run] of [
+  [
+    "useReverseOrderAtBar",
+    "reverse_order_at_bar",
+    async () => (await useReverseOrderAtBar().reverse("o", SHIFT, "reden", SERVER)).ok,
+  ],
+  ["useAddShiftMember", "add_shift_member", () => useAddShiftMember().addShiftMember(SHIFT, MEMBER)],
+  [
+    "useRemoveShiftMember",
+    "remove_shift_member",
+    () => useRemoveShiftMember().removeShiftMember(SHIFT, MEMBER),
+  ],
+  ["useEndShift", "end_shift", () => useEndShift().endShift(SHIFT)],
+] as const) {
+  test(`${name} meldt domeinuitkomst no_bar_role niet`, async () => {
+    rpcError("no_bar_role");
+    assert.equal(await run(), false);
+    assert.equal(fakeMoney().rpcCalls[0]?.fn, fn);
+    assert.deepEqual(fakeMoney().reports, []);
+  });
+
+  test(`${name} meldt een onverwachte serverfout wel`, async () => {
+    fakeMoney().next = { kind: "result", data: null, error: { message: "boom", code: "42P01" } };
+    assert.equal(await run(), false);
+    assert.equal(fakeMoney().reports.length, 1);
+    assert.equal(fakeMoney().reports[0].hook, name === "useReverseOrderAtBar" ? "useReverseOrder" : name);
   });
 }

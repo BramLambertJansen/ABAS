@@ -6,11 +6,15 @@ import { reportClientError } from "@/lib/clientErrors";
 
 /** Error codes `remove_shift_member` (0001_init.sql, fixed by
  *  supabase/migrations/0003_remove_shift_member_requires_open_shift.sql to
- *  actually raise shift_not_open) can raise. Anything else falls through to
+ *  actually raise shift_not_open; `no_bar_role` sinds
+ *  0023_bar_rpcs_weigeren_lid.sql, lid-sessie geweigerd) can raise. Anything else falls through to
  *  "unknown". No member_not_eligible here — removing has no eligibility
  *  check, only add does. Same pattern as useStartShift.ts →
  *  StartShiftErrorCode. */
-export type RemoveShiftMemberErrorCode = "shift_not_open" | "unknown";
+export type RemoveShiftMemberErrorCode =
+  | "no_bar_role"
+  | "shift_not_open"
+  | "unknown";
 
 type State =
   | { status: "idle" }
@@ -18,7 +22,7 @@ type State =
   | { status: "error"; code: RemoveShiftMemberErrorCode };
 
 function toErrorCode(message: string | undefined): RemoveShiftMemberErrorCode {
-  if (message === "shift_not_open") {
+  if (message === "no_bar_role" || message === "shift_not_open") {
     return message;
   }
   return "unknown";

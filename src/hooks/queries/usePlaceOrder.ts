@@ -4,11 +4,13 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { reportClientError } from "@/lib/clientErrors";
 
-/** Error codes `place_order` (0001_init.sql) actually raises, per
+/** Error codes `place_order` (0001_init.sql; `no_bar_role` sinds
+ *  0023_bar_rpcs_weigeren_lid.sql, lid-sessie geweigerd) actually raises, per
  *  docs/features/verkoop.md → RPC's / Randgevallen. Anything else (network
  *  failure, unexpected server error) falls through to "unknown". Same
  *  pattern as useStartShift.ts → StartShiftErrorCode. */
 export type PlaceOrderErrorCode =
+  | "no_bar_role"
   | "shift_not_open"
   | "served_by_not_on_shift"
   | "empty_order"
@@ -19,6 +21,7 @@ export type PlaceOrderErrorCode =
   | "unknown";
 
 const KNOWN_CODES: PlaceOrderErrorCode[] = [
+  "no_bar_role",
   "shift_not_open",
   "served_by_not_on_shift",
   "empty_order",

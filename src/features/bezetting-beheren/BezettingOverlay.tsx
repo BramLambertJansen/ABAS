@@ -12,7 +12,11 @@ import {
   useRemoveShiftMember,
   type RemoveShiftMemberErrorCode,
 } from "@/hooks/queries/useRemoveShiftMember";
-import { ROLE_LABELS, NO_BAR_STAFF_MESSAGE } from "@/lib/staff";
+import {
+  ROLE_LABELS,
+  NO_BAR_STAFF_MESSAGE,
+  NO_BAR_ROLE_SESSION_MESSAGE,
+} from "@/lib/staff";
 import { InitialsAvatar } from "@/components/InitialsAvatar";
 import { RoleBadge } from "@/components/RoleBadge";
 
@@ -22,6 +26,8 @@ function addErrorMessage(code: AddShiftMemberErrorCode): string {
       return "de dienst is niet meer actief — er kan niemand meer toegevoegd worden";
     case "member_not_eligible":
       return "dit lid kan niet aan de bezetting toegevoegd worden";
+    case "no_bar_role":
+      return NO_BAR_ROLE_SESSION_MESSAGE;
     case "unknown":
       return "er ging iets mis, probeer het opnieuw";
   }
@@ -31,6 +37,8 @@ function removeErrorMessage(code: RemoveShiftMemberErrorCode): string {
   switch (code) {
     case "shift_not_open":
       return "de dienst is niet meer actief — er kan niemand meer afgemeld worden";
+    case "no_bar_role":
+      return NO_BAR_ROLE_SESSION_MESSAGE;
     case "unknown":
       return "er ging iets mis, probeer het opnieuw";
   }
