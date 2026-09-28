@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { AuroraMerk } from "@/components/AuroraMerk";
+import { TekstVeld } from "@/components/TekstVeld";
 import { RATE_LIMITED_MESSAGE } from "@/lib/authErrors";
 import { useBeheerLogin, type BeheerLoginErrorCode } from "@/hooks/queries/useBeheerLogin";
 import { useWachtwoordResetAanvragen } from "@/hooks/queries/useWachtwoordHerstellen";
@@ -60,8 +61,6 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
   const [method, setMethod] = useState<"magic_link" | "password">("magic_link");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const emailId = useId();
-  const passwordId = useId();
   const methodLegendId = useId();
   const forgotHeadingId = useId();
   const emailRef = useRef<HTMLInputElement>(null);
@@ -210,20 +209,14 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
               </p>
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor={emailId} className="text-xs font-bold text-rail-muted">
-                E-mailadres
-              </label>
-              <input
-                id={emailId}
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                className="h-[52px] rounded-[15px] border border-rail-border bg-rail px-4 text-sm font-semibold text-white outline-none focus:border-accent"
-              />
-            </div>
+            <TekstVeld
+              label="E-mailadres"
+              type="email"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+            />
 
             <button
               type="submit"
@@ -272,21 +265,15 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
             {login.errorCode ? errorMessage(login.errorCode) : ""}
           </p>
 
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor={emailId} className="text-xs font-bold text-rail-muted">
-              E-mailadres
-            </label>
-            <input
-              ref={emailRef}
-              id={emailId}
-              type="email"
-              autoComplete="email"
-              required
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              className="h-[52px] rounded-[15px] border border-rail-border bg-rail px-4 text-sm font-semibold text-white outline-none focus:border-accent"
-            />
-          </div>
+          <TekstVeld
+            label="E-mailadres"
+            inputRef={emailRef}
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+          />
 
           <fieldset className="flex flex-col gap-2">
             <legend id={methodLegendId} className="text-xs font-bold text-rail-muted">
@@ -331,19 +318,14 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
           </fieldset>
 
           {method === "password" && (
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor={passwordId} className="text-xs font-bold text-rail-muted">
-                Wachtwoord
-              </label>
-              <input
-                id={passwordId}
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                className="h-[52px] rounded-[15px] border border-rail-border bg-rail px-4 text-sm font-semibold text-white outline-none focus:border-accent"
-              />
+            <TekstVeld
+              label="Wachtwoord"
+              type="password"
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+            >
               <button
                 type="button"
                 onClick={openForgot}
@@ -351,7 +333,7 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
               >
                 Wachtwoord vergeten?
               </button>
-            </div>
+            </TekstVeld>
           )}
 
           {/* aria-disabled, niet disabled: een disabled knop verliest de
