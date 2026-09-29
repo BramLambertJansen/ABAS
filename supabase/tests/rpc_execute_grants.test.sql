@@ -26,7 +26,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(33);
+select plan(35);
 
 -- ── 1) Niets in public is uitvoerbaar zonder sessie ──────────────────────
 
@@ -251,6 +251,7 @@ select ok(
         'public.admin_end_shift(uuid)',
         'public.admin_take_over_shift(uuid)',
         'public.admin_end_bar_session(uuid)',
+        'public.resume_orphan_shift(uuid)',
         'public.start_shift(uuid)'
       ]) as f(sig)
      where has_function_privilege('anon', f.sig, 'EXECUTE')
@@ -278,6 +279,17 @@ select ok(
 select ok(
   not has_function_privilege('anon', 'public.admin_end_bar_session(uuid)', 'EXECUTE'),
   'admin_end_bar_session is niet aanroepbaar zonder sessie'
+);
+
+-- 0030: resume_orphan_shift, alleen voor authenticated.
+select ok(
+  not has_function_privilege('anon', 'public.resume_orphan_shift(uuid)', 'EXECUTE'),
+  'resume_orphan_shift is niet aanroepbaar zonder sessie (anon)'
+);
+select ok(
+  not has_function_privilege('public', 'public.resume_orphan_shift(uuid)', 'EXECUTE')
+  and has_function_privilege('authenticated', 'public.resume_orphan_shift(uuid)', 'EXECUTE'),
+  'resume_orphan_shift: EXECUTE ingetrokken voor PUBLIC, alleen authenticated mag'
 );
 
 -- De beheer-RPC's uit 0029 (`create or replace`) behouden hun grants.

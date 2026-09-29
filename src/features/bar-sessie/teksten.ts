@@ -81,6 +81,7 @@ export function hervatUitlegMetDienst(activiteit: string | null, tijd: string): 
 export const DIENST_ELDERS = {
   titel: "Er loopt al een dienst",
   voorBardienst: "Alleen een beheerder kan deze dienst overnemen of afsluiten.",
+  hervatten: "Dienst hervatten",
   overnemen: "Overnemen",
   afsluiten: "Afsluiten",
   uitloggen: "Uitloggen",
@@ -108,6 +109,16 @@ export function dienstEldersWees(input: {
 }): string {
   const activiteit = input.activiteit ?? "geen activiteit";
   return `${input.starter} is om ${input.tijd} een dienst begonnen (${activiteit}). Er is geen apparaat meer ingelogd in deze dienst.`;
+}
+
+/** Wees-dienst voor een bezettinglid (vraag 24 (ii)): die kan hem hervatten. */
+export function dienstEldersWeesBezetting(input: {
+  starter: string;
+  tijd: string;
+  activiteit: string | null;
+}): string {
+  const activiteit = input.activiteit ?? "geen activiteit";
+  return `${input.starter} is om ${input.tijd} een dienst begonnen (${activiteit}). Er is geen apparaat meer ingelogd in deze dienst. Jij staat in de bezetting en kunt hem hervatten.`;
 }
 
 // ── Overnemen, afsluiten en afmelden door een beheerder ──────────────────

@@ -1,7 +1,8 @@
 # Dienst per sessie: eigen sessie per apparaat, en een dienst die bij die sessie hoort
 
 **Status: goedgekeurd door Bram (2026-09-29), inclusief de teksten. Fase 1 is
-gebouwd (2026-09-29, nog niet gemerged); fase 2 niet.** Wat er afwijkt van of
+gebouwd (2026-09-29, nog niet gemerged), inclusief vraag 24 (ii) (`resume_orphan_shift`,
+migratie `0030`, 2026-09-29); fase 2 niet.** Wat er afwijkt van of
 bijkomt op deze spec, staat onder "Zoals gebouwd (fase 1)" en gaat voor op de
 rest van dit document. Bram
 past teksten later aan als dat nodig is. Geschreven en bijgewerkt 2026-09-29. Het
@@ -606,6 +607,17 @@ functies die bewust alleen voor `service_role` of `pg_cron` zijn.
   koppelingen en maakt een melding voor elke dienst die daardoor wees wordt.
   De guard hangt niet van deze job af: valt `pg_cron` uit, dan weigeren de
   RPC's nog steeds, alleen de melding komt later.
+- **`resume_orphan_shift(p_shift_id) returns shifts`** (`0030`, besloten,
+  vraag 24 (ii)): `require_bar_session()`, en dan in deze volgorde:
+  `session_has_shift` (de sessie werkt al in een dienst), `shift_not_open`
+  (dicht of onbekend), `not_in_shift_crew` (de aanroeper staat niet in
+  `shift_members` van die dienst), `shift_not_orphan` (de dienst heeft een
+  actieve koppeling). Zo leert wie niet in de bezetting staat niets over de
+  koppelingen. Bij succes een nieuwe koppeling voor de sessie (een eerdere,
+  gesloten rij van dezelfde sessie en dienst wordt heropend) en de openstaande
+  meldingen voor de dienst zijn opgelost (`resolved_by` is het lid dat
+  hervatte). Zelfde advisory lock als `start_shift`. De bezetting en
+  `served_by` veranderen niet. Alleen `authenticated`.
 - **`join_shift(p_shift_id)`** (fase 2, stand (b), besloten 13):
   `require_bar_session()` zonder bestaande koppeling, een open dienst, en de
   aansluiter komt in `shift_members`.
@@ -669,7 +681,12 @@ De teksten staan in de sectie Teksten. Hieronder de toestanden.
      begintijd, wie daar ingelogd is en de laatste activiteit. Een bardienst
      kan hier niets doen. Een beheerder ziet "Overnemen" en "Afsluiten".
    - (a) Er is een wees-dienst: zelfde scherm, met "er is geen apparaat meer
-     ingelogd in deze dienst". Wie dat kan oplossen: vraag 24.
+     ingelogd in deze dienst". Een bardienst (of beheerder) die in de bezetting
+     van die dienst staat, ziet "Dienst hervatten" (besloten, vraag 24 (ii)):
+     dat koppelt deze sessie aan de dienst en lost de melding op. Een
+     bardienst buiten de bezetting kan niets; een beheerder houdt "Overnemen" en
+     "Afsluiten". Een dienst met een actieve koppeling elders blijft
+     onaantastbaar (12d).
    - (b) (fase 2): "Aansluiten".
    - (c) (fase 2): "Nieuwe dienst starten" (alleen een beheerder als er al
      een dienst loopt, besloten 15) en de lijst van diensten elders.
@@ -1163,7 +1180,20 @@ logt hier ook in als er al een dienst loopt.
 | Knoppen, beheerder | Overnemen · Afsluiten |
 | Knop | Uitloggen |
 
-De regel "Voor een bardienst" bij een wees-dienst hangt af van vraag 24.
+Vraag 24 (ii), gebouwd: bij een wees-dienst waarin de bardienst in de
+bezetting staat, vervangt onderstaande uitleg de gewone wees-uitleg, en de
+knop "Dienst hervatten" komt in de plaats van de regel "Voor een bardienst".
+
+| Plek | Tekst |
+|---|---|
+| Uitleg, wees-dienst, lid in de bezetting | {starter} is om {tijd} een dienst begonnen ({activiteit}). Er is geen apparaat meer ingelogd in deze dienst. Jij staat in de bezetting en kunt hem hervatten. |
+| Knop | Dienst hervatten |
+| Voor een bardienst buiten de bezetting (blijft) | Alleen een beheerder kan deze dienst overnemen of afsluiten. |
+
+Er is geen aparte foutregel voor `shift_not_orphan` en `not_in_shift_crew`: het
+scherm ververst zich en toont dan zelf de juiste toestand (andere uitleg, geen
+knop). `session_has_shift` en `shift_not_open` hergebruiken "je werkt al in een
+dienst — sluit die eerst af" en "deze dienst is al afgesloten".
 
 ### Aansluiten (stand b, fase 2)
 
@@ -1343,15 +1373,19 @@ anders of extra is geworden, en waarom.
 
 **Niet gebouwd of open**
 
-- **Vraag 24 (ii) is niet gebouwd**: een bardienst uit de bezetting van een
-  wees-dienst die na opnieuw inloggen de dienst weer oppakt. De spec noemt er
-  geen RPC, knop of tekst voor (alleen "de regel 'Voor een bardienst' hangt af van
-  vraag 24"). Nu kan alleen een beheerder een wees-dienst overnemen of afsluiten,
-  en het scherm toont een bardienst dezelfde regel "Alleen een beheerder kan deze
-  dienst overnemen of afsluiten". Voorstel voor de Architect: een RPC
-  `resume_orphan_shift(p_shift_id)` (`require_bar_session`, de aanroeper staat in
-  `shift_members`, de dienst heeft geen actieve koppeling, sluit de melding),
-  een knop en een tekst.
+- **Vraag 24 (ii) is gebouwd** (migratie `0030`, na goedkeuring van ontwerp en
+  teksten door Bram, 2026-09-29): `resume_orphan_shift(p_shift_id)` (zie RPC's),
+  de hook `useResumeOrphanShift`, en in `DienstElders` de knop "Dienst hervatten"
+  met de uitleg uit Teksten voor een bezettinglid van een wees-dienst
+  (`my_bar_state` leverde `other_shift.in_bezetting` al). Alleen voor een
+  bardienst: een beheerder in de bezetting houdt "Overnemen" en "Afsluiten".
+  Geen toast na het hervatten (er is geen goedgekeurde tekst): het scherm gaat
+  meteen naar de dienst. Nieuwe foutcodes `shift_not_orphan` en
+  `not_in_shift_crew` zijn bekende domeinuitkomsten (niet naar `client_errors`).
+  Tests: `supabase/tests/resume_orphan_shift.test.sql` (elke weigering, de happy
+  path en het oplossen van de melding), `rpc_execute_grants.test.sql`,
+  `test/moneyHooksFoutlogging.test.ts` en `e2e/dienst-hervatten.spec.ts`
+  (gemockt).
 - **Teksten die niet in de goedgekeurde sectie staan** en er wel moesten komen:
   het tabblad "Diensten" en de kopjes "Diensten" en "Ingelogd" in het
   beheeroverzicht, "sinds {tijd}" en "laatst actief om {tijd}" daarin, "Er loopt
@@ -1618,7 +1652,7 @@ een beheerder.
 Nieuwe vragen. Ze volgen niet uit de antwoorden, maar de Developer kan fase 1
 niet bouwen zonder een keuze.
 
-24. **Wie heropent een wees-dienst?** Met 30 minuten inactiviteit (7) en
+24. **Wie heropent een wees-dienst?** *(besloten (ii) en gebouwd, `0030`.)* Met 30 minuten inactiviteit (7) en
     alleen een beheerder die overneemt (12) geldt: een bar die een half uur
     niets aanslaat, kan daarna pas verder als er een beheerder komt. Ook de
     starter zelf kan na opnieuw inloggen niet verder in zijn eigen dienst.

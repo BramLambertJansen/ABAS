@@ -32,6 +32,7 @@ const { useEndShift } = await import("../src/hooks/queries/useEndShift.ts");
 const { useStartShift } = await import("../src/hooks/queries/useStartShift.ts");
 const { useAdminEndShift } = await import("../src/hooks/queries/useAdminEndShift.ts");
 const { useAdminTakeOverShift } = await import("../src/hooks/queries/useAdminTakeOverShift.ts");
+const { useResumeOrphanShift } = await import("../src/hooks/queries/useResumeOrphanShift.ts");
 const { useAdminEndBarSession } = await import("../src/hooks/queries/useAdminEndBarSession.ts");
 const { useRegisterBarSession } = await import("../src/hooks/queries/useRegisterBarSession.ts");
 const { useEndBarSession } = await import("../src/hooks/queries/useEndBarSession.ts");
@@ -281,6 +282,12 @@ for (const [name, fn, run, domain] of [
     "admin_take_over_shift",
     () => useAdminTakeOverShift().takeOverShift(SHIFT),
     ["actor_not_found", "no_admin_role", "session_has_shift", "shift_not_open"],
+  ],
+  [
+    "useResumeOrphanShift",
+    "resume_orphan_shift",
+    () => useResumeOrphanShift().resumeOrphanShift(SHIFT),
+    ["not_in_shift_crew", "shift_not_orphan", "session_has_shift", "shift_not_open"],
   ],
   [
     "useAdminEndBarSession",

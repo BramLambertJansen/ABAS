@@ -854,7 +854,7 @@ hierboven.
 `docs/features/dienst-per-sessie.md`)**: fase 1 is stand (a): één open dienst,
 die bij de sessie hoort waarin hij gestart is (fase 2, de instelling
 (a)/(b)/(c) en `join_shift`, is niet gebouwd).
-- *Database* (`0027`–`0029`): `bar_sessions`, `shift_sessions`, `bar_devices`,
+- *Database* (`0027`–`0030`): `bar_sessions`, `shift_sessions`, `bar_devices`,
   `bar_device_members`, `pin_failures`, `admin_notifications`,
   `bar_session_id` op `orders`/`top_ups`/`order_reversals`,
   `shifts.started_session_id`. Guards `require_session` (kern),
@@ -862,7 +862,8 @@ die bij de sessie hoort waarin hij gestart is (fase 2, de instelling
   (geen `EXECUTE` voor een API-rol). RPC's: `register_bar_session`,
   `touch_bar_session`, `end_bar_session(p_close_shift, p_reason)`,
   `my_bar_state`, `admin_end_shift`, `admin_take_over_shift`,
-  `admin_end_bar_session`; `start_shift(p_activity_type_id)` zonder PIN; A4 in
+  `admin_end_bar_session`, `resume_orphan_shift` (`0030`: een bardienst uit de
+  bezetting hervat een wees-dienst, alleen als er geen actieve koppeling is); `start_shift(p_activity_type_id)` zonder PIN; A4 in
   `top_up` (`self_top_up_forbidden`); `close_inactive_bar_sessions` (pg_cron,
   elke minuut). Alleen `service_role`: `verify_bar_pin`,
   `record_bar_password_login`, `register_bar_session_server`,

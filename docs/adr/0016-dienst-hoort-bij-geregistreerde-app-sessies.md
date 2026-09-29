@@ -227,8 +227,10 @@ voor elke functie.
   sign-in in `src/middleware.ts`) en het device-account verdwijnen in dezelfde
   uitrol. Voorwaarde: elke bardienst en beheerder heeft een werkend wachtwoord.
 - **Een stille bar wordt een wees-dienst.** Na 60 minuten zonder activiteit
-  heeft de dienst geen sessie meer. Wie hem dan weer mag oppakken, is spec →
-  vraag 24.
+  heeft de dienst geen sessie meer. Een beheerder neemt hem over of sluit hem;
+  een bardienst uit de bezetting hervat hem met `resume_orphan_shift` (`0030`,
+  spec → vraag 24 (ii)). Een dienst met een actieve koppeling elders blijft
+  onaantastbaar.
 - **Nieuwe negatieve tests** in `supabase/tests/`: elke bar-RPC weigert zonder
   bar-sessie, met een beëindigde of inactieve sessie, met een sessie in modus
   `beheer`, met een gearchiveerd lid, en met een sessie die niet aan de dienst

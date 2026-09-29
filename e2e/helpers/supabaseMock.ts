@@ -112,6 +112,19 @@ export type BarSessieMockOpties = {
     startedByName: string;
     activityTypeName: string | null;
   } | null;
+  /** Een open dienst elders (`other_shift` in `my_bar_state`), alleen zinvol
+   *  in modus bar zolang de sessie geen eigen dienst heeft. `orphan`: geen
+   *  actieve koppeling meer. `inBezetting`: het lid van de sessie staat in de
+   *  bezetting. Na een geslaagde `resume_orphan_shift` (alleen bij `orphan` en
+   *  `inBezetting`) wordt deze dienst de eigen dienst van de sessie. */
+  otherShift?: {
+    id: string;
+    startedAt: string;
+    startedByName: string;
+    activityTypeName: string | null;
+    orphan: boolean;
+    inBezetting: boolean;
+  } | null;
   /** De sessie geldt als bevestigd in deze browserstart (een vlag in
    *  sessionStorage). Nodig voor een `voorgeregistreerd` sessie, anders komt
    *  eerst het hervatscherm. */
@@ -126,6 +139,8 @@ export type BarSessieMock = {
   /** Zet dit als de eigen dienst gesloten is (bv. na `end_shift`): `my_bar_state`
    *  levert dan geen dienst meer. */
   dienstGesloten: boolean;
+  /** De `p_shift_id` van elke `resume_orphan_shift`-aanroep. */
+  hervattingen: string[];
 };
 
 /**
@@ -145,7 +160,9 @@ export async function mockBarSessie(
     modus: opties.voorgeregistreerd ?? null,
     registraties: [],
     dienstGesloten: false,
+    hervattingen: [],
   };
+  let hervat = false;
   const nu = new Date().toISOString();
 
   if (opties.bevestigd) {
@@ -154,6 +171,13 @@ export async function mockBarSessie(
 
   await page.route(/\/rest\/v1\/rpc\/my_bar_state(\?|$)/, (route) => {
     if (staat.modus === null) return json(route, 200, { session: null });
+    const elders = opties.otherShift && staat.modus === "bar" && !hervat ? opties.otherShift : null;
+    const eigen =
+      staat.modus === "bar" && !staat.dienstGesloten
+        ? hervat && opties.otherShift
+          ? opties.otherShift
+          : opties.shift
+        : null;
     return json(route, 200, {
       session: {
         id: "00000000-0000-4000-8000-0000000000f1",
@@ -167,17 +191,26 @@ export async function mockBarSessie(
         last_activity_at: nu,
         left_shift_open: false,
       },
-      shift:
-        staat.modus === "bar" && opties.shift && !staat.dienstGesloten
-          ? {
-              id: opties.shift.id,
-              started_by_name: opties.shift.startedByName,
-              started_at: opties.shift.startedAt,
-              activity_type_name: opties.shift.activityTypeName,
-            }
-          : null,
+      shift: eigen
+        ? {
+            id: eigen.id,
+            started_by_name: eigen.startedByName,
+            started_at: eigen.startedAt,
+            activity_type_name: eigen.activityTypeName,
+          }
+        : null,
       last_left: null,
-      other_shift: null,
+      other_shift: elders
+        ? {
+            id: elders.id,
+            started_by_name: elders.startedByName,
+            started_at: elders.startedAt,
+            activity_type_name: elders.activityTypeName,
+            orphan: elders.orphan,
+            sessions: [],
+            in_bezetting: elders.inBezetting,
+          }
+        : null,
       notifications: rol === "beheerder" ? [] : undefined,
       admin: rol === "beheerder" && staat.modus === "beheer" ? { shifts: [], sessions: [] } : undefined,
     });
@@ -189,6 +222,16 @@ export async function mockBarSessie(
       staat.registraties.push(mode);
     }
     return json(route, 200, {});
+  });
+  await page.route(/\/rest\/v1\/rpc\/resume_orphan_shift(\?|$)/, (route) => {
+    const shiftId = (route.request().postDataJSON() as { p_shift_id?: string } | null)?.p_shift_id;
+    if (shiftId) staat.hervattingen.push(shiftId);
+    const o = opties.otherShift;
+    if (o && shiftId === o.id && o.orphan && o.inBezetting) {
+      hervat = true;
+      return json(route, 200, { id: o.id });
+    }
+    return json(route, 400, { code: "P0001", message: "shift_not_orphan", details: null, hint: null });
   });
   await page.route(/\/rest\/v1\/rpc\/touch_bar_session(\?|$)/, (route) => json(route, 200, {}));
   await page.route(/\/rest\/v1\/rpc\/end_bar_session(\?|$)/, (route) => {
