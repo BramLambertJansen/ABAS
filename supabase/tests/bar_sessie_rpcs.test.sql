@@ -590,6 +590,10 @@ select ok(
   jsonb_array_length(my_bar_state() -> 'admin' -> 'sessions') >= 2,
   'het beheeroverzicht toont de actieve sessies'
 );
+-- De id van de dienst die zo dichtgaat: eerdere delen van dit bestand sluiten
+-- diensten met een kale update en laten hun koppelingen open, dus "alle
+-- koppelingen" hieronder gaat over déze dienst.
+select set_config('test.eind_shift', (select id::text from shifts where ended_at is null), true);
 select lives_ok(
   $$ select admin_end_shift((select id from shifts where ended_at is null)) $$,
   'een beheerder sluit de dienst af vanuit modus beheer'
@@ -600,9 +604,10 @@ select is(
   'de dienst is gesloten'
 );
 select is(
-  (select count(*)::int from shift_sessions where left_at is null),
+  (select count(*)::int from shift_sessions
+    where left_at is null and shift_id = current_setting('test.eind_shift')::uuid),
   0,
-  'alle koppelingen zijn gesloten'
+  'alle koppelingen van de dienst zijn gesloten'
 );
 select is(
   (select left_reason from shift_sessions ss where ss.bar_session_id = (select id from bar_sessions where auth_session_id = '00000000-0000-0000-0000-00000000e010')),
