@@ -327,3 +327,66 @@ insert into top_ups (id, shift_id, member_id, amount_cents, method, served_by, c
 -- tijdens het seeden): -500 (bestelling 1) + 0 (bestelling 2, teruggeboekt)
 -- + 1000 (opwaardering) = +500 op het startsaldo van €12,40.
 update members set balance_cents = balance_cents + 500 where name = 'Anna de Vries';
+
+-- Portal-profiel fixtures (#17, docs/features/portal-profiel.md → Testplan →
+-- e2e "Eigen fixture-accounts, geen gedeelde seedleden muteren"). Elke
+-- muterende e2e-test (naam, wachtwoord, PIN) krijgt een eigen account dat
+-- geen andere test gebruikt: playwright.config.ts draait fullyParallel, en
+-- een test die de naam/het wachtwoord/de PIN van Anna, Sanne of Femke
+-- wijzigt laat parallelle tests willekeurig falen. Plus één ongekoppeld
+-- account (auth.users zonder members-rij) voor de `denied`-staat van
+-- /portal: sinds ADR 0012 is een bardienst-account daar gewoon signed-in,
+-- dus Sanne Bakker dekt die staat niet meer. Zelfde local-dev-only directe
+-- auth.users/auth.identities-insert als de accounts hierboven, nooit in een
+-- echte omgeving geseed.
+insert into auth.users (
+  instance_id, id, aud, role, email, encrypted_password,
+  email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
+  created_at, updated_at,
+  confirmation_token, email_change, email_change_token_new, recovery_token
+)
+select
+  '00000000-0000-0000-0000-000000000000',
+  gen_random_uuid(),
+  'authenticated',
+  'authenticated',
+  fixture.email,
+  crypt(fixture.password, gen_salt('bf')),
+  now(),
+  '{"provider":"email","providers":["email"]}',
+  '{}',
+  now(), now(),
+  '', '', '', ''
+from (values
+  ('e2e.profiel.naam@aurora.local',       'local-e2e-profiel-naam-dev-only'),
+  ('e2e.profiel.wachtwoord@aurora.local', 'local-e2e-profiel-wachtwoord-dev-only'),
+  ('e2e.profiel.bardienst@aurora.local',  'local-e2e-profiel-bardienst-dev-only'),
+  ('e2e.ongekoppeld@aurora.local',        'local-e2e-ongekoppeld-dev-only')
+) as fixture(email, password);
+
+insert into auth.identities (
+  id, user_id, provider_id, identity_data, provider,
+  last_sign_in_at, created_at, updated_at
+)
+select gen_random_uuid(), id, id::text,
+  format('{"sub":"%s","email":"%s"}', id::text, email)::jsonb,
+  'email', now(), now(), now()
+from auth.users
+where email in (
+  'e2e.profiel.naam@aurora.local',
+  'e2e.profiel.wachtwoord@aurora.local',
+  'e2e.profiel.bardienst@aurora.local',
+  'e2e.ongekoppeld@aurora.local'
+);
+
+-- Geen members-rij voor e2e.ongekoppeld@aurora.local: dat is het hele punt.
+-- De bardienst-fixture heeft bewust géén PIN, zodat de e2e-test hem zelf
+-- in de portal zet (en hij tot dan niet in de stafkeuze staat).
+insert into members (name, role, pin_hash, balance_cents, archived, auth_user_id, email)
+select fixture.name, fixture.role::member_role, null, 0, false, u.id, u.email
+from (values
+  ('E2E Profiel Naam',       'lid',       'e2e.profiel.naam@aurora.local'),
+  ('E2E Profiel Wachtwoord', 'lid',       'e2e.profiel.wachtwoord@aurora.local'),
+  ('E2E Profiel Bardienst',  'bardienst', 'e2e.profiel.bardienst@aurora.local')
+) as fixture(name, role, email)
+join auth.users u on u.email = fixture.email;

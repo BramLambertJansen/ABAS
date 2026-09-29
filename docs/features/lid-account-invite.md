@@ -33,7 +33,7 @@ ticket. Bram heeft, na eigen verificatie, per bevinding beslist:
    `mark_member_invite_sent`/`link_invited_member_account`) en de nieuwe
    sectie "Koppelmechanisme bij acceptatie" hieronder.
 2. **De copy bij de invite-knop beloofde een wachtwoord-instelscherm dat
-   nergens bestaat** (dat scherm is issue #17, niet gebouwd — `/beheer/
+   nergens bestaat** (dat scherm is issue #106, eerder #17, niet gebouwd — `/beheer/
    callback` wisselt de code in voor een sessie en redirect direct naar
    `/beheer`, geen `updateUser({ password })`-stap). **Gefixt** — zie
    "Architect-beslissingen" → Copy, alleen de tekst is aangepast, geen nieuw
@@ -882,7 +882,7 @@ bestaande foutmeldingen waar de betekenis identiek is.
 **Verklarende tekst onder de knop** (zelfde stijl als "Barrechten"'s
 `text-xs text-rail-muted`-ondertekst) **— herzien (Bug 2): de eerste
 variant beloofde een wachtwoord-instelscherm dat niet bestaat (dat scherm is
-issue #17, niet gebouwd). Alleen de tekst is aangepast, geen nieuw scherm:**
+issue #106, eerder #17, niet gebouwd). Alleen de tekst is aangepast, geen nieuw scherm:**
 - knop actief, nooit uitgenodigd → **"stuurt een e-mail met een inloglink
   voor dit lid"** (was: "... waarmee dit lid zelf een wachtwoord instelt" —
   die belofte klopt niet, zie het herzieningsblok bovenaan dit document).

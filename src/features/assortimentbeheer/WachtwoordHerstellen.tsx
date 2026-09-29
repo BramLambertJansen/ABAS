@@ -4,24 +4,8 @@ import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { AuroraMerk } from "@/components/AuroraMerk";
 import { NieuwWachtwoordVelden, isPasswordReady } from "@/components/NieuwWachtwoordVelden";
-import { RATE_LIMITED_MESSAGE } from "@/lib/authErrors";
-import {
-  useNieuwWachtwoordInstellen,
-  type NieuwWachtwoordErrorCode,
-} from "@/hooks/queries/useWachtwoordHerstellen";
-
-function errorMessage(code: Exclude<NieuwWachtwoordErrorCode, "link_invalid">): string {
-  switch (code) {
-    case "weak_password":
-      return "Dit wachtwoord voldoet niet aan de eisen.";
-    case "same_password":
-      return "Kies een ander wachtwoord dan je huidige.";
-    case "rate_limited":
-      return RATE_LIMITED_MESSAGE;
-    case "unknown":
-      return "er ging iets mis, probeer het opnieuw";
-  }
-}
+import { passwordUpdateErrorMessage } from "@/lib/authErrors";
+import { useNieuwWachtwoordInstellen } from "@/hooks/queries/useWachtwoordHerstellen";
 
 /**
  * `/beheer/wachtwoord-herstellen` — stap 3 van docs/features/
@@ -76,7 +60,7 @@ export function WachtwoordHerstellen({ tokenHash }: { tokenHash: string | null }
         >
           <p className="text-sm font-bold text-danger empty:-mt-4" role="alert">
             {herstel.errorCode && herstel.errorCode !== "link_invalid"
-              ? errorMessage(herstel.errorCode)
+              ? passwordUpdateErrorMessage(herstel.errorCode)
               : ""}
           </p>
 

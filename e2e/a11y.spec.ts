@@ -371,14 +371,16 @@ test.describe("portal (a11y)", () => {
 
   /**
    * `usePortalSession()`'s `denied`-staat — een sessie die bestaat maar niet
-   * naar een actief `lid`-record herleidt. Hergebruikt de al geseede Sanne
-   * Bakker (`bardienst`-e-mail/wachtwoord-account) — geen nieuwe fixture
-   * nodig, zelfde account als e2e/portal-login.spec.ts's denied-test.
+   * naar een `members`-record herleidt. Sinds ADR 0012
+   * (docs/features/portal-profiel.md, #17) is een bardienst-account op de
+   * portal gewoon `signed-in`; deze staat wordt daarom gescand met het
+   * ongekoppelde seed-account (`auth.users` zonder `members`-rij), zelfde
+   * account als e2e/portal-login.spec.ts's denied-test.
    */
-  test("portal (/portal) denied-staat (bardienst-account) has no WCAG2A/AA violations", async ({
+  test("portal (/portal) denied-staat (ongekoppeld account) has no WCAG2A/AA violations", async ({
     page,
   }) => {
-    await portalLoginMetWachtwoord(page, "sanne.bakker@aurora.local", "local-bardienst-dev-only");
+    await portalLoginMetWachtwoord(page, "e2e.ongekoppeld@aurora.local", "local-e2e-ongekoppeld-dev-only");
     await page
       .getByText("Dit account is niet gekoppeld aan een lid.")
       .waitFor({ state: "visible", timeout: 15_000 });
@@ -389,6 +391,100 @@ test.describe("portal (a11y)", () => {
 
     expect(results.violations, JSON.stringify(results.violations, null, 2))
       .toEqual([]);
+  });
+
+  /**
+   * docs/features/portal-profiel.md (#17) → Randgevallen → "a11y": het
+   * Account-tabblad en de drie sheets. Alleen lezen (sheets open, niets
+   * opslaan), dus de gedeelde seedleden mogen: Anna de Vries als `lid`
+   * (zonder PIN-rij), Sanne Bakker als bardienst (met PIN-rij). De
+   * foutstaat van de naam-sheet wordt met een onderschepte RPC-respons
+   * opgeroepen, zodat er niets in de database verandert.
+   */
+  async function openAccountTab(page: Page, email: string, password: string, firstName: string) {
+    await portalLoginMetWachtwoord(page, email, password);
+    await page
+      .getByRole("heading", { name: `Hoi ${firstName}` })
+      .waitFor({ state: "visible", timeout: 15_000 });
+    await page.getByRole("tab", { name: "Account" }).click();
+    await page
+      .getByRole("button", { name: /^Wachtwoord wijzigen/ })
+      .waitFor({ state: "visible", timeout: 15_000 });
+  }
+
+  async function expectNoViolations(page: Page) {
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+    expect(results.violations, JSON.stringify(results.violations, null, 2))
+      .toEqual([]);
+  }
+
+  test("portal (/portal) Account-tabblad als lid (Anna de Vries, zonder PIN-rij) has no WCAG2A/AA violations", async ({
+    page,
+  }) => {
+    await openAccountTab(page, "anna.de.vries@aurora.local", "local-lid-dev-only", "Anna");
+    await expect(page.getByRole("button", { name: /Pincode/ })).toHaveCount(0);
+    await expectNoViolations(page);
+  });
+
+  test("portal (/portal) Account-tabblad als bardienst (Sanne Bakker, met PIN-rij) has no WCAG2A/AA violations", async ({
+    page,
+  }) => {
+    await openAccountTab(page, "sanne.bakker@aurora.local", "local-bardienst-dev-only", "Sanne");
+    await expect(page.getByRole("button", { name: /^Pincode voor de bar-tablet/ })).toBeVisible();
+    await expectNoViolations(page);
+  });
+
+  test("portal (/portal) naam-sheet, ook met foutmelding, has no WCAG2A/AA violations", async ({
+    page,
+  }) => {
+    await page.route(/\/rest\/v1\/rpc\/update_own_name(\?|$)/, (route) =>
+      route.fulfill({
+        status: 400,
+        contentType: "application/json",
+        body: JSON.stringify({ code: "P0001", message: "invalid_name", details: null, hint: null }),
+      })
+    );
+    await openAccountTab(page, "anna.de.vries@aurora.local", "local-lid-dev-only", "Anna");
+    await page.getByRole("button", { name: /^Naam wijzigen/ }).click();
+    const dialog = page.getByRole("dialog", { name: "Naam wijzigen" });
+    await dialog.waitFor({ state: "visible" });
+    await expectNoViolations(page);
+
+    await dialog.getByLabel("Volledige naam").fill("Anna de Vries-a11y");
+    await dialog.getByRole("button", { name: "Opslaan" }).click();
+    await dialog.getByText("vul een naam in").waitFor({ state: "visible", timeout: 15_000 });
+    await expectNoViolations(page);
+  });
+
+  test("portal (/portal) wachtwoord-sheet has no WCAG2A/AA violations", async ({ page }) => {
+    await openAccountTab(page, "sanne.bakker@aurora.local", "local-bardienst-dev-only", "Sanne");
+    await page.getByRole("button", { name: /^Wachtwoord wijzigen/ }).click();
+    await page.getByRole("dialog", { name: "Wachtwoord wijzigen" }).waitFor({ state: "visible" });
+    await expectNoViolations(page);
+  });
+
+  test("portal (/portal) pincode-sheet (stap 1, stap 2, foutmelding) has no WCAG2A/AA violations", async ({
+    page,
+  }) => {
+    await openAccountTab(page, "sanne.bakker@aurora.local", "local-bardienst-dev-only", "Sanne");
+    await page.getByRole("button", { name: /^Pincode voor de bar-tablet/ }).click();
+    await page.getByRole("dialog", { name: "Pincode instellen" }).waitFor({ state: "visible" });
+    await expectNoViolations(page);
+
+    for (const digit of ["1", "2", "3", "4"]) {
+      await page.getByRole("button", { name: `Cijfer ${digit}` }).click();
+    }
+    await page.getByRole("dialog", { name: "Pincode herhalen" }).waitFor({ state: "visible" });
+    await expectNoViolations(page);
+
+    // Ongelijke herhaling: client-side melding, geen request.
+    for (const digit of ["4", "3", "2", "1"]) {
+      await page.getByRole("button", { name: `Cijfer ${digit}` }).click();
+    }
+    await page.getByText("Codes komen niet overeen").waitFor({ state: "visible" });
+    await expectNoViolations(page);
   });
 });
 
@@ -1045,6 +1141,77 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
 
     await staffButton.waitFor({ state: "visible", timeout: 15_000 });
   }
+
+  /**
+   * docs/features/portal-profiel.md (#17) → Testplan → e2e stap 3 + 4: een
+   * PIN die de bardienst zelf in de portal zet, zet hem in de stafkeuze op
+   * het bar-tablet (`useBarStaff` filtert op `has_pin`); na "Pincode
+   * verwijderen" staat hij er niet meer in. Eén test voor beide kanten, met
+   * de eigen fixture `e2e.profiel.bardienst` (geen andere test gebruikt
+   * hem). In deze serial-groep omdat de stafkeuze alleen zichtbaar is zonder
+   * open dienst; `ensureNoOpenShift()` zorgt daarvoor. De portal draait in
+   * een tweede tab van dezelfde context: de portal-sessie heeft een eigen
+   * cookie (ADR 0009) en raakt de device-sessie van het tablet niet. Geen
+   * dienst starten met de nieuwe PIN: dat bewijst
+   * supabase/tests/set_own_pin_start_shift.test.sql.
+   */
+  test("portal-PIN instellen zet de bardienst in de stafkeuze, verwijderen haalt hem eruit", async ({
+    page,
+  }) => {
+    const FIXTURE_STAFF = /^E2E Profiel Bardienst\b/;
+    await ensureNoOpenShift(page);
+
+    const portal = await page.context().newPage();
+    await portalLoginMetWachtwoord(
+      portal,
+      "e2e.profiel.bardienst@aurora.local",
+      "local-e2e-profiel-bardienst-dev-only"
+    );
+    await portal
+      .getByRole("heading", { name: /^Hoi / })
+      .waitFor({ state: "visible", timeout: 15_000 });
+    await portal.getByRole("tab", { name: "Account" }).click();
+    const pinRow = portal.getByRole("button", { name: /^Pincode voor de bar-tablet/ });
+    await pinRow.waitFor({ state: "visible", timeout: 15_000 });
+
+    async function removePin() {
+      await pinRow.click();
+      await portal.getByRole("button", { name: "Pincode verwijderen" }).click();
+      await portal
+        .getByRole("status")
+        .filter({ hasText: "Pincode verwijderd" })
+        .waitFor({ state: "visible", timeout: 15_000 });
+    }
+
+    // Opruimen na een eerder afgebroken run op dezelfde stack.
+    if (await pinRow.getByText("ingesteld", { exact: true }).isVisible()) {
+      await removePin();
+    }
+    await expect(pinRow.getByText("niet ingesteld", { exact: true })).toBeVisible();
+
+    await pinRow.click();
+    for (const digit of ["4", "8", "2", "1", "4", "8", "2", "1"]) {
+      await portal.getByRole("button", { name: `Cijfer ${digit}` }).click();
+    }
+    await expect(portal.getByRole("status").filter({ hasText: "Pincode ingesteld" })).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(pinRow.getByText("ingesteld", { exact: true })).toBeVisible();
+
+    await page.goto("/");
+    await expect(page.getByRole("button", { name: FIXTURE_STAFF })).toBeVisible({ timeout: 15_000 });
+
+    await removePin();
+    await expect(pinRow.getByText("niet ingesteld", { exact: true })).toBeVisible();
+
+    await page.goto("/");
+    await page
+      .getByRole("button", { name: STAFF_BUTTON_NAME })
+      .waitFor({ state: "visible", timeout: 15_000 });
+    await expect(page.getByRole("button", { name: FIXTURE_STAFF })).toHaveCount(0);
+
+    await portal.close();
+  });
 
   /**
    * docs/features/dienst-starten.md (#6) → the PIN-entry screen

@@ -56,7 +56,8 @@ sub-patroon.
   (`docs/features/lid-account-invite.md`, herzieningspunt 2: "de copy bij de
   invite-knop beloofde een wachtwoord-instelscherm dat nergens bestaat — dat
   scherm is issue #17"). Dezelfde grens geldt hier: het portal-equivalent van
-  dat onboardingscherm hoort bij #17, niet bij #15 — #15 levert het
+  dat onboardingscherm hoort niet bij #15 (oorspronkelijk aan #17 toegewezen,
+  daar buiten scope verklaard; nu #106) — #15 levert het
   inlogscherm zelf, niet de wizard die volgt op een allereerste magic link.
   Punt (3) wijkt af van `wachtwoord-vergeten.md`'s precedent op één punt
   ("direct ingelogd" i.p.v. "terug naar inloggen, opnieuw inloggen") — zie
@@ -286,22 +287,22 @@ expliciet verplaatst bij elke weergavewissel (WCAG 2.4.3, zelfde
   laagdrempeliger, zie "Besloten door Bram" punt 2.
 - **Wachtwoord** (`usePortalLogin().signInWithPassword(email, password)`):
   `signInWithPassword({ email, password })`, via `portalClient.ts`. Faalt
-  met "onjuist e-mailadres of wachtwoord" — dit pad lekt geen
-  accountbestaan (issue #70: "Het wachtwoordpad... lekt niet en blijft
-  zoals het is"), geen wijziging nodig t.o.v. hoe `BeheerLogin.tsx` dit al
+  met "onjuist e-mailadres of wachtwoord" — de melding maakt geen
+  onderscheid tussen onbekend adres en fout wachtwoord (issue #70; een
+  timingverschil is niet uitgesloten, zie ADR 0013), geen wijziging nodig t.o.v. hoe `BeheerLogin.tsx` dit al
   doet.
 - **Neutrale melding voor magic link (issue #70, "Hetzelfde geldt straks
   voor de portal-login (#15)")**: elke uitkomst van `signInWithMagicLink` —
   geslaagd, onbekend adres, rate limit, onbekende fout — toont dezelfde
   melding: "Als er een account bij {email} hoort, hebben we een inloglink
   gestuurd." Geen onderscheid naar foutcode zoals `BeheerLogin.tsx` dat
-  destijds nog wel maakte (dat was daar de eigen #70-fix, sinds 2026-09-28
-  gebouwd; deze spec bouwde het hier meteen goed).
+  destijds nog wel maakte.
   Exact hetzelfde patroon als `wachtwoord-vergeten.md`'s
   `useWachtwoordResetAanvragen` (altijd `status: "sent"`, fout alleen
   gelogd via `console.error`) — `usePortalLogin.ts`'s
-  `signInWithMagicLink` volgt die vorm, en sinds #70 doet
-  `useBeheerLogin.ts` dat ook.
+  `signInWithMagicLink` volgt die vorm. `/beheer` toont sinds #99 dezelfde
+  neutrale melding; dat is alleen een UI-maskering, zie
+  `beheer-magic-link-enumeratie.md` en ADR 0013.
 
 ### 2. `/auth/callback` — gedeelde callback voor `/beheer` én `/portal` (Besloten door Bram, punt 3)
 
@@ -577,7 +578,8 @@ Bram koos optie A: "Ja, nu meebouwen" (zie "Besloten door Bram
 
 **Niet voorgesteld, expliciet buiten scope:** het "kies een
 wachtwoord"-onboardingscherm na een eerste magic link (chat30) — dat blijft,
-zoals hierboven bij "Onderzocht in /designs/" gemotiveerd, #17's scope.
+zoals hierboven bij "Onderzocht in /designs/" gemotiveerd, buiten #15. Het
+was aan #17 toegewezen, is daar buiten scope verklaard en staat nu in #106.
 
 ## Rolzichtbaarheid
 
@@ -585,17 +587,27 @@ zoals hierboven bij "Onderzocht in /designs/" gemotiveerd, #17's scope.
   zichtbaar zonder sessie — dat is het punt, zelfde als `BeheerLogin.tsx`.
   `/auth/callback` toont zelf nooit iets (redirect-only, zie Schermflow),
   dus "zichtbaar zonder sessie" betekent hier alleen "werkt zonder sessie".
-- Een sessie die wél bestaat maar niet naar een actief `lid`-record herleidt
-  (device-cookie kan dit sowieso niet meer, zie Cookie-isolatie; wél
-  mogelijk: een bardienst/beheerder-e-mailadres dat op de portal probeert in
-  te loggen, of een sessie zonder gekoppeld `members`-record) toont
-  `usePortalSession()`'s `denied`-staat: "Dit account is niet gekoppeld aan
-  een lid." — geen onderscheid naar "wel een account, verkeerde rol" versus
-  "geen account", zelfde neutraliteitsprincipe als de rest van deze spec
-  (geen informatie weggeven die niet nodig is). Een bardienst/beheerder-lid
-  dat zowel een `bardienst`/`beheerder`- als een `lid`-rol-record met
-  hetzelfde `auth_user_id` zou hebben bestaat vandaag niet (elk `members`-
-  record heeft precies één rol) — geen extra afhandeling nodig.
+- **Sinds #17 (PR #110, 2026-09-28) geldt
+  [ADR 0012](../adr/0012-portal-eigen-data-voor-elke-rol.md):** de portal is
+  het lid-deel voor **elke** rol. Een sessie die naar een `members`-rij
+  herleidt is `signed-in`, of die rij nu `lid`, `bardienst` of `beheerder`
+  is, en ook als hij gearchiveerd is. `usePortalSession()` geeft `role` en
+  `archived` mee. De portal toont voor elke rol alleen eigen data (saldo,
+  transacties, profiel), en geen bardienst- of beheerfunctie. Elke
+  portal-read van lid-eigen data filtert daarom expliciet op de eigen rij of
+  gaat via een zelf-scopende RPC. Leunen op de RLS-narrowing van ADR 0007
+  mag niet meer: die geldt alleen voor rol `lid`.
+- De `denied`-staat blijft alleen voor een sessie **zonder gekoppelde
+  `members`-rij** (device-cookie kan dit sowieso niet meer, zie
+  Cookie-isolatie; wél mogelijk: een `auth.users`-rij zonder gekoppeld
+  lid). Die toont "Dit account is niet gekoppeld aan een lid.", dezelfde
+  neutrale melding als voorheen. Let op: `usePortalSession` zet dezelfde
+  `denied`-staat ook als de `members`-lookup zelf faalt (netwerk-, RLS- of
+  PostgREST-fout, na `reportClientError`). `denied` betekent dus "geen
+  gekoppeld lid gevonden", niet per se "er bestaat geen gekoppeld lid". Een
+  aparte laadfout-staat is niet gebouwd. Tot #17 kreeg ook een
+  bardienst/beheerder-sessie deze staat (`data.role !== "lid"`), zoals deze
+  spec oorspronkelijk voorschreef. Die regel is vervallen.
 - `link_lid_member_account()`: geen rolcheck op de aanroeper, harde
   `role = 'lid'`-filter op het doelrecord — zie "Ledenkoppeling" hierboven.
 
@@ -604,8 +616,8 @@ zoals hierboven bij "Onderzocht in /designs/" gemotiveerd, #17's scope.
 | Geval | Gedrag |
 |---|---|
 | Bar-sessie actief (device-cookie), lid navigeert naar `/portal` | Geen ingelogde staat (ADR 0009, cookie-isolatie) — `PortalLogin.tsx` toont het inlogformulier. Kernscenario van acceptatiecriterium 4. |
-| Magic link/wachtwoord-login voor een e-mailadres zonder (gekoppeld) `lid`-account | Magic link: neutrale "als er een account bij ... hoort"-melding, geen sessie tot stand gekomen als het adres onbekend is bij Supabase zelf; wachtwoord: "onjuist e-mailadres of wachtwoord" (lekt niet, issue #70). |
-| Sessie bestaat, herleidt niet naar een actief `lid`-record | `usePortalSession()` → `denied`, neutrale melding, zie Rolzichtbaarheid. |
+| Magic link/wachtwoord-login voor een e-mailadres zonder (gekoppeld) `lid`-account | Magic link: neutrale "als er een account bij ... hoort"-melding, geen sessie tot stand gekomen als het adres onbekend is bij Supabase zelf; wachtwoord: "onjuist e-mailadres of wachtwoord" (geen onderscheid in de melding, issue #70, ADR 0013). |
+| Sessie bestaat, herleidt niet naar een gekoppeld `members`-record (sinds ADR 0012 elke rol; tot #17: niet naar een `lid`-record) | `usePortalSession()` → `denied`, neutrale melding, zie Rolzichtbaarheid. |
 | Mail op de telefoon geopend, aangevraagd op een andere pc/telefoon | Werkt (ADR 0008, `token_hash`, apparaat-onafhankelijk). |
 | Link verlopen/al gebruikt (`/portal/wachtwoord-herstellen`) | "Deze link is verlopen of al gebruikt. Vraag een nieuwe aan." + terug naar de aanvraagweergave — zelfde tekst/gedrag als `/beheer/wachtwoord-herstellen`. |
 | `updateUser` weigert op sterkte/gelijk wachtwoord | Zelfde meldingen als `wachtwoord-vergeten.md` → Randgevallen (`weak_password`/`same_password`), ongewijzigd hergebruikt via `usePortalWachtwoordHerstellen.ts`. |
@@ -686,17 +698,17 @@ ná-deploy-actie plus één verificatiestap.
 - **Pincode op de portal** (device-local snelkoppeling) — zie "Onderzocht in
   /designs/". Geen kader vraagt erom voor #15.
 - **"Kies een wachtwoord"-onboardingscherm na de eerste magic link** (chat30)
-  — #17's scope, zelfde grens als voor bardienst/beheerder
-  (`lid-account-invite.md`).
+  — #106 (was aan #17 toegewezen, daar buiten scope verklaard), zelfde grens
+  als voor bardienst/beheerder (`lid-account-invite.md`).
 - **Zelf opwaarderen via de portal (iDEAL)** — CLAUDE.md → Domein noemt dit
   expliciet als "latere fase", ongewijzigd.
 - **Saldo-/transactieschermen** — `PortalShellHome`'s "ingelogd"-branch is
   hier een placeholder, geen echt scherm; een later ticket bouwt dat.
-- **Wachtwoord wijzigen terwijl ingelogd** — #17, ongewijzigd.
+- **Wachtwoord wijzigen terwijl ingelogd** — #17, inmiddels gebouwd
+  (`docs/features/portal-profiel.md`, PR #110).
 - **`/beheer`'s eigen #70-fix** — deze spec bouwde alleen de portal-kant
-  (zie Schermflow → "Neutrale melding"). Sinds 2026-09-28 volgt
-  `useBeheerLogin.ts` hetzelfde patroon, met `shouldCreateUser: false`
-  behouden: fouten worden gemaskeerd in plaats van vermeden.
+  (zie Schermflow → "Neutrale melding"). Zie
+  `beheer-magic-link-enumeratie.md` (#70).
 - **Eigen SMTP-provider** (Supabase's mail-limiet) — ongewijzigd buiten
   scope, zelfde als `wachtwoord-vergeten.md`.
 
