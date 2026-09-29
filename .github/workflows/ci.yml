@@ -89,6 +89,7 @@ jobs:
       - run: npm run check:policy
       - run: npm run check:rls
       - run: npm run check:migrations
+      - run: npm run check:adr
 
       - run: npx playwright install --with-deps chromium
       - run: npm run check:a11y

@@ -850,7 +850,7 @@ losse, nog niet gespecificeerde tickets (#19) — dit ticket levert alleen de
 datalaag.
 
 **Foutlogging (gebouwd en gemerged, #94, PR #98, 2026-09-28)**: ADR
-[0012](adr/0012-client-fouten-via-rpc-zonder-actor.md),
+[0015](adr/0015-client-fouten-via-rpc-zonder-actor.md),
 `docs/features/foutlogging.md`. Onverwachte fouten uit `src/hooks/queries/`
 gaan via `reportClientError()` (`src/lib/clientErrors.ts`) naar de tabel
 `client_errors` (`0025_client_errors.sql`): alleen hook, `kind`/`code` uit

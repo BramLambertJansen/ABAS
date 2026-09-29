@@ -160,7 +160,7 @@ definer`, `set search_path = public`, `grant execute … to authenticated`,
 
 ## ADR
 
-**Ja: `docs/adr/0012-client-fouten-via-rpc-zonder-actor.md`, samen met de
+**Ja: `docs/adr/0015-client-fouten-via-rpc-zonder-actor.md`, samen met de
 bouw** (gemerged als 0011, hernummerd omdat #95 dat nummer al had). Het legt drie dingen vast die een volgende feature kan tegenspreken:
 een schrijf-RPC zonder geld die open staat voor elke `authenticated`,
 inclusief een lid (tegenover 0023); bewust géén actor opslaan (tegenover
