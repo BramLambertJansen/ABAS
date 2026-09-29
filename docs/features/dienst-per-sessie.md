@@ -2,7 +2,7 @@
 
 **Status: concept, wacht op akkoord van Bram.** Geschreven 2026-09-29. Niets
 hiervan is gebouwd. Het mechanisme staat in het concept-ADR
-[0015](../adr/0015-dienst-hoort-bij-geregistreerde-app-sessies.md). Deze spec
+[0016](../adr/0016-dienst-hoort-bij-geregistreerde-app-sessies.md). Deze spec
 neemt de beslissingen die bij Bram liggen niet zelf. Die staan genummerd
 onderaan (Open vragen), elk met een aanbeveling. Waar de tekst hieronder
 "aanbeveling" of "voorstel" zegt, is het nog niet besloten.
@@ -181,7 +181,7 @@ vraag 1.
 
 In een eigen tabel `bar_sessions`, met als sleutel
 `auth.jwt()->>'session_id'`. Waarom niet `auth.sessions` direct of een
-apparaatcookie: zie ADR 0015 → Verworpen alternatieven. Kort:
+apparaatcookie: zie ADR 0016 → Verworpen alternatieven. Kort:
 
 - `auth.sessions` verdwijnt bij uitloggen en heeft geen modus, sluitreden of
   activiteit;
@@ -571,7 +571,7 @@ Wat er met elk onderdeel gebeurt als het weg mag:
     dat account via RLS nog alle leden en saldi (`caller_is_lid()` is onwaar
     voor een account zonder ledenrij). Na intrekken blijft dat tot
     `jwt_expiry`. Verwijderen hoort daarom bij de uitrol, niet "later".
-- **Documentatie**: ADR 0011 wordt "vervangen door ADR 0015". Verder gaat het
+- **Documentatie**: ADR 0011 wordt "vervangen door ADR 0016". Verder gaat het
   om `docs/ARCHITECTURE.md` → "Device sign-in mechanism", "Local/CI device
   account", "e2e-mocks on `/beheer`" en "Still open: Device account
   provisioning flow" (vervalt). #78 vervalt: er is geen device-sessie meer
@@ -717,7 +717,7 @@ vraag waarin Bram kiest.
    een gedeelde sessie vervalt. Het meeliften via de bezetting blijft.
 4. **ADR 0002 stap 3** (herstel van de device-sessie na uitloggen) vervalt.
    Ook "bardienst-acties zijn nooit afhankelijk van welke
-   `authenticated`-identiteit" vervalt: dat worden ze juist wel. ADR 0015
+   `authenticated`-identiteit" vervalt: dat worden ze juist wel. ADR 0016
    amendeert dit.
 5. **ADR 0011** vervalt geheel als tablet koppelen weg mag (vraag 19). Zonder
    dat besluit is fase 1 niet uit te rollen. Zie Tablet koppelen.
@@ -746,6 +746,50 @@ vraag waarin Bram kiest.
     meerdere kasladen. In (c) zijn het meerdere diensten (vraag 18).
 
 ## Open vragen voor Bram
+
+### Antwoorden tot nu toe (Bram, 2026-09-29)
+
+1. **Ja, (i).** Fase 1 is gedrag (a): de dienst start op elk apparaat en
+   hoort daarna bij dat apparaat. Een beheerder neemt over bij een kapot
+   apparaat.
+2. **Ja, (a)** is de standaard van de instelling in fase 2.
+3. **Ja.** De PIN werkt alleen op een apparaat waar dat lid eerder met het
+   wachtwoord inlogde.
+4. **Ja.** Het wachtwoord blijft altijd werken.
+5. **Nee, anders dan aanbevolen.** Het startscherm toont altijd alle
+   bardienstleden (de `StaffPicker` blijft). Na een tik op een naam log je
+   in:
+   - met je PIN, als je op **dit apparaat** eerder met je wachtwoord hebt
+     ingelogd en een PIN hebt ingesteld;
+   - met je wachtwoord via een toggle;
+   - anders alleen met je wachtwoord.
+
+   Je typt geen e-mailadres; de server zoekt het e-mailadres bij het lid
+   op. Die login maakt de persoonlijke sessie aan. De PIN is een geldige
+   vervanger van het wachtwoord, maar pas in te stellen na een eerste login
+   met wachtwoord.
+6. **Ja**, maar anders gefaseerd: **de PIN-login zit in fase 1**, niet in
+   fase 3, in de vorm van vraag 5. De lockout (B2) en de kostenfactor (B1)
+   horen daarmee ook bij fase 1. Of een PIN-login ook naar beheer mag, is
+   nog open.
+7. **(b).** Er komt een aparte inactiviteitstijd, los van de bestaande
+   melding "dienst te lang open" (6 uur, `dienst-te-lang-open.md`). Bij
+   verloop wordt de sessie gesloten en gaat er een melding naar een
+   beheerder. **De waarde is nog open.**
+
+### Nog te beantwoorden
+
+- Vraag 7: welke waarde heeft de inactiviteitstijd?
+- Vraag 6: mag een PIN-login naar beheer?
+- Vraag 5: de lijst met bardienstleden is openbaar zichtbaar voor iedereen
+  met de URL, want er is dan nog niemand ingelogd. Accepteer je dat de
+  namen van alle bardienstleden zo te zien zijn? (Een PIN is alleen
+  bruikbaar op een bekend apparaat, dus raden op een vreemd apparaat
+  werkt niet.)
+- Vragen 8 t/m 23 hieronder.
+
+### Oorspronkelijke vragen
+
 
 1. **Wat betekent fase 1 precies?** "Eén dienst open, hoeft niet altijd van
    hetzelfde apparaat te komen" kan twee dingen betekenen:
