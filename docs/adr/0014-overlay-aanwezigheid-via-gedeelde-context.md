@@ -1,9 +1,10 @@
 # 0014 — Overlays melden hun aanwezigheid via een gedeelde context
 
-Status: **geaccordeerd (2026-09-28)**, als onderdeel van de door Bram
-goedgekeurde spec
+Status: **geaccepteerd (2026-09-28), geïmplementeerd (2026-09-29, PR #108,
+merge-commit `2b0cfda`)**, als onderdeel van de door Bram goedgekeurde spec
 [`docs/features/dienst-te-lang-open.md`](../features/dienst-te-lang-open.md)
-(besluit 7). Amendeert geen eerdere ADR. Het vult het bestaande contract van
+(besluit 7). Oorspronkelijk opgesteld als ADR 0012 en vóór de merge
+hernummerd naar 0014, omdat 0012 op `main` al bezet was. Amendeert geen eerdere ADR. Het vult het bestaande contract van
 `src/components/Overlay.tsx` aan (`docs/ARCHITECTURE.md` →
 `useShell().overlay`) en past het precedent "nooit twee overlays tegelijk"
 toe (`LidBeherenOverlay.tsx`).
@@ -35,7 +36,10 @@ teller.**
   gebruikt. Die functie is stabiel, zodat aanmelden alleen bij mount en
   unmount gebeurt.
 - `src/components/Overlay.tsx` krijgt alleen het aanmeld-effect. Markup,
-  focusbeheer, Escape en achtergrond veranderen niet.
+  focusbeheer, Escape en achtergrond veranderen niet. Gebouwd als
+  `useLayoutEffect`, zodat de teller al klopt voordat een passief effect
+  van een consument hem leest (spec → Randgevallen, de race met een net
+  geopende overlay).
 - **Zonder provider doet aanmelden niets en is de teller 0.** De provider
   wordt alleen gemount waar er een consument van de teller is. Vandaag is
   dat `src/features/verkoop/DienstTabs.tsx`, om de hele bar-modus met een

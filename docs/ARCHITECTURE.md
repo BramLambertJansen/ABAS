@@ -199,11 +199,13 @@ leave that one open until a screen actually needs to branch on it, same
 "don't build ahead of a second real case" reasoning the `"sheet"` branch
 followed until #17.
 
-**Overlay presence (settled, 2026-09-28, ADR
+**Overlay presence (settled, 2026-09-28, built 2026-09-29 in PR #108, ADR
 [0014](adr/0014-overlay-aanwezigheid-via-gedeelde-context.md))**: every
 `Overlay` registers itself on mount/unmount with a counter in
-`src/components/OverlayPresence.tsx`. `useOpenOverlayCount()` reads it; with
-no `OverlayPresenceProvider` above, registering is a no-op and the count is 0.
+`src/components/OverlayPresence.tsx`, in a layout effect so the count is
+current before any consumer's passive effect reads it. `useOpenOverlayCount()`
+reads it; with no `OverlayPresenceProvider` above, registering is a no-op and
+the count is 0.
 The only provider sits in `DienstTabs`, for the "dienst staat nog open"-melding
 (`docs/features/dienst-te-lang-open.md`), which waits until no other overlay
 is open instead of stacking on top — two `Overlay`s at once fight over

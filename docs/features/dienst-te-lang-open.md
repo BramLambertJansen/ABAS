@@ -6,11 +6,17 @@ zich daarvan bewust is. Volgt op #12 (`docs/features/dienst-afsluiten.md`,
 gebouwd en gemerged). Deze spec voegt geen nieuwe sluitactie toe, alleen een
 herinnering die naar de bestaande sluitactie verwijst.
 
-**Status: goedgekeurd door Bram (2026-09-28).** Klaar voor de Developer. De
-vier open vragen uit het concept zijn beantwoord, allemaal met de aanbeveling
-van de Architect (zie "Besloten", punten 6–9). Bram ging ook akkoord met de
-twee keuzes die de Architect zelf had gemaakt (punten 10–11). Eén nieuwe
-architectuurbeslissing hoort bij deze spec:
+**Gebouwd en gemerged** ([PR #108](https://github.com/BramLambertJansen/ABAS/pull/108),
+2026-09-29, merge-commit `2b0cfda`). De rest van dit document beschrijft wat
+er daadwerkelijk op `main` staat; waar de bouw afweek van de goedgekeurde
+spec, staat dat bij het betreffende punt, en wat nog openstaat onder
+"Bekende restpunten".
+
+Goedgekeurd door Bram (2026-09-28). De vier open vragen uit het concept zijn
+beantwoord, allemaal met de aanbeveling van de Architect (zie "Besloten",
+punten 6–9). Bram ging ook akkoord met de twee keuzes die de Architect zelf
+had gemaakt (punten 10–11). Eén nieuwe architectuurbeslissing hoort bij deze
+feature:
 [ADR 0014](../adr/0014-overlay-aanwezigheid-via-gedeelde-context.md). Dat
 is het mechanisme waarmee de melding wacht tot er geen andere overlay open
 is.
@@ -174,8 +180,7 @@ De beslissing "moet de melding nu komen, en met welk getal" staat in één pure
 module, zonder React, Supabase of `Date.now()`; de tijd komt binnen als
 argument. Zo is ze te unit-testen met `node --test`.
 
-Interface (de namen zijn een voorstel; de Developer mag ze aanpassen zolang
-de vorm gelijk blijft):
+Interface (zo gebouwd):
 
 - `SHIFT_OPEN_WARNING_AFTER_MS = 6 * 60 * 60 * 1000`: de drempel
   (besluit 1).
@@ -221,10 +226,15 @@ afgewogen (zie ADR 0014 → Verworpen alternatieven):
   - `useOpenOverlayCount(): number` leest de teller.
   - Buiten een provider (default context) doet aanmelden niets en is de
     teller `0`.
+  - Gebouwd met twee contexts (aanmeldfunctie en teller apart), zodat
+    `Overlay` niet opnieuw rendert bij elke telwijziging. Dubbel afmelden
+    laat de teller niet onder het werkelijke aantal zakken.
 - **`src/components/Overlay.tsx`** krijgt één effect: bij mount aanmelden,
-  bij unmount afmelden. Verder niets. Markup, focus, Escape en achtergrond
-  blijven hetzelfde, en geen van de elf bestaande consumenten hoeft te
-  veranderen.
+  bij unmount afmelden. Dat is een **`useLayoutEffect`**, geen passief
+  effect: de teller moet al bijgewerkt zijn voordat het passieve effect van
+  de melding hem leest (zie het race-randgeval). Verder niets. Markup,
+  focus, Escape en achtergrond blijven hetzelfde, en geen van de elf
+  bestaande consumenten hoeft te veranderen.
 - **`DienstTabs.tsx`** zet zijn inhoud in `<OverlayPresenceProvider>`.
 - **`VerkoopScherm.tsx`, `DienstActief.tsx` en alle overlay-consumenten
   blijven ongewijzigd.** Een overlay die later in dit deel van de boom
@@ -238,8 +248,17 @@ state-variabele `view: null | "melding" | "afsluiten"`, die "vastklikt":
   dat afhangt van `now`, `snoozedAtMs` en de teller. Sluit de andere overlay,
   dan daalt de teller naar 0, rendert de melding opnieuw en verschijnt hij
   **meteen**, zonder op de volgende tick van 30 seconden te wachten.
-- Staat `view` eenmaal op `"melding"` of `"afsluiten"`, dan kijkt de melding
-  niet meer naar de teller. Zijn eigen `Overlay` (en daarna
+- **Rendervoorwaarde (race-fix, niet in de oorspronkelijke spec)**: `view`
+  klikt vast in een passief effect, op basis van de teller van dát moment.
+  Opent er tussen dat effect en de volgende render nog een andere overlay,
+  dan zou de melding er alsnog bovenop komen. Daarom rendert de melding zijn
+  eigen `Overlay` pas als de teller **ook bij het renderen 0** is, of als hij
+  al in beeld stond. Dat laatste houdt een ref bij (`meldingShownRef`, gezet
+  in een layout-effect), want een melding die in beeld staat telt zichzelf
+  mee. Tot die tijd blijft `view` op `"melding"` staan, en verschijnt de
+  melding zodra de andere overlay dicht is.
+- Staat de melding eenmaal in beeld, of staat `view` op `"afsluiten"`, dan
+  kijkt de melding niet meer naar de teller. Zijn eigen `Overlay` (en daarna
   `DienstAfsluitenOverlay`) telt immers zelf mee, en zonder vastklikken zou
   de melding zichzelf direct weer weghalen.
 - Terwijl de melding openstaat, kan er geen andere overlay bij komen: de
@@ -330,8 +349,10 @@ mee: een melding die blijft openstaan, springt van 6 naar 7 uur.
 
 Knoppenpaar in de stijl van `AfrekenenOverlay`, in deze volgorde:
 
-- **"Nog bezig"** (secundair): zet `snoozedAtMs = now` voor dit `shift.id`
-  en `view = null`. De melding verdwijnt.
+- **"Nog bezig"** (secundair): zet de snooze op **`Date.now()` op het moment
+  van de tik** voor dit `shift.id` (niet op de `now`-state van de laatste
+  30s-tick, die tot 30 seconden oud kan zijn; besluit 6), werkt `now` bij
+  naar hetzelfde tijdstip, en zet `view = null`. De melding verdwijnt.
 - **"Dienst afsluiten"** (primair, accent): zet `view = "afsluiten"`. De
   melding maakt dan plaats voor `DienstAfsluitenOverlay`, zodat er **nooit
   twee overlays tegelijk** openstaan (precedent `LidBeherenOverlay`). React
@@ -356,8 +377,9 @@ openen.
   hier eerst een snooze zet (zie de volgende regel), is onschuldig: de
   component unmount direct daarna.
 - **Annuleren** (of Escape/achtergrond) **telt als "Nog bezig"** (besluit
-  8): de `onClose` die de melding aan `DienstAfsluitenOverlay` meegeeft, zet
-  `snoozedAtMs = now` en `view = null`. Dat geldt alleen voor de instantie
+  8): de `onClose` die de melding aan `DienstAfsluitenOverlay` meegeeft, is
+  dezelfde functie als "Nog bezig": snooze op `Date.now()` van de tik en
+  `view = null`. Dat geldt alleen voor de instantie
   die de melding opent. Opent iemand `DienstAfsluitenOverlay` zelf via de
   Dienst-tab, dan is dat de instantie van `DienstActief`, en daar
   verandert niets.
@@ -418,7 +440,11 @@ open is, niet hoe hij eruitziet.
 
 **`test` (unit, `test/dienstTeLangOpen.test.ts`, `node --test`)** tegen
 `src/lib/dienstTeLangOpen.ts`, met vaste tijdstippen, net als `durationLabel`
-in `test/ledger.test.ts`:
+in `test/ledger.test.ts`. Gebouwd: de vier gevallen hieronder, plus
+negatieve gevallen (vóór 6 uur nooit, ook niet met een oude snooze; 1 ms vóór
+het einde van het snooze-uur nog niet), snooze direct op 6u00, `started_at`
+in PostgREST-notatie (microseconden, `+00:00`), en zes echte uren over de
+wintertijd-terugschakeling van 25 oktober 2026:
 
 1. `shouldWarn` zonder snooze: 5u59m59s na de start → `false`; precies 6u00m
    → `true`; 8u → `true`.
@@ -432,21 +458,28 @@ in `test/ledger.test.ts`:
 **`check:a11y` (Playwright, `e2e/a11y.spec.ts`)**: één nieuw scenario, "bar
 shell (/) dienst-te-lang-open-melding has no WCAG2A/AA violations":
 
-- Start een open dienst met de bestaande `ensureShiftStarted()`, of
-  hergebruik er een.
-- Zet de browserklok met Playwright's `page.clock` meer dan 6 uur na
-  `started_at`. `started_at` in de database hoeft niet aangepast te worden.
-- Wacht op `role="dialog"` met de titel, en scan.
-- Tik daarna "Nog bezig", zodat volgende scenario's in dezelfde dienst geen
-  melding in beeld hebben.
+- Gebouwd in het `describe.serial`-block met de gedeelde sessie, **tegen een
+  echte dienst** in de database: `ensureShiftStarted()` start er een of
+  hergebruikt de bestaande.
+- `page.clock.install()`, daarna `page.clock.fastForward("06:05:00")`.
+  `started_at` in de database wordt niet aangepast.
+- Wacht op `role="dialog"` met de titel, controleert focus en de
+  toegankelijke beschrijving ("Deze dienst staat al X uur open. Klopt
+  dat?"), en scant.
+- Tikt daarna "Nog bezig".
 
 Let op voor de Tester: een bestaand bar-scenario dat een al lang lopende
 dienst hergebruikt, kan na deze feature de melding te zien krijgen als de
 CI-database een dienst van meer dan 6 uur oud bevat. Controleer dat vooraf.
 
 **Functionele e2e (`e2e/dienst-te-lang-open.spec.ts`, nieuw, naast
-`e2e/bestelling-terugdraaien.spec.ts`)**. Deze vier gedragingen zijn niet
-unit-testbaar omdat ze in React-state zitten:
+`e2e/bestelling-terugdraaien.spec.ts`)**. Gebouwd **met `page.route()`-mocks**
+in plaats van tegen de echte database: de tabletkoppeling is echt
+(`koppelTablet`), daarna mockt elke test de REST-lezingen, zodat de test zelf
+`started_at` bepaalt en de ene gedeelde open dienst van `e2e/a11y.spec.ts`
+(dat parallel kan draaien) niet raakt. De browserklok loopt via
+`page.clock`. De vier gedragingen die de spec vroeg, omdat ze in React-state
+zitten en niet unit-testbaar zijn:
 
 1. **Uitstellen** (besluit 7): open de Afrekenen-overlay, zet de klok voorbij
    6 uur, en controleer dat er precies één `role="dialog"` is (Afrekenen).
@@ -459,7 +492,39 @@ unit-testbaar omdat ze in React-state zitten:
 4. **Over de Verkoop-tab heen** (besluit 4): de melding verschijnt terwijl
    de Verkoop-tab actief is, en het mandje staat er na "Nog bezig" nog.
 
+Daarnaast gebouwd: de race (grens en een tik op "Tik afrekenen" in dezelfde
+klokstap, zie Randgevallen en "Bekende restpunten"), vóór 6 uur geen melding
+en op de grens wel, tik op de achtergrond = "Nog bezig", snooze overleeft een
+tabwissel en de melding komt ook over de Dienst-tab heen, "Dienst afsluiten"
+via de Dienst-tab houdt de melding tegen tot annuleren, de teller komt na
+herhaald openen en sluiten terug op 0, X loopt mee van 6 naar 7 uur,
+`visibilitychange` toont de melding zonder op de tick te wachten, na
+afsluiten vanuit de melding geen melding meer, en geen melding in
+beheer-modus.
+
 **`db:test`**: niets nieuws. Er is geen database-eigenschap om te bewijzen.
+
+## Bekende restpunten
+
+Bij de merge van PR #108 bewust open gelaten:
+
+- **De race-e2e bewijst de fix niet aantoonbaar.** De test laat de 30s-tick
+  en een tik op "Tik afrekenen" in dezelfde `fastForward` vallen en slaagt,
+  maar het is niet aangetoond dat hij zonder de fix (rendervoorwaarde plus
+  `useLayoutEffect` in `Overlay`) faalt. Dat de melding niet over een net
+  geopende overlay heen komt, rust dus op de redenering in "Wachten op
+  andere overlays", niet op een test.
+- **Theoretisch restgeval: een overlay die zonder gebruikersinteractie
+  opent.** De fix dekt een overlay die op een tik opent. Een overlay die
+  vanzelf opent, op precies het moment dat de melding verschijnt, is niet
+  afgedekt.
+- **Geen directe unit-test voor `OverlayPresence`.** Er is geen
+  DOM-testrunner in het project (`test` is `node --test` op pure logica).
+  De teller is alleen indirect gedekt, via de functionele e2e (onder meer
+  "teller komt terug op 0").
+- **Een klok die na een snooze terugspringt**, zodat `now - snoozedAtMs`
+  langer dan een uur onder de grens blijft, valt onder het geaccepteerde
+  klokverschil-risico (zie Tijdbron en timer). Geen aparte afhandeling.
 
 ## Expliciet buiten scope
 
