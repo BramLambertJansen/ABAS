@@ -1,4 +1,5 @@
 import { formatCents } from "@/lib/money";
+import { NO_BAR_ROLE_SESSION_MESSAGE } from "@/lib/staff";
 import type { TopUpErrorCode } from "@/hooks/queries/useTopUp";
 
 /** Harde bovengrens per contante opwaardering, afgedwongen server-side door
@@ -54,6 +55,8 @@ export function topUpErrorMessage(code: TopUpErrorCode): string {
       return topUpAmountTooHighMessage();
     case "shift_not_open":
       return "de dienst is niet meer actief — herlaad het scherm";
+    case "no_bar_role":
+      return NO_BAR_ROLE_SESSION_MESSAGE;
     case "unknown":
       return "er ging iets mis, probeer het opnieuw";
   }

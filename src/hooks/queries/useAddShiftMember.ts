@@ -4,10 +4,12 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { reportClientError } from "@/lib/clientErrors";
 
-/** Error codes `add_shift_member` (0001_init.sql) actually raises. Anything
+/** Error codes `add_shift_member` (0001_init.sql; `no_bar_role` sinds
+ *  0023_bar_rpcs_weigeren_lid.sql, lid-sessie geweigerd) actually raises. Anything
  *  else (network failure, unexpected server error) falls through to
  *  "unknown". Same pattern as useStartShift.ts → StartShiftErrorCode. */
 export type AddShiftMemberErrorCode =
+  | "no_bar_role"
   | "shift_not_open"
   | "member_not_eligible"
   | "unknown";
@@ -18,7 +20,11 @@ type State =
   | { status: "error"; code: AddShiftMemberErrorCode };
 
 function toErrorCode(message: string | undefined): AddShiftMemberErrorCode {
-  if (message === "shift_not_open" || message === "member_not_eligible") {
+  if (
+    message === "no_bar_role" ||
+    message === "shift_not_open" ||
+    message === "member_not_eligible"
+  ) {
     return message;
   }
   return "unknown";

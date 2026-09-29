@@ -274,7 +274,7 @@ Twee knoppen, zelfde paar-patroon als `AfrekenenOverlay.tsx`:
   state-verlies-over-tabgrenzen-afweging). Niet nodig om aan de
   acceptatiecriteria te voldoen — zie Expliciet buiten scope.
 
-Bij fout (enkel `unknown` realistisch bereikbaar, zie Randgevallen):
+Bij fout (`unknown`, of `no_bar_role` sinds 0023 — zie Randgevallen):
 overlay blijft open, foutmelding via `role="alert"`, knoppen weer
 bruikbaar.
 
@@ -285,11 +285,12 @@ bruikbaar.
 geen resultaatdata nodig — `end_shift` retourneert `void`):
 
 ```ts
-export type EndShiftErrorCode = "unknown";
+export type EndShiftErrorCode = "no_bar_role" | "unknown";
 ```
 
-Geen andere foutcode dan `unknown` — `end_shift` zelf gooit nooit een
-`raise exception` (zie RPC's), dus elke fout die hier terechtkomt is een
+Oorspronkelijk alleen `unknown` — `end_shift` gooide geen `raise exception`
+(zie RPC's). Sinds `0023_bar_rpcs_weigeren_lid.sql` weigert het een
+lid-sessie met `no_bar_role` (#100); al het andere is een
 netwerk-/onverwachte fout. Zelfde `toErrorCode`-fallback-vorm als de andere
 hooks, voor consistentie, ook al is de union hier triviaal klein.
 
@@ -297,6 +298,7 @@ hooks, voor consistentie, ook al is de union hier triviaal klein.
 
 | Situatie | Gedrag |
 |---|---|
+| `end_shift` geeft `no_bar_role` (lid-sessie, 0023, #100) | Overlay blijft open, melding "dit account mag niet op de bar werken — log uit en log in als bardienst" via `role="alert"`; geen melding naar `client_errors` (bekende uitkomst). |
 | Dubbele tik op "dienst afsluiten" tijdens een trage respons | `useEndShift()`'s `pending`-status disabled beide knoppen, zelfde patroon als `AfrekenenOverlay`. Mocht de RPC toch twee keer aankomen: `end_shift` is idempotent (zie RPC's), geen dubbel effect. |
 | Overlay geopend, dienst wordt in een andere sessie/tab tegelijk al gesloten (races met zichzelf; single-tablet dus zeldzaam) | `end_shift`'s `where ended_at is null`-guard raakt dan nul rijen — geen foutmelding vanuit de RPC zelf (`void`, geen check dat er iets veranderd is). De UI merkt dit pas bij de eerstvolgende `useOpenShift()`-refetch (na `onShiftEnded()`), niet eerder — geaccepteerd, zelfde soort race-afweging als issue #29 voor `start_shift`, niet apart afgedekt. |
 | `useShiftSummary`/`useShiftMembers` kunnen niet laden (netwerkfout) terwijl de overlay al open is | Foutmelding in de overlay (`role="alert"`), maar **de "dienst afsluiten"-knop blijft bruikbaar** — een operator moet een dienst altijd kunnen afsluiten, ook als het overzicht zelf niet laadt; het overzicht is informatief, geen blokkade. Zelfde soort ontkoppeling als `AfrekenenOverlay.tsx`'s knoppen, die ook niet afhangen van elk leesgegeven. |

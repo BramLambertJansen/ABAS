@@ -7,7 +7,8 @@ import { formatCents } from "@/lib/money";
 import type { OpenShift } from "@/hooks/queries/useOpenShift";
 import { useShiftMembers } from "@/hooks/queries/useShiftMembers";
 import { useShiftSummary } from "@/hooks/queries/useShiftSummary";
-import { useEndShift } from "@/hooks/queries/useEndShift";
+import { useEndShift, type EndShiftErrorCode } from "@/hooks/queries/useEndShift";
+import { NO_BAR_ROLE_SESSION_MESSAGE } from "@/lib/staff";
 
 function formatStartedAt(iso: string): string {
   return new Date(iso).toLocaleTimeString("nl-NL", {
@@ -16,11 +17,18 @@ function formatStartedAt(iso: string): string {
   });
 }
 
-/** `end_shift` zelf gooit nooit een exception (zie 0001_init.sql) — de enige
- *  foutcode die hier realistisch bereikbaar is, is `unknown`
+/** `end_shift` gooit alleen `no_bar_role` (lid-sessie, sinds
+ *  0023_bar_rpcs_weigeren_lid.sql); al het andere is `unknown`
  *  (netwerk-/onverwachte fout). Zie docs/features/dienst-afsluiten.md →
  *  "Nieuwe mutatiehook: useEndShift". */
-const END_SHIFT_ERROR_MESSAGE = "er ging iets mis, probeer het opnieuw";
+function endShiftErrorMessage(code: EndShiftErrorCode): string {
+  switch (code) {
+    case "no_bar_role":
+      return NO_BAR_ROLE_SESSION_MESSAGE;
+    case "unknown":
+      return "er ging iets mis, probeer het opnieuw";
+  }
+}
 
 /**
  * Overzicht + bevestiging voor het afsluiten van de actieve dienst (modal,
@@ -67,7 +75,7 @@ export function DienstAfsluitenOverlay({
       onClose={handleClose}
     >
       <p className="text-sm font-bold text-danger empty:-mt-4" role="alert">
-        {endShiftMutation.errorCode ? END_SHIFT_ERROR_MESSAGE : ""}
+        {endShiftMutation.errorCode ? endShiftErrorMessage(endShiftMutation.errorCode) : ""}
       </p>
 
       {(shiftSummary.status === "loading" ||

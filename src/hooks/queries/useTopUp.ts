@@ -4,11 +4,13 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { reportClientError } from "@/lib/clientErrors";
 
-/** Error codes `top_up` (0001_init.sql) actually raises, per
+/** Error codes `top_up` (0001_init.sql; `no_bar_role` sinds
+ *  0023_bar_rpcs_weigeren_lid.sql, lid-sessie geweigerd) actually raises, per
  *  docs/features/opwaarderen.md → RPC's / Randgevallen. Anything else
  *  (network failure, unexpected server error) falls through to "unknown".
  *  Same pattern as usePlaceOrder.ts → PlaceOrderErrorCode. */
 export type TopUpErrorCode =
+  | "no_bar_role"
   | "shift_not_open"
   | "served_by_not_on_shift"
   | "invalid_amount"
@@ -17,6 +19,7 @@ export type TopUpErrorCode =
   | "unknown";
 
 const KNOWN_CODES: TopUpErrorCode[] = [
+  "no_bar_role",
   "shift_not_open",
   "served_by_not_on_shift",
   "invalid_amount",
