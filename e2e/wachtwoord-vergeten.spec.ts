@@ -575,7 +575,7 @@ test("focus volgt 'Stuur inloglink' en 'Andere inlogmethode'", async ({ page }) 
 
   await page.getByLabel("E-mailadres").fill("femke.bos@aurora.local");
   await page.getByRole("button", { name: "Stuur inloglink" }).click();
-  await expect(page.getByRole("status").filter({ hasText: "We hebben een inloglink gestuurd" })).toBeFocused();
+  await expect(page.getByRole("status").filter({ hasText: MAGIC_LINK_SENT })).toBeFocused();
   expect(calls.otp).toHaveLength(1);
 
   await page.getByRole("button", { name: "Andere inlogmethode" }).click();
@@ -588,7 +588,7 @@ test("focus volgt 'Stuur inloglink' en 'Andere inlogmethode'", async ({ page }) 
  * teruggezet; deze tests leggen vast dat dat geen latere focussprong geeft
  * en dat de focus alleen verhuist wanneer de weergave echt wisselt.
  */
-const MAGIC_LINK_SENT = "We hebben een inloglink gestuurd";
+const MAGIC_LINK_SENT = "hebben we een inloglink gestuurd";
 
 /**
  * De foutregel ín het inlogformulier. Niet alertOf(): op een tablet (en in
@@ -617,41 +617,36 @@ test("eerste render van /beheer zet de focus nergens heen (geen autofocus)", asy
   await expect(page.getByRole("heading", { name: "Wachtwoord vergeten" })).not.toBeFocused();
 });
 
-for (const [name, status, body, melding] of [
-  [
-    "rate limit (429)",
-    429,
-    { code: "over_email_send_rate_limit", msg: "email rate limit exceeded" },
-    "te veel pogingen — probeer het over een paar minuten opnieuw",
-  ],
-  ["serverfout (500)", 500, { code: "unexpected_failure", msg: "Error sending magic link" }, "er ging iets mis, probeer het opnieuw"],
+/**
+ * #70 — elke uitkomst van de magic-link-aanvraag geeft dezelfde neutrale
+ * melding. Met `shouldCreateUser: false` geeft Supabase voor een onbekend
+ * adres een fout, en de mail-rate-limit raakt alleen een bestaand adres: een
+ * afwijkende melding zou dus verraden of het adres een account heeft.
+ */
+for (const [name, status, body] of [
+  ["geslaagd", 200, {}],
+  ["onbekend adres (422)", 422, { code: "otp_disabled", msg: "Signups not allowed for otp" }],
+  ["rate limit (429)", 429, { code: "over_email_send_rate_limit", msg: "email rate limit exceeded" }],
+  ["serverfout (500)", 500, { code: "unexpected_failure", msg: "Error sending magic link" }],
 ] as const) {
-  test(`magic link mislukt, ${name} → formulier blijft bruikbaar, geen verstuurd-melding; tweede poging krijgt de focus`, async ({
-    page,
-  }) => {
-    const calls = await mockAuth(page, { otp: (n) => (n === 0 ? [status, body] : [200, {}]) });
+  test(`magic link, ${name} → dezelfde neutrale melding, geen foutmelding (#70)`, async ({ page }) => {
+    const calls = await mockAuth(page, { otp: () => [status, body] });
     await openLogin(page);
-    const emailVeld = page.getByLabel("E-mailadres");
+
+    await page.getByLabel("E-mailadres").fill("iemand@aurora.local");
+    await page.getByRole("button", { name: "Stuur inloglink" }).click();
+
     const verstuurd = page.getByRole("status").filter({ hasText: MAGIC_LINK_SENT });
-    const knop = page.getByRole("button", { name: "Stuur inloglink" });
-
-    await emailVeld.fill("femke.bos@aurora.local");
-    await knop.click();
-
-    await expect(formulierAlert(page)).toHaveText(melding);
-    await expect(verstuurd).toHaveCount(0);
-    await expect(emailVeld).toHaveValue("femke.bos@aurora.local");
-    await expect(knop).toBeEnabled();
-    expect(calls.otp).toHaveLength(1);
-
-    await knop.click();
+    await expect(verstuurd).toHaveText(
+      "Als er een account bij iemand@aurora.local hoort, hebben we een inloglink gestuurd."
+    );
     await expect(verstuurd).toBeFocused();
-    await expect(verstuurd).toContainText("femke.bos@aurora.local");
-    expect(calls.otp).toHaveLength(2);
+    await expect(formulierAlert(page)).toHaveCount(0);
+    expect(calls.otp).toHaveLength(1);
   });
 }
 
-test("na een mislukte magic link: wisselen van methode en 'vergeten' geven geen onverwachte focussprong", async ({
+test("na een mislukte magic link: terug naar het formulier, wisselen van methode en 'vergeten' geven geen onverwachte focussprong", async ({
   page,
 }) => {
   await mockAuth(page, {
@@ -661,7 +656,11 @@ test("na een mislukte magic link: wisselen van methode en 'vergeten' geven geen 
   const emailVeld = page.getByLabel("E-mailadres");
   await emailVeld.fill("femke.bos@aurora.local");
   await page.getByRole("button", { name: "Stuur inloglink" }).click();
-  await expect(formulierAlert(page)).toHaveText("er ging iets mis, probeer het opnieuw");
+  await expect(page.getByRole("status").filter({ hasText: MAGIC_LINK_SENT })).toBeFocused();
+
+  await page.getByRole("button", { name: "Andere inlogmethode" }).click();
+  await expect(emailVeld).toBeFocused();
+  await expect(emailVeld).toHaveValue("femke.bos@aurora.local");
 
   // Methode wisselen: focus blijft op de gekozen radio, springt niet naar
   // het e-mailveld door een achtergebleven focusAfterSwitch.
@@ -746,27 +745,21 @@ test("mislukte wachtwoordlogin: foutmelding, geen focussprong naar het e-mailvel
 // disabled, zodat hij de focus houdt. Na een mislukte poging staat de focus
 // dus nog op de knop (niet op <body>), en de foutmelding (role=alert) wordt
 // voorgelezen. Besluit Bram, 2026-09-24.
-for (const methode of ["magic_link", "password"] as const) {
-  test(`mislukte poging via de knop (${methode}): de knop houdt de focus (#77)`, async ({
-    page,
-  }) => {
-    await mockAuth(page, { otp: () => [500, { code: "unexpected_failure", msg: "mislukt" }] });
-    await openLogin(page);
-    await page.getByLabel("E-mailadres").fill("femke.bos@aurora.local");
-    if (methode === "password") {
-      await page.locator('label:has(input[value="password"])').click();
-      await page.locator('input[type="password"]').fill("fout-wachtwoord");
-    }
-    const knop = page.getByRole("button", {
-      name: methode === "password" ? "Inloggen" : "Stuur inloglink",
-    });
-    await knop.click();
-    await expect(formulierAlert(page)).not.toHaveText("");
+// Sinds #70 kan de magic link niet meer zichtbaar mislukken; alleen het
+// wachtwoordpad blijft met een foutmelding in het formulier staan.
+test("mislukte wachtwoordlogin via de knop: de knop houdt de focus (#77)", async ({ page }) => {
+  await mockAuth(page);
+  await openLogin(page);
+  await page.getByLabel("E-mailadres").fill("femke.bos@aurora.local");
+  await page.locator('label:has(input[value="password"])').click();
+  await page.locator('input[type="password"]').fill("fout-wachtwoord");
+  const knop = page.getByRole("button", { name: "Inloggen" });
+  await knop.click();
+  await expect(formulierAlert(page)).not.toHaveText("");
 
-    await expect(knop).toBeFocused();
-    await expect(knop).toHaveAttribute("aria-disabled", "false");
-  });
-}
+  await expect(knop).toBeFocused();
+  await expect(knop).toHaveAttribute("aria-disabled", "false");
+});
 
 test("tijdens het versturen blokkeert de knop een tweede poging (#77)", async ({ page }) => {
   const calls = await mockAuth(page);

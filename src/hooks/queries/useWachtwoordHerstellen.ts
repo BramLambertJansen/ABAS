@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { isRateLimitedMessage } from "@/lib/authErrors";
+import { toPasswordUpdateErrorCode, type PasswordUpdateErrorCode } from "@/lib/authErrors";
 import { createClient } from "@/lib/supabase/client";
 import { logLocalError } from "@/lib/clientErrors";
 
@@ -24,7 +24,8 @@ type RequestState =
  * echt gemaild wordt, dus alleen bij een bestaand adres — een aparte
  * "te veel pogingen"-melding zou verraden dat het adres een account heeft
  * (Reviewer PR #69, besloten door Bram 2026-09-23). Niet "fixen" door op
- * error.code/429 te matchen.
+ * error.code/429 te matchen. Het restlek via de Auth-API zelf is bewust
+ * geaccepteerd, zie ADR 0013.
  */
 export function useWachtwoordResetAanvragen() {
   const [state, setState] = useState<RequestState>({ status: "idle" });
@@ -53,25 +54,13 @@ export function useWachtwoordResetAanvragen() {
   };
 }
 
-export type NieuwWachtwoordErrorCode =
-  | "link_invalid"
-  | "weak_password"
-  | "same_password"
-  | "rate_limited"
-  | "unknown";
+export type NieuwWachtwoordErrorCode = "link_invalid" | PasswordUpdateErrorCode;
 
 type SetState =
   | { status: "idle" }
   | { status: "pending" }
   | { status: "done" }
   | { status: "error"; code: NieuwWachtwoordErrorCode };
-
-function toSetErrorCode(error: { code?: string; message?: string }): NieuwWachtwoordErrorCode {
-  if (error.code === "weak_password") return "weak_password";
-  if (error.code === "same_password") return "same_password";
-  if (isRateLimitedMessage(error.message)) return "rate_limited";
-  return "unknown";
-}
 
 /**
  * Stap 3 — nieuw wachtwoord instellen met de `token_hash` uit de mail
@@ -112,7 +101,7 @@ export function useNieuwWachtwoordInstellen(tokenHash: string | null) {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) {
         logLocalError("useNieuwWachtwoordInstellen (updateUser)", error.message);
-        setState({ status: "error", code: toSetErrorCode(error) });
+        setState({ status: "error", code: toPasswordUpdateErrorCode(error) });
         return false;
       }
 

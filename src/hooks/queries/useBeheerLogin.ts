@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { isRateLimitedMessage } from "@/lib/authErrors";
+import { logLocalError } from "@/lib/clientErrors";
 import { createClient } from "@/lib/supabase/client";
 
 /**
@@ -71,7 +72,18 @@ export function useBeheerLogin() {
     }
   }
 
-  async function signInWithMagicLink(email: string): Promise<boolean> {
+  /**
+   * Toont nooit een foutcode (issue #70): met
+   * `shouldCreateUser: false` geeft Supabase voor een onbekend adres een
+   * fout, en de mail-rate-limit raakt alleen een bestaand adres. Elke
+   * uitkomst eindigt dus in dezelfde `magic_link_sent`-staat, fouten alleen
+   * gelogd — zelfde patroon als `usePortalLogin.ts` en
+   * `useWachtwoordResetAanvragen`. Het wachtwoordpad houdt zijn foutcodes;
+   * die maken geen onderscheid tussen onbekend adres en fout wachtwoord. Dit is een UI-maskering: via de Auth-API zelf blijft
+   * af te leiden of een adres een account heeft (ADR 0013, bewust
+   * geaccepteerd).
+   */
+  async function signInWithMagicLink(email: string): Promise<void> {
     setState({ status: "pending" });
     try {
       const supabase = createClient();
@@ -99,18 +111,12 @@ export function useBeheerLogin() {
         },
       });
       if (error) {
-        setState({ status: "error", code: toErrorCode(error.message) });
-        return false;
+        logLocalError("useBeheerLogin (signInWithMagicLink)", error.message);
       }
-      setState({ status: "magic_link_sent", email });
-      return true;
     } catch (err) {
-      setState({
-        status: "error",
-        code: toErrorCode(err instanceof Error ? err.message : undefined),
-      });
-      return false;
+      logLocalError("useBeheerLogin (signInWithMagicLink)", err);
     }
+    setState({ status: "magic_link_sent", email });
   }
 
   return {

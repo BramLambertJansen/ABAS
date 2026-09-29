@@ -17,12 +17,13 @@ import { logLocalError } from "@/lib/clientErrors";
  *   - `shouldCreateUser: true` (Besloten door Bram, punt 2) — elk geldig
  *     e-mailadres krijgt een werkende link, `link_lid_member_account()`
  *     bepaalt daarna of er iets te koppelen valt.
- *   - `signInWithMagicLink` lekt nooit een foutcode: elke uitkomst eindigt
- *     in dezelfde `magic_link_sent`-staat (issue #70 — geen
- *     e-mail-enumeratie), fouten alleen gelogd. Exact hetzelfde patroon als
+ *   - `signInWithMagicLink` toont nooit een foutcode: elke uitkomst eindigt
+ *     in dezelfde `magic_link_sent`-staat (issue #70; alleen een UI-maskering, de
+ *     Auth-API zelf verraadt het nog, ADR 0013), fouten alleen gelogd. Exact hetzelfde patroon als
  *     `useWachtwoordResetAanvragen` in `useWachtwoordHerstellen.ts`. Alleen
- *     het wachtwoordpad heeft hier een zichtbare foutcode — dat pad lekt
- *     sowieso niet ("onjuist e-mailadres of wachtwoord"), zie
+ *     het wachtwoordpad heeft hier een zichtbare foutcode — die maakt geen
+ *     onderscheid tussen onbekend adres en fout wachtwoord ("onjuist
+ *     e-mailadres of wachtwoord"; timing niet uitgesloten, ADR 0013), zie
  *     `PortalLoginErrorCode`.
  */
 export type PortalLoginErrorCode = "invalid_credentials" | "rate_limited" | "unknown";

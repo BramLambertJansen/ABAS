@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { isRateLimitedMessage } from "@/lib/authErrors";
+import { toPasswordUpdateErrorCode, type PasswordUpdateErrorCode } from "@/lib/authErrors";
 import { createClient } from "@/lib/supabase/portalClient";
 import { logLocalError } from "@/lib/clientErrors";
 
@@ -56,28 +56,13 @@ export function usePortalWachtwoordHerstellen() {
   };
 }
 
-export type PortalNieuwWachtwoordErrorCode =
-  | "link_invalid"
-  | "weak_password"
-  | "same_password"
-  | "rate_limited"
-  | "unknown";
+export type PortalNieuwWachtwoordErrorCode = "link_invalid" | PasswordUpdateErrorCode;
 
 type SetState =
   | { status: "idle" }
   | { status: "pending" }
   | { status: "done" }
   | { status: "error"; code: PortalNieuwWachtwoordErrorCode };
-
-function toSetErrorCode(error: {
-  code?: string;
-  message?: string;
-}): PortalNieuwWachtwoordErrorCode {
-  if (error.code === "weak_password") return "weak_password";
-  if (error.code === "same_password") return "same_password";
-  if (isRateLimitedMessage(error.message)) return "rate_limited";
-  return "unknown";
-}
 
 /**
  * Stap 3 — nieuw wachtwoord instellen met de `token_hash` uit de mail (ADR
@@ -114,7 +99,7 @@ export function usePortalNieuwWachtwoordInstellen(tokenHash: string | null) {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) {
         logLocalError("usePortalNieuwWachtwoordInstellen (updateUser)", error.message);
-        setState({ status: "error", code: toSetErrorCode(error) });
+        setState({ status: "error", code: toPasswordUpdateErrorCode(error) });
         return false;
       }
 

@@ -98,6 +98,19 @@ const config: Config = {
         card: "16px",
         control: "12px",
       },
+      // Inschuiven van de portal-sheet (Overlay.tsx, `overlay: "sheet"`),
+      // prototype designs/Lid App.dc.html → `abasSheet`. Alleen via
+      // `motion-safe:`; globals.css zet animaties bij reduced motion
+      // daarnaast op 0s.
+      keyframes: {
+        "sheet-in": {
+          from: { transform: "translateY(100%)" },
+          to: { transform: "translateY(0)" },
+        },
+      },
+      animation: {
+        "sheet-in": "sheet-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) both",
+      },
     },
   },
   plugins: [],
