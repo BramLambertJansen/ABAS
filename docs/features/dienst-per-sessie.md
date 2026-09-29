@@ -809,10 +809,28 @@ Derde ronde (Bram, 2026-09-29):
 18. **Ja.** `bar_session_id` komt nu op de boekingen; een uitsplitsing per
     apparaat volgt pas op verzoek.
 
+Vierde ronde (Bram, 2026-09-29):
+
+- **Vraag 15, A4: in alle standen, niet alleen in (c).** `top_up` weigert
+  een opwaardering naar het lid van de ingelogde sessie
+  (`self_top_up_forbidden`, `bar-rpc-autorisatie.md` → A4). Gevolg: een
+  bardienst die alleen staat, kan zichzelf niet opwaarderen. Dat moet dan
+  een ander lid of een beheerder doen.
+19. **Ja.** Tablet koppelen verdwijnt in dezelfde uitrol als fase 1 (#117),
+    en het device-account wordt bij de uitrol verwijderd.
+20. **Ja.** "De bar draait nooit op een telefoon" is een supportuitspraak,
+    geen grens die de app afdwingt. Dat komt in CLAUDE.md → Shells.
+21. **Ja.** Wordt een lid gearchiveerd of verandert de rol, dan weigert de
+    guard de sessie meteen.
+22. **Niet in fase 1.**
+23. **Akkoord.** De Architect stelt een tekstvoorstel op, en Bram keurt dat
+    goed voordat de Developer begint.
+
 ### Nog te beantwoorden
 
-- A4 bij vraag 15.
-- Vragen 19 t/m 23 hieronder.
+- Vraag 19, voorwaarde: heeft elke bardienst en beheerder nu een werkend
+  wachtwoord? Zonder wachtwoord kan iemand na de uitrol niet meer inloggen.
+- De UI-teksten (vraag 23).
 
 ### Oorspronkelijke vragen
 
