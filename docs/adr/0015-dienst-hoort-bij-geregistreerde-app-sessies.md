@@ -1,4 +1,4 @@
-# 0014 — Een dienst hoort bij een of meer geregistreerde, persoonlijke app-sessies, niet bij een gedeeld device-account
+# 0015 — Een dienst hoort bij een of meer geregistreerde, persoonlijke app-sessies, niet bij een gedeeld device-account
 
 Status: **concept, wacht op akkoord van Bram** (geschreven 2026-09-29). Hoort
 bij [`docs/features/dienst-per-sessie.md`](../features/dienst-per-sessie.md).

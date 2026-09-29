@@ -2,7 +2,7 @@
 
 **Status: concept, wacht op akkoord van Bram.** Geschreven 2026-09-29. Niets
 hiervan is gebouwd. Het mechanisme staat in het concept-ADR
-[0014](../adr/0014-dienst-hoort-bij-geregistreerde-app-sessies.md). Deze spec
+[0015](../adr/0015-dienst-hoort-bij-geregistreerde-app-sessies.md). Deze spec
 neemt de beslissingen die bij Bram liggen niet zelf. Die staan genummerd
 onderaan (Open vragen), elk met een aanbeveling. Waar de tekst hieronder
 "aanbeveling" of "voorstel" zegt, is het nog niet besloten.
@@ -181,7 +181,7 @@ vraag 1.
 
 In een eigen tabel `bar_sessions`, met als sleutel
 `auth.jwt()->>'session_id'`. Waarom niet `auth.sessions` direct of een
-apparaatcookie: zie ADR 0014 → Verworpen alternatieven. Kort:
+apparaatcookie: zie ADR 0015 → Verworpen alternatieven. Kort:
 
 - `auth.sessions` verdwijnt bij uitloggen en heeft geen modus, sluitreden of
   activiteit;
@@ -571,7 +571,7 @@ Wat er met elk onderdeel gebeurt als het weg mag:
     dat account via RLS nog alle leden en saldi (`caller_is_lid()` is onwaar
     voor een account zonder ledenrij). Na intrekken blijft dat tot
     `jwt_expiry`. Verwijderen hoort daarom bij de uitrol, niet "later".
-- **Documentatie**: ADR 0011 wordt "vervangen door ADR 0014". Verder gaat het
+- **Documentatie**: ADR 0011 wordt "vervangen door ADR 0015". Verder gaat het
   om `docs/ARCHITECTURE.md` → "Device sign-in mechanism", "Local/CI device
   account", "e2e-mocks on `/beheer`" en "Still open: Device account
   provisioning flow" (vervalt). #78 vervalt: er is geen device-sessie meer
@@ -717,7 +717,7 @@ vraag waarin Bram kiest.
    een gedeelde sessie vervalt. Het meeliften via de bezetting blijft.
 4. **ADR 0002 stap 3** (herstel van de device-sessie na uitloggen) vervalt.
    Ook "bardienst-acties zijn nooit afhankelijk van welke
-   `authenticated`-identiteit" vervalt: dat worden ze juist wel. ADR 0014
+   `authenticated`-identiteit" vervalt: dat worden ze juist wel. ADR 0015
    amendeert dit.
 5. **ADR 0011** vervalt geheel als tablet koppelen weg mag (vraag 19). Zonder
    dat besluit is fase 1 niet uit te rollen. Zie Tablet koppelen.
