@@ -1,5 +1,5 @@
 -- Client-fouten centraal loggen (#94, docs/features/foutlogging.md). Zie
--- docs/adr/0012-client-fouten-via-rpc-zonder-actor.md voor waarom dit een
+-- docs/adr/0015-client-fouten-via-rpc-zonder-actor.md voor waarom dit een
 -- schrijf-RPC is die open staat voor elke `authenticated` (ook een lid),
 -- bewust zonder actor, en bewust zonder `anon`-uitzondering op 0018.
 --
@@ -42,7 +42,7 @@ create table client_errors (
 );
 
 comment on table client_errors is
-  'Onverwachte client-fouten uit src/hooks/queries/ (docs/features/foutlogging.md, ADR 0012). Append-only, alleen via log_client_error(); lezen alleen via Studio. Geen actor, geen vrij tekstveld. Rijen ouder dan 90 dagen ruimt purge_client_errors() dagelijks op (pg_cron).';
+  'Onverwachte client-fouten uit src/hooks/queries/ (docs/features/foutlogging.md, ADR 0015). Append-only, alleen via log_client_error(); lezen alleen via Studio. Geen actor, geen vrij tekstveld. Rijen ouder dan 90 dagen ruimt purge_client_errors() dagelijks op (pg_cron).';
 
 -- Voor de dagelijkse opruiming (created_at < now() - 90 dagen) en voor
 -- "wat ging er gisteravond mis" in Studio.
@@ -63,7 +63,7 @@ revoke all on client_errors from authenticated, anon;
 --
 -- Bewust géén caller_is_lid()-weigering (anders dan 0023): een portal-lid
 -- moet zijn leesfout kunnen melden. Geen bar-RPC, geen geld, en `void`
--- lekt niets terug. Bewust géén auth.uid() in de insert (ADR 0012).
+-- lekt niets terug. Bewust géén auth.uid() in de insert (ADR 0015).
 create or replace function log_client_error(
   p_hook text,
   p_kind text,
@@ -94,13 +94,13 @@ end;
 $$;
 
 comment on function log_client_error(text, text, text, text, integer, text) is
-  'Schrijft één client-fout in client_errors (docs/features/foutlogging.md, ADR 0012). Voor elke authenticated sessie, ook een lid; slaat geen actor op. Ongeldige invoer: invalid_client_error.';
+  'Schrijft één client-fout in client_errors (docs/features/foutlogging.md, ADR 0015). Voor elke authenticated sessie, ook een lid; slaat geen actor op. Ongeldige invoer: invalid_client_error.';
 
 -- Alleen voor een ingelogde sessie, zelfde patroon als elke RPC sinds 0018:
 -- een nieuwe functie krijgt van Postgres standaard EXECUTE voor PUBLIC (en
 -- via Supabase's default privileges voor anon). Bewust géén
 -- anon-uitzondering: fouten van vóór het inloggen worden niet gelogd
--- (ADR 0012). supabase/tests/rpc_execute_grants.test.sql bewaakt dit.
+-- (ADR 0015). supabase/tests/rpc_execute_grants.test.sql bewaakt dit.
 grant execute on function log_client_error(text, text, text, text, integer, text) to authenticated;
 revoke execute on function log_client_error(text, text, text, text, integer, text) from public;
 revoke execute on function log_client_error(text, text, text, text, integer, text) from anon;
