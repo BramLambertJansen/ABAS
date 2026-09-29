@@ -31,11 +31,3 @@ export const ROLE_LABELS: Record<BarStaffMember["role"], string> = {
  *  no eligible members). */
 export const NO_BAR_STAFF_MESSAGE =
   "Geen bardienst-/beheerdersaccounts gevonden. Vraag een bestuurslid om je de rol bardienst of beheerder te geven.";
-
-/** Melding bij `no_bar_role` uit een bar-RPC (0023_bar_rpcs_weigeren_lid.sql:
- *  top_up, place_order, reverse_order_at_bar, end_shift, add_shift_member,
- *  remove_shift_member weigeren een lid-sessie). Eén tekst voor alle zes,
- *  besloten in #100. Niet voor `start_shift`'s eigen `no_bar_role` — daar
- *  gaat het om de rol van het gekozen lid, niet om de sessie. */
-export const NO_BAR_ROLE_SESSION_MESSAGE =
-  "dit account mag niet op de bar werken — log uit en log in als bardienst";

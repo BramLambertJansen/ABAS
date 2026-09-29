@@ -5,8 +5,9 @@ import { StaffHeader } from "./StaffHeader";
 import type { ActiviteitType } from "@/hooks/queries/useActiviteitTypes";
 
 /**
- * Stap tussen stafkeuze en PIN-invoer in `DienstStarten.tsx` — een dienst
- * kiest, verplicht, één activiteittype. Zie
+ * De activiteitkeuze in `DienstStarten.tsx` — een dienst kiest, verplicht,
+ * één activiteittype. Sinds dienst-per-sessie is dit de enige stap: na de
+ * login op de namenlijst start één tik de dienst, zonder PIN-stap. Zie
  * docs/features/activiteittypes.md → Schermflow §2. Volledige-schermstap
  * binnen de bestaande donkere PIN-flow, geen overlay (spec →
  * `useShell()`-contract): één dropdown (`Select`), geen lijst kandidaten die
@@ -29,7 +30,9 @@ export function ActiviteitKeuze({
   errorMessage: string | null;
   pending: boolean;
   onSelect: (activityType: ActiviteitType) => void;
-  onBack: () => void;
+  /** Sinds dienst-per-sessie is de starter de ingelogde persoon en is er geen
+   *  namenlijst om naar terug te gaan: zonder `onBack` staat er geen terugknop. */
+  onBack?: () => void;
 }) {
   function handleChange(id: string) {
     const activityType = activityTypes.find((a) => a.id === id);
@@ -83,14 +86,16 @@ export function ActiviteitKeuze({
         {errorMessage ?? ""}
       </p>
 
-      <button
-        type="button"
-        disabled={pending}
-        onClick={onBack}
-        className="text-xs font-semibold text-rail-muted hover:text-rail-light disabled:opacity-50"
-      >
-        ← andere bardienst
-      </button>
+      {onBack && (
+        <button
+          type="button"
+          disabled={pending}
+          onClick={onBack}
+          className="text-xs font-semibold text-rail-muted hover:text-rail-light disabled:opacity-50"
+        >
+          ← andere bardienst
+        </button>
+      )}
     </div>
   );
 }

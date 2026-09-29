@@ -657,8 +657,8 @@ select isnt(
 );
 select throws_ok(
   $$ select admin_end_bar_session((select id from bar_sessions where auth_session_id = '00000000-0000-0000-0000-00000000e0d9')) $$,
-  'P0001', 'session_ended',
-  'een al afgemelde sessie afmelden: session_ended'
+  'P0001', 'target_session_ended',
+  'een al afgemelde sessie afmelden: target_session_ended (niet de sessiecode session_ended)'
 );
 select pg_temp.act_as_bar('00000000-0000-0000-0000-00000000e011', null, '00000000-0000-0000-0000-00000000e0d9');
 select throws_ok(

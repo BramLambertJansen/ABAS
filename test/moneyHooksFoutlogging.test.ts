@@ -9,8 +9,12 @@ import { fakeMoney, resetFakeMoney } from "./fakes/moneyHookCalls.ts";
  * beslissing 3, #94): een domeinuitkomst die de RPC bewust teruggeeft
  * (`insufficient_balance` en dergelijke) is geen fout en wordt niet gemeld;
  * alleen de onverwachte tak (`unknown`) roept reportClientError aan.
- * Onderaan dezelfde check voor `no_bar_role` in de vier andere bar-hooks
- * (0023_bar_rpcs_weigeren_lid.sql, #100).
+ * Onderaan dezelfde check voor de andere bar-hooks. Sinds dienst-per-sessie
+ * (0028/0029) kennen alle zes de zes sessiecodes van de guards
+ * (`no_bar_session`, `session_ended`, `session_inactive`, `wrong_mode`,
+ * `no_bar_role`, `session_not_on_shift`) als bekende domeinuitkomst: niet
+ * gemeld aan `client_errors`, maar doorgegeven aan de centrale afhandeling
+ * (`notifySessionCode`).
  *
  * De hooks draaien ongewijzigd; `react`, de Supabase-client en
  * clientErrors worden via een resolve-hook vervangen door nep-modules
@@ -25,6 +29,12 @@ const { useReverseOrderAtBar } = await import("../src/hooks/queries/useReverseOr
 const { useAddShiftMember } = await import("../src/hooks/queries/useAddShiftMember.ts");
 const { useRemoveShiftMember } = await import("../src/hooks/queries/useRemoveShiftMember.ts");
 const { useEndShift } = await import("../src/hooks/queries/useEndShift.ts");
+const { useStartShift } = await import("../src/hooks/queries/useStartShift.ts");
+const { useAdminEndShift } = await import("../src/hooks/queries/useAdminEndShift.ts");
+const { useAdminTakeOverShift } = await import("../src/hooks/queries/useAdminTakeOverShift.ts");
+const { useAdminEndBarSession } = await import("../src/hooks/queries/useAdminEndBarSession.ts");
+const { useRegisterBarSession } = await import("../src/hooks/queries/useRegisterBarSession.ts");
+const { useEndBarSession } = await import("../src/hooks/queries/useEndBarSession.ts");
 
 const SHIFT = "00000000-0000-0000-0000-000000000001";
 const MEMBER = "00000000-0000-0000-0000-000000000002";
@@ -46,10 +56,20 @@ beforeEach(() => {
   resetFakeMoney();
 });
 
-// Precies de codes die place_order (0023) bewust raiset en die de hook als
+// De zes sessiecodes van de guards (0028): elke bar-hook kent ze.
+const SESSION_CODES = [
+  "no_bar_session",
+  "session_ended",
+  "session_inactive",
+  "wrong_mode",
+  "no_bar_role",
+  "session_not_on_shift",
+] as const;
+
+// Precies de codes die place_order (0029) bewust raiset en die de hook als
 // domeinuitkomst kent.
 const PLACE_ORDER_DOMAIN = [
-  "no_bar_role",
+  ...SESSION_CODES,
   "shift_not_open",
   "served_by_not_on_shift",
   "empty_order",
@@ -60,13 +80,18 @@ const PLACE_ORDER_DOMAIN = [
 ] as const;
 
 const TOP_UP_DOMAIN = [
-  "no_bar_role",
+  ...SESSION_CODES,
+  "self_top_up_forbidden",
   "shift_not_open",
   "served_by_not_on_shift",
   "invalid_amount",
   "amount_exceeds_max",
   "member_not_found",
 ] as const;
+
+function verwachtNotificaties(code: string): string[] {
+  return (SESSION_CODES as readonly string[]).includes(code) ? [code] : [];
+}
 
 for (const code of PLACE_ORDER_DOMAIN) {
   test(`usePlaceOrder meldt domeinuitkomst ${code} niet`, async () => {
@@ -75,6 +100,8 @@ for (const code of PLACE_ORDER_DOMAIN) {
     assert.deepEqual(result, { ok: false, code });
     assert.equal(fakeMoney().rpcCalls[0]?.fn, "place_order");
     assert.deepEqual(fakeMoney().reports, []);
+    // Een sessiecode gaat naar de centrale afhandeling, een andere uitkomst niet.
+    assert.deepEqual(fakeMoney().notifications, verwachtNotificaties(code));
   });
 }
 
@@ -85,6 +112,7 @@ for (const code of TOP_UP_DOMAIN) {
     assert.deepEqual(result, { ok: false, code });
     assert.equal(fakeMoney().rpcCalls[0]?.fn, "top_up");
     assert.deepEqual(fakeMoney().reports, []);
+    assert.deepEqual(fakeMoney().notifications, verwachtNotificaties(code));
   });
 }
 
@@ -135,9 +163,9 @@ for (const [name, run, hook] of [
   });
 }
 
-// no_bar_role (0023) in de andere bar-hooks: bekende domeinuitkomst, geen
-// melding. Een onverwachte fout blijft wél gemeld — anders bewijst de eerste
-// test niets.
+// De zes sessiecodes in de andere bar-hooks: bekende domeinuitkomst, geen
+// melding aan client_errors maar wel aan de centrale afhandeling. Een
+// onverwachte fout blijft wél gemeld — anders bewijst de eerste test niets.
 for (const [name, fn, run] of [
   [
     "useReverseOrderAtBar",
@@ -152,26 +180,29 @@ for (const [name, fn, run] of [
   ],
   ["useEndShift", "end_shift", () => useEndShift().endShift(SHIFT)],
 ] as const) {
-  test(`${name} meldt domeinuitkomst no_bar_role niet`, async () => {
-    rpcError("no_bar_role");
-    assert.equal(await run(), false);
-    assert.equal(fakeMoney().rpcCalls[0]?.fn, fn);
-    assert.deepEqual(fakeMoney().reports, []);
-  });
+  for (const code of SESSION_CODES) {
+    test(`${name} meldt sessiecode ${code} niet als fout, maar geeft hem door`, async () => {
+      rpcError(code);
+      assert.equal(await run(), false);
+      assert.equal(fakeMoney().rpcCalls[0]?.fn, fn);
+      assert.deepEqual(fakeMoney().reports, []);
+      assert.deepEqual(fakeMoney().notifications, [code]);
+    });
+  }
 
   test(`${name} meldt een onverwachte serverfout wel`, async () => {
     fakeMoney().next = { kind: "result", data: null, error: { message: "boom", code: "42P01" } };
     assert.equal(await run(), false);
     assert.equal(fakeMoney().reports.length, 1);
     assert.equal(fakeMoney().reports[0].hook, name === "useReverseOrderAtBar" ? "useReverseOrder" : name);
+    assert.deepEqual(fakeMoney().notifications, []);
   });
 }
 
-// Dezelfde zes hooks, andere takken (#100): een gegooide Error met
-// message `no_bar_role` gaat door de catch-tak (toErrorCode op
-// err.message) en is daar óók een domeinuitkomst; een bijna-code
-// (hoofdletters) is dat niet en wordt wel gemeld — de hooks vergelijken
-// exact.
+// Dezelfde zes hooks, andere takken: een gegooide Error met een sessiecode
+// als message gaat door de catch-tak (toErrorCode op err.message) en is daar
+// óók een domeinuitkomst; een bijna-code (hoofdletters) is dat niet en wordt
+// wel gemeld — de hooks vergelijken exact.
 for (const [name, run] of [
   ["usePlaceOrder", async () => (await placeOrder()).ok],
   ["useTopUp", async () => (await topUp()).ok],
@@ -183,15 +214,146 @@ for (const [name, run] of [
   ["useRemoveShiftMember", () => useRemoveShiftMember().removeShiftMember(SHIFT, MEMBER)],
   ["useEndShift", () => useEndShift().endShift(SHIFT)],
 ] as const) {
-  test(`${name} meldt een gegooide no_bar_role niet (catch-tak)`, async () => {
-    fakeMoney().next = { kind: "throw", error: new Error("no_bar_role") };
+  test(`${name} meldt een gegooide sessiecode niet (catch-tak)`, async () => {
+    fakeMoney().next = { kind: "throw", error: new Error("session_ended") };
     assert.equal(await run(), false);
     assert.deepEqual(fakeMoney().reports, []);
+    assert.deepEqual(fakeMoney().notifications, ["session_ended"]);
   });
 
   test(`${name} behandelt NO_BAR_ROLE (bijna-code) als onverwacht en meldt hem`, async () => {
     rpcError("NO_BAR_ROLE");
     assert.equal(await run(), false);
     assert.equal(fakeMoney().reports.length, 1);
+    assert.deepEqual(fakeMoney().notifications, []);
   });
 }
+
+// ── Dienst-per-sessie: start_shift, de beheerderingrepen en het uitloggen ──
+// (docs/features/dienst-per-sessie.md → RPC's). Dezelfde regel: een
+// sessiecode is een bekende uitkomst, niet gemeld en wel doorgegeven; een
+// onverwachte fout blijft gemeld.
+
+test("useStartShift stuurt alleen het activiteittype mee, geen PIN en geen lid", async () => {
+  fakeMoney().next = { kind: "result", data: null, error: null };
+  const result = await useStartShift().startShift("activiteit-1");
+  assert.deepEqual(result, { ok: true });
+  assert.deepEqual(fakeMoney().rpcCalls, [
+    { fn: "start_shift", args: { p_activity_type_id: "activiteit-1" } },
+  ]);
+});
+
+for (const code of [
+  ...SESSION_CODES,
+  "shift_already_open",
+  "session_has_shift",
+  "invalid_activity_type",
+  "activity_type_not_found",
+  "activity_type_archived",
+]) {
+  test(`useStartShift meldt domeinuitkomst ${code} niet`, async () => {
+    rpcError(code);
+    assert.deepEqual(await useStartShift().startShift("a"), { ok: false, code });
+    assert.deepEqual(fakeMoney().reports, []);
+    assert.deepEqual(fakeMoney().notifications, verwachtNotificaties(code));
+  });
+}
+
+// De PIN speelt bij het starten geen rol meer: deze codes bestaan niet meer
+// en zijn dus onverwacht.
+for (const code of ["invalid_pin", "member_not_found"]) {
+  test(`useStartShift behandelt ${code} als onverwacht (start_shift raiset hem niet meer)`, async () => {
+    rpcError(code);
+    assert.deepEqual(await useStartShift().startShift("a"), { ok: false, code: "unknown" });
+    assert.equal(fakeMoney().reports.length, 1);
+  });
+}
+
+for (const [name, fn, run, domain] of [
+  [
+    "useAdminEndShift",
+    "admin_end_shift",
+    () => useAdminEndShift().adminEndShift(SHIFT),
+    ["actor_not_found", "no_admin_role", "shift_not_open"],
+  ],
+  [
+    "useAdminTakeOverShift",
+    "admin_take_over_shift",
+    () => useAdminTakeOverShift().takeOverShift(SHIFT),
+    ["actor_not_found", "no_admin_role", "session_has_shift", "shift_not_open"],
+  ],
+  [
+    "useAdminEndBarSession",
+    "admin_end_bar_session",
+    () => useAdminEndBarSession().endBarSession("sessie"),
+    ["actor_not_found", "no_admin_role", "session_not_found", "target_session_ended"],
+  ],
+  [
+    "useRegisterBarSession",
+    "register_bar_session",
+    async () => (await useRegisterBarSession().registerBarSession("bar")).ok,
+    ["invalid_mode", "no_admin_role", "mode_locked"],
+  ],
+] as const) {
+  for (const code of [...SESSION_CODES, ...domain]) {
+    test(`${name} meldt ${code} niet als fout`, async () => {
+      rpcError(code);
+      assert.equal(await run(), false);
+      assert.equal(fakeMoney().rpcCalls[0]?.fn, fn);
+      assert.deepEqual(fakeMoney().reports, []);
+      assert.deepEqual(fakeMoney().notifications, verwachtNotificaties(code));
+    });
+  }
+
+  test(`${name} meldt een onverwachte serverfout wel`, async () => {
+    fakeMoney().next = { kind: "result", data: null, error: { message: "boom", code: "42P01" } };
+    assert.equal(await run(), false);
+    assert.equal(fakeMoney().reports.length, 1);
+    assert.equal(fakeMoney().reports[0].hook, name);
+  });
+}
+
+test("target_session_ended is niet de sessiecode session_ended: geen centrale melding", async () => {
+  rpcError("target_session_ended");
+  assert.equal(await useAdminEndBarSession().endBarSession("sessie"), false);
+  assert.deepEqual(fakeMoney().notifications, []);
+});
+
+// useEndBarSession: uitloggen sluit altijd de sessie lokaal, behalve bij een
+// onverwachte fout (dan blijft de sessie staan en staat het scherm de
+// gebruiker een nieuwe poging toe).
+test("useEndBarSession: geslaagd → RPC met keuze en reden, daarna lokaal uitloggen", async () => {
+  const result = await useEndBarSession().endBarSession(true);
+  assert.deepEqual(result, { ok: true });
+  assert.deepEqual(fakeMoney().rpcCalls, [
+    { fn: "end_bar_session", args: { p_close_shift: true, p_reason: "uitgelogd" } },
+  ]);
+  assert.deepEqual(fakeMoney().signOuts, [{ scope: "local" }]);
+});
+
+test("useEndBarSession: een beheersessie die niet wordt hervat", async () => {
+  await useEndBarSession().endBarSession(false, "niet_hervat");
+  assert.deepEqual(fakeMoney().rpcCalls[0]?.args, { p_close_shift: false, p_reason: "niet_hervat" });
+});
+
+for (const code of SESSION_CODES) {
+  test(`useEndBarSession: bij ${code} is de sessie al weg, dus alleen lokaal uitloggen`, async () => {
+    rpcError(code);
+    assert.deepEqual(await useEndBarSession().endBarSession(false), { ok: true });
+    assert.deepEqual(fakeMoney().signOuts, [{ scope: "local" }]);
+    assert.deepEqual(fakeMoney().reports, []);
+  });
+}
+
+test("useEndBarSession: een onverwachte fout laat de sessie staan (niet stil uitloggen)", async () => {
+  fakeMoney().next = { kind: "result", data: null, error: { message: "boom", code: "42P01" } };
+  assert.deepEqual(await useEndBarSession().endBarSession(true), { ok: false, code: "unknown" });
+  assert.deepEqual(fakeMoney().signOuts, []);
+  assert.equal(fakeMoney().reports.length, 1);
+});
+
+test("useEndBarSession: een gegooide netwerkfout laat de sessie ook staan", async () => {
+  fakeMoney().next = { kind: "throw", error: new TypeError("Failed to fetch") };
+  assert.deepEqual(await useEndBarSession().endBarSession(false), { ok: false, code: "unknown" });
+  assert.deepEqual(fakeMoney().signOuts, []);
+});

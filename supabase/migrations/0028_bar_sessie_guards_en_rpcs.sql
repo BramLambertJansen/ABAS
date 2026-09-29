@@ -732,7 +732,9 @@ begin
     raise exception 'session_not_found' using errcode = 'P0001';
   end if;
   if v_target.ended_at is not null then
-    raise exception 'session_ended' using errcode = 'P0001';
+    -- Bewust niet `session_ended`: die code betekent "jouw eigen sessie is
+    -- beëindigd" en krijgt op de client een eigen, centrale afhandeling.
+    raise exception 'target_session_ended' using errcode = 'P0001';
   end if;
 
   perform close_bar_session_internal(v_target.id, 'afgemeld', v_actor.id);

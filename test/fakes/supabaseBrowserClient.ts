@@ -7,6 +7,12 @@ import { fakeMoney } from "./moneyHookCalls.ts";
 export function createClient() {
   const state = fakeMoney();
   return {
+    auth: {
+      async signOut(options: unknown) {
+        state.signOuts.push(options);
+        return { error: null };
+      },
+    },
     async rpc(fn: string, args: unknown) {
       state.rpcCalls.push({ fn, args });
       const next = state.next;

@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Overlay } from "@/components/Overlay";
 import { useOpenOverlayCount } from "@/components/OverlayPresence";
 import { DienstAfsluitenOverlay } from "@/features/dienst-afsluiten/DienstAfsluitenOverlay";
-import type { OpenShift } from "@/hooks/queries/useOpenShift";
+import type { OpenShift } from "@/hooks/queries/useMijnDienst";
 import { openHours, shouldWarn } from "@/lib/dienstTeLangOpen";
 
 /** Zelfde waarde als `DURATION_TICK_MS` in DienstActief.tsx (spec → Tijdbron

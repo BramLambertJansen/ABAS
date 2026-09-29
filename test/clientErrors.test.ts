@@ -504,3 +504,70 @@ for (const [label, hook, failing] of [
     }
   });
 }
+
+// ── Sessiecodes (dienst-per-sessie, 0028) ──────────────────────────────────
+
+test("reportClientError: een sessiecode is geen fout — geen log_client_error, geen console, wel doorgegeven", async () => {
+  const { SESSION_CODE_EVENT } = await import("../src/lib/barSessie.ts");
+  const calls: ClientErrorPayload[] = [];
+  const logged: unknown[][] = [];
+  const original = console.error;
+  console.error = (...args: unknown[]) => {
+    logged.push(args);
+  };
+  const g = globalThis as unknown as { window?: unknown; CustomEvent?: unknown };
+  const heeftWindow = "window" in g;
+  const events: string[] = [];
+  const fakeWindow = {
+    location: { pathname: "/" },
+    dispatchEvent(event: { type: string; detail: string }) {
+      events.push(`${event.type}:${event.detail}`);
+      return true;
+    },
+  };
+  class FakeCustomEvent {
+    type: string;
+    detail: string;
+    constructor(type: string, init: { detail: string }) {
+      this.type = type;
+      this.detail = init.detail;
+    }
+  }
+  const oudeCustomEvent = g.CustomEvent;
+  g.window = fakeWindow;
+  g.CustomEvent = FakeCustomEvent;
+  try {
+    reportClientError(
+      {
+        rpc(_fn, args) {
+          calls.push(args);
+          return Promise.resolve({ error: null });
+        },
+      },
+      "useTestSessiecode",
+      { code: "P0001", message: "session_ended" }
+    );
+    assert.equal(calls.length, 0);
+    assert.equal(logged.length, 0);
+    assert.deepEqual(events, [`${SESSION_CODE_EVENT}:session_ended`]);
+
+    // Een bijna-code is wel een fout.
+    reportClientError(
+      {
+        rpc(_fn, args) {
+          calls.push(args);
+          return Promise.resolve({ error: null });
+        },
+      },
+      "useTestSessiecodeNee",
+      { code: "P0001", message: "SESSION_ENDED" }
+    );
+    assert.equal(calls.length, 1);
+    assert.equal(events.length, 1);
+  } finally {
+    console.error = original;
+    g.CustomEvent = oudeCustomEvent;
+    if (heeftWindow) g.window = undefined;
+    else delete g.window;
+  }
+});

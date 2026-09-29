@@ -1,5 +1,12 @@
 import { test, expect, type Page } from "@playwright/test";
-import { USER, alertOf, fakeSession, json, loginMetWachtwoord } from "./helpers/supabaseMock";
+import {
+  USER,
+  alertOf,
+  fakeSession,
+  json,
+  loginMetWachtwoord,
+  mockBarSessie,
+} from "./helpers/supabaseMock";
 
 /**
  * #73 — de uitnodigingsfout `rate_limited` in LidBeherenOverlay toont de
@@ -44,8 +51,7 @@ async function mockBeheerder(page: Page, invite: [number, unknown]) {
     return json(route, 200, accept.includes("vnd.pgrst.object") ? null : []);
   });
   // useBeheerSession: members-rij, alleen voor de nep-beheerder (USER). Een
-  // andere sessie — in CI het device-account dat de middleware op /beheer
-  // inlogt — hoort bij geen lid, net als in het echt.
+  // andere sessie hoort bij geen lid, net als in het echt.
   await page.route(/\/rest\/v1\/members(\?|$)/, (route) => {
     const isBeheerder = route.request().url().includes(`auth_user_id=eq.${USER.id}`);
     const row = isBeheerder ? { name: "Femke Bos", role: "beheerder", has_pin: false } : null;
@@ -53,6 +59,8 @@ async function mockBeheerder(page: Page, invite: [number, unknown]) {
     return json(route, 200, accept.includes("vnd.pgrst.object") ? row : row ? [row] : []);
   });
   await page.route(/\/rest\/v1\/rpc\/list_members_admin(\?|$)/, (route) => json(route, 200, [LID]));
+  // Sinds dienst-per-sessie registreert de keuze "Beheer" de sessie (ADR 0016).
+  await mockBarSessie(page);
 
   await page.route(/\/beheer\/invite(\?|$)/, (route) => {
     if (route.request().method() !== "POST") return route.fallback();

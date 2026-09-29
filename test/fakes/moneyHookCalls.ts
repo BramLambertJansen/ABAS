@@ -15,13 +15,24 @@ export type FakeMoneyState = {
   rpcCalls: { fn: string; args: unknown }[];
   next: RpcOutcome;
   reports: ReportCall[];
+  /** De sessiecodes die een hook aan de centrale afhandeling doorgaf
+   *  (`notifySessionCode`, dienst-per-sessie). */
+  notifications: string[];
+  /** De opties van elke `auth.signOut()` (useEndBarSession). */
+  signOuts: unknown[];
 };
 
 const KEY = "__abasFakeMoneyHooks";
 
 export function fakeMoney(): FakeMoneyState {
   const holder = globalThis as unknown as Record<string, FakeMoneyState | undefined>;
-  holder[KEY] ??= { rpcCalls: [], next: { kind: "result", data: null, error: null }, reports: [] };
+  holder[KEY] ??= {
+    rpcCalls: [],
+    next: { kind: "result", data: null, error: null },
+    reports: [],
+    notifications: [],
+    signOuts: [],
+  };
   return holder[KEY];
 }
 
@@ -30,4 +41,6 @@ export function resetFakeMoney(): void {
   state.rpcCalls = [];
   state.next = { kind: "result", data: null, error: null };
   state.reports = [];
+  state.notifications = [];
+  state.signOuts = [];
 }

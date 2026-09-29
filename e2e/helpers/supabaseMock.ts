@@ -95,3 +95,102 @@ export async function portalLoginMetWachtwoord(page: Page, email: string, passwo
   await page.locator('input[type="password"]').fill(password);
   await page.getByRole("button", { name: "Inloggen" }).click();
 }
+
+// ── Bar-sessie (dienst-per-sessie, ADR 0016) ─────────────────────────────
+
+export type BarSessieMockOpties = {
+  /** Naam en rol van het lid van de sessie (standaard de nep-beheerder). */
+  naam?: string;
+  rol?: "beheerder" | "bardienst";
+  /** De modus van een sessie die al geregistreerd is. Zonder dit is er pas
+   *  een bar-sessie na `register_bar_session` (de keuze in ModusKeuze). */
+  voorgeregistreerd?: "bar" | "beheer";
+  /** De eigen dienst van de sessie (alleen zinvol in modus bar). */
+  shift?: {
+    id: string;
+    startedAt: string;
+    startedByName: string;
+    activityTypeName: string | null;
+  } | null;
+  /** De sessie geldt als bevestigd in deze browserstart (een vlag in
+   *  sessionStorage). Nodig voor een `voorgeregistreerd` sessie, anders komt
+   *  eerst het hervatscherm. */
+  bevestigd?: boolean;
+};
+
+export type BarSessieMock = {
+  /** De modus waarin de sessie nu geregistreerd is, of `null`. */
+  modus: "bar" | "beheer" | null;
+  /** De `p_mode` van elke `register_bar_session`-aanroep. */
+  registraties: string[];
+};
+
+/**
+ * Mockt de bar-sessie-RPC's (`my_bar_state`, `register_bar_session`,
+ * `touch_bar_session`, `end_bar_session`) en het uitloggen, voor specs die
+ * Supabase via `page.route()` mocken. Registreer dit ná de algemene
+ * `/rest/v1/`-mock van de spec: bij overlappende routes wint de laatst
+ * geregistreerde.
+ */
+export async function mockBarSessie(
+  page: Page,
+  opties: BarSessieMockOpties = {}
+): Promise<BarSessieMock> {
+  const naam = opties.naam ?? "Femke Bos";
+  const rol = opties.rol ?? "beheerder";
+  const staat: BarSessieMock = { modus: opties.voorgeregistreerd ?? null, registraties: [] };
+  const nu = new Date().toISOString();
+
+  if (opties.bevestigd) {
+    await page.addInitScript(() => window.sessionStorage.setItem("abas.bar.bevestigd", "1"));
+  }
+
+  await page.route(/\/rest\/v1\/rpc\/my_bar_state(\?|$)/, (route) => {
+    if (staat.modus === null) return json(route, 200, { session: null });
+    return json(route, 200, {
+      session: {
+        id: "00000000-0000-4000-8000-0000000000f1",
+        member_id: "00000000-0000-4000-8000-0000000000f2",
+        member_name: naam,
+        member_role: rol,
+        mode: staat.modus,
+        status: "active",
+        end_reason: null,
+        started_at: nu,
+        last_activity_at: nu,
+        left_shift_open: false,
+      },
+      shift:
+        staat.modus === "bar" && opties.shift
+          ? {
+              id: opties.shift.id,
+              started_by_name: opties.shift.startedByName,
+              started_at: opties.shift.startedAt,
+              activity_type_name: opties.shift.activityTypeName,
+            }
+          : null,
+      last_left: null,
+      other_shift: null,
+      notifications: rol === "beheerder" ? [] : undefined,
+      admin: rol === "beheerder" && staat.modus === "beheer" ? { shifts: [], sessions: [] } : undefined,
+    });
+  });
+  await page.route(/\/rest\/v1\/rpc\/register_bar_session(\?|$)/, (route) => {
+    const mode = (route.request().postDataJSON() as { p_mode?: string } | null)?.p_mode;
+    if (mode === "bar" || mode === "beheer") {
+      staat.modus = mode;
+      staat.registraties.push(mode);
+    }
+    return json(route, 200, {});
+  });
+  await page.route(/\/rest\/v1\/rpc\/touch_bar_session(\?|$)/, (route) => json(route, 200, {}));
+  await page.route(/\/rest\/v1\/rpc\/end_bar_session(\?|$)/, (route) => {
+    staat.modus = null;
+    return route.fulfill({ status: 204, headers: SUPABASE_HEADERS, body: "" });
+  });
+  await page.route(/\/auth\/v1\/logout/, (route) =>
+    route.fulfill({ status: 204, headers: SUPABASE_HEADERS, body: "" })
+  );
+
+  return staat;
+}

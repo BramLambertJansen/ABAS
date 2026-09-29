@@ -6,37 +6,31 @@ import { logLocalError, reportClientError } from "@/lib/clientErrors";
 
 /**
  * Tracks whether `/beheer` has an actual bardienst/beheerder session, not
- * merely "any Supabase Auth session" — on a gekoppelde tablet (ADR 0011)
- * `src/middleware.ts` auto-signs the shared bar-tablet device account in on
- * almost every request (including `/beheer`) whenever there's no session
- * yet, so `supabase.auth.getSession()`
- * returning a `user` does NOT by itself mean an individual logged in via
- * `BeheerLogin.tsx` (ADR 0002's mechanism: `/beheer`'s own e-mail-login
- * *replaces* that shared session — "no session" and "the device session" are
- * different cases). A session only counts as "signed-in" here once it
- * resolves, via `auth_user_id`, to an active `members` row with role
- * `bardienst` or `beheerder` — exactly the same check the RPC's run
- * themselves (`actor_not_found`/`no_admin_role`/`no_bar_role`).
+ * merely "any Supabase Auth session": a session only counts as "signed-in"
+ * here once it resolves, via `auth_user_id`, to an active `members` row with
+ * role `bardienst` or `beheerder` — exactly the same check the RPC's run
+ * themselves (`actor_not_found`/`no_admin_role`/`no_bar_role`). A `lid`-only
+ * portal account, or an account without a member, is reported as "denied",
+ * not "signed-in". (Before dienst-per-sessie the shared device account was
+ * the usual "denied" case; that account is gone, ADR 0016.)
  *
  * Generalized from "beheerder-only" to "bardienst-of-beheerder"
- * (docs/features/auth-methode-per-lid.md, #42, ADR 0005): `/beheer` is now
- * the guaranteed e-mail/wachtwoord-ingang for every member with either role,
- * not just beheerder — ModusKeuze.tsx (rendered by Assortimentbeheer.tsx on
- * "signed-in") is where the actual bar-vs-beheer split happens, this hook
- * only gates entry. No fallback to the session's e-mail as a display name
- * when the members lookup doesn't match: a device-session or a `lid`-only
- * member's e-mail-session is reported as "denied", not "signed-in".
+ * (docs/features/auth-methode-per-lid.md, #42, ADR 0005): `/beheer` is the
+ * guaranteed e-mail/wachtwoord-ingang for every member with either role, not
+ * just beheerder — ModusKeuze.tsx (rendered by Assortimentbeheer.tsx when
+ * there is a Supabase session but no registered bar session yet) is where the
+ * actual bar-vs-beheer split happens, this hook only gates entry.
  *
  * "loading" while the initial getSession() round-trip (or the follow-up
  * members lookup) is in flight, "signed-out" when there's no session at
  * all, "denied" when there IS a session but it doesn't resolve to an active
  * bardienst/beheerder member (→ `BeheerLogin.tsx` shows a Nederlandse
  * foutmelding + the login form), "signed-in" only once a real
- * bardienst/beheerder session is confirmed — with `hasPin` (`has_pin`, the
- * `pin_hash is not null` generated column, for that same row) alongside it,
- * so "Mijn account"
- * (MijnAccountOverlay.tsx) doesn't need a second leeshook for the one
- * boolean it displays.
+ * bardienst/beheerder session is confirmed.
+ *
+ * Whether the session is registered as a bar session, in which mode, and
+ * whether it is still active, is not this hook's concern: that is
+ * `useMijnDienst` (`my_bar_state()`), used by `BarSessieProvider`.
  */
 export type BeheerSessionState =
   | { status: "loading" }
@@ -46,20 +40,13 @@ export type BeheerSessionState =
       status: "signed-in";
       email: string;
       name: string;
-      hasPin: boolean;
       role: "bardienst" | "beheerder";
     };
 
 export function useBeheerSession(): BeheerSessionState & {
   signOut: () => Promise<void>;
-  /** Re-runs the members lookup against the current session — used after
-   *  `set_own_pin` so ModusKeuze's `hasPin` (and therefore
-   *  MijnAccountOverlay's status line, once reopened) reflects the change
-   *  without requiring a fresh sign-in. */
-  refetch: () => void;
 } {
   const [state, setState] = useState<BeheerSessionState>({ status: "loading" });
-  const [tick, setTick] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -80,7 +67,7 @@ export function useBeheerSession(): BeheerSessionState & {
         try {
           const { data, error } = await supabase
             .from("members")
-            .select("name, role, has_pin")
+            .select("name, role")
             .eq("auth_user_id", userId)
             .eq("archived", false)
             .maybeSingle();
@@ -113,7 +100,6 @@ export function useBeheerSession(): BeheerSessionState & {
             status: "signed-in",
             email,
             name: data.name as string,
-            hasPin: data.has_pin as boolean,
             role: data.role,
           });
         } catch (err) {
@@ -160,21 +146,18 @@ export function useBeheerSession(): BeheerSessionState & {
       cancelled = true;
       unsubscribe?.();
     };
-  }, [tick]);
+  }, []);
 
   async function signOut() {
     try {
       const supabase = createClient();
-      await supabase.auth.signOut();
-      // onAuthStateChange above picks up the resulting "signed-out" state —
-      // src/middleware.ts re-establishes the shared device session on the
-      // next bar-shell request, alleen op een gekoppelde tablet (ADR 0011,
-      // docs/features/tablet-koppelen.md); elders volgt /koppel. No action
-      // needed here beyond signing out (ADR 0002 → Beslissing, stap 3).
+      // Alleen deze sessie (`local`), nooit de andere apparaten van dit lid.
+      await supabase.auth.signOut({ scope: "local" });
+      // onAuthStateChange above picks up the resulting "signed-out" state.
     } catch (err) {
       logLocalError("useBeheerSession (signOut)", err);
     }
   }
 
-  return { ...state, signOut, refetch: () => setTick((t) => t + 1) };
+  return { ...state, signOut };
 }

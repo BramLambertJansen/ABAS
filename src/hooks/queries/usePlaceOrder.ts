@@ -3,14 +3,22 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { reportClientError } from "@/lib/clientErrors";
+import { isSessionErrorCode, notifySessionCode, type SessionErrorCode } from "@/lib/barSessie";
 
-/** Error codes `place_order` (0001_init.sql; `no_bar_role` sinds
- *  0023_bar_rpcs_weigeren_lid.sql, lid-sessie geweigerd) actually raises, per
+/** Error codes `place_order` (0001_init.sql, 0029) actually raises, per
  *  docs/features/verkoop.md → RPC's / Randgevallen. Anything else (network
  *  failure, unexpected server error) falls through to "unknown". Same
- *  pattern as useStartShift.ts → StartShiftErrorCode. */
+ *  pattern as useStartShift.ts → StartShiftErrorCode. *
+ *  Sinds dienst-per-sessie (0028/0029) is `no_bar_role` niet meer "dit is een
+ *  lid-sessie" (dat is nu `no_bar_session`) maar "het lid van deze bar-sessie
+ *  is gearchiveerd of heeft geen bar-rol meer". De zes sessiecodes van de
+ *  guard (`SessionErrorCode`: no_bar_session, session_ended,
+ *  session_inactive, wrong_mode, no_bar_role, session_not_on_shift) blijven
+ *  bekende domeinuitkomsten, niet gemeld aan `client_errors`, en gaan naar
+ *  de centrale afhandeling (`notifySessionCode`, src/lib/barSessie.ts): één
+ *  melding voor de hele bar in plaats van een inline foutregel per scherm. */
 export type PlaceOrderErrorCode =
-  | "no_bar_role"
+  | SessionErrorCode
   | "shift_not_open"
   | "served_by_not_on_shift"
   | "empty_order"
@@ -21,7 +29,6 @@ export type PlaceOrderErrorCode =
   | "unknown";
 
 const KNOWN_CODES: PlaceOrderErrorCode[] = [
-  "no_bar_role",
   "shift_not_open",
   "served_by_not_on_shift",
   "empty_order",
@@ -32,6 +39,10 @@ const KNOWN_CODES: PlaceOrderErrorCode[] = [
 ];
 
 function toErrorCode(message: string | undefined): PlaceOrderErrorCode {
+  if (isSessionErrorCode(message)) {
+    notifySessionCode(message);
+    return message;
+  }
   if (message && (KNOWN_CODES as string[]).includes(message)) {
     return message as PlaceOrderErrorCode;
   }

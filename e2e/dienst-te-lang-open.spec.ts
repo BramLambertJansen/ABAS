@@ -1,6 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { USER, fakeSession, json, loginMetWachtwoord } from "./helpers/supabaseMock";
-import { koppelTablet } from "./helpers/tabletKoppelen";
+import { USER, fakeSession, json, loginMetWachtwoord, mockBarSessie } from "./helpers/supabaseMock";
 
 /**
  * De melding "Dienst staat nog open" (docs/features/dienst-te-lang-open.md →
@@ -8,14 +7,14 @@ import { koppelTablet } from "./helpers/tabletKoppelen";
  * zitten en dus niet unit-testbaar zijn (de pure beslissing zelf staat in
  * test/dienstTeLangOpen.test.ts).
  *
- * De koppeling is echt (koppelTablet, BAR_DEVICE_SECRET, zie
- * e2e/tablet-koppelen.spec.ts); daarna mockt elke test de REST-lezingen van
- * de browser via `page.route()`, zelfde aanpak als
- * e2e/bestelling-terugdraaien.spec.ts. Zo bepaalt de test zelf `started_at`,
- * en raakt hij de ene gedeelde open dienst van de echte database niet — die
- * is van het `describe.serial`-block in e2e/a11y.spec.ts, dat parallel aan
- * dit bestand kan draaien. De browserklok loopt via `page.clock`, zodat een
- * uur snooze in een seconde voorbij is.
+ * Elke test mockt Supabase via `page.route()`, zelfde aanpak als
+ * e2e/bestelling-terugdraaien.spec.ts: de login, de REST-lezingen en, sinds
+ * dienst-per-sessie (ADR 0016), de bar-sessie (`my_bar_state` met een
+ * bevestigde sessie in modus bar en een eigen dienst). Zo bepaalt de test
+ * zelf `started_at`, en raakt hij de ene gedeelde open dienst van de echte
+ * database niet — die is van het `describe.serial`-block in
+ * e2e/a11y.spec.ts, dat parallel aan dit bestand kan draaien. De browserklok
+ * loopt via `page.clock`, zodat een uur snooze in een seconde voorbij is.
  */
 
 const HOUR_MS = 60 * 60 * 1000;
@@ -66,14 +65,24 @@ async function mockBar(page: Page, startedAt: string) {
   );
 }
 
-/** Koppelt, zet de mocks met een dienst die `openForMs` geleden startte, en
- *  opent `/` op de Verkoop-tab. De klok is vóór de eerste navigatie
- *  geïnstalleerd en loopt tot een `fastForward` gewoon mee. */
+/** Zet de mocks met een dienst die `openForMs` geleden startte, logt in en
+ *  komt op de Verkoop-tab. De sessie is een bevestigde bar-sessie met deze
+ *  dienst als eigen dienst; de login loopt via het (gemockte) `/beheer`-
+ *  formulier, en een bar-sessie stuurt `/beheer` door naar `/`. De klok is
+ *  vóór de eerste navigatie geïnstalleerd en loopt tot een `fastForward`
+ *  gewoon mee. */
 async function openBar(page: Page, openForMs: number) {
   await page.clock.install();
-  await koppelTablet(page);
-  await mockBar(page, new Date(Date.now() - openForMs).toISOString());
-  await page.goto("/");
+  const startedAt = new Date(Date.now() - openForMs).toISOString();
+  await mockBar(page, startedAt);
+  await mockBarSessie(page, {
+    naam: TOM.name,
+    rol: "bardienst",
+    voorgeregistreerd: "bar",
+    bevestigd: true,
+    shift: { id: SHIFT_ID, startedAt, startedByName: TOM.name, activityTypeName: "Training" },
+  });
+  await loginMetWachtwoord(page, USER.email, "Aurora#2026");
   await page
     .getByRole("tab", { name: "Verkoop" })
     .waitFor({ state: "visible", timeout: 15_000 });
@@ -403,6 +412,9 @@ test("negatief: in beheer-modus geen melding, ook met een dienst die 7 uur opens
       activity_types: { name: "Training" },
     })
   );
+
+  // Een beheerder kiest "Beheer": de sessie wordt in die modus geregistreerd.
+  await mockBarSessie(page);
 
   await loginMetWachtwoord(page, USER.email, "Aurora#2026");
   await page.getByRole("button", { name: "Beheer" }).click();

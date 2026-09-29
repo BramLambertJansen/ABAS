@@ -1,48 +1,14 @@
 -- Local dev seed data. Demo PIN for every bar/beheer member below is 1234 —
 -- fine for local `supabase start`, never seed this into a real deployment.
 
--- Local/CI-only device account (docs/ARCHITECTURE.md → "Shared bar-tablet
--- session mechanism"). `src/middleware.ts` signs `shells/bar` in as this
--- account via SUPABASE_DEVICE_EMAIL/SUPABASE_DEVICE_PASSWORD before any
--- RLS-protected read can succeed. Production provisions its own real
--- account manually via Studio (docs/ARCHITECTURE.md → "Still open" —
--- unchanged by this); this is only so `supabase start` (and therefore
--- `npm run check:a11y`'s bezetting-overlay/verkoop flows, which need a
--- signed-in session to render the staff picker at all) has *something* to
--- sign in as. Root-caused 2026-08-26: this was the actual reason
--- e2e/a11y.spec.ts's bezetting-overlay test timed out waiting for a staff
--- button in real CI (run 32998590441 off #38) — not an a11y regression,
--- no account existed to sign in as, so every RLS read came back empty.
--- Direct auth.users/auth.identities insert, the standard local-dev-only
--- recipe (`enable_signup = false` in config.toml rules out a normal
--- signup call) — never run against a real/remote project.
-insert into auth.users (
-  instance_id, id, aud, role, email, encrypted_password,
-  email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
-  created_at, updated_at,
-  confirmation_token, email_change, email_change_token_new, recovery_token
-) values (
-  '00000000-0000-0000-0000-000000000000',
-  gen_random_uuid(),
-  'authenticated',
-  'authenticated',
-  'device@aurora.local',
-  crypt('local-device-dev-only', gen_salt('bf')),
-  now(),
-  '{"provider":"email","providers":["email"]}',
-  '{}',
-  now(), now(),
-  '', '', '', ''
-);
-
-insert into auth.identities (
-  id, user_id, provider_id, identity_data, provider,
-  last_sign_in_at, created_at, updated_at
-)
-select gen_random_uuid(), id, id::text,
-  format('{"sub":"%s","email":"%s"}', id::text, email)::jsonb,
-  'email', now(), now(), now()
-from auth.users where email = 'device@aurora.local';
+-- Sinds dienst-per-sessie (ADR 0016, docs/features/dienst-per-sessie.md)
+-- bestaat er geen gedeeld device-account meer: iedereen die op de bar werkt
+-- logt persoonlijk in vanaf de namenlijst, met een wachtwoord of (op een
+-- vertrouwd apparaat) een PIN. Daarom hebben alle seed-bardiensten en
+-- beheerders hieronder een e-mail/wachtwoord-account. Alles hieronder is een
+-- directe auth.users/auth.identities-insert, het standaard lokale
+-- dev-recept (`enable_signup` zou het ook kunnen, maar dit houdt de seed
+-- deterministisch) — nooit seeden in een echte omgeving.
 
 -- Non-zero for local dev so the negative-balance path is actually
 -- exercisable (Piet Bakker below starts already negative). Production
@@ -68,7 +34,7 @@ insert into members (name, role, pin_hash, balance_cents, archived) values
 -- real member state is meant to allow). No prior /beheer e2e scenario
 -- needed a password account, which is why Femke Bos had no linked
 -- auth_user_id until now. Same local-dev-only direct
--- auth.users/auth.identities insert as the shared device account above,
+-- auth.users/auth.identities insert as the other seed accounts,
 -- still never seeded into a real deployment.
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password,
@@ -159,6 +125,46 @@ update members set auth_user_id = (
   ),
   pin_hash = null
 where name = 'Sanne Bakker';
+
+-- Bardienst e-mail/wachtwoord account for Tom Willems (dienst-per-sessie):
+-- hij is de PIN-fixture. Hij houdt zijn PIN (1234) náást het wachtwoord — sinds
+-- ADR 0005/0016 is dat de normale staat voor een lid met een PIN (het
+-- wachtwoord blijft altijd werken, alleen-PIN is verboden). De PIN werkt op de
+-- bar pas op een apparaat waar hij eerder met het wachtwoord inlogde (via de
+-- namenlijst); e2e/a11y.spec.ts loopt dat na. Zijn hash heeft de oude
+-- kostenfactor en wordt bij de eerste PIN-login opnieuw gehasht (B1).
+insert into auth.users (
+  instance_id, id, aud, role, email, encrypted_password,
+  email_confirmed_at, raw_app_meta_data, raw_user_meta_data,
+  created_at, updated_at,
+  confirmation_token, email_change, email_change_token_new, recovery_token
+) values (
+  '00000000-0000-0000-0000-000000000000',
+  gen_random_uuid(),
+  'authenticated',
+  'authenticated',
+  'tom.willems@aurora.local',
+  crypt('local-bardienst-dev-only', gen_salt('bf')),
+  now(),
+  '{"provider":"email","providers":["email"]}',
+  '{}',
+  now(), now(),
+  '', '', '', ''
+);
+
+insert into auth.identities (
+  id, user_id, provider_id, identity_data, provider,
+  last_sign_in_at, created_at, updated_at
+)
+select gen_random_uuid(), id, id::text,
+  format('{"sub":"%s","email":"%s"}', id::text, email)::jsonb,
+  'email', now(), now(), now()
+from auth.users where email = 'tom.willems@aurora.local';
+
+update members set auth_user_id = (
+    select id from auth.users where email = 'tom.willems@aurora.local'
+  )
+where name = 'Tom Willems';
 
 -- Lid e-mail/wachtwoord account for Anna de Vries — docs/features/
 -- portal-login.md → Randgevallen: "supabase/seed.sql heeft nog geen

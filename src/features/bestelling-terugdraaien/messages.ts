@@ -1,4 +1,4 @@
-import { NO_BAR_ROLE_SESSION_MESSAGE } from "@/lib/staff";
+import { SESSION_CODE_INLINE_MESSAGE, isSessionErrorCode } from "@/lib/barSessie";
 import type { ReverseOrderErrorCode } from "@/hooks/queries/useReverseOrder";
 
 /** Maximale lengte van de reden, gelijk aan de check in
@@ -10,9 +10,10 @@ export const REVERSE_REASON_MAX_LENGTH = 200;
  *  docs/features/bestelling-terugdraaien.md → Foutcodes voorschrijft.
  *  Zelfde switch-vorm als topUpErrorMessage. */
 export function reverseOrderErrorMessage(code: ReverseOrderErrorCode): string {
+  // De zes sessiecodes (dienst-per-sessie) krijgen één centrale melding, geen
+  // inline regel per scherm.
+  if (isSessionErrorCode(code)) return SESSION_CODE_INLINE_MESSAGE;
   switch (code) {
-    case "no_bar_role":
-      return NO_BAR_ROLE_SESSION_MESSAGE;
     case "shift_not_open":
       return "deze dienst is al afgesloten — terugdraaien kan nu alleen nog via beheer";
     case "order_not_in_shift":

@@ -1,6 +1,13 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { USER, alertOf, fakeSession, json, loginMetWachtwoord } from "./helpers/supabaseMock";
+import {
+  USER,
+  alertOf,
+  fakeSession,
+  json,
+  loginMetWachtwoord,
+  mockBarSessie,
+} from "./helpers/supabaseMock";
 
 /**
  * Bestelling terugdraaien in beheer (docs/features/bestelling-terugdraaien.md
@@ -60,6 +67,8 @@ async function mockBeheerder(page: Page, reverse: [number, unknown]) {
     return json(route, 200, accept.includes("vnd.pgrst.object") ? row : row ? [row] : []);
   });
   await page.route(/\/rest\/v1\/rpc\/list_members_admin(\?|$)/, (route) => json(route, 200, [LID]));
+  // Sinds dienst-per-sessie registreert de keuze "Beheer" de sessie (ADR 0016).
+  await mockBarSessie(page);
   await page.route(/\/rest\/v1\/orders(\?|$)/, (route) => {
     const url = route.request().url();
     return json(route, 200, url.includes(`member_id=eq.${LID.id}`) ? ORDERS : []);
