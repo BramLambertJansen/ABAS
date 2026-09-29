@@ -12,7 +12,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(38);
+select plan(43);
 
 -- ── Fixtures (als superuser) ──────────────────────────────────────────────
 
@@ -264,6 +264,34 @@ select throws_ok(
   '23505', null,
   'auth_session_id is uniek'
 );
+
+-- ── Aanvullend: anon en een gearchiveerde beheerder ───────────────────────
+
+set local role anon;
+select throws_ok($$ select * from bar_device_members $$, '42501', null, 'anon leest geen bar_device_members');
+select throws_ok($$ select * from pin_failures $$, '42501', null, 'anon leest geen pin_failures');
+reset role;
+
+-- Een beheerder die gearchiveerd is, verliest ook het lezen van de meldingen
+-- en de sessies (de policy eist `not archived`, niet alleen de rol).
+insert into auth.users (
+  id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
+  created_at, updated_at, raw_app_meta_data, raw_user_meta_data
+) values (
+  '00000000-0000-0000-0000-00000000d015', '00000000-0000-0000-0000-000000000000',
+  'authenticated', 'authenticated', 'rls-admin-archived@test.local', crypt('x', gen_salt('bf')), now(),
+  now(), now(), '{"provider":"email","providers":["email"]}', '{}'
+);
+insert into members (id, name, role, pin_hash, balance_cents, archived, auth_user_id) values
+  ('00000000-0000-0000-0000-00000000d024', 'RLS Beheerder Gearchiveerd', 'beheerder', null, 0, true,
+   '00000000-0000-0000-0000-00000000d015');
+
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000d015', true);
+set local role authenticated;
+select is((select count(*)::int from admin_notifications), 0, 'een gearchiveerde beheerder leest geen admin_notifications');
+select is((select count(*)::int from bar_sessions), 0, 'een gearchiveerde beheerder leest geen bar_sessions');
+select is((select count(*)::int from shift_sessions), 0, 'een gearchiveerde beheerder leest geen shift_sessions');
+reset role;
 
 select * from finish();
 rollback;

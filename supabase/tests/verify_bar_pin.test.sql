@@ -14,14 +14,24 @@
 --   * iemand buiten een vertrouwd apparaat leert niet of een lid een PIN
 --     heeft;
 --   * de PIN die via set_own_pin (portal) is gezet, werkt in verify_bar_pin
---     (vervangt set_own_pin_start_shift.test.sql).
+--     (vervangt set_own_pin_start_shift.test.sql);
+--   * record_bar_password_login weigert een ongeldig apparaat en een lid
+--     zonder bar-rol, en heft alleen de blokkade van het eigen lid op;
+--   * een geslaagde PIN zet de teller terug, een null-PIN telt mee, en een
+--     poging op een ingetrokken apparaat telt niet mee;
+--   * de grens van 30 dagen: 29 dagen is nog vertrouwd.
+--
+-- Niet hier te toetsen: "een fout wachtwoord telt niet mee". Dat is een
+-- eigenschap van de loginflow (src/lib/barLogin.ts roept bij een mislukte
+-- signInWithPassword geen enkele databasefunctie aan); er bestaat geen
+-- databasepad dat een wachtwoordpoging registreert.
 --
 -- Run met `npm run db:test`.
 
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(50);
+select plan(70);
 
 -- ── Fixtures ──────────────────────────────────────────────────────────────
 
@@ -371,6 +381,137 @@ select is(
   (select result_code from verify_bar_pin('hash-c', '00000000-0000-0000-0000-00000000b120', '4821')),
   'ok',
   'een wachtwoordlogin verlengt het vertrouwen'
+);
+
+-- ── record_bar_password_login: weigergronden ──────────────────────────────
+-- Alleen de server roept dit aan, ná een geslaagde wachtwoordlogin. Toch
+-- weigert de functie zelf een ongeldig apparaat en een lid zonder bar-rol:
+-- anders kan een bug in de loginflow een lid met rol `lid` of een
+-- gearchiveerd lid PIN-vertrouwen geven.
+
+select throws_ok(
+  $$ select record_bar_password_login(null, '00000000-0000-0000-0000-00000000b120') $$,
+  'P0001', 'invalid_device',
+  'record_bar_password_login zonder apparaat-hash: invalid_device'
+);
+select throws_ok(
+  $$ select record_bar_password_login('', '00000000-0000-0000-0000-00000000b120') $$,
+  'P0001', 'invalid_device',
+  'record_bar_password_login met een lege apparaat-hash: invalid_device'
+);
+select throws_ok(
+  $$ select record_bar_password_login('hash-x', '00000000-0000-0000-0000-00000000b125') $$,
+  'P0001', 'not_allowed',
+  'record_bar_password_login weigert een lid zonder bar-rol'
+);
+select throws_ok(
+  $$ select record_bar_password_login('hash-x', '00000000-0000-0000-0000-00000000b124') $$,
+  'P0001', 'not_allowed',
+  'record_bar_password_login weigert een gearchiveerd lid'
+);
+select throws_ok(
+  $$ select record_bar_password_login('hash-x', gen_random_uuid()) $$,
+  'P0001', 'not_allowed',
+  'record_bar_password_login weigert een onbekend lid'
+);
+select is(
+  (select count(*)::int from bar_devices where token_hash = 'hash-x'),
+  0,
+  'de geweigerde aanroepen maakten geen apparaat aan'
+);
+
+-- ── Foute PIN op een ingetrokken apparaat telt niet mee ───────────────────
+
+select is(
+  (select result_code from verify_bar_pin('hash-a', '00000000-0000-0000-0000-00000000b120', '0000')),
+  'pin_not_available',
+  'een foute PIN op een ingetrokken apparaat: pin_not_available'
+);
+select is(
+  (select failed_count from pin_failures where member_id = '00000000-0000-0000-0000-00000000b120'),
+  0,
+  'een poging op een ingetrokken apparaat telt niet mee voor de lockout'
+);
+
+-- ── Een geslaagde PIN zet de teller terug ─────────────────────────────────
+-- (Hierboven stond de teller al op 0 door de wachtwoordlogin; hier echt na
+-- foute pogingen, zonder wachtwoordlogin ertussen.)
+
+select verify_bar_pin('hash-c', '00000000-0000-0000-0000-00000000b120', '0000');
+select verify_bar_pin('hash-c', '00000000-0000-0000-0000-00000000b120', '0001');
+select results_eq(
+  $$ select result_code, attempts_left from verify_bar_pin('hash-c', '00000000-0000-0000-0000-00000000b120', '0002') $$,
+  $$ values ('invalid_pin'::text, 2) $$,
+  'stap: drie foute PIN''s, nog 2 pogingen'
+);
+select is(
+  (select result_code from verify_bar_pin('hash-c', '00000000-0000-0000-0000-00000000b120', '4821')),
+  'ok',
+  'de juiste PIN vóór de vijfde poging slaagt'
+);
+select results_eq(
+  $$ select result_code, attempts_left from verify_bar_pin('hash-c', '00000000-0000-0000-0000-00000000b120', '0003') $$,
+  $$ values ('invalid_pin'::text, 4) $$,
+  'na een geslaagde PIN begint de teller opnieuw (4 resterende pogingen, niet 1)'
+);
+select results_eq(
+  $$ select result_code, attempts_left from verify_bar_pin('hash-c', '00000000-0000-0000-0000-00000000b120', null) $$,
+  $$ values ('invalid_pin'::text, 3) $$,
+  'een lege (null) PIN is een foute poging en telt mee'
+);
+
+-- ── Tijdens de blokkade ───────────────────────────────────────────────────
+
+select verify_bar_pin('hash-c', '00000000-0000-0000-0000-00000000b120', '0004');
+select verify_bar_pin('hash-c', '00000000-0000-0000-0000-00000000b120', '0005');
+select is(
+  (select result_code from verify_bar_pin('hash-c', '00000000-0000-0000-0000-00000000b120', '0006')),
+  'pin_locked',
+  'stap: de vijfde foute poging sinds de laatste geslaagde blokkeert de PIN'
+);
+select is(
+  (select result_code from verify_bar_pin('hash-onbekend', '00000000-0000-0000-0000-00000000b120', '4821')),
+  'pin_not_available',
+  'een geblokkeerd lid op een onbekend apparaat: pin_not_available (buiten een vertrouwd apparaat lekt de blokkade niet)'
+);
+select results_eq(
+  $$ select pin_available, pin_locked from bar_login_options('hash-onbekend', '00000000-0000-0000-0000-00000000b120') $$,
+  $$ values (false, false) $$,
+  'bar_login_options op een onbekend apparaat toont geen lockout-vlag'
+);
+
+-- De wachtwoordlogin van een ander lid heft deze blokkade niet op.
+select record_bar_password_login('hash-b', '00000000-0000-0000-0000-00000000b121');
+select is(
+  (select result_code from verify_bar_pin('hash-c', '00000000-0000-0000-0000-00000000b120', '4821')),
+  'pin_locked',
+  'de wachtwoordlogin van een ander lid heft de blokkade niet op (per lid)'
+);
+-- Een geweigerde wachtwoordlogin-registratie ook niet.
+select throws_ok(
+  $$ select record_bar_password_login('', '00000000-0000-0000-0000-00000000b120') $$,
+  'P0001', 'invalid_device',
+  'stap: een ongeldige registratie van de wachtwoordlogin'
+);
+select is(
+  (select locked_at is not null from pin_failures where member_id = '00000000-0000-0000-0000-00000000b120'),
+  true,
+  'een geweigerde record_bar_password_login heft de blokkade niet op'
+);
+
+-- ── Vertrouwen: 29 dagen is nog geldig, en een login verlengt het ─────────
+
+select record_bar_password_login('hash-c', '00000000-0000-0000-0000-00000000b120');
+update bar_devices set last_seen_at = now() - interval '29 days' where token_hash = 'hash-c';
+select is(
+  (select result_code from verify_bar_pin('hash-c', '00000000-0000-0000-0000-00000000b120', '4821')),
+  'ok',
+  'een apparaat waar 29 dagen niet is ingelogd, is nog vertrouwd'
+);
+select is(
+  (select last_seen_at from bar_devices where token_hash = 'hash-c'),
+  now(),
+  'een geslaagde PIN-login verlengt het vertrouwen (last_seen_at = nu)'
 );
 
 select * from finish();

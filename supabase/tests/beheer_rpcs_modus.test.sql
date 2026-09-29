@@ -12,7 +12,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(99);
+select plan(111);
 
 -- ── Sessie-helper (dienst per sessie, ADR 0016) ────────────────────────────
 -- De bar-RPC's eisen een geregistreerde bar-sessie met een actieve koppeling
@@ -232,6 +232,90 @@ select isnt(
   (select revoked_at from bar_device_members where member_id = '00000000-0000-0000-0000-00000000c022'),
   null,
   'het PIN-vertrouwen van dat lid is op alle apparaten ingetrokken'
+);
+
+-- Het ingetrokken vertrouwen blijft ingetrokken als het lid later weer
+-- bardienst wordt: pas een nieuwe wachtwoordlogin op dat apparaat herstelt het.
+update members set pin_hash = crypt('1234', gen_salt('bf', 4))
+  where id = '00000000-0000-0000-0000-00000000c022';
+select lives_ok(
+  $$ select set_member_role('00000000-0000-0000-0000-00000000c022', 'bardienst') $$,
+  'stap: de beheerder maakt het lid weer bardienst'
+);
+select is(
+  (select result_code from verify_bar_pin('bm-device', '00000000-0000-0000-0000-00000000c022', '1234')),
+  'pin_not_available',
+  'na rol lid → bardienst is het PIN-vertrouwen nog steeds ingetrokken (geen PIN-login op het oude apparaat)'
+);
+select record_bar_password_login('bm-device', '00000000-0000-0000-0000-00000000c022');
+select is(
+  (select result_code from verify_bar_pin('bm-device', '00000000-0000-0000-0000-00000000c022', '1234')),
+  'ok',
+  'pas een nieuwe wachtwoordlogin op dat apparaat herstelt het PIN-vertrouwen'
+);
+
+-- ── Archiveren beëindigt de bar-sessies ook (set_member_archived) ─────────
+
+insert into members (id, name, role, pin_hash, balance_cents, archived) values
+  ('00000000-0000-0000-0000-00000000c023', 'BM Gearchiveerd', 'bardienst', null, 0, false),
+  ('00000000-0000-0000-0000-00000000c024', 'BM Promotie',     'bardienst', null, 0, false);
+insert into shifts (id, started_by) values
+  ('00000000-0000-0000-0000-00000000c033', '00000000-0000-0000-0000-00000000c023');
+insert into shift_members (shift_id, member_id) values
+  ('00000000-0000-0000-0000-00000000c033', '00000000-0000-0000-0000-00000000c023');
+select pg_temp.act_as_bar('00000000-0000-0000-0000-00000000c023', '00000000-0000-0000-0000-00000000c033');
+insert into bar_device_members (device_id, member_id, password_login_at) values
+  ('00000000-0000-0000-0000-00000000c0d0', '00000000-0000-0000-0000-00000000c023', now());
+select pg_temp.act_as_bar('00000000-0000-0000-0000-00000000c024');
+insert into bar_device_members (device_id, member_id, password_login_at) values
+  ('00000000-0000-0000-0000-00000000c0d0', '00000000-0000-0000-0000-00000000c024', now());
+
+select pg_temp.act_as_user('00000000-0000-0000-0000-00000000c010');
+select lives_ok(
+  $$ select set_member_archived('00000000-0000-0000-0000-00000000c023', true) $$,
+  'een beheerder archiveert een bardienst met een actieve sessie en een open dienst'
+);
+select is(
+  (select end_reason from bar_sessions where auth_session_id = '00000000-0000-0000-0000-00000000c023'),
+  'geen_bar_rol',
+  'archiveren beëindigt de bar-sessie van dat lid meteen (geen_bar_rol)'
+);
+select is(
+  (select left_reason from shift_sessions where shift_id = '00000000-0000-0000-0000-00000000c033'),
+  'geen_bar_rol',
+  'archiveren sluit de koppeling met de dienst (geen_bar_rol)'
+);
+select is(
+  (select reason from admin_notifications where shift_id = '00000000-0000-0000-0000-00000000c033' and resolved_at is null),
+  'geen_bar_rol',
+  'archiveren maakt van de dienst een wees-dienst met een melding'
+);
+select isnt(
+  (select revoked_at from bar_device_members where member_id = '00000000-0000-0000-0000-00000000c023'),
+  null,
+  'archiveren trekt het PIN-vertrouwen van dat lid in'
+);
+
+-- ── Een rolwijziging die de bar-rol houdt, beëindigt niets ────────────────
+
+select lives_ok(
+  $$ select set_member_role('00000000-0000-0000-0000-00000000c024', 'beheerder') $$,
+  'een beheerder promoveert een bardienst met een actieve sessie tot beheerder'
+);
+select is(
+  (select ended_at from bar_sessions where auth_session_id = '00000000-0000-0000-0000-00000000c024'),
+  null,
+  'bardienst → beheerder beëindigt de bar-sessie niet'
+);
+select is(
+  (select revoked_at from bar_device_members where member_id = '00000000-0000-0000-0000-00000000c024'),
+  null,
+  'bardienst → beheerder laat het PIN-vertrouwen staan'
+);
+select is(
+  (select revoked_at from bar_devices where id = '00000000-0000-0000-0000-00000000c0d0'),
+  null,
+  'rolwijziging en archiveren trekken het lid-vertrouwen in, niet het hele apparaat'
 );
 
 select * from finish();

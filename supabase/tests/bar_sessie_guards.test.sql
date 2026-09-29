@@ -8,7 +8,9 @@
 --   * met een sessie in modus `beheer`,
 --   * met een gearchiveerd lid of een lid dat geen bar-rol meer heeft,
 --   * met een sessie van een ander account dan het lid,
---   * (de zes met een dienst) met een sessie die niet aan de dienst gekoppeld is.
+--   * (de zes met een dienst) met een sessie die niet aan de dienst gekoppeld is,
+--     waarvan de koppeling beëindigd is, of die aan een andere dienst hangt,
+--   * met een token zonder (geldig) session_id-claim.
 -- Alle guards staan vóór alle andere checks: de RPC's krijgen daarom dummy
 -- argumenten, en de foutcode is steeds die van de guard.
 --
@@ -18,7 +20,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(70);
+select plan(96);
 
 -- ── Sessie-helper (dienst per sessie, ADR 0016) ────────────────────────────
 -- De bar-RPC's eisen een geregistreerde bar-sessie met een actieve koppeling
@@ -219,6 +221,44 @@ select lives_ok(
        '00000000-0000-0000-0000-00000000a011'::uuid) $$,
   'na herstel van sessie en lid werkt de sessie weer'
 );
+
+-- ── Ronde 9: een claim zonder session_id ─────────────────────────────────
+-- Een geldig account van een bardienst, maar het token draagt geen
+-- session_id: de sessie komt nooit uit iets anders dan het JWT-claim.
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000a010', true);
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000a010"}', true);
+select throws_ok(c.sql, 'P0001', 'no_bar_session', c.name || ' weigert een token zonder session_id-claim (no_bar_session)')
+  from pg_temp.calls() c;
+
+-- ── Ronde 10: een session_id dat geen uuid is ────────────────────────────
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000a010","session_id":"geen-uuid"}', true);
+select throws_ok(c.sql, 'P0001', 'no_bar_session', c.name || ' weigert een session_id dat geen uuid is (no_bar_session, geen castfout)')
+  from pg_temp.calls() c;
+
+-- ── Ronde 11: de koppeling met de dienst is beëindigd ────────────────────
+-- Sessie A heeft een rij in shift_sessions voor de dienst, maar die is
+-- gesloten (bv. overgenomen door een beheerder): een gesloten koppeling telt
+-- niet als koppeling.
+select pg_temp.act_as_bar('00000000-0000-0000-0000-00000000a010');
+update shift_sessions set left_at = now(), left_reason = 'overgenomen'
+  where shift_id = '00000000-0000-0000-0000-00000000a020'
+    and bar_session_id = (select id from bar_sessions
+                           where auth_session_id = '00000000-0000-0000-0000-00000000a010');
+select throws_ok(c.sql, 'P0001', 'session_not_on_shift', c.name || ' weigert een sessie waarvan de koppeling met de dienst is beëindigd (session_not_on_shift)')
+  from pg_temp.calls() c where c.has_shift;
+
+-- ── Ronde 12: gekoppeld aan een andere open dienst ───────────────────────
+-- Sessie A werkt in een tweede open dienst (rechtstreeks geïnsert; fase 1
+-- kent er maar één, maar de guard mag daar niet op leunen). Een koppeling met
+-- dienst X is geen koppeling met dienst Y.
+insert into shifts (id, started_by) values
+  ('00000000-0000-0000-0000-00000000a021', '00000000-0000-0000-0000-00000000a010');
+insert into shift_members (shift_id, member_id) values
+  ('00000000-0000-0000-0000-00000000a021', '00000000-0000-0000-0000-00000000a010');
+select pg_temp.act_as_bar('00000000-0000-0000-0000-00000000a010', '00000000-0000-0000-0000-00000000a021');
+select throws_ok(c.sql, 'P0001', 'session_not_on_shift', c.name || ' weigert een sessie die aan een andere dienst gekoppeld is (session_not_on_shift)')
+  from pg_temp.calls() c where c.has_shift;
 
 -- ── Rechten: de guards zijn geen API ─────────────────────────────────────
 

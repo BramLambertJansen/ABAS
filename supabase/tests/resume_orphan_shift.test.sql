@@ -7,7 +7,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(24);
+select plan(31);
 
 -- Registreert voor een lid een bar-sessie (modus bar, rechtstreeks geïnsert),
 -- optioneel gekoppeld aan een dienst, en zet de JWT-claims. Het lid krijgt zo
@@ -294,6 +294,65 @@ select is(
       and ss.bar_session_id = (select id from bar_sessions where auth_session_id = '00000000-0000-0000-0000-00000000f0d1')),
   1,
   'de bestaande koppelingsrij is heropend, geen tweede rij'
+);
+
+-- ── Na hervatten: de attributie is niet veranderd ─────────────────────────
+-- De hervattende sessie boekt in de dienst, maar served_by wordt nog steeds
+-- tegen de (ongewijzigde) bezetting gecontroleerd: de buitenstaander komt er
+-- door het hervatten niet in.
+
+insert into products (id, name, category, price_cents, archived) values
+  ('00000000-0000-0000-0000-00000000f0e0', 'RO Pils', 'Bier', 250, false);
+
+select throws_ok(
+  $$ select place_order(current_setting('test.shift')::uuid, null,
+       '[{"product_id":"00000000-0000-0000-0000-00000000f0e0","qty":1}]'::jsonb,
+       '00000000-0000-0000-0000-00000000f013'::uuid) $$,
+  'P0001', 'served_by_not_on_shift',
+  'na hervatten: een served_by buiten de bezetting blijft geweigerd'
+);
+select throws_ok(
+  $$ select top_up(current_setting('test.shift')::uuid,
+       '00000000-0000-0000-0000-00000000f012'::uuid, 500, 'cash',
+       '00000000-0000-0000-0000-00000000f013'::uuid) $$,
+  'P0001', 'served_by_not_on_shift',
+  'na hervatten: top_up met een served_by buiten de bezetting blijft geweigerd'
+);
+select lives_ok(
+  $$ select place_order(current_setting('test.shift')::uuid, null,
+       '[{"product_id":"00000000-0000-0000-0000-00000000f0e0","qty":1}]'::jsonb,
+       '00000000-0000-0000-0000-00000000f011'::uuid) $$,
+  'na hervatten boekt de sessie in de dienst, met een bezettingslid als served_by'
+);
+select is(
+  (select bar_session_id from orders where shift_id = current_setting('test.shift')::uuid),
+  (select id from bar_sessions where auth_session_id = '00000000-0000-0000-0000-00000000f0d1'),
+  'de boeking na hervatten hangt aan de hervattende sessie'
+);
+
+-- ── Een bezettingslid dat geen bar-rol meer heeft ─────────────────────────
+-- Maak de dienst eerst weer wees, zodat alleen de guard nog in de weg staat.
+update shift_sessions set left_at = now(), left_reason = 'uitgelogd'
+  where shift_id = current_setting('test.shift')::uuid and left_at is null;
+
+select pg_temp.act_as_bar('00000000-0000-0000-0000-00000000f012', null, '00000000-0000-0000-0000-00000000f0d2');
+update members set archived = true where id = '00000000-0000-0000-0000-00000000f012';
+select throws_ok(
+  $$ select resume_orphan_shift(current_setting('test.shift')::uuid) $$,
+  'P0001', 'no_bar_role',
+  'een gearchiveerd bezettingslid kan de wees-dienst niet hervatten'
+);
+update members set archived = false, role = 'lid' where id = '00000000-0000-0000-0000-00000000f012';
+select throws_ok(
+  $$ select resume_orphan_shift(current_setting('test.shift')::uuid) $$,
+  'P0001', 'no_bar_role',
+  'een bezettingslid dat rol lid kreeg, kan de wees-dienst niet hervatten'
+);
+update members set role = 'bardienst' where id = '00000000-0000-0000-0000-00000000f012';
+select is(
+  (select count(*)::int from shift_sessions where shift_id = current_setting('test.shift')::uuid and left_at is null),
+  0,
+  'de geweigerde pogingen lieten de dienst wees'
 );
 
 select * from finish();
