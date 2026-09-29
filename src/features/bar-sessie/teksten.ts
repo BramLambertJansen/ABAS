@@ -82,6 +82,7 @@ export const DIENST_ELDERS = {
   titel: "Er loopt al een dienst",
   voorBardienst: "Alleen een beheerder kan deze dienst overnemen of afsluiten.",
   hervatten: "Dienst hervatten",
+  hervattenToast: "Dienst hervat",
   overnemen: "Overnemen",
   afsluiten: "Afsluiten",
   uitloggen: "Uitloggen",

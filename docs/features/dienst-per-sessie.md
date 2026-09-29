@@ -1211,6 +1211,7 @@ dienst — sluit die eerst af" en "deze dienst is al afgesloten".
 | Overnemen: uitleg | De dienst gaat verder op dit apparaat. Op het andere apparaat kan niemand meer in deze dienst werken. Je komt zelf in de bezetting. |
 | Overnemen: knoppen | Overnemen · Annuleren |
 | Overnemen: toast | Dienst overgenomen |
+| Hervatten: toast | Dienst hervat |
 | Afsluiten: titel (bestaat) | Dienst afsluiten |
 | Afsluiten: extra regel | Deze dienst loopt op een ander apparaat. Daar stopt hij ook. |
 | Afmelden: titel | Apparaat afmelden? |

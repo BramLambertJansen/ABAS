@@ -60,8 +60,12 @@ export function DienstElders({ shift, isBeheerder }: { shift: OtherShift; isBehe
     // Geslaagd, of de toestand klopte niet meer (`shift_not_orphan`,
     // `not_in_shift_crew`, `shift_not_open`, `session_has_shift`): opnieuw
     // ophalen, dan toont het scherm de juiste toestand zonder foutregel.
-    if (ok) sessie.herlaad();
-    else sessie.ververs();
+    if (ok) {
+      sessie.toonToast(DIENST_ELDERS.hervattenToast);
+      sessie.herlaad();
+    } else {
+      sessie.ververs();
+    }
   }
 
   const eerste = shift.sessions[0] ?? null;

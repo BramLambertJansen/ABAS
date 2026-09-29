@@ -77,6 +77,7 @@ test("een bezettinglid ziet bij een wees-dienst uitleg en knop, en hervat", asyn
   // dienst" maakt plaats voor de dienst zelf.
   await expect(page.getByRole("tab", { name: "Verkoop" })).toBeVisible({ timeout: 15_000 });
   await expect(page.getByRole("heading", { name: "Er loopt al een dienst" })).toHaveCount(0);
+  await expect(page.getByText("Dienst hervat", { exact: true })).toBeVisible();
   expect(sessie.hervattingen).toEqual([SHIFT_ID]);
 });
 
