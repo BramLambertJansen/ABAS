@@ -215,5 +215,7 @@ Geen.
   afgewezen of gooit de factory of `rpc()` synchroon, dan gaat de telling
   terug in de dedupe-state en gaat ze mee met de eerste melding ná het
   venster. Geen herhaalpoging.
-- **Opvolging:** de behandeling van `no_bar_role` loopt in
-  [issue #100](https://github.com/BramLambertJansen/ABAS/issues/100).
+- **`no_bar_role`** ([issue #100](https://github.com/BramLambertJansen/ABAS/issues/100)):
+  sinds 0023 een bekende code in de zes bar-hooks die hem kunnen krijgen, met
+  eigen tekst (`NO_BAR_ROLE_SESSION_MESSAGE`). Als domeinuitkomst wordt hij
+  niet gemeld.

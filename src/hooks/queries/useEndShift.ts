@@ -4,23 +4,23 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { reportClientError } from "@/lib/clientErrors";
 
-/** `end_shift` raises only `no_bar_role` (0023, a lid-sessie). That falls
- *  under "unknown" on purpose and is reported via `reportClientError`: a
- *  lid-sessie in `shells/bar` calling a bar-RPC is an anomaly we want to see
- *  in `client_errors`, not a user-facing case (Bram, #100). Otherwise just
- *  an `update ... where ended_at is null`, so anything else here is a network
- *  failure or otherwise unexpected error. Same `toErrorCode`-fallback shape as the
- *  other shift/bezetting mutation hooks (useAddShiftMember.ts,
- *  useRemoveShiftMember.ts) for consistency, even though the union is
- *  trivially small here. */
-export type EndShiftErrorCode = "unknown";
+/** Error codes `end_shift` actually raises. Tot 0023 raisede het niets
+ *  (0001_init.sql: alleen een `update ... where ended_at is null`);
+ *  0023_bar_rpcs_weigeren_lid.sql voegt `no_bar_role` toe voor een
+ *  lid-sessie. Anything else (network failure, unexpected server error)
+ *  falls through to "unknown". Same pattern as useAddShiftMember.ts /
+ *  useRemoveShiftMember.ts. */
+export type EndShiftErrorCode = "no_bar_role" | "unknown";
 
 type State =
   | { status: "idle" }
   | { status: "pending" }
   | { status: "error"; code: EndShiftErrorCode };
 
-function toErrorCode(): EndShiftErrorCode {
+function toErrorCode(message: string | undefined): EndShiftErrorCode {
+  if (message === "no_bar_role") {
+    return message;
+  }
   return "unknown";
 }
 
@@ -39,18 +39,17 @@ export function useEndShift() {
         p_shift_id: shiftId,
       });
       if (error) {
-        reportClientError(supabase, "useEndShift", error);
-        setState({ status: "error", code: toErrorCode() });
+        const code = toErrorCode(error.message);
+        if (code === "unknown") reportClientError(supabase, "useEndShift", error);
+        setState({ status: "error", code });
         return false;
       }
       setState({ status: "idle" });
       return true;
     } catch (err) {
-      reportClientError(createClient, "useEndShift", err);
-      setState({
-        status: "error",
-        code: toErrorCode(),
-      });
+      const code = toErrorCode(err instanceof Error ? err.message : undefined);
+      if (code === "unknown") reportClientError(createClient, "useEndShift", err);
+      setState({ status: "error", code });
       return false;
     }
   }

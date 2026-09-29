@@ -55,7 +55,8 @@ precies zoals dit scherm ze nodig heeft.
   discriminated result). Typed error-code union: `shift_not_open |
   served_by_not_on_shift | invalid_amount | member_not_found | unknown` —
   dit zijn exact de `raise exception`-codes die `top_up` in `0001_init.sql`
-  gooit; zie Randgevallen voor de UI-afhandeling per code.
+  gooit (sindsdien aangevuld met `amount_exceeds_max` uit 0016 en
+  `no_bar_role` uit 0023); zie Randgevallen voor de UI-afhandeling per code.
 
 ## Rolzichtbaarheid
 
@@ -141,6 +142,7 @@ de open/close-levenscyclus (zelfde verdeling als `onOpenCheckout`).
 | `member_not_found` | Lid wordt gearchiveerd tussen openen en boeken (praktisch onbereikbaar zolang #13 niet bestaat, wel cheap af te vangen) | "dit lid bestaat niet meer of is gearchiveerd — kies een ander lid" | overlay sluit terug naar het verkoopscherm, leden refetchen |
 | `invalid_amount` | Client-guard hoort dit al te voorkomen (geen geldig/positief bedrag); server-fallback bij een edge case in de invoer | "vul een geldig bedrag in" | overlay blijft open, invoerveld blijft bewerkbaar |
 | `shift_not_open` | Bereikbaar sinds #12 (docs/features/dienst-afsluiten.md): "Dienst afsluiten" op de Dienst-tab roept `end_shift` aan, waarna een nog open opwaardeer-overlay hierop stuit bij boeken, zelfde constatering als `verkoop.md` | "de dienst is niet meer actief — herlaad het scherm" | — |
+| `no_bar_role` | Lid-sessie roept de RPC aan (0023_bar_rpcs_weigeren_lid.sql, #100) — kan alleen als een lid op de bar-sessie terechtkomt | "dit account mag niet op de bar werken — log uit en log in als bardienst" | overlay blijft open; geen melding naar `client_errors` (bekende uitkomst) |
 | `unknown` (netwerk/onverwacht) | Altijd mogelijk | "er ging iets mis, probeer het opnieuw" | overlay blijft open, bedrag/keuze blijven staan zodat opnieuw proberen kan zonder alles opnieuw in te vullen |
 
 **Overig**

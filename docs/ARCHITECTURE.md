@@ -178,10 +178,16 @@ confirms what a real component does with the number.
 bezetting-beheer (issue #7) — `src/components/Overlay.tsx`, the first
 component in what had been an empty `src/components/`, renders a centered
 modal-with-backdrop for `overlay === "modal"` (the only value `shells/bar`
-has ever set, `barCapabilities.overlay`) and falls through to the same
-markup for `"sheet"` rather than building an untested second branch — no
-`shells/portal` consumer exists yet to build or verify a real bottom sheet
-against. The dialog is white, as every dialog in `designs/Bar App.dc.html`
+has ever set, `barCapabilities.overlay`). Until #17 it fell through to the
+same markup for `"sheet"` rather than building an untested second branch.
+**The real `"sheet"` branch is built and merged (#17, PR #110,
+2026-09-28)**, with the portal-profiel sheets as its first consumer
+(`docs/features/portal-profiel.md` → useShell()-contract): anchored to the
+bottom, full width, rounded top corners (`rounded-t-[28px]`), `bg-canvas`,
+backdrop `bg-ink/40`, and a slide-in (`animate-sheet-in` in
+`tailwind.config.ts`) that only runs under `motion-safe:`. No drag-to-close
+gesture (WCAG 2.5.1). Both variants share one code path for everything
+below; only layout/position differ. The modal dialog is white, as every dialog in `designs/Bar App.dc.html`
 (it was a dark `rail-card` panel until 2026-09-24); content inside uses the
 light tokens, and `InitialsAvatar`/`RoleBadge`/`MemberPill` take a
 `tone="light"` there. Required regardless of variant: `role="dialog"`, `aria-modal`,
@@ -190,8 +196,20 @@ backdrop-click both close. Reused as-is (no new decision) by issue #8's
 sale-checkout confirmation — see `docs/features/verkoop.md`. `density`
 (`"comfortable" | "compact"`) still has no real consumer as of #8 either;
 leave that one open until a screen actually needs to branch on it, same
-"don't build ahead of a second real case" reasoning as the `"sheet"` branch
-above.
+"don't build ahead of a second real case" reasoning the `"sheet"` branch
+followed until #17.
+
+**Overlay presence (settled, 2026-09-28, built 2026-09-29 in PR #108, ADR
+[0014](adr/0014-overlay-aanwezigheid-via-gedeelde-context.md))**: every
+`Overlay` registers itself on mount/unmount with a counter in
+`src/components/OverlayPresence.tsx`, in a layout effect so the count is
+current before any consumer's passive effect reads it. `useOpenOverlayCount()`
+reads it; with no `OverlayPresenceProvider` above, registering is a no-op and
+the count is 0.
+The only provider sits in `DienstTabs`, for the "dienst staat nog open"-melding
+(`docs/features/dienst-te-lang-open.md`), which waits until no other overlay
+is open instead of stacking on top — two `Overlay`s at once fight over
+Escape/backdrop/focus-trap. A dialog built outside `Overlay` isn't counted.
 
 **First multi-screen bar navigation (settled, 2026-08-26)**: issue #8 is the
 first time `shells/bar` needed more than one screen behind an open shift.
@@ -848,6 +866,33 @@ console). Retentie 90 dagen via `purge_client_errors()` en pg_cron-job
 `purge_client_errors` (dagelijks 03:00 UTC), het eerste gebruik van
 pg_cron; op het gehoste project nog niet aangetoond. `check:policy` weert
 kale `console.error(` in `src/hooks/queries/`.
+
+**Portal-profiel (gebouwd en gemerged, #17, PR #110, 2026-09-28)**: ADR
+[0012](adr/0012-portal-eigen-data-voor-elke-rol.md),
+`docs/features/portal-profiel.md`. De portal laat elke rol met een
+gekoppelde `members`-rij binnen, niet meer alleen `lid`. `denied` blijft
+alleen voor een sessie zonder gekoppeld lid. De portal toont voor elke rol
+alleen eigen data: portal-leeshooks filteren expliciet op de eigen rij of
+gaan via een zelf-scopende RPC. Dat is reviewwerk, geen gate. Nieuw
+tabblad "Account" in `PortalDashboard.tsx`
+(`src/features/portal-profiel/`, toegevoegd aan `PORTAL_ONLY_DIRS` in
+`check:arch`) met naam, wachtwoord en, alleen voor bardienst/beheerder, de
+eigen bar-PIN. Eén nieuwe migratie, alleen een functie:
+`0026_eigen_naam_wijzigen.sql` met `update_own_name(p_name)`. Die is
+zelfbediening zonder doel-id, net als `set_own_pin` (0014, ongewijzigd
+hergebruikt), heeft geen rolcheck, scrubt `pin_hash` in de return en is
+alleen uitvoerbaar voor `authenticated`. Wachtwoord wijzigen is
+`auth.updateUser`, geen RPC. Nieuw gedeeld in `src/components/`:
+`PinToetsenbord.tsx` (puntjes plus toetsenraster, `tone` `rail`/`light`,
+getild uit `PinPad.tsx`, dat nu een dunne schil is) en een `tone`-prop
+(`rail`, de standaard, of `light`) op `TekstVeld.tsx`. Nieuw gedeeld in
+`src/lib/`: `ownPinErrors.ts` (PIN-foutcodes, -teksten en `PIN_PATTERN`,
+gebruikt door `/beheer` → "Mijn account" en de portal) en, in
+`authErrors.ts`, de mapping en teksten van `updateUser`-fouten
+(`toPasswordUpdateErrorCode`/`passwordUpdateErrorMessage`, inclusief
+`reauth_required`), gedeeld met de twee herstelflows. Eerste echte
+consument van `Overlay.tsx`'s `"sheet"`-tak, zie "`useShell().overlay`"
+hierboven.
 
 ## Wat het prototype deed maar hier nog niet is besloten
 

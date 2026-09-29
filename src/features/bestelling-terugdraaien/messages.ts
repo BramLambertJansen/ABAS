@@ -1,3 +1,4 @@
+import { NO_BAR_ROLE_SESSION_MESSAGE } from "@/lib/staff";
 import type { ReverseOrderErrorCode } from "@/hooks/queries/useReverseOrder";
 
 /** Maximale lengte van de reden, gelijk aan de check in
@@ -10,6 +11,8 @@ export const REVERSE_REASON_MAX_LENGTH = 200;
  *  Zelfde switch-vorm als topUpErrorMessage. */
 export function reverseOrderErrorMessage(code: ReverseOrderErrorCode): string {
   switch (code) {
+    case "no_bar_role":
+      return NO_BAR_ROLE_SESSION_MESSAGE;
     case "shift_not_open":
       return "deze dienst is al afgesloten — terugdraaien kan nu alleen nog via beheer";
     case "order_not_in_shift":

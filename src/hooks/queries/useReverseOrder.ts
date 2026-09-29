@@ -10,7 +10,9 @@ import { reportClientError } from "@/lib/clientErrors";
  *  onverwachte serverfout) valt onder "unknown". Zelfde patroon als
  *  useTopUp.ts → TopUpErrorCode. */
 export type ReverseOrderErrorCode =
-  // alleen bar
+  // alleen bar — no_bar_role sinds 0023_bar_rpcs_weigeren_lid.sql (lid-sessie
+  // geweigerd); reverse_order_as_admin raiset hem niet
+  | "no_bar_role"
   | "shift_not_open"
   | "order_not_in_shift"
   | "reversed_by_not_on_shift"
@@ -25,6 +27,7 @@ export type ReverseOrderErrorCode =
   | "unknown";
 
 const KNOWN_CODES: ReverseOrderErrorCode[] = [
+  "no_bar_role",
   "shift_not_open",
   "order_not_in_shift",
   "reversed_by_not_on_shift",

@@ -5,7 +5,8 @@ import { createClient } from "@/lib/supabase/portalClient";
 import { reportClientError } from "@/lib/clientErrors";
 
 /**
- * Eén transactie van de ingelogde `lid`-sessie — 1-op-1 de kolommen van
+ * Eén transactie van de ingelogde portal-sessie (elke rol, ADR 0012) —
+ * 1-op-1 de kolommen van
  * `list_own_transactions()` (docs/features/portal-dashboard.md → RPC's,
  * ADR 0010), plus `itemsDescription` uit een tweede, losse select.
  * Bedragen komen ongewijzigd uit de database, altijd positief — de richting
@@ -54,9 +55,16 @@ type State =
  * `list_own_transactions()` (nieuwste eerst, zie de RPC's eigen `order by`)
  * gecombineerd met een tweede, platte select op `order_lines`/`products`
  * voor de itemomschrijving per bestelling — dat kolom-probleem heeft de RPC
- * niet nodig te dragen, `order_lines_select` (0015) staat een lid al toe de
- * eigen bestelregels te lezen (ADR 0010 → "Niet gekozen"). Geen paginering
- * in v1 (spec → Expliciet buiten scope).
+ * niet nodig te dragen (ADR 0010 → "Niet gekozen"). Geen paginering in v1
+ * (spec → Expliciet buiten scope).
+ *
+ * Eigen-rij-scoping, voor elke rol (ADR 0012 → Beslissing 2), niet via RLS:
+ * `list_own_transactions()` is een zelf-scopende RPC zonder doel-parameter
+ * (`caller_member_id()`, 0024). De `order_lines`-select is een afgeleide
+ * read: hij filtert met `.in("order_id", …)` op de order-id's die die RPC
+ * teruggaf, dus alleen eigen bestelregels. Op de RLS van `order_lines_select`
+ * (0015, ADR 0007) leunt dit niet: die versmalt alleen een `lid`-sessie, een
+ * bardienst/beheerder-sessie ziet via RLS alle bestelregels.
  */
 export function usePortalTransactions(): State & { refetch: () => void } {
   const [state, setState] = useState<State>({ status: "loading" });

@@ -1,4 +1,5 @@
 import { formatCents } from "@/lib/money";
+import { NO_BAR_ROLE_SESSION_MESSAGE } from "@/lib/staff";
 import type { PlaceOrderErrorCode } from "@/hooks/queries/usePlaceOrder";
 
 /** De onvoldoende-saldo-banner-tekst, gedeeld tussen §2 (mandje-paneel) en
@@ -25,6 +26,8 @@ export function placeOrderErrorMessage(code: PlaceOrderErrorCode): string {
       return "een product in je mandje is niet meer beschikbaar — controleer je mandje";
     case "shift_not_open":
       return "de dienst is niet meer actief — herlaad het scherm";
+    case "no_bar_role":
+      return NO_BAR_ROLE_SESSION_MESSAGE;
     case "insufficient_balance":
     case "empty_order":
     case "invalid_qty":

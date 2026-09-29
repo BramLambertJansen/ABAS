@@ -3,6 +3,8 @@
 import { useId, useState, type ReactNode } from "react";
 import type { OpenShift } from "@/hooks/queries/useOpenShift";
 import { DienstActief } from "@/features/bezetting-beheren/DienstActief";
+import { DienstTeLangOpenMelding } from "@/features/dienst-te-lang-open/DienstTeLangOpenMelding";
+import { OverlayPresenceProvider } from "@/components/OverlayPresence";
 import { VerkoopScherm } from "./VerkoopScherm";
 
 type Tab = "verkoop" | "dienst";
@@ -21,6 +23,11 @@ type Tab = "verkoop" | "dienst";
  * hidden-toggle) — zo krijgt Verkoop bij terugkeer altijd verse data
  * (assortiment, leden, bezetting) in plaats van een stale snapshot van
  * vóór het wisselen.
+ *
+ * `OverlayPresenceProvider` omvat de tabpanelen én de melding "Dienst staat
+ * nog open" (docs/features/dienst-te-lang-open.md, ADR 0014): de melding is
+ * een sibling van de tabpanelen, dus verschijnt over beide tabs heen en
+ * overleeft (met zijn snooze) elke tabwissel.
  */
 export function DienstTabs({
   shift,
@@ -34,82 +41,86 @@ export function DienstTabs({
   const dienstTabId = useId();
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-canvas font-sans text-ink antialiased">
-      <nav
-        aria-label="Bar"
-        className="flex w-[92px] flex-none flex-col items-center gap-1 bg-rail pb-[18px] pt-5"
-      >
-        <div
-          aria-hidden="true"
-          className="flex h-[42px] w-[42px] items-center justify-center rounded-[13px] bg-accent text-[19px] font-extrabold tracking-tight text-white shadow-[0_6px_16px_-4px_rgba(238,90,36,0.7)]"
+    <OverlayPresenceProvider>
+      <div className="flex h-screen w-full overflow-hidden bg-canvas font-sans text-ink antialiased">
+        <nav
+          aria-label="Bar"
+          className="flex w-[92px] flex-none flex-col items-center gap-1 bg-rail pb-[18px] pt-5"
         >
-          A
-        </div>
-        <span className="mb-4 mt-[9px] rounded-full bg-accent/20 px-2 py-1 text-[8.5px] font-extrabold tracking-[0.13em] text-rail-error">
-          DIENST
-        </span>
-
-        <div
-          role="tablist"
-          aria-label="Dienst-navigatie"
-          aria-orientation="vertical"
-          className="flex flex-col items-center gap-1"
-        >
-          <RailTab
-            id={verkoopTabId}
-            controls="verkoop-panel"
-            selected={tab === "verkoop"}
-            onSelect={() => setTab("verkoop")}
-            icon={
-              <svg width="19" height="19" viewBox="0 0 19 19" fill="none" aria-hidden="true">
-                <rect x="5.2" y="2.6" width="8.6" height="13.8" rx="2.6" stroke="currentColor" strokeWidth="1.6" />
-                <line x1="5.2" y1="7.2" x2="13.8" y2="7.2" stroke="currentColor" strokeWidth="1.6" />
-              </svg>
-            }
+          <div
+            aria-hidden="true"
+            className="flex h-[42px] w-[42px] items-center justify-center rounded-[13px] bg-accent text-[19px] font-extrabold tracking-tight text-white shadow-[0_6px_16px_-4px_rgba(238,90,36,0.7)]"
           >
-            Verkoop
-          </RailTab>
-          <RailTab
-            id={dienstTabId}
-            controls="dienst-panel"
-            selected={tab === "dienst"}
-            onSelect={() => setTab("dienst")}
-            icon={
-              <svg width="19" height="19" viewBox="0 0 19 19" fill="none" aria-hidden="true">
-                <line x1="4.2" y1="6.4" x2="14.2" y2="6.4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                <polyline points="11.6,3.8 14.8,6.4 11.6,9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                <line x1="14.8" y1="12.6" x2="4.8" y2="12.6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-                <polyline points="7.4,10 4.2,12.6 7.4,15.2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            }
+            A
+          </div>
+          <span className="mb-4 mt-[9px] rounded-full bg-accent/20 px-2 py-1 text-[8.5px] font-extrabold tracking-[0.13em] text-rail-error">
+            DIENST
+          </span>
+
+          <div
+            role="tablist"
+            aria-label="Dienst-navigatie"
+            aria-orientation="vertical"
+            className="flex flex-col items-center gap-1"
           >
-            Dienst
-          </RailTab>
-        </div>
-      </nav>
+            <RailTab
+              id={verkoopTabId}
+              controls="verkoop-panel"
+              selected={tab === "verkoop"}
+              onSelect={() => setTab("verkoop")}
+              icon={
+                <svg width="19" height="19" viewBox="0 0 19 19" fill="none" aria-hidden="true">
+                  <rect x="5.2" y="2.6" width="8.6" height="13.8" rx="2.6" stroke="currentColor" strokeWidth="1.6" />
+                  <line x1="5.2" y1="7.2" x2="13.8" y2="7.2" stroke="currentColor" strokeWidth="1.6" />
+                </svg>
+              }
+            >
+              Verkoop
+            </RailTab>
+            <RailTab
+              id={dienstTabId}
+              controls="dienst-panel"
+              selected={tab === "dienst"}
+              onSelect={() => setTab("dienst")}
+              icon={
+                <svg width="19" height="19" viewBox="0 0 19 19" fill="none" aria-hidden="true">
+                  <line x1="4.2" y1="6.4" x2="14.2" y2="6.4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                  <polyline points="11.6,3.8 14.8,6.4 11.6,9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                  <line x1="14.8" y1="12.6" x2="4.8" y2="12.6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+                  <polyline points="7.4,10 4.2,12.6 7.4,15.2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              }
+            >
+              Dienst
+            </RailTab>
+          </div>
+        </nav>
 
-      {tab === "verkoop" && (
-        <div
-          id="verkoop-panel"
-          role="tabpanel"
-          aria-labelledby={verkoopTabId}
-          className="flex min-h-0 min-w-0 flex-1"
-        >
-          <VerkoopScherm shift={shift} />
-        </div>
-      )}
+        {tab === "verkoop" && (
+          <div
+            id="verkoop-panel"
+            role="tabpanel"
+            aria-labelledby={verkoopTabId}
+            className="flex min-h-0 min-w-0 flex-1"
+          >
+            <VerkoopScherm shift={shift} />
+          </div>
+        )}
 
-      {tab === "dienst" && (
-        <div
-          id="dienst-panel"
-          role="tabpanel"
-          aria-labelledby={dienstTabId}
-          className="flex min-h-0 min-w-0 flex-1"
-        >
-          <DienstActief shift={shift} onShiftEnded={onShiftEnded} />
-        </div>
-      )}
-    </div>
+        {tab === "dienst" && (
+          <div
+            id="dienst-panel"
+            role="tabpanel"
+            aria-labelledby={dienstTabId}
+            className="flex min-h-0 min-w-0 flex-1"
+          >
+            <DienstActief shift={shift} onShiftEnded={onShiftEnded} />
+          </div>
+        )}
+
+        <DienstTeLangOpenMelding shift={shift} onShiftEnded={onShiftEnded} />
+      </div>
+    </OverlayPresenceProvider>
   );
 }
 

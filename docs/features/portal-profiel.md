@@ -1,6 +1,9 @@
 # Portal-profiel: naam, wachtwoord en eigen bar-PIN
 
-**Status: geaccordeerd door Bram (2026-09-28): besluiten 1–7, alle teksten en ADR 0012.**
+**Status: gebouwd en gemerged (2026-09-28, [PR #110](https://github.com/BramLambertJansen/ABAS/pull/110), merge-commit `3df726d`).**
+Geaccordeerd door Bram (2026-09-28): besluiten 1–7, alle teksten en ADR 0012.
+Waar de bouw van deze spec afwijkt, staat in "Zoals gebouwd" hieronder; die
+sectie gaat voor op de rest van dit document.
 Introduceert een nieuwe architectuurbeslissing, zie
 [ADR 0012](../adr/0012-portal-eigen-data-voor-elke-rol.md), geaccepteerd
 samen met besluit 1.
@@ -18,7 +21,8 @@ lid dat ook bardienst/beheerder is** het profielscherm bereiken, en was het
 PIN-deel van het acceptatiecriterium niet te bouwen. Bram heeft besloten dat
 de portal het lid-deel wordt voor elke rol (besluit 1, ADR 0012). Zie
 "Besloten door Bram (2026-09-28)" onderaan voor alle zeven besluiten; dit
-document is daarop bijgewerkt. Er staat niets meer open.
+document is daarop bijgewerkt. Eén punt staat na de bouw nog open: zie
+"Zoals gebouwd" → Open.
 
 Bouwt voort op ADR
 [0002](../adr/0002-beheeracties-vereisen-eigen-e-mail-sessie.md) (actorcheck
@@ -31,6 +35,72 @@ alleen eigen rijen) en
 `portalClient.ts`/`portalServer.ts`, afgedwongen door `check:arch`) en
 [0012](../adr/0012-portal-eigen-data-voor-elke-rol.md) (portal voor elke rol,
 alleen eigen data, leeshooks scopen expliciet).
+
+## Zoals gebouwd (PR #110, 2026-09-28)
+
+De bouw volgt de spec, op deze punten na. Elk punt is tegen de code op
+`main` (`3df726d`) nagelopen.
+
+- **Testplan → e2e, stap 3 en 4 zijn één test.** "portal-PIN instellen zet
+  de bardienst in de stafkeuze, verwijderen haalt hem eruit" staat in
+  `e2e/a11y.spec.ts`, binnen `test.describe.serial("stateful bar-shell
+  scenarios (shared session)")`, na `ensureNoOpenShift()`. De portal draait
+  in een tweede tab van dezelfde browsercontext (eigen cookie, ADR 0009).
+  De test gebruikt alleen de eigen fixture `e2e.profiel.bardienst`, en ruimt
+  een PIN van een afgebroken eerdere run eerst op. Er staat dus geen
+  PIN-test in `e2e/portal-profiel.spec.ts` → live backend. Daar staan Anna
+  (alleen lezen), `e2e.profiel.naam` en `e2e.profiel.wachtwoord` (dat
+  laatste met `adminSetPassword` in `afterEach`, via het nieuwe
+  `e2e/helpers/supabaseAdmin.ts`). De regel "één fixture per muterende
+  test" is aangehouden.
+- **Testplan → db:test, kern-AC:** de Developer koos een nieuw bestand,
+  `supabase/tests/set_own_pin_start_shift.test.sql`.
+- **`src/lib/authErrors.ts` deelt ook de foutteksten, niet alleen de
+  mapping.** Naast `toPasswordUpdateErrorCode()` (type
+  `PasswordUpdateErrorCode`) staat daar `passwordUpdateErrorMessage()`. De
+  eigen `errorMessage()`-functies in `WachtwoordHerstellen.tsx` en
+  `PortalWachtwoordHerstellen.tsx` zijn weg. Gevolg: ook de twee
+  herstelflows (`useWachtwoordHerstellen.ts`,
+  `usePortalWachtwoordHerstellen.ts`) kennen nu `reauth_required`. Hun
+  foutcode-type is `"link_invalid" | PasswordUpdateErrorCode`. De teksten
+  voor de bestaande codes zijn niet veranderd.
+- **`usePortalUpdateOwnName` en `usePortalSetOwnPin` geven `{ ok: true } |
+  { ok: false, code }` terug** (`UpdateOwnNameResult`/`SetOwnPinResult`), geen
+  boolean. Zo kan de sheet zonder effect op `actor_not_found`/`no_bar_role`
+  reageren (`onStale` → profiel-`refetch()`). `errorCode` staat daarnaast
+  nog steeds in de hook-state. `usePortalWachtwoordWijzigen` geeft wel een
+  boolean terug.
+- **UI-details die de spec niet noemde:**
+  - de PIN-sheet heeft onderaan een eigen **"Annuleer"**-knop, onder
+    "Pincode verwijderen";
+  - het Account-tabblad heeft een kop **"Account"** (`<h2>`) boven de
+    profielkaart;
+  - de toast staat onderaan het scherm (`fixed`, in een
+    `role="status"`-regio van `AccountTab.tsx`), zelfde duur als in
+    `MijnAccountOverlay.tsx` (3,5 s).
+- **Naam-sheet via `TekstVeld`.** `src/components/TekstVeld.tsx` kreeg een
+  `tone`-prop (`"rail"`, de standaard, of `"light"`). Bestaande schermen zijn
+  daardoor ongewijzigd. `NaamWijzigenSheet.tsx` gebruikt `tone="light"` in
+  plaats van een eigen label en input. Annuleer/Opslaan en
+  Annuleer/Wijzigen komen uit het nieuwe `SheetKnoppen.tsx` in
+  `src/features/portal-profiel/`.
+- **Laadfouten (#68) alleen in `usePortalProfiel`.** De spec zegt bij Hooks
+  dat `usePortalProfiel` "hetzelfde netwerk-/serverfoutonderscheid als de
+  andere portal-leeshooks" volgt. `usePortalProfiel` gebruikt
+  `loadErrorMessage()` (`src/lib/loadErrors.ts`). `usePortalBalance`,
+  `usePortalTransactions` en `usePortalAppSettings` doen dat **nog niet**:
+  die tonen een vaste "Controleer de verbinding"-tekst. Die inconsistentie
+  bestond al en is in #17 niet aangeraakt.
+- **Sheet-animatie:** `tailwind.config.ts` kreeg keyframes/animatie
+  `sheet-in` (0,22 s). `Overlay.tsx` gebruikt die alleen via
+  `motion-safe:`.
+
+**Open.** De instelling "Secure password change" in het gehoste
+Supabase-project (Randgevallen → `updateUser` vereist herauthenticatie) is
+nog niet vastgesteld. Bram kijkt het na. De code vangt beide gevallen al af
+(`reauth_required` → "log opnieuw in en probeer het nog eens"). De uitkomst
+verandert dus niets aan de code, alleen aan hoe vaak die melding te zien
+zal zijn.
 
 ## Onderzocht in /designs/
 
@@ -254,7 +324,8 @@ herkent ze daaraan (`scripts/check-arch.mjs` regel 68–72) en dwingt
   → Beslissing 2: een bardienst/beheerder-sessie kan via RLS álle
   `members`-rijen lezen (ADR 0007 beperkt alleen rol `lid`). Met `refetch()`. Loading/error-staten
   volgen hetzelfde netwerk-/serverfoutonderscheid als de andere
-  portal-leeshooks (#68). De e-mail voor de profielkaart komt uit
+  portal-leeshooks (#68). *(Gebouwd: alleen deze hook doet dat, zie "Zoals
+  gebouwd".)* De e-mail voor de profielkaart komt uit
   `usePortalSession()` (`session.user.email`), niet uit `members.email`: die
   kolom is RPC-gated (ADR 0004).
 - **`usePortalUpdateOwnName.ts`** → `rpc("update_own_name", { p_name })`,
@@ -288,7 +359,8 @@ gedeeld:
   `usePortalWachtwoordHerstellen.ts` (regel 60–76) en in
   `useWachtwoordHerstellen.ts` staat, verhuist hierheen als één functie.
   Beide bestaande hooks en de nieuwe `usePortalWachtwoordWijzigen.ts` roepen
-  die aan. `isRateLimitedMessage` staat er al.
+  die aan. `isRateLimitedMessage` staat er al. *(Gebouwd: ook de teksten
+  zijn gedeeld, zie "Zoals gebouwd".)*
 - De 4-cijferregex (`/^[0-9]{4}$/`) hoort als export `PIN_PATTERN` in
   `ownPinErrors.ts` (of een klein `src/lib/pin.ts`), niet als derde losse
   kopie.
@@ -660,6 +732,7 @@ warnings.
 - **Geen ADR voor de `Overlay.tsx`-sheet-tak**: die was al voorzien in het
   type (`overlay: "sheet"`) en in `docs/ARCHITECTURE.md` (regel 183). Na de
   bouw werkt Docs die passage bij van "nog niet gebouwd" naar gebouwd.
+  *(Gedaan, 2026-09-28: `docs/ARCHITECTURE.md` → "`useShell().overlay`".)*
 
 ## Expliciet buiten scope
 

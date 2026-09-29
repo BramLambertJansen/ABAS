@@ -67,9 +67,9 @@ in `0001_init.sql` precies zoals dit scherm ze nodig heeft.
     `useStartShift` (`status`/`errorCode`/reset), maar geeft bij succes ook
     `total_cents` van de aangemaakte order terug (voor de
     afrekenbevestiging — zie Schermflow). Typed error-code union:
-    `shift_not_open | served_by_not_on_shift | empty_order | invalid_qty |
-    product_not_available | member_not_found | insufficient_balance |
-    unknown` — zie Randgevallen voor de UI-afhandeling per code.
+    `no_bar_role | shift_not_open | served_by_not_on_shift | empty_order |
+    invalid_qty | product_not_available | member_not_found |
+    insufficient_balance | unknown` — zie Randgevallen voor de UI-afhandeling per code.
 
 ## Rolzichtbaarheid
 
@@ -235,6 +235,7 @@ Inhoud (uit het ontwerp, regel 983–1032, "Afrekenen bij {lid}"):
 | `member_not_found` | Lid wordt gearchiveerd tussen kiezen en bevestigen (bv. door een beheerder in een toekomstig Ledenbeheer-scherm — dat scherm bestaat nog niet, dus praktisch onbereikbaar vandaag, maar wel cheap om af te vangen) | "dit lid bestaat niet meer of is gearchiveerd — kies een ander lid"; sluit terug naar de ledenzoeker, mandje blijft intact |
 | `product_not_available` | Product wordt gearchiveerd tussen aantikken en afrekenen (zelfde soort race, ook praktisch onbereikbaar zolang er geen Assortimentsbeheer-scherm is) | "een product in je mandje is niet meer beschikbaar — controleer je mandje"; mandje blijft ongewijzigd (RPC meldt niet welke regel het was), assortiment wordt opnieuw opgehaald zodat het gearchiveerde product niet meer aantikbaar is |
 | `shift_not_open` | Bereikbaar sinds #12 (docs/features/dienst-afsluiten.md): "Dienst afsluiten" op de Dienst-tab roept `end_shift` aan, waarna een nog open mandje op de Verkoop-tab hierop stuit bij afrekenen | "de dienst is niet meer actief — herlaad het scherm" |
+| `no_bar_role` | Lid-sessie roept de RPC aan (0023_bar_rpcs_weigeren_lid.sql, #100) — kan alleen als een lid op de bar-sessie terechtkomt | "dit account mag niet op de bar werken — log uit en log in als bardienst"; geen melding naar `client_errors` (bekende uitkomst) |
 | `empty_order` / `invalid_qty` | Onbereikbaar via deze UI (mandje-guards voorkomen een lege/negatieve regel) | generieke `unknown`-melding, verder geen speciale UI nodig |
 | `unknown` (netwerk/onverwacht) | Altijd mogelijk | "er ging iets mis, probeer het opnieuw" (zelfde vaste patroon als alle bestaande hooks — nooit de ruwe Postgres-melding tonen) |
 
