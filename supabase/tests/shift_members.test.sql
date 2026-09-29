@@ -1,7 +1,9 @@
 -- Negative-test coverage for add_shift_member/remove_shift_member, per
 -- tester.md and docs/features/bezetting-beheren.md → Randgevallen
 -- ("Toevoegen/verwijderen buiten een actieve dienst" — #7's own acceptance
--- criterion). Run with `npm run db:test` (= `supabase test db`, needs
+-- criterion). Sinds dienst-per-sessie (0029) komt de sessie-guard vóór de
+-- shift_not_open-check: een afgesloten of onbekende dienst heeft voor de
+-- sessie geen actieve koppeling, dus de RPC's geven session_not_on_shift. Run with `npm run db:test` (= `supabase test db`, needs
 -- `supabase start` / Docker locally).
 --
 -- NOT RUN against a real Postgres from the sandbox that wrote this file —
@@ -22,6 +24,52 @@ create extension if not exists pgtap with schema extensions;
 
 begin;
 select plan(14);
+
+-- ── Sessie-helper (dienst per sessie, ADR 0016) ────────────────────────────
+-- De bar-RPC's eisen een geregistreerde bar-sessie met een actieve koppeling
+-- aan de dienst (require_shift_session, 0028). Deze helper registreert voor
+-- een lid een sessie in modus `bar` (rechtstreeks geïnsert), koppelt haar aan
+-- `p_shift` en zet de JWT-claims. Het lid krijgt zo nodig een auth-account.
+-- `p_session`: het sessie-id (standaard het lid-id); geef een ander id mee voor
+-- een tweede of nieuwe sessie van hetzelfde lid.
+create function pg_temp.act_as_bar(p_member uuid, p_shift uuid default null, p_session uuid default null)
+returns void
+language plpgsql
+as $fn$
+declare
+  v_auth uuid;
+  v_session uuid;
+begin
+  select auth_user_id into v_auth from members where id = p_member;
+  if v_auth is null then
+    v_auth := p_member;
+    insert into auth.users (
+      id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
+      created_at, updated_at, raw_app_meta_data, raw_user_meta_data
+    ) values (
+      v_auth, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
+      v_auth::text || '@bar.test.local', crypt('not-used', gen_salt('bf')), now(),
+      now(), now(), '{"provider":"email","providers":["email"]}', '{}'
+    ) on conflict (id) do nothing;
+    update members set auth_user_id = v_auth where id = p_member;
+  end if;
+  insert into bar_sessions (auth_session_id, member_id, mode)
+  values (coalesce(p_session, p_member), p_member, 'bar')
+  on conflict (auth_session_id) do nothing;
+  select id into v_session from bar_sessions where auth_session_id = coalesce(p_session, p_member);
+  if p_shift is not null then
+    insert into shift_sessions (shift_id, bar_session_id)
+    values (p_shift, v_session)
+    on conflict do nothing;
+  end if;
+  perform set_config('request.jwt.claim.sub', v_auth::text, true);
+  perform set_config(
+    'request.jwt.claims',
+    json_build_object('sub', v_auth::text, 'session_id', coalesce(p_session, p_member)::text)::text,
+    true
+  );
+end;
+$fn$;
 
 -- ── Fixtures ──────────────────────────────────────────────────────────
 insert into members (id, name, role, pin_hash, balance_cents, archived) values
@@ -44,6 +92,9 @@ insert into shifts (id, started_by, ended_at) values
   ('00000000-0000-0000-0000-000000000071', '00000000-0000-0000-0000-000000000060', now());
 insert into shift_members (shift_id, member_id) values
   ('00000000-0000-0000-0000-000000000071', '00000000-0000-0000-0000-000000000060');
+
+-- Starter A is ingelogd in een bar-sessie die aan dienst S1 (...70) gekoppeld is.
+select pg_temp.act_as_bar('00000000-0000-0000-0000-000000000060', '00000000-0000-0000-0000-000000000070');
 
 -- ── 1) happy path: add_shift_member on an open shift ────────────────────
 select lives_ok(
@@ -79,13 +130,13 @@ select is(
   'the removed member no longer has a roster row'
 );
 
--- ── 3) add_shift_member on an ended shift → shift_not_open ──────────────
+-- ── 3) add_shift_member on an ended shift → session_not_on_shift ──────────────
 select throws_ok(
   $$ select add_shift_member(
        '00000000-0000-0000-0000-000000000071'::uuid,
        '00000000-0000-0000-0000-000000000061'::uuid
      ) $$,
-  'P0001', 'shift_not_open',
+  'P0001', 'session_not_on_shift',
   'add_shift_member rejects adding to a shift that has already ended'
 );
 
@@ -97,17 +148,17 @@ select is(
   'the rejected add left no roster row behind on the ended shift'
 );
 
--- ── 4) add_shift_member on a non-existent shift_id → shift_not_open ─────
+-- ── 4) add_shift_member on a non-existent shift_id → session_not_on_shift ─────
 select throws_ok(
   $$ select add_shift_member(
        '00000000-0000-0000-0000-000000000099'::uuid,
        '00000000-0000-0000-0000-000000000061'::uuid
      ) $$,
-  'P0001', 'shift_not_open',
+  'P0001', 'session_not_on_shift',
   'add_shift_member rejects a shift_id that does not exist at all'
 );
 
--- ── 5) remove_shift_member on an ended shift → shift_not_open ───────────
+-- ── 5) remove_shift_member on an ended shift → session_not_on_shift ───────────
 -- Core acceptance criterion of #7 and the one real RPC fix
 -- (0003_remove_shift_member_requires_open_shift.sql): before that fix this
 -- delete had no open-shift guard at all.
@@ -116,7 +167,7 @@ select throws_ok(
        '00000000-0000-0000-0000-000000000071'::uuid,
        '00000000-0000-0000-0000-000000000060'::uuid
      ) $$,
-  'P0001', 'shift_not_open',
+  'P0001', 'session_not_on_shift',
   'remove_shift_member rejects removing from a shift that has already ended'
 );
 
@@ -128,13 +179,13 @@ select is(
   'the roster row on the ended shift survives the rejected remove call — no partial delete before the raise'
 );
 
--- ── 6) remove_shift_member on a non-existent shift_id → shift_not_open ──
+-- ── 6) remove_shift_member on a non-existent shift_id → session_not_on_shift ──
 select throws_ok(
   $$ select remove_shift_member(
        '00000000-0000-0000-0000-000000000099'::uuid,
        '00000000-0000-0000-0000-000000000060'::uuid
      ) $$,
-  'P0001', 'shift_not_open',
+  'P0001', 'session_not_on_shift',
   'remove_shift_member rejects a shift_id that does not exist at all'
 );
 

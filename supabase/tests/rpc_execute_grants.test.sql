@@ -26,7 +26,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(23);
+select plan(33);
 
 -- ── 1) Niets in public is uitvoerbaar zonder sessie ──────────────────────
 
@@ -72,8 +72,8 @@ select ok(
 );
 
 select ok(
-  not has_function_privilege('anon', 'public.start_shift(uuid,text,uuid)', 'EXECUTE'),
-  'start_shift is niet aanroepbaar zonder sessie (anders is de PIN brute-forcebaar zonder account)'
+  not has_function_privilege('anon', 'public.start_shift(uuid)', 'EXECUTE'),
+  'start_shift is niet aanroepbaar zonder sessie'
 );
 
 select ok(
@@ -99,7 +99,7 @@ select ok(
 );
 
 select ok(
-  has_function_privilege('authenticated', 'public.start_shift(uuid,text,uuid)', 'EXECUTE'),
+  has_function_privilege('authenticated', 'public.start_shift(uuid)', 'EXECUTE'),
   'start_shift blijft aanroepbaar voor een ingelogde sessie'
 );
 
@@ -190,6 +190,133 @@ select ok(
 select ok(
   not has_function_privilege('service_role', 'public.purge_client_errors()', 'EXECUTE'),
   'purge_client_errors is niet aanroepbaar voor service_role (alleen de eigenaar via pg_cron)'
+);
+
+-- Added for 0027–0029 (dienst per sessie, docs/features/dienst-per-sessie.md,
+-- ADR 0016). Drie soorten, elk met eigen assertie naast de tellende
+-- asserties van sectie 1 (die dekken ze al, maar tonen alleen "er zijn er N te
+-- veel"):
+--   * interne functies (guards, helpers, cron-job): geen EXECUTE voor enige
+--     API-rol;
+--   * server-only functies voor de login vóór er een sessie is: alleen
+--     service_role;
+--   * RPC's voor een ingelogde sessie: authenticated, niet anon.
+select ok(
+  not exists (
+    select 1
+      from unnest(array[
+        'public.bar_inactivity_limit()',
+        'public.require_session(text[],boolean,boolean)',
+        'public.require_bar_session()',
+        'public.require_shift_session(uuid)',
+        'public.require_beheer_session()',
+        'public.end_shift_internal(uuid,text,uuid)',
+        'public.notify_orphan_shift(uuid,uuid,text)',
+        'public.close_bar_session_internal(uuid,text,uuid)',
+        'public.end_member_bar_sessions(uuid)',
+        'public.bar_pin_state(text,uuid)',
+        'public.close_inactive_bar_sessions()'
+      ]) as f(sig)
+     where has_function_privilege('anon', f.sig, 'EXECUTE')
+        or has_function_privilege('authenticated', f.sig, 'EXECUTE')
+        or has_function_privilege('service_role', f.sig, 'EXECUTE')
+  ),
+  'de guards, interne helpers en de cron-job zijn voor geen enkele API-rol uitvoerbaar'
+);
+
+select ok(
+  not exists (
+    select 1
+      from unnest(array[
+        'public.verify_bar_pin(text,uuid,text)',
+        'public.record_bar_password_login(text,uuid)',
+        'public.bar_login_options(text,uuid)',
+        'public.register_bar_session_server(uuid,uuid,uuid)'
+      ]) as f(sig)
+     where has_function_privilege('anon', f.sig, 'EXECUTE')
+        or has_function_privilege('authenticated', f.sig, 'EXECUTE')
+        or not has_function_privilege('service_role', f.sig, 'EXECUTE')
+  ),
+  'de login-functies vóór een sessie zijn alleen voor service_role uitvoerbaar (niet anon, niet authenticated)'
+);
+
+select ok(
+  not exists (
+    select 1
+      from unnest(array[
+        'public.register_bar_session(text)',
+        'public.touch_bar_session()',
+        'public.end_bar_session(boolean,text)',
+        'public.my_bar_state()',
+        'public.admin_end_shift(uuid)',
+        'public.admin_take_over_shift(uuid)',
+        'public.admin_end_bar_session(uuid)',
+        'public.start_shift(uuid)'
+      ]) as f(sig)
+     where has_function_privilege('anon', f.sig, 'EXECUTE')
+        or has_function_privilege('public', f.sig, 'EXECUTE')
+        or not has_function_privilege('authenticated', f.sig, 'EXECUTE')
+  ),
+  'de sessie-RPC''s en start_shift zijn voor authenticated uitvoerbaar en niet voor anon of PUBLIC'
+);
+
+select ok(
+  not has_function_privilege('anon', 'public.verify_bar_pin(text,uuid,text)', 'EXECUTE'),
+  'verify_bar_pin is niet aanroepbaar zonder sessie (anders is de PIN brute-forcebaar met alleen de publieke key)'
+);
+
+select ok(
+  not has_function_privilege('anon', 'public.my_bar_state()', 'EXECUTE'),
+  'my_bar_state is niet aanroepbaar zonder sessie'
+);
+
+select ok(
+  not has_function_privilege('anon', 'public.admin_take_over_shift(uuid)', 'EXECUTE'),
+  'admin_take_over_shift is niet aanroepbaar zonder sessie'
+);
+
+select ok(
+  not has_function_privilege('anon', 'public.admin_end_bar_session(uuid)', 'EXECUTE'),
+  'admin_end_bar_session is niet aanroepbaar zonder sessie'
+);
+
+-- De beheer-RPC's uit 0029 (`create or replace`) behouden hun grants.
+select ok(
+  not exists (
+    select 1
+      from unnest(array[
+        'public.create_product(text,text,integer)',
+        'public.update_product_price(uuid,integer)',
+        'public.set_product_archived(uuid,boolean)',
+        'public.update_negative_limit(integer)',
+        'public.create_member(text,integer,text)',
+        'public.update_member_name(uuid,text)',
+        'public.set_member_archived(uuid,boolean)',
+        'public.set_member_role(uuid,text)',
+        'public.update_member_email(uuid,text)',
+        'public.mark_member_invite_sent(uuid)',
+        'public.list_members_admin()',
+        'public.create_activity_type(text)',
+        'public.update_activity_type_name(uuid,text)',
+        'public.set_activity_type_archived(uuid,boolean)',
+        'public.reverse_order_as_admin(uuid,text)'
+      ]) as f(sig)
+     where has_function_privilege('anon', f.sig, 'EXECUTE')
+        or has_function_privilege('public', f.sig, 'EXECUTE')
+        or not has_function_privilege('authenticated', f.sig, 'EXECUTE')
+  ),
+  'de beheer-RPC''s zijn na 0029 nog steeds voor authenticated uitvoerbaar en niet voor anon of PUBLIC'
+);
+
+select ok(
+  has_function_privilege('authenticated', 'public.set_own_pin(text)', 'EXECUTE')
+  and not has_function_privilege('anon', 'public.set_own_pin(text)', 'EXECUTE'),
+  'set_own_pin blijft een RPC voor een ingelogde sessie (de portal)'
+);
+
+select ok(
+  to_regprocedure('public.start_shift(uuid,text,uuid)') is null,
+  'de oude start_shift met PIN bestaat niet meer'
 );
 
 select * from finish();
