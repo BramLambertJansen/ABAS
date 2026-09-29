@@ -795,9 +795,24 @@ Aanvulling (Bram, 2026-09-29, tweede ronde):
     fase 1.
 12. **(a) ja, (b) ja, (c) ja, (d) nee.**
 
+Derde ronde (Bram, 2026-09-29):
+
+13. **Ja.** In stand (b) sluit je aan met een expliciete knop
+    "Aansluiten", en wie aansluit komt in de bezetting.
+14. **Ja.** In stand (b) mag elk gekoppeld apparaat de dienst afsluiten.
+15. **Ja.** In stand (c) mag alleen een beheerder een extra dienst starten
+    naast een lopende, en een lid staat in hooguit één open bezetting. A4
+    ("nooit naar jezelf opwaarderen") is nog niet besloten, zie hieronder.
+16. **Ja.** De stand kan alleen gewisseld worden als er geen dienst open is.
+17. **Ja.** Bij uitloggen met een open dienst kies je tussen "dienst
+    afsluiten" en "open laten, een beheerder krijgt een melding".
+18. **Ja.** `bar_session_id` komt nu op de boekingen; een uitsplitsing per
+    apparaat volgt pas op verzoek.
+
 ### Nog te beantwoorden
 
-- Vragen 13 t/m 23 hieronder.
+- A4 bij vraag 15.
+- Vragen 19 t/m 23 hieronder.
 
 ### Oorspronkelijke vragen
 
