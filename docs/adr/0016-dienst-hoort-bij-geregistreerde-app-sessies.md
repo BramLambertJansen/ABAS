@@ -1,10 +1,12 @@
 # 0016 — Een dienst hoort bij een of meer geregistreerde, persoonlijke app-sessies, niet bij een gedeeld device-account
 
-Status: **geaccepteerd door Bram (2026-09-29); niet gebouwd.** Hoort
+Status: **geaccepteerd door Bram (2026-09-29); fase 1 gebouwd** (migraties
+`0027`–`0029`, de login vanaf de namenlijst en de schermen; fase 2, de
+instelling (a)/(b)/(c), is niet gebouwd). Hoort
 bij [`docs/features/dienst-per-sessie.md`](../features/dienst-per-sessie.md).
-De teksten en de vragen 24–27 in die spec staan nog open. Ze veranderen het
-mechanisme hieronder niet, alleen de parameters (lockout, kostenfactor,
-geldigheid van een vertrouwd apparaat) en wie een wees-dienst mag heropenen.
+De teksten en de vragen 24–27 zijn beantwoord; de waarden staan in die spec
+(lockout na 5 foute PIN's, kostenfactor 12, vertrouwen 30 dagen, inactiviteit
+60 minuten).
 
 **Vervangt:**
 

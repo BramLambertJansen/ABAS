@@ -1,5 +1,11 @@
 # Portal-profiel: naam, wachtwoord en eigen bar-PIN
 
+> **Bijgewerkt door [`dienst-per-sessie.md`](dienst-per-sessie.md) (2026-09-29,
+> ADR 0016):** de portal is de enige plek waar de bar-PIN wordt gezet ("Mijn
+> account" op de bar is vervallen). `set_own_pin` hasht met kostenfactor 12. Een
+> nieuwe PIN werkt op de bar pas op een apparaat waar het lid eerder met het
+> wachtwoord inlogde.
+
 **Status: gebouwd en gemerged (2026-09-28, [PR #110](https://github.com/BramLambertJansen/ABAS/pull/110), merge-commit `3df726d`).**
 Geaccordeerd door Bram (2026-09-28): besluiten 1–7, alle teksten en ADR 0012.
 Waar de bouw van deze spec afwijkt, staat in "Zoals gebouwd" hieronder; die

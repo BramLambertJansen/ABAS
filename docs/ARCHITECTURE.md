@@ -306,31 +306,39 @@ assumes. This is *not* the device-session hardening — that still belongs to
   data. (Revisit as a real architecture change, with an ADR, if ABAS is ever
   meant to serve more than one vereniging — don't creep towards multi-tenant
   incidentally.)
-- **Shared bar-tablet session mechanism**: a dedicated Supabase Auth account
-  per physical tablet, provisioned once by the vereniging (Supabase
-  Studio/CLI). The app signs in as that device account and stays signed in;
-  RLS grants that account the ability to call `place_order`/`top_up` with any
-  valid staff PIN. Individual attribution still only ever comes from the PIN
-  checked inside the RPC — the device account identifies "a legitimate bar
-  tablet", never a specific person. **This covers bardienst work only** —
-  see "Beheer-sessie (settled, 2026-08-26)" below for why beheer-only writes
-  (assortiment, later ledenbeheer) don't use this shared identity.
+- **Persoonlijke bar-sessies (settled 2026-09-29, ADR
+  [0016](adr/0016-dienst-hoort-bij-geregistreerde-app-sessies.md); vervangt
+  het gedeelde device-account van 2026-08-24)**: elk apparaat heeft een eigen,
+  persoonlijke Supabase-sessie van een bardienst of beheerder, geregistreerd in
+  `bar_sessions` (sleutel: het JWT-claim `session_id`, modus `bar` of `beheer`,
+  `last_activity_at`). Een dienst hoort bij die sessie via `shift_sessions`;
+  elke bar-RPC met een `p_shift_id` eist een actieve, niet-inactieve sessie in
+  modus `bar` mét een actieve koppeling aan die dienst (`require_shift_session`,
+  `0028`), elke beheer-RPC een sessie in modus `beheer`
+  (`require_beheer_session`). Het einde van een sessie (uitloggen, 60 minuten
+  inactiviteit, afmelden door een beheerder, rolwijziging) is een
+  database-feit: de RPC's weigeren meteen, ook als het access token nog
+  geldig is. Individuele attributie komt nog steeds uit de bezetting
+  (`served_by`), niet uit de sessie: `bar_sessions.member_id` betekent
+  "ingelogd als", nooit "deed dit". Spec: `docs/features/dienst-per-sessie.md`.
+  Het device-account, `/koppel`, `BAR_DEVICE_SECRET` en de device sign-in in
+  de middleware zijn verwijderd; beheer-writes gebeuren in een sessie in modus
+  `beheer` (zie "Beheer-sessie" hieronder).
 
 **Beheer-sessie (settled, 2026-08-26)**: ADR
 [0002](adr/0002-beheeracties-vereisen-eigen-e-mail-sessie.md) — Bram
-corrected the assumption behind the shared device-session model above: a
-`beheerder` identity is not shared. The bar-tablet device session (above)
-stays as-is for ordinary bardienst work (dienst starten, bezetting, plaatsen
-van bestellingen) — but a beheerder-only write (issue #14 Assortimentbeheer,
-later ledenbeheer) requires the beheerder to sign in with their own e-mail
-(magic link/wachtwoord, same mechanism as portal-login) on a dedicated route
-within `shells/bar` (e.g. `/beheer`). Because this repo's session storage
-(`@supabase/ssr`, cookie-based) holds exactly one active session per browser,
-that login **replaces** the shared device session in the tablet's browser
-until an explicit sign-out — not a second, concurrently-active session.
-Signing out lets `src/middleware.ts`'s existing `if (!session)` step
-re-establish the device session on the next bar-shell request, unchanged.
-Beheerder-only RPCs (`create_product`, `update_product_price`,
+corrected the assumption behind the shared device-session model (since
+replaced, ADR 0016, see above): a `beheerder` identity is not shared. A
+beheerder-only write (issue #14 Assortimentbeheer, later ledenbeheer) requires
+the beheerder to sign in with their own e-mail (magic link/wachtwoord, same
+mechanism as portal-login) on a dedicated route within `shells/bar` (e.g.
+`/beheer`). Because this repo's session storage (`@supabase/ssr`,
+cookie-based) holds exactly one active session per browser, a login **replaces**
+the session in that browser until an explicit sign-out — not a second,
+concurrently-active session. Since ADR 0016, beheer is a session in modus
+`beheer`: the choice "Beheer" in `ModusKeuze` calls `register_bar_session`, a
+session never changes modus, and every beheer RPC checks the mode server-side
+(`require_beheer_session`) before the actor check below. Beheerder-only RPCs (`create_product`, `update_product_price`,
 `set_product_archived`, …) verify the caller via `auth.uid()` →
 `members.auth_user_id` → role `beheerder`, replacing the
 `p_actor_member_id`/`p_actor_pin`-per-call pattern ADR 0001 introduced (ADR
@@ -372,136 +380,78 @@ manual pattern as the device account below), not the full portal login flow
 [0003](adr/0003-auth-methode-per-lid-en-vaste-modus-bar-beheer.md) and
 `docs/features/assortimentbeheer.md`.
 
-**Device sign-in mechanism (settled, 2026-08-26)**: found missing during
-review of [#30](https://github.com/BramLambertJansen/ABAS/pull/30) — the
-paragraph above described the intent, but nothing actually signed the app in
-as that account, so every bar-shell read was rejected by RLS regardless of
-whether the PIN/RPC logic was correct. Decided (issue
-[#32](https://github.com/BramLambertJansen/ABAS/issues/32)): server-side,
-not client-side.
-- `src/middleware.ts` — on a bar-shell request with no valid session yet,
-  signs in as the device account via `supabase.auth.signInWithPassword()`
-  server-side, using cookies (`@supabase/ssr`) to persist the session. The
-  browser's Supabase client (`src/lib/supabase/client.ts`) shares that same
-  cookie-based session, so no hook in `src/hooks/queries/` needed to
-  change.
-- Credentials live in server-only env vars (`SUPABASE_DEVICE_EMAIL`,
-  `SUPABASE_DEVICE_PASSWORD`, no `NEXT_PUBLIC_` prefix) — never compiled
-  into the client bundle. Rejected alternative: signing in client-side with
-  `NEXT_PUBLIC_*` credentials — simpler, but ships the device password to
-  every browser that loads the page instead of keeping it server-only.
-- `shells/portal` is excluded by the middleware's route matcher — members
-  authenticate themselves there, no device account involved.
-- `scripts/check-arch.mjs` has a narrow, named exception for
-  `src/middleware.ts` on the "only `src/lib/supabase/` imports the SDK"
-  rule — middleware's cookie API is request/response-based, distinct from
-  `server.ts`'s `next/headers`-based one, so it can't reuse that helper.
-- `src/middleware.ts` also carries `/design`'s unrelated auth gate
-  (`designPreviewGate`) — Next.js only runs one middleware per project, so
-  it short-circuits there first and falls through to device sign-in for
-  everything else. See Bronmateriaal above for what that gate does.
-
-**Accepted risk: device sign-in has no tablet-trust check (2026-08-26)**:
-found during review of [#33](https://github.com/BramLambertJansen/ABAS/pull/33)
-— `src/middleware.ts` signs in *any* visitor to the deployed bar URL as the
-device account, not just the physical tablet. There's no mechanism proving
-the request actually comes from Aurora's tablet; anyone who knows the URL
-gets read access to members/shifts/orders/balances (writes still require
-the PIN inside `place_order`/`top_up`/`start_shift`, unaffected). Decided
-(Bram): accept this for the MVP — single club, low stakes — rather than
-build a trust mechanism now. Tracked as
-[issue #34](https://github.com/BramLambertJansen/ABAS/issues/34) for when
-it's worth revisiting (a second tablet, a less trusted deployment context).
-Options noted there, not chosen: Vercel Deployment Protection (platform-
-level, no code), or a shared provisioning secret the tablet presents.
-
-**Deferred: device cookie isn't scoped away from `shells/portal` (2026-08-26)**:
-also found during that review — the middleware's route matcher keeps it
-from *running* on `/portal`, but the resulting cookie itself isn't scoped
-to bar routes, so a browser that visited the bar shell first would send it
-to `/portal` too. Harmless today (portal has no real session of its own to
-collide with yet — scaffold only), but needs solving once
-[#15](https://github.com/BramLambertJansen/ABAS/issues/15) (portal-login)
-gives the portal a real session to isolate from. Decided (Bram): land the
-fix there, not here — designing isolation before there's a second session
-to isolate from would be guessing. See #15's acceptance criteria.
+**Vervallen door ADR 0016 (2026-09-29): device sign-in, tablet-trust en de
+device cookie.** De middleware-inlogstap voor het gedeelde device-account
+(issue #32, `SUPABASE_DEVICE_EMAIL`/`SUPABASE_DEVICE_PASSWORD`), het geaccepteerde
+risico dat elke bezoeker van de bar-URL zo werd ingelogd (issue #34, daarna
+`/koppel` met ADR 0011) en het uitgestelde punt over de cookie-afbakening t.o.v.
+`shells/portal` bestaan niet meer: `src/middleware.ts` logt niemand meer in, en
+verwijdert bij de eerste request het oude `abas_tablet`-cookie. Wie op de bar
+werkt logt persoonlijk in vanaf de namenlijst (of via `/beheer`); de openbare
+URL toont zonder sessie alleen die namenlijst en het inlogscherm. De middleware
+houdt de `/design`-gate en de gewone cookieverversing (`getSession()`). Zie de
+git-geschiedenis en ADR 0011 voor de oude mechanismen.
 
 **PIN storage/hashing (settled, 2026-08-26)**: confirmed by Bram (issue
 [#3](https://github.com/BramLambertJansen/ABAS/issues/3)) — the assumption
 below was already what `0001_init.sql` implemented, this makes it a decision
 instead of an assumption.
-- PINs are hashed via `pgcrypto`'s `crypt()`/`gen_salt('bf')` in
-  `members.pin_hash`, never stored or compared in plaintext. `start_shift`
-  checks `crypt(p_pin, pin_hash) = pin_hash` server-side inside the
-  `SECURITY DEFINER` RPC — the client only ever sends the entered PIN.
+- PINs are hashed via `pgcrypto`'s `crypt()`/`gen_salt('bf', 12)` in
+  `members.pin_hash` (cost 12 since ADR 0016; existing hashes are rehashed on
+  the next successful PIN login), never stored or compared in plaintext.
+  `verify_bar_pin` (service_role only) checks `crypt(p_pin, pin_hash) =
+  pin_hash` at login — the client only ever sends the entered PIN. `start_shift`
+  no longer takes a PIN: the login is the authentication of the starter.
 - Format: 4 digits, matching the prototype's numpad demo (`DEMO_PIN =
   '1234'`). Enforced by the numpad UI (issue #6) restricting entry to 4
   digits, not by a schema constraint on `pin_hash` — the column stores a
   hash, not the PIN itself, so there's nothing shaped like "4 digits" left
   to constrain there. A wrong-length attempt just fails `crypt()` comparison
   like any other wrong PIN.
-- No lockout/rate-limit in MVP. Every attempt is checked independently; add
-  a lockout later if it turns out to be needed, not preemptively.
-- Negative-test coverage: `supabase/tests/start_shift.test.sql`.
+- Lockout per member (ADR 0016, replaces "no lockout in MVP"): after 5 wrong
+  PIN attempts the PIN is blocked on all devices (`pin_failures`); a successful
+  password login lifts it, and wrong passwords don't count (the name list is
+  public, anyone could otherwise lock out anyone). The PIN only works on a
+  device where the member logged in with the password before
+  (`bar_devices`/`bar_device_members`, the `abas_apparaat` cookie, 30 days,
+  every login extends it).
+- Negative-test coverage: `supabase/tests/verify_bar_pin.test.sql`.
 
-**Local/CI device account (settled, 2026-08-26)**: `supabase/seed.sql` now
-inserts a fixed `auth.users`/`auth.identities` row (`device@aurora.local`,
-local-only password) purely so `supabase start` in CI/local dev has an
-account to sign in as — without it, `src/middleware.ts` never gets a
-session, every RLS-protected read comes back empty, and any e2e flow past
-the login screen (`e2e/a11y.spec.ts`'s bezetting-overlay/verkoop scans)
-times out waiting for data that can never load. Root-caused after a real
-CI run (32998590441, off #38) failed on exactly this — not an a11y
-regression. `.github/workflows/ci.yml` exports matching
-`SUPABASE_DEVICE_EMAIL`/`SUPABASE_DEVICE_PASSWORD`. Production is
-unaffected: those two env vars stay real secrets there, naming Aurora's
-actual provisioned account, never this seeded one (`seed.sql` only runs on
-local `supabase start`/`db reset`, never against a remote/production
-project — same guarantee the existing member/product demo data already
-relies on).
+**Local/CI seed accounts (settled, 2026-08-26; herzien 2026-09-29)**:
+`supabase/seed.sql` inserts fixed `auth.users`/`auth.identities` rows purely so
+`supabase start` in CI/local dev has accounts to sign in as. Until ADR 0016
+that included a shared device account (`device@aurora.local`); it is gone. Every
+seed bardienst/beheerder now has an e-mail/wachtwoord account (local-only
+passwords), and every e2e flow logs in from the name list
+(`e2e/helpers/barLogin.ts`). Production is unaffected: `seed.sql` only runs on
+local `supabase start`/`db reset`, never against a remote/production project.
+CI exports `SUPABASE_SECRET_KEY` (the local `service_role` key) for the
+server-side bar login.
 
-Getting the device sign-in to actually succeed also required flipping
+Password login through the local GoTrue also required flipping
 `supabase/config.toml`'s `[auth]`/`[auth.email]` `enable_signup` from
 `false` to `true` — a known GoTrue quirk (`supabase/auth#330`, still open):
 `enable_signup = false` doesn't just block *new* signups, it disables the
 email provider's login path too (`signInWithPassword` failed with "Email
-logins are disabled" even for this pre-existing, directly-inserted
-account). `config.toml` only governs the local `supabase start` stack
-(nothing in this repo runs `supabase config push` against the hosted
-project), so this has no effect on production's real signup policy.
+logins are disabled" even for a pre-existing, directly-inserted account).
+`config.toml` only governs the local `supabase start` stack (nothing in this
+repo runs `supabase config push` against the hosted project), so this has no
+effect on production's real signup policy.
 **Flag for #15 (portal-login)**: if the hosted project's dashboard ever
 sets its own signup toggle to closed, password login may silently break
 for existing members too by the same GoTrue behavior — worth confirming
 against the real project before shipping password login there.
 
-**e2e-mocks on `/beheer` must survive the device session (2026-09-24)**:
-the middleware's matcher covers `/beheer` too, so wherever
-`SUPABASE_DEVICE_*` is set (CI, and any deployment that configures them —
-every browser there, not only the tablet; see "Accepted risk: device sign-in
-has no tablet-trust check" above) a visitor to `/beheer` is already signed in as the device account before any beheer login; in a
-local run without those env vars there is no session at all. Found in CI on
-PR #75: specs that passed locally failed there. Two consequences for specs
-that mock Supabase via `page.route()` (`e2e/helpers/supabaseMock.ts`):
-- `BeheerLogin` then shows `useBeheerSession`'s denied message ("Dit
-  account is niet gekoppeld aan een lid", passed in as `deniedMessage` by
-  `Assortimentbeheer`) as its own alert above the login form, so a spec asserting the
-  form's error must look inside the form, not at any `role="alert"` (see
-  `formulierAlert` in `e2e/wachtwoord-vergeten.spec.ts`);
-- a `members` mock must only return a row for the mocked beheerder's
-  `auth_user_id`, not for every session — otherwise the device account
-  looks like a beheerder and the login form never appears (see
-  `mockBeheerder` in `e2e/ledenbeheer-invite.spec.ts`).
-Whether `/beheer` should show that alert to the device session at all is
-open as [#78](https://github.com/BramLambertJansen/ABAS/issues/78)
-(needs-decision).
-
-**Still open**:
-- **Device account provisioning flow (production)**: who creates the
-  per-tablet Supabase Auth account and how (manual via Studio for the
-  single Aurora tablet today; needs a real flow if a second tablet is ever
-  added). Fine to leave manual for now given single-tenant, single-club
-  scope — unrelated to the local/CI seeding above, which only ever targets
-  the local stack.
+**e2e-mocks on `/beheer` (herschreven 2026-09-29)**: er is geen device-sessie
+meer die `/beheer` al voor de login inlogt, dus specs die Supabase via
+`page.route()` mocken zien alleen de sessie die de spec zelf maakt. Sinds ADR
+0016 moet zo'n spec wel de bar-sessie-RPC's mocken (`mockBarSessie` in
+`e2e/helpers/supabaseMock.ts`: `my_bar_state`, `register_bar_session`,
+`touch_bar_session`, `end_bar_session`), omdat de keuze "Beheer" de sessie
+server-side registreert. Een `members`-mock hoort nog steeds alleen een rij voor
+de `auth_user_id` van de gemockte beheerder terug te geven (zie `mockBeheerder`
+in `e2e/ledenbeheer-invite.spec.ts`). Issue #78 (zou `/beheer` de "niet
+gekoppeld aan een lid"-melding aan de device-sessie moeten tonen) vervalt.
 
 ## Auth-methode & modus (bar vs. beheer) (settled 2026-08-26, amended 2026-09-02, built 2026-09-20)
 
@@ -514,8 +464,8 @@ has e-mail/wachtwoord** (a linked Supabase Auth account,
 `members.auth_user_id`); a PIN is an optional shortcut on top of it, never a
 replacement. Both at once is the normal state for a member with a PIN; the
 only forbidden state is PIN-only. The member toggles the PIN themselves via
-`set_own_pin` ("Mijn account" in the mode chooser — only reachable from an
-individual e-mail session, never the shared device session). "Has a PIN" is
+`set_own_pin`, only in the portal (`usePortalSetOwnPin`); "Mijn account" no
+longer exists in the bar shell (ADR 0016). "Has a PIN" is
 the generated column `has_pin` (`pin_hash is not null`, readable while
 `pin_hash` itself is column-REVOKEd — `0010`); no separate auth-method
 column.
@@ -527,13 +477,16 @@ generalization of the single-session-per-browser replace-not-coexist
 mechanism above, not a new mechanism).
 
 Bar-modus itself, however signed into, stays exactly what already exists:
-`start_shift`/`add_shift_member`/`remove_shift_member` (issues #6/#7) and
-`served_by`-attribution at checkout are unchanged. **Both routes into
-bar-modus are built** (issue #42, PR #60): PIN via the shared device session
-(issue #6/#32/#33 — the PIN staff picker only lists members with a PIN), and
-e-mail/wachtwoord → "Bar" in the mode chooser, which navigates to the same
-bar screens. `DienstStarten` links to `/beheer` ("Inloggen met e-mail") for
-the e-mail route. Spec: `docs/features/auth-methode-per-lid.md`.
+`add_shift_member`/`remove_shift_member` (issue #7) and `served_by`-attribution
+at checkout are unchanged; `start_shift` takes no PIN anymore. **Both routes
+into bar-modus** (issue #42, PR #60; herzien door ADR 0016): the name list on
+the start screen (PIN on a trusted device, or wachtwoord; the list shows every
+bardienst member, PIN or not, and you never type an e-mail address), and
+e-mail/wachtwoord on `/beheer` → "Bar" in the mode chooser
+(`register_bar_session('bar')`). The start screen links to `/beheer`
+("Inloggen met e-mail"). A PIN login always registers mode `bar`, so it never
+gives beheer. Spec: `docs/features/auth-methode-per-lid.md`,
+`docs/features/dienst-per-sessie.md`.
 
 This also revises `docs/features/dienst-starten.md` → "Expliciet buiten
 scope"'s claim that the prototype's bar/beheer modus-keuze "vervalt" — that
@@ -555,8 +508,10 @@ Revives the prototype's "crew"/"wie werkt er mee" concept (`chat18.md`,
 `chat19.md`), simplified: no per-order PIN, no "wie geeft uit" hard-block
 (see open item below on whether the select is required or defaults).
 
-- Starting a shift (`dienst`) requires the starting member's own PIN — this
-  is the one real authentication event per shift.
+- Starting a shift (`dienst`) happens in the starter's own bar session: the
+  login on the name list (PIN on a trusted device, or wachtwoord) is the
+  authentication, and the shift belongs to that session (ADR 0016). No second
+  PIN at the start.
 - That member then builds the shift's roster (`bezetting`): other members
   added from the member list. Adding someone to the roster does **not**
   require their PIN or any confirmation from them.
@@ -893,6 +848,42 @@ gebruikt door `/beheer` → "Mijn account" en de portal) en, in
 `reauth_required`), gedeeld met de twee herstelflows. Eerste echte
 consument van `Overlay.tsx`'s `"sheet"`-tak, zie "`useShell().overlay`"
 hierboven.
+
+**Dienst per sessie (fase 1 gebouwd, 2026-09-29, ADR
+[0016](adr/0016-dienst-hoort-bij-geregistreerde-app-sessies.md), spec
+`docs/features/dienst-per-sessie.md`)**: fase 1 is stand (a): één open dienst,
+die bij de sessie hoort waarin hij gestart is (fase 2, de instelling
+(a)/(b)/(c) en `join_shift`, is niet gebouwd).
+- *Database* (`0027`–`0029`): `bar_sessions`, `shift_sessions`, `bar_devices`,
+  `bar_device_members`, `pin_failures`, `admin_notifications`,
+  `bar_session_id` op `orders`/`top_ups`/`order_reversals`,
+  `shifts.started_session_id`. Guards `require_session` (kern),
+  `require_bar_session`, `require_shift_session`, `require_beheer_session`
+  (geen `EXECUTE` voor een API-rol). RPC's: `register_bar_session`,
+  `touch_bar_session`, `end_bar_session(p_close_shift, p_reason)`,
+  `my_bar_state`, `admin_end_shift`, `admin_take_over_shift`,
+  `admin_end_bar_session`; `start_shift(p_activity_type_id)` zonder PIN; A4 in
+  `top_up` (`self_top_up_forbidden`); `close_inactive_bar_sessions` (pg_cron,
+  elke minuut). Alleen `service_role`: `verify_bar_pin`,
+  `record_bar_password_login`, `register_bar_session_server`,
+  `bar_login_options`. `verify_bar_pin` **geeft een rij terug in plaats van te
+  raisen**: een `raise` draait de teller van de foute poging in dezelfde
+  transactie terug en dan is de lockout waardeloos.
+- *Server* (`src/lib/barLogin.ts`, Route Handlers onder
+  `src/app/(bar)/inloggen/`): namenlijst, inlogopties, wachtwoordlogin,
+  PIN-login (`generateLink` + `verifyOtp`), wachtwoord vergeten. De sessie wordt
+  server-side aangemaakt en geregistreerd vóór de browser de tokens krijgt; een
+  mislukte registratie sluit de nieuwe sessie (`scope: "local"`).
+- *Client*: `BarSessieProvider` (`src/features/bar-sessie/`) is de centrale
+  afhandeling voor `/` én `/beheer`: fase (uitgelogd / geen bar-sessie /
+  hervatten / actief), hartslag (elke tik of toets, hooguit één per minuut), een
+  stille poll van `my_bar_state` elke 30 seconden, de melding bij een gesloten
+  sessie en lokaal uitloggen. Hooks kennen de zes sessiecodes als bekende
+  uitkomst (`notifySessionCode`); `reportClientError` logt ze ook niet voor
+  hooks die ze niet zelf kennen.
+- *Bekende beperking*: de rate limit van Supabase Auth op wachtwoordpogingen
+  draait nu op het IP-adres van de server (Next.js), niet van de gebruiker; op
+  het gehoste project nog te controleren dat die niet voor iedereen samen geldt.
 
 ## Wat het prototype deed maar hier nog niet is besloten
 

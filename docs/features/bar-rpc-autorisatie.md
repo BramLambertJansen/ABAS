@@ -1,5 +1,25 @@
 # Autorisatie op de bar-RPC's: wie mag geld verplaatsen, en wat bewijst een PIN?
 
+**Status (2026-09-29): A3, A4, B1, B2 en B3 gerealiseerd door
+[ADR 0016](../adr/0016-dienst-hoort-bij-geregistreerde-app-sessies.md) en
+[`dienst-per-sessie.md`](dienst-per-sessie.md) (fase 1 gebouwd).** A2 is vervangen
+door de allowlist `require_bar_session` / `require_shift_session` (`0028`,
+`0029`); A3 is gerealiseerd als "de aanroeper heeft een geregistreerde
+bar-sessie", zonder `device_accounts`-tabel; A4 (`self_top_up_forbidden`) geldt
+in alle standen en vergelijkt met het lid van de sessie, niet alleen met
+`caller_member_id()` (in de praktijk hetzelfde); B1 (kostenfactor 12) en B2
+(lockout na 5 foute PIN's, per lid over alle apparaten, opgeheven door een
+geslaagde wachtwoordlogin) zitten in de PIN-login (`verify_bar_pin`), niet in
+`start_shift`; B3: `start_shift` eist een bar-sessie. "Raakt de bar-flow niet
+(de device-sessie heeft geen `caller_member_id()`)" (A4) en "bij A3 moet de
+device-sessie expliciet in de allowlist" (Randgevallen) vervallen: het
+device-account bestaat niet meer. Vraag 1 en 2 waren beantwoord, vraag 3 (A4:
+ja), vraag 4 → kostenfactor 12, vraag 5 → ja (parameters in de spec), vraag 6 →
+restrictief: de guard leest de rol bij elke aanroep. Testgevallen: "beide RPC's
+door de device-sessie (geen `members`-rij) → slagen" is nu een weigering
+(`no_bar_session`), zie `supabase/tests/bar_rpcs_lid_en_device.test.sql`.
+De rest van dit document is de analyse zoals die toen was.
+
 **Status (2026-09-28): A2 gebouwd, de rest staat open.** Bram koos A2 als
 tussenstap en bevestigde dat publieke signup op het gehoste project uit staat
 (vraag 2). A2 is geïmplementeerd in `0023_bar_rpcs_weigeren_lid.sql`, getest in

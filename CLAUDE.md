@@ -58,8 +58,8 @@ Prijswijzigingen raken historie niet. `order_lines.unit_cents` bevriest de
 prijs op het moment van bestellen.
 
 **Opwaarderen (MVP):** alleen contant, door bardienst, met dezelfde
-bezettings-attributie als `place_order` (zie hieronder) — `top_up` is een RPC,
-geen tabel-write. Maximaal €500 per opwaardering, boven €100 vraagt de app
+bezettings-attributie als `place_order` (zie hieronder) en nooit naar het lid
+van de ingelogde sessie (A4) — `top_up` is een RPC, geen tabel-write. Maximaal €500 per opwaardering, boven €100 vraagt de app
 eerst om bevestiging: er is geen saldocorrectie in de app, dus een typefout is
 alleen met directe databasetoegang terug te draaien. Online opwaarderen
 (iDEAL, vanuit de portal) is een latere fase; de RPC-grens moet nu al zo staan
@@ -72,9 +72,11 @@ de dienst (bezettings-attributie, alleen die dienst), in beheer elke
 bestelling. Telt daarna niet als omzet. Zie
 `docs/features/bestelling-terugdraaien.md`.
 
-**Dienst & bezetting.** Wie een dienst start doet dat met de eigen PIN en
-stelt daarna de bezetting samen — andere leden die meewerken, zonder dat zij
-zelf inloggen. Zie Architectuurbeslissingen voor hoe attributie daaruit werkt.
+**Dienst & bezetting.** Wie een dienst start, logt eerst persoonlijk in vanaf
+de namenlijst (PIN op een vertrouwd apparaat, of wachtwoord) en stelt daarna
+de bezetting samen — andere leden die meewerken, zonder dat zij zelf inloggen.
+De dienst hoort bij die sessie (ADR 0016). Zie Architectuurbeslissingen voor
+hoe attributie daaruit werkt.
 
 ## Architectuurbeslissingen
 
@@ -84,21 +86,24 @@ transactie in één statement; `reverse_order_at_bar`/`reverse_order_as_admin`
 boeken `orders.total_cents` terug. De client stuurt alleen ids, aantallen of
 een opwaardeerbedrag mee — nooit een berekend totaal (het `REVOKE` op geldtabellen dat
 dit ook technisch afdwingt staat onder Verificatie → `check:rls`). Die RPC's
-zijn uitsluitend uitvoerbaar voor `authenticated`: een nieuwe functie krijgt
-van Postgres standaard `EXECUTE` voor `PUBLIC`, en dat moet elke migratie die
-er een toevoegt expliciet intrekken (zie `0018` en
+zijn uitsluitend uitvoerbaar voor `authenticated`, en eisen daarbovenop een
+geregistreerde bar-sessie die aan de dienst gekoppeld is; interne functies
+(`verify_bar_pin`, de guards, de cron-job) zijn voor geen enkele API-rol
+uitvoerbaar, of alleen voor `service_role`. Een nieuwe functie krijgt van
+Postgres standaard `EXECUTE` voor `PUBLIC`, en dat moet elke migratie die er
+een toevoegt expliciet intrekken (zie `0018` en
 `supabase/tests/rpc_execute_grants.test.sql`, dat het voor élke functie
 bewaakt).
 
-**`served_by` komt uit de bezetting, niet uit een PIN.** Eén bardienst-tablet,
-één Supabase-sessie, wisselende medewerkers. De client stuurt welk lid uit de
+**`served_by` komt uit de bezetting, niet uit een PIN.** Eén persoonlijke sessie per
+apparaat, wisselende medewerkers via de bezetting. De client stuurt welk lid uit de
 actieve bezetting de bestelling afrondde; de RPC accepteert alleen een
 `served_by` die daadwerkelijk in die bezetting staat, en verwerpt al het
 andere. Dat is een bewuste keuze: sterk genoeg om attributie aan iemand die
 niet op dienst staat te blokkeren, niet sterk genoeg om te bewijzen wélke
 aanwezige het scherm bediende — die garantie is losgelaten voor de snelheid
-van geen-PIN-per-rondje. Het *starten* van een dienst blijft wél op de eigen
-PIN van de starter.
+van geen-PIN-per-rondje. Het starten van een dienst gebeurt in de persoonlijke sessie van de starter,
+na een login met PIN of wachtwoord.
 
 **Componenten zijn herbruikbaar totdat bewezen anders.** Voor een nieuw
 component geschreven wordt: eerst zoeken of het al bestaat in
@@ -108,7 +113,7 @@ stijlkeuze.
 ## Shells
 
 `shells/bar` (tablet/desktop — nooit telefoon, geen fallback, geen
-ondersteuning) en `shells/portal` (telefoon-first, ook bruikbaar op desktop).
+ondersteuning; dat is een supportuitspraak, geen grens die de app afdwingt) en `shells/portal` (telefoon-first, ook bruikbaar op desktop).
 Schermen in `features/` weten niet in welke shell ze draaien; ze lezen
 capabilities via `useShell()` — `density`, `overlay`, `columns` (device-
 sniffing als alternatief is een `check:policy`-fout, zie Verificatie).
@@ -120,18 +125,17 @@ geen service-worker caching — dat is bewust uitgesteld, geen vergeten scope.
 
 Portal (elke rol met een gekoppeld lid, `docs/adr/0012-portal-eigen-data-voor-elke-rol.md`): inloggen met e-mail, magic link of wachtwoord, beide actief.
 Voor bardienst/beheerder is **e-mail/wachtwoord verplicht**; een PIN is een
-optionele snelkoppeling daarbovenop, die het lid zelf aan- of uitzet via
-"Mijn account". Een PIN vervangt het wachtwoord nooit — de enige verboden
-staat is alleen-PIN (ADR 0005, amendeert ADR 0003). Na een e-maillogin op `/beheer` (niet op de portal) volgt
+optionele snelkoppeling daarbovenop, die het lid zelf aan- of uitzet via de
+portal. De PIN is een login voor bar-modus op een apparaat waar het lid eerder
+met het wachtwoord inlogde, met lockout. Het wachtwoord blijft altijd werken;
+de enige verboden staat is alleen-PIN (ADR 0005, geamendeerd door ADR 0016). Na een e-maillogin op `/beheer` (niet op de portal) volgt
 een **modus-keuze: bar of beheer, niet beide tegelijk**. Modi zijn losse
-sessies — overstappen vereist uitloggen, geen wisselknop (ADR 0003). Beide
-wegen naar bar-modus zijn gebouwd: PIN via de gedeelde tablet-sessie, en
-e-mail → "Bar" in de modus-keuze; bar-modus is daarna identiek
-(bezetting/attributie: zie Architectuurbeslissingen). Beheeracties
-(assortiment, leden, instellingen) gebeuren **nooit** op de gedeelde sessie:
-een beheerder logt apart in met het eigen e-mailadres, wat de gedeelde sessie
-op dat tablet tijdelijk vervangt tot uitloggen — zie ADR 0002/0003
-(`docs/adr/`).
+sessies — overstappen vereist uitloggen, geen wisselknop (ADR 0003). Bar-modus:
+vanaf de namenlijst (PIN of wachtwoord), of e-mail → "Bar" in de modus-keuze;
+bar-modus is daarna identiek (bezetting/attributie: zie
+Architectuurbeslissingen). Beheeracties (assortiment, leden, instellingen)
+vragen een sessie in modus beheer, server-side afgedwongen; een PIN-login geeft
+nooit beheer — zie ADR 0002/0003/0016 (`docs/adr/`).
 
 ## Designbestanden
 

@@ -1,6 +1,8 @@
 # 0002 — Beheeracties gebeuren in een eigen e-mail-sessie, niet via de gedeelde tablet-sessie
 
-Status: **geïmplementeerd** (issue #14, PR #45, gemerged 2026-08-27 —
+Status: **geïmplementeerd, geamendeerd door
+[ADR 0016](0016-dienst-hoort-bij-geregistreerde-app-sessies.md)** (zie het
+amendement hieronder) (issue #14, PR #45, gemerged 2026-08-27 —
 `create_product`/`update_product_price`/`set_product_archived` en
 `/beheer` op `main`, zie `docs/features/assortimentbeheer.md`). Oorspronkelijk
 geaccepteerd (Bram, vastgesteld). **Aangevuld door
@@ -19,6 +21,29 @@ scope-vraagstuk dat hieronder nog als open stond
 — dat ADR blijft leesbaar als de eerdere afweging, maar het patroon
 ("`p_actor_member_id`/`p_actor_pin` per RPC-call") is niet meer het geldende
 mechanisme voor beheerder-only writes.
+
+## Amendement door ADR 0016 (dienst per sessie, 2026-09-29)
+
+Er is geen gedeelde device-sessie meer: elk apparaat heeft een persoonlijke
+sessie, en beheer is een sessie in modus `beheer`. Wat hieronder daardoor
+**vervalt**:
+
+- in de Context: "De bar-sessie (het gedeelde tablet, PIN om een dienst te
+  starten, bezetting samenstellen) blijft gedeeld";
+- in de Beslissing: stap 1 ("Dit **vervangt** de gedeelde device-sessie in de
+  cookie") en stap 3 ("De eerstvolgende bar-shell-request zonder sessie
+  triggert `src/middleware.ts`'s bestaande device-inlogstap opnieuw"): de
+  middleware logt niemand meer in;
+- de alinea "Gewone bardienst-acties blijven functioneren tijdens een actieve
+  beheerder-sessie ... nooit afhankelijk van *welke* `authenticated`-identiteit":
+  ze zijn dat nu juist wel. Een sessie in modus `beheer` kan geen bar-RPC
+  aanroepen (`wrong_mode`), en een sessie in modus `bar` geen beheer-RPC.
+
+Wat **blijft**: "Eén browser-sessie per keer" (een nieuwe login vervangt de
+vorige in die browser) en de `auth.uid()`-actorcheck in elke beheer-RPC. Nieuw
+is dat elke beheer-RPC daarvoor `require_beheer_session()` aanroept: een
+geregistreerde, actieve sessie in modus `beheer` (`bar_sessions.mode`,
+server-side afgedwongen). De tekst hieronder is de historische beschrijving.
 
 ## Context
 

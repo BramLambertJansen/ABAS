@@ -1,5 +1,13 @@
 # Dienst starten (bardienst-login)
 
+> **Bijgewerkt door [`dienst-per-sessie.md`](dienst-per-sessie.md) (2026-09-29,
+> ADR 0016):** de PIN bij het starten van een dienst vervalt, en de namenlijst
+> toont iedereen (`useBarNamen`, ook wie geen PIN heeft). Je logt eerst
+> persoonlijk in vanaf de namenlijst (PIN op een vertrouwd apparaat, of
+> wachtwoord); de starter is het lid van die sessie, en `start_shift` krijgt
+> alleen het activiteittype. De activiteitkeuze komt na de login, niet ertussen.
+> Wat hieronder over PIN-stap en stafkeuze staat, is historie.
+
 Spec voor [issue #6](https://github.com/BramLambertJansen/ABAS/issues/6).
 Eerste écht gebouwde scherm van `shells/bar` — zie CLAUDE.md → Werkstraat
 voor waarom dit een spec vooraf krijgt in plaats van direct gebouwd wordt.

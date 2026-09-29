@@ -1,7 +1,10 @@
 # Dienst per sessie: eigen sessie per apparaat, en een dienst die bij die sessie hoort
 
-**Status: goedgekeurd door Bram (2026-09-29), inclusief de teksten.** Bram
-past teksten later aan als dat nodig is. Geschreven en bijgewerkt 2026-09-29. Niets hiervan is gebouwd. Het
+**Status: goedgekeurd door Bram (2026-09-29), inclusief de teksten. Fase 1 is
+gebouwd (2026-09-29, nog niet gemerged); fase 2 niet.** Wat er afwijkt van of
+bijkomt op deze spec, staat onder "Zoals gebouwd (fase 1)" en gaat voor op de
+rest van dit document. Bram
+past teksten later aan als dat nodig is. Geschreven en bijgewerkt 2026-09-29. Het
 mechanisme staat in ADR
 [0016](../adr/0016-dienst-hoort-bij-geregistreerde-app-sessies.md). Brams
 antwoorden op de vragen 1–23 staan onderaan als historie en zijn in de tekst
@@ -440,8 +443,8 @@ met e-mail (wachtwoord of magic link, zoals nu).
   - `no_bar_session` als er geen rij is of het claim ontbreekt. Dit geldt ook
     voor een lid-sessie, een portal-sessie en het device-account;
   - `session_ended` als `ended_at` gezet is;
-  - `session_inactive` als `now() - last_activity_at` groter is dan 30
-    minuten;
+  - `session_inactive` als `now() - last_activity_at` groter is dan 60
+    minuten (vraag 24: 60, niet 30; gebouwd als `bar_inactivity_limit()`);
   - `wrong_mode` als `mode` niet `bar` is;
   - `no_bar_role` als het lid gearchiveerd is of geen rol `bardienst` of
     `beheerder` meer heeft. De rol wordt bij elke aanroep opnieuw gelezen
@@ -1255,6 +1258,124 @@ de RPC zichtbaar wordt (zelfde verdeling als de €500).
 
 Geen nieuwe tekst: de app toont "Bar openen" met `ActiviteitKeuze` en
 "Ingelogd als {naam}" (Schermflow punt 7).
+
+## Zoals gebouwd (fase 1)
+
+Migraties `0027` (datamodel), `0028` (guards, sessie-RPC's, PIN-login) en `0029`
+(bestaande RPC's). De tekst hierboven is de spec; dit is wat er bij de bouw
+anders of extra is geworden, en waarom.
+
+**Database**
+
+- **`verify_bar_pin` geeft een rij terug en raiset niet.** Kolommen
+  `result_code` (`ok`, `not_allowed`, `no_account`, `pin_not_available`,
+  `pin_locked`, `invalid_pin`), `member_auth_user_id`, `trusted_device_id`,
+  `attempts_left`. Een `raise` draait de update van de teller in dezelfde
+  transactie terug, en dan telt een foute PIN nooit mee. De spec sprak over een
+  fout met resterende pogingen en het `auth_user_id` bij succes. Het
+  apparaat-id komt mee zodat `register_bar_session_server` het kan vastleggen.
+- **Drie extra functies voor de login vóór er een sessie is**, alle alleen
+  `service_role`: `bar_login_options(p_device_token_hash, p_member_id)`
+  (inlogopties, spec → Inloggen op de bar punt 2), `record_bar_password_login(
+  p_device_token_hash, p_member_id)` (na een wachtwoordlogin: PIN-blokkade
+  opheffen en het apparaat vertrouwen; geeft `null` bij een ingetrokken apparaat,
+  dan geeft de server een nieuw cookie uit — een ingetrokken apparaat blijft
+  voor altijd ingetrokken) en de interne `bar_pin_state`.
+- **Vertrouwen verloopt server-side na 30 dagen** (`bar_devices.last_seen_at`,
+  elke login verlengt het), niet alleen via de levensduur van het cookie.
+- **`end_bar_session(p_close_shift, p_reason default 'uitgelogd')`**: de extra
+  parameter (`uitgelogd` of `niet_hervat`) legt vast dat een beheersessie niet is
+  hervat (Schermflow punt 3). Geen hartslag: uitloggen is geen activiteit.
+- **`admin_end_bar_session` weigert een al beëindigde sessie met
+  `target_session_ended`**, niet met `session_ended`: die code is de guardcode
+  voor "jouw eigen sessie is beëindigd" en krijgt op de client een eigen,
+  centrale afhandeling.
+- **`register_bar_session` codes**: `invalid_mode`, `no_bar_session`,
+  `no_bar_role`, `no_admin_role`, `session_ended`, `mode_locked`.
+- **`my_bar_state()`** geeft één JSON-object (typen in `src/lib/barState.ts`): de
+  sessie met `status` (`active`/`inactive`/`ended`/`no_role`), de eigen dienst,
+  `last_left` (overgenomen of afgesloten door een beheerder), de dienst elders
+  (met `orphan`, de sessies en `in_bezetting`), voor een beheerder de
+  `notifications`, en voor een beheerder in modus `beheer` het overzicht
+  (`admin`). Ook het beheeroverzicht komt dus uit deze ene RPC.
+- Een sessiegebonden lid moet ook nog steeds bij het **account van de sessie**
+  horen (`members.auth_user_id = auth.uid()`): anders `no_bar_role`.
+- De migratie weigert als er een open dienst is, zoals de spec eist.
+- `set_member_archived` en `set_member_role` beëindigen de bar-sessies van een
+  lid dat `lid` of gearchiveerd wordt en trekken het PIN-vertrouwen in
+  (`end_member_bar_sessions`).
+
+**Server en client**
+
+- **Route Handlers** onder `src/app/(bar)/inloggen/` (`namen`, `opties`,
+  `wachtwoord`, `pin`, `vergeten`) met de logica in `src/lib/barLogin.ts`;
+  `SUPABASE_SECRET_KEY` is nu nodig voor elke login op de bar (ook lokaal en in
+  CI).
+- **De rate limit van Supabase Auth op wachtwoordpogingen** (Veiligheid) is niet
+  te controleren vanuit deze omgeving. De server logt in namens de gebruiker, dus
+  Supabase ziet het IP-adres van de server. Er is bewust geen `X-Forwarded-For`
+  doorgegeven: als Supabase dat vertrouwt, kan iedereen zijn IP verzinnen en is
+  de limiet weg. **Te controleren op het gehoste project** dat de limiet niet voor
+  iedereen samen geldt en de bar niet blokkeert.
+- **`BarSessieProvider`** (`src/features/bar-sessie/`) is de centrale afhandeling
+  van de zes sessiecodes. Een hook die een sessiecode ontvangt, roept
+  `notifySessionCode` aan; `reportClientError` doet dat ook voor hooks die de
+  codes niet zelf kennen (dus ook de beheer-hooks), en logt ze niet naar
+  `client_errors`. De toestand ververst elke 30 seconden stil (geen hartslag),
+  zodat "Je dienst is overgenomen" en nieuwe meldingen ook zonder aanraking
+  verschijnen.
+- **Bar-schermen**: `BarApp` (`/`), `BarInloggen`, `HervatScherm`,
+  `DienstStarten` (zonder PIN-stap, met `ActiviteitKeuze` zonder terugknop),
+  `DienstElders`, `UitloggenKnop` (met de keuze uit vraag 17), `AdminMeldingen`,
+  `OvernemenOverlay`, `AfmeldenOverlay`; `DienstAfsluitenOverlay` kent een
+  variant `beheerder`. `DienstTabs` heeft "Ingelogd als {naam}" en "Uitloggen"
+  onderaan de rail.
+- **`/beheer`**: `ModusKeuze` registreert de sessie (`register_bar_session`).
+  **De tegel "Beheer" staat er alleen voor een beheerder** (de server registreert
+  een beheersessie alleen voor die rol). **De link "← terug naar bardienst" is uit
+  `BeheerTabs` verdwenen**: een beheersessie kan niet naar de bar, modus wisselen
+  is uitloggen. Een sessie in modus bar op `/beheer` gaat naar `/`, en een
+  beheersessie op `/` naar `/beheer`. Nieuw tabblad **Diensten** (alleen
+  beheerder): open diensten met koppelingen, actieve sessies, "Afsluiten" en
+  "Afmelden".
+- **A4 inline**: `OpwaarderenOverlay` toont de goedgekeurde tekst bij het kiezen
+  van jezelf, en de knop "boeken" blijft uit.
+
+**Niet gebouwd of open**
+
+- **Vraag 24 (ii) is niet gebouwd**: een bardienst uit de bezetting van een
+  wees-dienst die na opnieuw inloggen de dienst weer oppakt. De spec noemt er
+  geen RPC, knop of tekst voor (alleen "de regel 'Voor een bardienst' hangt af van
+  vraag 24"). Nu kan alleen een beheerder een wees-dienst overnemen of afsluiten,
+  en het scherm toont een bardienst dezelfde regel "Alleen een beheerder kan deze
+  dienst overnemen of afsluiten". Voorstel voor de Architect: een RPC
+  `resume_orphan_shift(p_shift_id)` (`require_bar_session`, de aanroeper staat in
+  `shift_members`, de dienst heeft geen actieve koppeling, sluit de melding),
+  een knop en een tekst.
+- **Teksten die niet in de goedgekeurde sectie staan** en er wel moesten komen:
+  het tabblad "Diensten" en de kopjes "Diensten" en "Ingelogd" in het
+  beheeroverzicht, "sinds {tijd}" en "laatst actief om {tijd}" daarin, "Er loopt
+  geen dienst." en "Niemand is ingelogd.", "Opnieuw proberen" en de laadteksten
+  ("Bardienst-lijst laden…", "Bezig met laden…"), en de hint "← terug naar
+  inloggen" in de weergave wachtwoord vergeten. Bram keurt ze goed of past ze aan.
+- Fase 2 (de instelling, `join_shift`, stand (b) en (c)) niet.
+
+**Uitrol** (uitbreiding van de volgorde onder Tablet koppelen verwijderen):
+
+1. Controle en actie op productie, vóór alles:
+   `select name, role from members where role in ('bardienst','beheerder') and
+   not archived and auth_user_id is null;` en voor elke rij eerst een uitnodiging
+   sturen, en zorgen dat er een werkend wachtwoord is. Zonder wachtwoord staat
+   iemand na de uitrol buiten de bar (de naam staat in de lijst, inloggen geeft
+   `no_account`).
+2. Alle diensten afsluiten (de migratie weigert anders).
+3. `SUPABASE_SECRET_KEY` in Vercel (de login op de bar draait ermee), en de
+   pg_cron-extensie staat al aan (`0025`).
+4. Deployen (migraties `0027`–`0029`).
+5. Device-account intrekken en verwijderen, daarna `SUPABASE_DEVICE_EMAIL`,
+   `SUPABASE_DEVICE_PASSWORD` en `BAR_DEVICE_SECRET` uit Vercel en CI.
+6. Op het echte tablet testen (vooral iPadOS en de PWA): hervatscherm,
+   `sessionStorage`, het apparaatcookie en de PIN-login.
 
 ## Open vragen voor Bram (historie)
 

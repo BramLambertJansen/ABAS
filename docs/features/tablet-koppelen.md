@@ -1,6 +1,13 @@
 # Tablet koppelen: de gedeelde device-sessie alleen voor een gekoppelde tablet
 
-**Status: goedgekeurd door Bram (2026-09-28).** Geschreven 2026-09-28. De architectuurbeslissing zelf staat in
+**Status: vervallen (2026-09-29) — vervangen door
+[`dienst-per-sessie.md`](dienst-per-sessie.md) en
+[ADR 0016](../adr/0016-dienst-hoort-bij-geregistreerde-app-sessies.md).**
+`/koppel`, `src/lib/tabletKoppeling.ts`, het `abas_tablet`-cookie,
+`BAR_DEVICE_SECRET`, de device sign-in in de middleware en het device-account
+zijn verwijderd. De tekst hieronder blijft als historie.
+
+**Oorspronkelijke status: goedgekeurd door Bram (2026-09-28).** Geschreven 2026-09-28. De architectuurbeslissing zelf staat in
 [ADR 0011](../adr/0011-device-sessie-alleen-voor-gekoppelde-tablet.md).
 Vervolg op [issue #34](https://github.com/BramLambertJansen/ABAS/issues/34):
 dit vervangt het daar geaccepteerde risico.
