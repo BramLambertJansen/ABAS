@@ -1,7 +1,7 @@
 # Dienst per sessie: eigen sessie per apparaat, en een dienst die bij die sessie hoort
 
-**Status: model goedgekeurd door Bram (2026-09-29); teksten wachten op
-akkoord.** Geschreven en bijgewerkt 2026-09-29. Niets hiervan is gebouwd. Het
+**Status: goedgekeurd door Bram (2026-09-29), inclusief de teksten.** Bram
+past teksten later aan als dat nodig is. Geschreven en bijgewerkt 2026-09-29. Niets hiervan is gebouwd. Het
 mechanisme staat in ADR
 [0016](../adr/0016-dienst-hoort-bij-geregistreerde-app-sessies.md). Brams
 antwoorden op de vragen 1–23 staan onderaan als historie en zijn in de tekst
@@ -490,7 +490,7 @@ inhoudelijk gedekt. De functie zelf blijft bestaan: de RLS-leespolicies uit
   `NO_BAR_ROLE_SESSION_MESSAGE` als foutregel. Straks betekent elke
   sessiecode dat deze sessie niet (meer) in deze dienst kan werken. Eén
   centrale afhandeling toont dan de melding bij een gesloten sessie
-  (Schermflow punt 6, teksten in het Tekstvoorstel) en zet het scherm in de
+  (Schermflow punt 6, teksten in de sectie Teksten) en zet het scherm in de
   juiste toestand (uitgelogd, of "geen eigen dienst"). De `no_bar_role`-cases
   in `verkoop/messages.ts`, `opwaarderen/messages.ts`,
   `bestelling-terugdraaien/messages.ts`, `DienstAfsluitenOverlay.tsx` en
@@ -498,7 +498,7 @@ inhoudelijk gedekt. De functie zelf blijft bestaan: de RLS-leespolicies uit
 - **`NO_BAR_ROLE_SESSION_MESSAGE`** verdwijnt uit `src/lib/staff.ts`. De tekst
   klopt niet meer: "log uit en log in als bardienst" doet de app nu zelf,
   en een lid komt er niet meer. Hij wordt vervangen door de sessieteksten uit
-  het Tekstvoorstel. Waar die constanten komen, is aan de Developer.
+  de sectie Teksten. Waar die constanten komen, is aan de Developer.
 - **`start_shift`** verliest `invalid_pin`, `member_not_found` en zijn eigen
   `no_bar_role`: de PIN zit in de login, de starter is het lid van de sessie,
   en de guard dekt de rol. `useStartShift` krijgt de sessiecodes plus
@@ -633,7 +633,7 @@ een extra regel. Ze wordt opgelost door `admin_take_over_shift` of
 
 ## Schermflow (bar-shell)
 
-De teksten staan in het Tekstvoorstel. Hieronder de toestanden.
+De teksten staan in de sectie Teksten. Hieronder de toestanden.
 
 1. **Geen sessie: het startscherm.** De namenlijst (`StaffPicker`, alle
    bardienstleden, via de server-side namenlijst). Daaronder de bestaande
@@ -1095,7 +1095,7 @@ geldende functie; de nieuwe migratie zegt dat in haar eigen kop.
 (vervallen), `portal-profiel.md` (enige plek voor de PIN),
 `wachtwoord-vergeten.md` (tweede ingang vanaf de namenlijst).
 
-## Tekstvoorstel (wacht op akkoord Bram)
+## Teksten (goedgekeurd door Bram, 2026-09-29)
 
 Toon zoals in `src/features/**`: titels met een hoofdletter ("Dienst staat
 nog open"), foutregels klein met een gedachtestreepje ("onjuiste pincode",
@@ -1491,7 +1491,7 @@ Verplaatst naar Nog open, onderaan.
 Bevestigd (Bram, 2026-09-29): A4 in alle standen betekent dat een bardienst
 die alleen staat zichzelf niet kan opwaarderen; dat doet dan een collega of
 een beheerder.
-2. **De teksten** (vraag 23): zie Tekstvoorstel. Inclusief het voorstel om na
+2. **De teksten** (vraag 23): zie Teksten (goedgekeurd). Inclusief het voorstel om na
    afsluiten ingelogd te blijven (Schermflow punt 7).
 
 Nieuwe vragen. Ze volgen niet uit de antwoorden, maar de Developer kan fase 1
@@ -1563,5 +1563,5 @@ niet bouwen zonder een keuze.
   maakt een apparaat niet vertrouwd, en "Bar" blijft in `ModusKeuze`. Bram
   vraagt later zelf om aanpassing als dat nodig is.
 
-Nog open: alleen de teksten (Tekstvoorstel) en de wachtwoordcontrole als
-uitrolstap (punt 1).
+De teksten zijn goedgekeurd (2026-09-29): "goedkeuren, later aanpassen".
+Nog open is alleen de wachtwoordcontrole als uitrolstap (punt 1).

@@ -1,6 +1,6 @@
 # 0016 — Een dienst hoort bij een of meer geregistreerde, persoonlijke app-sessies, niet bij een gedeeld device-account
 
-Status: **model geaccepteerd door Bram (2026-09-29); niet gebouwd.** Hoort
+Status: **geaccepteerd door Bram (2026-09-29); niet gebouwd.** Hoort
 bij [`docs/features/dienst-per-sessie.md`](../features/dienst-per-sessie.md).
 De teksten en de vragen 24–27 in die spec staan nog open. Ze veranderen het
 mechanisme hieronder niet, alleen de parameters (lockout, kostenfactor,
