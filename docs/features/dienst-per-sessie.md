@@ -60,7 +60,7 @@ zijn uitgewerkt:
   op de namenlijst is de authenticatie van de starter, en wie geen PIN heeft,
   moet ook kunnen starten. `start_shift` krijgt dus geen PIN meer mee, en de
   starter is het lid van de sessie.
-- **Inactiviteit: 30 minuten, vaste waarde** (7), los van "dienst te lang
+- **Inactiviteit: 60 minuten, vaste waarde** (7, verhoogd bij 24), los van "dienst te lang
   open" (6 uur, `docs/features/dienst-te-lang-open.md`), dat ongewijzigd
   blijft.
 - **De beheerdermelding staat in de app** (8), voor alle niet-gearchiveerde
@@ -153,7 +153,7 @@ Voor de nieuwe schermen staat hieronder een tekstvoorstel (vraag 23).
 - `pg_cron` staat aan sinds `0025` (`purge_client_errors`). Er is geen
   mailprovider: alleen de Auth-mails van Supabase.
 - De inactiviteitstijd bestond niet in de code (zie de eerdere versie van
-  deze spec en vraag 7). Bram heeft 30 minuten gekozen.
+  deze spec en vraag 7). Bram koos eerst 30 minuten en heeft dat bij vraag 24 verhoogd naar 60 minuten.
 
 **Kaders.** CLAUDE.md (Domein, Architectuurbeslissingen, Shells, Auth), ADR
 0002, 0003, 0005, 0006, 0007, 0008, 0009, 0011, 0012 en 0013,
@@ -171,7 +171,8 @@ mechanism", "Device sign-in mechanism", "PIN storage/hashing", "Auth-methode
 - **Apparaatcookie**: `abas_apparaat`, een willekeurig token dat de server
   uitgeeft bij de eerste wachtwoordlogin via de namenlijst. Het overleeft
   uitloggen. Het is nodig voor vraag 3 ("alleen op dit apparaat") en voor
-  niets anders.
+  niets anders. Het vertrouwen geldt 30 dagen en elke login verlengt het
+  (besloten, 27).
 - **Vertrouwd apparaat (voor een lid)**: een apparaat waarop dat lid via de
   namenlijst met het wachtwoord heeft ingelogd. Alleen daar kan dat lid met
   de PIN inloggen.
@@ -359,7 +360,7 @@ volgende koppeling (overname) lost haar op.
 **`app_settings`** (fase 2): `shift_session_mode text not null default
 'een_apparaat'` (`een_apparaat` \| `meerdere_apparaten` \|
 `meerdere_diensten`; standaard (a), besloten 2). De inactiviteitstijd is geen
-instelling maar een vaste waarde van 30 minuten (besloten, 7): een constante
+instelling maar een vaste waarde van 60 minuten (besloten, 7): een constante
 in de guard, met een UX-spiegel in de client (zelfde verdeling als
 `TOP_UP_MAX_CENTS`).
 
@@ -598,7 +599,7 @@ functies die bewust alleen voor `service_role` of `pg_cron` zijn.
   het PIN-vertrouwen van dat apparaat intrekt: vraag 27.
 - **`close_inactive_bar_sessions()`**: alleen `pg_cron`, geen `EXECUTE` voor
   enige API-rol (patroon `purge_client_errors`, `0025`). Elke minuut. Zet
-  `inactief` op sessies die langer dan 30 minuten stil zijn, sluit hun
+  `inactief` op sessies die langer dan 60 minuten stil zijn, sluit hun
   koppelingen en maakt een melding voor elke dienst die daardoor wees wordt.
   De guard hangt niet van deze job af: valt `pg_cron` uit, dan weigeren de
   RPC's nog steeds, alleen de melding komt later.
@@ -682,7 +683,7 @@ De teksten staan in het Tekstvoorstel. Hieronder de toestanden.
    - een half ingevuld mandje gaat verloren. Dat staat in de melding.
 7. **Na afsluiten** van de eigen dienst blijft de sessie ingelogd en toont
    de app punt 4 (voorstel, ter goedkeuring met de teksten). De sessie sluit
-   daarna zelf na 30 minuten, of met "Uitloggen".
+   daarna zelf na 60 minuten, of met "Uitloggen".
 
 **Beheer (`/beheer`)** krijgt, in modus `beheer`:
 
@@ -697,7 +698,7 @@ apparaat (12a).
 
 ## Inactiviteit en de beheerdermelding
 
-- **Tijd**: 30 minuten, vast (besloten, 7). Geldt voor bar- en
+- **Tijd**: 60 minuten, vast (besloten, 7). Geldt voor bar- en
   beheersessies.
 - **Wat telt als activiteit**: elke geslaagde bar- of beheer-RPC, en een
   hartslag `touch_bar_session()` bij een tik of toets op een bar- of
@@ -711,7 +712,7 @@ apparaat (12a).
   5). Er komt geen e-mail (8).
 - **Oplossen**: overnemen of afsluiten. Beide RPC's markeren de melding als
   opgelost.
-- **Gevolg dat Bram moet zien**: een bar die 30 minuten niets aanslaat,
+- **Gevolg dat Bram moet zien**: een bar die 60 minuten niets aanslaat,
   heeft daarna een wees-dienst. In fase 1 kan alleen een beheerder die weer
   openen of sluiten. Zie vraag 24.
 
@@ -854,7 +855,7 @@ vervallen van de device-route gaan daarom samen (#117).
 - **Dezelfde persoon op twee apparaten**: twee sessies. In (a) kan de tweede
   niet in de dienst werken, en de starter kan de dienst niet zelf verhuizen
   (12d).
-- **Browser langer dicht dan 30 minuten**: geen hervatscherm, maar de melding
+- **Browser langer dicht dan 60 minuten**: geen hervatscherm, maar de melding
   en het startscherm.
 - **Supabase-sessie verlopen** (refresh token ongeldig): het startscherm. De
   `bar_sessions`-rij blijft actief tot de cron-job hem inactief maakt.
@@ -909,7 +910,7 @@ het verwijderen van tablet koppelen (#117).
 - uitloggen op de bar-schermen met de keuze uit 17, het hervatscherm, de
   meldingen bij een gesloten sessie
 - `admin_end_shift`, `admin_take_over_shift`, `admin_end_bar_session`
-- inactiviteit (30 minuten) met `close_inactive_bar_sessions` en de
+- inactiviteit (60 minuten) met `close_inactive_bar_sessions` en de
   beheerdermelding in de app
 - `bar_session_id` op de boekingen
 - tablet koppelen en het device-account eruit
@@ -937,7 +938,7 @@ Er is geen fase 3 meer: de PIN-login zit in fase 1 (6).
 - Een dienstkolom in het Logboek voor stand (c).
 - Een naam per apparaat (22).
 - De beheerdermelding per e-mail (8).
-- Een waarschuwing vóór de 30 minuten verstrijken ("Nog bezig?"). Niet
+- Een waarschuwing vóór de 60 minuten verstrijken ("Nog bezig?"). Niet
   gevraagd; de melding komt achteraf.
 - Leestoegang op RLS-niveau koppelen aan een actieve bar-sessie. Die blijft
   zoals ADR 0007 en ADR 0012 hem vastleggen.
@@ -1192,8 +1193,8 @@ Eén overlay met titel, uitleg en de knop "OK".
 
 | Reden | Titel | Uitleg |
 |---|---|---|
-| Inactief | Je bent uitgelogd | Er is 30 minuten niets gedaan op dit apparaat. |
-| Inactief, met dienst | Je bent uitgelogd | Er is 30 minuten niets gedaan op dit apparaat. De dienst loopt nog; een beheerder heeft een melding gekregen. |
+| Inactief | Je bent uitgelogd | Er is 60 minuten niets gedaan op dit apparaat. |
+| Inactief, met dienst | Je bent uitgelogd | Er is 60 minuten niets gedaan op dit apparaat. De dienst loopt nog; een beheerder heeft een melding gekregen. |
 | Overgenomen | Je dienst is overgenomen | Een beheerder werkt nu op een ander apparaat in deze dienst. |
 | Afgesloten door beheerder | De dienst is afgesloten | Een beheerder heeft de dienst afgesloten vanaf een ander apparaat. |
 | Afgemeld | Je bent afgemeld | Een beheerder heeft dit apparaat afgemeld. |
@@ -1209,7 +1210,7 @@ stond, is niet afgerekend."
 |---|---|
 | Titel | Dienst zonder apparaat |
 | Uitleg | De dienst van {starter} ({activiteit}, sinds {tijd}) heeft geen ingelogd apparaat meer. |
-| Reden: inactief | Er is 30 minuten niets gedaan. |
+| Reden: inactief | Er is 60 minuten niets gedaan. |
 | Reden: uitgelogd | {naam} is uitgelogd zonder af te sluiten. |
 | Reden: afgemeld | Het apparaat is afgemeld. |
 | Reden: rol | {naam} mag niet meer op de bar werken. |
@@ -1542,3 +1543,25 @@ niet bouwen zonder een keuze.
 
     Een nieuw wachtwoord of een nieuwe PIN verandert niets aan het
     vertrouwen.
+
+### Beantwoord (Bram, 2026-09-29, vijfde ronde)
+
+- **24: (ii), en de inactiviteitstijd wordt 60 minuten in plaats van 30.**
+  Een bardienst uit de bezetting mag een wees-dienst na opnieuw inloggen
+  weer oppakken. 12d blijft nee. Overal in deze spec en in ADR 0016 staat nu
+  60 minuten.
+- **25: zoals aanbevolen.** Na 5 foute PIN-pogingen is de PIN geblokkeerd.
+  Een geslaagde wachtwoordlogin heft de blokkade op, en foute wachtwoorden
+  tellen niet mee.
+- **26: zoals aanbevolen.** Kostenfactor 12, met herhashen bij de volgende
+  PIN-login.
+- **27: een maand (30 dagen) in plaats van 400 dagen, en elke login
+  verlengt die.** "Apparaat afmelden" trekt het vertrouwen van dat apparaat
+  in. Archiveren of de rol terugzetten naar `lid` trekt het op alle
+  apparaten in.
+- **De keuzes van de Architect zijn akkoord.** Een e-maillogin op `/beheer`
+  maakt een apparaat niet vertrouwd, en "Bar" blijft in `ModusKeuze`. Bram
+  vraagt later zelf om aanpassing als dat nodig is.
+
+Nog open: alleen de teksten (Tekstvoorstel) en de wachtwoordcontrole als
+uitrolstap (punt 1).

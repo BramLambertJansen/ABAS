@@ -69,7 +69,7 @@ Bram wil het omgekeerde (spec → Aanleiding en Besloten):
   één dienst, of meerdere diensten tegelijk is;
 - een beheerder kan vanaf een ander apparaat een dienst afsluiten, overnemen
   of een apparaat afmelden;
-- een sessie die 30 minuten inactief is, wordt gesloten, met een melding in de
+- een sessie die 60 minuten inactief is, wordt gesloten, met een melding in de
   app voor beheerders.
 
 In het huidige model kan dat niet, want in de database is er geen verschil
@@ -114,7 +114,7 @@ stand ontstaan en levert een melding op (Beslissing 5).
 **4. Het einde van een sessie is een database-feit, geen JWT-feit.** Een
 beëindigde of te lang inactieve `bar_sessions`-rij laat elke bar- en
 beheer-RPC weigeren, ook als het access token nog tot `jwt_expiry` geldig is.
-Inactiviteit (30 minuten, een vaste waarde) wordt in de guard berekend
+Inactiviteit (60 minuten, een vaste waarde) wordt in de guard berekend
 (`now() - last_activity_at`). Een `pg_cron`-job (patroon uit `0025`) legt het
 einde daarna vast als boekhouding en maakt de beheerdermelding aan. Dat
 gebeurt bewust niet in de guard zelf: een `raise` draait de schrijfactie in
@@ -224,7 +224,7 @@ voor elke functie.
 - **Tablet koppelen** (`/koppel`, `BAR_DEVICE_SECRET`, `abas_tablet`, device
   sign-in in `src/middleware.ts`) en het device-account verdwijnen in dezelfde
   uitrol. Voorwaarde: elke bardienst en beheerder heeft een werkend wachtwoord.
-- **Een stille bar wordt een wees-dienst.** Na 30 minuten zonder activiteit
+- **Een stille bar wordt een wees-dienst.** Na 60 minuten zonder activiteit
   heeft de dienst geen sessie meer. Wie hem dan weer mag oppakken, is spec →
   vraag 24.
 - **Nieuwe negatieve tests** in `supabase/tests/`: elke bar-RPC weigert zonder
