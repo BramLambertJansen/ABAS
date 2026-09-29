@@ -118,7 +118,7 @@ geen service-worker caching — dat is bewust uitgesteld, geen vergeten scope.
 
 ## Auth
 
-Portal-leden loggen in met e-mail: magic link of wachtwoord, beide actief.
+Portal (elke rol met een gekoppeld lid, ADR 0012): inloggen met e-mail, magic link of wachtwoord, beide actief.
 Voor bardienst/beheerder is **e-mail/wachtwoord verplicht**; een PIN is een
 optionele snelkoppeling daarbovenop, die het lid zelf aan- of uitzet via
 "Mijn account". Een PIN vervangt het wachtwoord nooit — de enige verboden
