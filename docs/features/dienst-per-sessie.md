@@ -777,16 +777,27 @@ vraag waarin Bram kiest.
    verloop wordt de sessie gesloten en gaat er een melding naar een
    beheerder. **De waarde is nog open.**
 
+Aanvulling (Bram, 2026-09-29, tweede ronde):
+
+- **Vraag 7: de inactiviteitstijd is 30 minuten**, als vaste waarde.
+- **Vraag 6: een PIN-login geeft geen toegang tot beheer**; beheer vraagt
+  het wachtwoord.
+- **Vraag 5: de openbare namenlijst is acceptabel.**
+8. **De beheerdermelding verschijnt in de app.**
+9. **Ja.** Alle niet-gearchiveerde beheerders krijgen de melding, alleen als
+   een open dienst geen actieve sessie meer heeft. De melding is opgelost
+   zodra één beheerder overneemt of afsluit.
+10. **"Mijn account" zit niet in de bar-shell, alleen in de portal.** Op de
+    bar kun je alleen via de inlogpagina een nieuw wachtwoord aanvragen. Na
+    hervatten is er op de bar dus alleen bar-werk, en beheer valt al af door
+    vraag 11 (de modus wordt server-side afgedwongen).
+11. **Ja**, de modus wordt server-side afgedwongen in de beheer-RPC's, in
+    fase 1.
+12. **(a) ja, (b) ja, (c) ja, (d) nee.**
+
 ### Nog te beantwoorden
 
-- Vraag 7: welke waarde heeft de inactiviteitstijd?
-- Vraag 6: mag een PIN-login naar beheer?
-- Vraag 5: de lijst met bardienstleden is openbaar zichtbaar voor iedereen
-  met de URL, want er is dan nog niemand ingelogd. Accepteer je dat de
-  namen van alle bardienstleden zo te zien zijn? (Een PIN is alleen
-  bruikbaar op een bekend apparaat, dus raden op een vreemd apparaat
-  werkt niet.)
-- Vragen 8 t/m 23 hieronder.
+- Vragen 13 t/m 23 hieronder.
 
 ### Oorspronkelijke vragen
 
