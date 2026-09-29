@@ -118,11 +118,11 @@ geen service-worker caching — dat is bewust uitgesteld, geen vergeten scope.
 
 ## Auth
 
-Portal (elke rol met een gekoppeld lid, ADR 0012): inloggen met e-mail, magic link of wachtwoord, beide actief.
+Portal (elke rol met een gekoppeld lid, `docs/adr/0012-portal-eigen-data-voor-elke-rol.md`): inloggen met e-mail, magic link of wachtwoord, beide actief.
 Voor bardienst/beheerder is **e-mail/wachtwoord verplicht**; een PIN is een
 optionele snelkoppeling daarbovenop, die het lid zelf aan- of uitzet via
 "Mijn account". Een PIN vervangt het wachtwoord nooit — de enige verboden
-staat is alleen-PIN (ADR 0005, amendeert ADR 0003). Na een e-maillogin volgt
+staat is alleen-PIN (ADR 0005, amendeert ADR 0003). Na een e-maillogin op `/beheer` (niet op de portal) volgt
 een **modus-keuze: bar of beheer, niet beide tegelijk**. Modi zijn losse
 sessies — overstappen vereist uitloggen, geen wisselknop (ADR 0003). Beide
 wegen naar bar-modus zijn gebouwd: PIN via de gedeelde tablet-sessie, en
