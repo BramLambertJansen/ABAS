@@ -11,7 +11,7 @@ vier open vragen uit het concept zijn beantwoord, allemaal met de aanbeveling
 van de Architect (zie "Besloten", punten 6–9). Bram ging ook akkoord met de
 twee keuzes die de Architect zelf had gemaakt (punten 10–11). Eén nieuwe
 architectuurbeslissing hoort bij deze spec:
-[ADR 0012](../adr/0012-overlay-aanwezigheid-via-gedeelde-context.md). Dat
+[ADR 0014](../adr/0014-overlay-aanwezigheid-via-gedeelde-context.md). Dat
 is het mechanisme waarmee de melding wacht tot er geen andere overlay open
 is.
 
@@ -55,7 +55,7 @@ Antwoorden op de open vragen uit het concept:
    openstaat, dan wacht de melding tot die overlay dicht is en verschijnt
    dan meteen. Een lopende betaling of bevestiging wordt nooit onderbroken.
    Het mechanisme staat hieronder onder "Wachten op andere overlays" en in
-   ADR 0012.
+   ADR 0014.
 8. **Annuleren in `DienstAfsluitenOverlay` telt als "Nog bezig"** (was open
    vraag 3), als die overlay vanuit de melding geopend is. Wie het overzicht
    bekeek en besloot niet af te sluiten, maakte dezelfde keuze.
@@ -104,7 +104,7 @@ loopt via dat ene punt:
 
 ```
 BarShellHome → DienstStarten (useOpenShift) → DienstTabs(shift, onShiftEnded)
-                                               └─ OverlayPresenceProvider (nieuw, ADR 0012)
+                                               └─ OverlayPresenceProvider (nieuw, ADR 0014)
                                                    ├─ VerkoopScherm   (tab)
                                                    ├─ DienstActief    (tab)
                                                    └─ DienstTeLangOpenMelding (nieuw, altijd gemount)
@@ -144,7 +144,7 @@ BarShellHome → DienstStarten (useOpenShift) → DienstTabs(shift, onShiftEnded
 | Wat | Bestaand | Hoe |
 |---|---|---|
 | Open dienst + `started_at` | `useOpenShift()` (`src/hooks/queries/useOpenShift.ts`), al aangeroepen in `DienstStarten` | **Niet** opnieuw aanroepen. `DienstTabs` heeft `shift: OpenShift` al (met `startedAt` als ISO-string van de server) en geeft die door. Een tweede `useOpenShift()`-instantie zou een extra query zijn, met een eigen `refetch` die niets bijwerkt (er is geen gedeelde cache). |
-| Dialoog | `Overlay` (`src/components/Overlay.tsx`) | De melding is een `<Overlay title description onClose>`. `role="dialog"`, `aria-modal`, labelling, focus erin en terug, focus-trap en Escape/achtergrond komen daar allemaal al uit. Geen eigen dialoogmarkup. De enige wijziging aan `Overlay` is dat hij zich aanmeldt (ADR 0012). Zijn gedrag voor bestaande consumenten verandert niet. |
+| Dialoog | `Overlay` (`src/components/Overlay.tsx`) | De melding is een `<Overlay title description onClose>`. `role="dialog"`, `aria-modal`, labelling, focus erin en terug, focus-trap en Escape/achtergrond komen daar allemaal al uit. Geen eigen dialoogmarkup. De enige wijziging aan `Overlay` is dat hij zich aanmeldt (ADR 0014). Zijn gedrag voor bestaande consumenten verandert niet. |
 | Afsluiten | `DienstAfsluitenOverlay` (`src/features/dienst-afsluiten/`) | Ongewijzigd hergebruikt, met dezelfde props als vanuit `DienstActief`: `shift`, `onClose`, `onShiftEnded`. |
 | Knoppenpaar | Stijl van het knoppenpaar in `AfrekenenOverlay.tsx` (secundair wit met rand, primair `bg-accent-active`) | Zelfde classes. Er is geen gedeeld `Button`-component in `src/components/`, en er een extraheren valt buiten deze spec. |
 | Tijdsduur | `durationLabel()` in `src/features/dienst-overzicht/ledger.ts` en de 30s-tick in `DienstActief.tsx` | **Niet** hergebruikt voor de tekst: `durationLabel()` geeft "2u 05m", de melding toont hele uren. Wel overgenomen: hetzelfde tijdsmodel (server-`started_at` tegen de client-klok) en hetzelfde tick-interval van 30 seconden. |
@@ -195,7 +195,7 @@ Of er intussen een andere overlay openstaat, hoort **niet** in deze functie.
 Dat is React-state (zie hieronder). `shouldWarn` zegt alleen of de melding
 aan de beurt is.
 
-## Wachten op andere overlays (besluit 7, ADR 0012)
+## Wachten op andere overlays (besluit 7, ADR 0014)
 
 **Het probleem**: twee `Overlay`s tegelijk werken niet. Beide luisteren
 documentbreed naar Escape en naar `mousedown` buiten het eigen
@@ -209,7 +209,7 @@ is.
 
 **Gekozen mechanisme: `Overlay` meldt zich zelf aan bij een teller in een
 context.** Dit is het minst ingrijpende van de drie opties die zijn
-afgewogen (zie ADR 0012 → Verworpen alternatieven):
+afgewogen (zie ADR 0014 → Verworpen alternatieven):
 
 - **Nieuw bestand `src/components/OverlayPresence.tsx`** met:
   - `OverlayPresenceProvider({ children })` houdt het aantal gemounte
@@ -369,7 +369,7 @@ openen.
 | Pagina wordt geladen of herladen terwijl de dienst al meer dan 6 uur openstaat | De melding verschijnt bij de eerste render nadat `useOpenShift()` "ready" is. Er staat geen snooze in het geheugen, dus hij is direct zichtbaar. Zie Snooze-staat voor waarom dat gewenst is. |
 | Tablet dichtgeklapt of in slaapstand, later weer geopend | De `visibilitychange`-handler rekent direct opnieuw, en de melding staat er zodra het scherm zichtbaar is (besluit 5). Er gaat geen melding naar een beheerder of ergens anders heen. |
 | Grens valt terwijl Afrekenen, Opwaarderen, Bezetting, Terugdraaien of Dienst afsluiten (via de Dienst-tab) openstaat | De melding wacht (teller > 0). Zodra die overlay dicht is, verschijnt de melding meteen (besluit 7). Is de dienst intussen via die overlay afgesloten, dan unmount de hele `DienstTabs` en komt er geen melding. |
-| Grens valt op precies hetzelfde moment dat iemand een andere overlay opent (bv. de 30s-tick en een tik op "Tik afrekenen" in dezelfde frame) | De melding wacht alsnog. `view` klikt vast in een passief effect op basis van de teller van dát moment; daarom rendert de melding zijn eigen `Overlay` pas als de teller ook bij het renderen 0 is (of als hij al in beeld stond, want dan telt hij zichzelf mee), en meldt `Overlay` zich aan in een layout-effect. De andere overlay blijft dus alleen in beeld; na het sluiten verschijnt de melding meteen (besluit 7, ADR 0012). |
+| Grens valt op precies hetzelfde moment dat iemand een andere overlay opent (bv. de 30s-tick en een tik op "Tik afrekenen" in dezelfde frame) | De melding wacht alsnog. `view` klikt vast in een passief effect op basis van de teller van dát moment; daarom rendert de melding zijn eigen `Overlay` pas als de teller ook bij het renderen 0 is (of als hij al in beeld stond, want dan telt hij zichzelf mee), en meldt `Overlay` zich aan in een layout-effect. De andere overlay blijft dus alleen in beeld; na het sluiten verschijnt de melding meteen (besluit 7, ADR 0014). |
 | Afrekenen of Opwaarderen is bezig (`pending`) als de grens valt | Hetzelfde als hierboven: de overlay blijft open tot de RPC klaar is (die overlays sluiten niet tijdens `pending`). Pas daarna komt de melding. Een betaling wordt nooit onderbroken. |
 | Melding blijft open terwijl er een uur verstrijkt | X loopt mee bij de volgende tick (bijvoorbeeld 6 → 7). De melding gaat niet dicht en opent niet opnieuw. |
 | "Nog bezig", daarna wisselen tussen Verkoop en Dienst | De snooze blijft staan, want `DienstTabs` blijft gemount. |
@@ -484,14 +484,14 @@ unit-testbaar omdat ze in React-state zitten:
   koos uitstellen in plaats van stapelen.
 - **`OverlayPresenceProvider` in andere delen van de app** (portal,
   `/beheer`). Er is daar geen consument van de teller. Pas toevoegen als een
-  toekomstige feature hem nodig heeft (ADR 0012 → Gevolgen).
+  toekomstige feature hem nodig heeft (ADR 0014 → Gevolgen).
 - **Een gedeeld `Button`-component extraheren.** Het knoppenpaar volgt de
   bestaande classes. Extraheren is een aparte opschoonronde, zoals #53.
 
 ## Architectuur-aantekening
 
 Eén nieuwe ADR:
-[0012 — Overlays melden hun aanwezigheid via een gedeelde context](../adr/0012-overlay-aanwezigheid-via-gedeelde-context.md).
+[0014 — Overlays melden hun aanwezigheid via een gedeelde context](../adr/0014-overlay-aanwezigheid-via-gedeelde-context.md).
 Dat patroon staat in `src/components/`, en elke toekomstige overlay volgt het
 automatisch zolang hij `Overlay` gebruikt. Een eigen dialoog buiten `Overlay`
 om zou de teller omzeilen; dat is al een reviewfout volgens CLAUDE.md →

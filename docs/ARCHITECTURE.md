@@ -200,7 +200,7 @@ leave that one open until a screen actually needs to branch on it, same
 followed until #17.
 
 **Overlay presence (settled, 2026-09-28, ADR
-[0012](adr/0012-overlay-aanwezigheid-via-gedeelde-context.md))**: every
+[0014](adr/0014-overlay-aanwezigheid-via-gedeelde-context.md))**: every
 `Overlay` registers itself on mount/unmount with a counter in
 `src/components/OverlayPresence.tsx`. `useOpenOverlayCount()` reads it; with
 no `OverlayPresenceProvider` above, registering is a no-op and the count is 0.

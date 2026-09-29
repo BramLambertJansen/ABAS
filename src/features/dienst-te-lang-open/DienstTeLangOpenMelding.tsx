@@ -19,7 +19,7 @@ type View = null | "melding" | "afsluiten";
  * docs/features/dienst-te-lang-open.md. Altijd gemount in `DienstTabs`
  * (sibling van de tabpanelen), dus over Verkoop én Dienst heen.
  *
- * Wacht tot er geen andere `Overlay` open is (ADR 0012): `view` gaat alleen
+ * Wacht tot er geen andere `Overlay` open is (ADR 0014): `view` gaat alleen
  * van `null` naar `"melding"` als de teller 0 is, en klikt daarna vast — de
  * eigen `Overlay` (en daarna `DienstAfsluitenOverlay`) telt zelf mee.
  */
@@ -68,7 +68,7 @@ export function DienstTeLangOpenMelding({
   // melding er alsnog bovenop komen. Daarom rendert de eigen Overlay pas als
   // de teller ook nú 0 is — of als hij al in beeld stond, want dan telt hij
   // zichzelf mee. Tot die tijd blijft `view` staan en verschijnt de melding
-  // zodra de andere overlay dicht is (besluit 7, ADR 0012).
+  // zodra de andere overlay dicht is (besluit 7, ADR 0014).
   const meldingShownRef = useRef(false);
   const meldingVisible =
     view === "melding" && (meldingShownRef.current || openOverlayCount === 0);

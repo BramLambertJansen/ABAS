@@ -114,7 +114,7 @@ test("uitstellen: de melding wacht tot Afrekenen dicht is, en komt dan meteen (b
   await expect(page.getByRole("dialog")).toHaveCount(1);
 });
 
-test("race: grens en een tik op Afrekenen in dezelfde klokstap → melding pas na het sluiten (besluit 7, ADR 0012)", async ({
+test("race: grens en een tik op Afrekenen in dezelfde klokstap → melding pas na het sluiten (besluit 7, ADR 0014)", async ({
   page,
 }) => {
   await openBar(page, 6 * HOUR_MS - 3 * MINUTE_MS);
@@ -257,7 +257,7 @@ test("snooze overleeft een tabwissel; de melding komt ook over de Dienst-tab hee
   await expect(page.getByRole("tab", { name: "Dienst" })).toHaveAttribute("aria-selected", "true");
 });
 
-test("negatief: Dienst afsluiten via de Dienst-tab houdt de melding tegen tot annuleren (besluit 7, ADR 0012)", async ({
+test("negatief: Dienst afsluiten via de Dienst-tab houdt de melding tegen tot annuleren (besluit 7, ADR 0014)", async ({
   page,
 }) => {
   await openBar(page, 6 * HOUR_MS - 3 * MINUTE_MS);
@@ -277,7 +277,7 @@ test("negatief: Dienst afsluiten via de Dienst-tab houdt de melding tegen tot an
   await expect(page.getByRole("dialog")).toHaveCount(1);
 });
 
-test("teller: meerdere keren een overlay open en dicht vóór de grens laat de teller op 0 terugkomen (ADR 0012)", async ({
+test("teller: meerdere keren een overlay open en dicht vóór de grens laat de teller op 0 terugkomen (ADR 0014)", async ({
   page,
 }) => {
   await openBar(page, 6 * HOUR_MS - 3 * MINUTE_MS);

@@ -9,7 +9,7 @@ import {
 } from "react";
 
 /**
- * Overlay-aanwezigheid (ADR 0012, docs/adr/0012-overlay-aanwezigheid-via-
+ * Overlay-aanwezigheid (ADR 0014, docs/adr/0014-overlay-aanwezigheid-via-
  * gedeelde-context.md): elke `Overlay` meldt zich bij mount aan en bij
  * unmount weer af; `useOpenOverlayCount()` leest hoeveel er open zijn.
  *

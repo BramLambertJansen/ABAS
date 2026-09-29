@@ -25,7 +25,7 @@ type Tab = "verkoop" | "dienst";
  * vóór het wisselen.
  *
  * `OverlayPresenceProvider` omvat de tabpanelen én de melding "Dienst staat
- * nog open" (docs/features/dienst-te-lang-open.md, ADR 0012): de melding is
+ * nog open" (docs/features/dienst-te-lang-open.md, ADR 0014): de melding is
  * een sibling van de tabpanelen, dus verschijnt over beide tabs heen en
  * overleeft (met zijn snooze) elke tabwissel.
  */

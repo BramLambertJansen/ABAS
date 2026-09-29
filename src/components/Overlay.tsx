@@ -34,7 +34,7 @@ const FOCUSABLE_SELECTOR =
  * backdrop-click both call `onClose`.
  *
  * Meldt zich bij mount aan bij `OverlayPresenceProvider` en bij unmount weer
- * af (ADR 0012) — zonder provider doet dat niets.
+ * af (ADR 0014) — zonder provider doet dat niets.
  */
 export function Overlay({
   title,
@@ -54,7 +54,7 @@ export function Overlay({
   const previouslyFocused = useRef<HTMLElement | null>(null);
   const registerOverlay = useRegisterOverlay();
 
-  // ADR 0012: tel mee zolang deze overlay gemount is. `registerOverlay` is
+  // ADR 0014: tel mee zolang deze overlay gemount is. `registerOverlay` is
   // stabiel, dus dit draait alleen bij mount en unmount. Layout-effect, niet
   // passief: de teller moet al bijgewerkt zijn voordat een passief effect
   // elders (DienstTeLangOpenMelding) hem leest, anders ziet dat nog 0 terwijl
