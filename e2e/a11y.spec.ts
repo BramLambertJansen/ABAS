@@ -1473,6 +1473,11 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
     await expect(dialog).toBeFocused();
     await expect(dialog).toHaveAccessibleDescription(/^Deze dienst staat al \d+ uur open\. Klopt dat\?$/);
 
+    // De login-klikken laten de muis achter waar de melding straks zijn
+    // knoppen heeft; `hover:bg-accent` op "Dienst afsluiten" geeft dan een
+    // contrast van 3,42 in plaats van dat van de rustkleur.
+    await page.mouse.move(0, 0);
+
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa"])
       .analyze();

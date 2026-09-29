@@ -123,6 +123,9 @@ export type BarSessieMock = {
   modus: "bar" | "beheer" | null;
   /** De `p_mode` van elke `register_bar_session`-aanroep. */
   registraties: string[];
+  /** Zet dit als de eigen dienst gesloten is (bv. na `end_shift`): `my_bar_state`
+   *  levert dan geen dienst meer. */
+  dienstGesloten: boolean;
 };
 
 /**
@@ -138,7 +141,11 @@ export async function mockBarSessie(
 ): Promise<BarSessieMock> {
   const naam = opties.naam ?? "Femke Bos";
   const rol = opties.rol ?? "beheerder";
-  const staat: BarSessieMock = { modus: opties.voorgeregistreerd ?? null, registraties: [] };
+  const staat: BarSessieMock = {
+    modus: opties.voorgeregistreerd ?? null,
+    registraties: [],
+    dienstGesloten: false,
+  };
   const nu = new Date().toISOString();
 
   if (opties.bevestigd) {
@@ -161,7 +168,7 @@ export async function mockBarSessie(
         left_shift_open: false,
       },
       shift:
-        staat.modus === "bar" && opties.shift
+        staat.modus === "bar" && opties.shift && !staat.dienstGesloten
           ? {
               id: opties.shift.id,
               started_by_name: opties.shift.startedByName,
