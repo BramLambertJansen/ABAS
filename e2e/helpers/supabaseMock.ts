@@ -23,6 +23,18 @@ function base64url(value: object): string {
   return Buffer.from(JSON.stringify(value)).toString("base64url");
 }
 
+/** De geverifieerde TOTP-factor van de nep-gebruiker (ADR 0017: beheer
+ *  eist een tweede factor). */
+export const FACTOR_ID = "00000000-0000-4000-8000-0000000000fa";
+const VERIFIED_FACTOR = {
+  id: FACTOR_ID,
+  friendly_name: null,
+  factor_type: "totp",
+  status: "verified",
+  created_at: "2026-01-01T00:00:00Z",
+  updated_at: "2026-01-01T00:00:00Z",
+};
+
 export const USER = {
   id: "00000000-0000-4000-8000-000000000001",
   aud: "authenticated",
@@ -31,13 +43,38 @@ export const USER = {
   app_metadata: { provider: "email" },
   user_metadata: {},
   created_at: "2026-01-01T00:00:00Z",
+  factors: [VERIFIED_FACTOR],
 };
 
-export function fakeSession() {
+/** De nep-gebruiker zonder tweede factor. */
+export const USER_ZONDER_FACTOR = { ...USER, factors: [] as (typeof VERIFIED_FACTOR)[] };
+
+/** Het `session_id`-claim van de nep-sessie: de sleutel van de bar-sessie en
+ *  de waarde van het hervat-cookie (ADR 0017). */
+export const SESSION_ID = "00000000-0000-4000-8000-0000000000e1";
+
+/**
+ * Een nep-sessie. Standaard aal2 met een geverifieerde factor, zodat "Beheer"
+ * in de modus-keuze meteen registreert; de code-stap zelf toetst
+ * e2e/beheer-tweede-factor.spec.ts met `aal: "aal1"`.
+ */
+export function fakeSession(
+  opties: { aal?: "aal1" | "aal2"; user?: typeof USER | typeof USER_ZONDER_FACTOR } = {}
+) {
   const exp = Math.floor(Date.now() / 1000) + 3600;
+  const user = opties.user ?? USER;
   const accessToken = [
     base64url({ alg: "HS256", typ: "JWT" }),
-    base64url({ sub: USER.id, aud: "authenticated", role: "authenticated", exp, email: USER.email }),
+    base64url({
+      sub: user.id,
+      aud: "authenticated",
+      role: "authenticated",
+      exp,
+      email: user.email,
+      session_id: SESSION_ID,
+      aal: opties.aal ?? "aal2",
+      amr: [{ method: "password", timestamp: exp - 3600 }],
+    }),
     "nep-handtekening",
   ].join(".");
   return {
@@ -46,7 +83,7 @@ export function fakeSession() {
     expires_in: 3600,
     expires_at: exp,
     refresh_token: "nep-refresh-token",
-    user: USER,
+    user,
   };
 }
 
@@ -125,10 +162,15 @@ export type BarSessieMockOpties = {
     orphan: boolean;
     inBezetting: boolean;
   } | null;
-  /** De sessie geldt als bevestigd in deze browserstart (een vlag in
-   *  sessionStorage). Nodig voor een `voorgeregistreerd` sessie, anders komt
-   *  eerst het hervatscherm. */
+  /** De sessie geldt als bevestigd in deze browser (het sessiecookie
+   *  `abas_bar_bevestigd` met het `session_id`, ADR 0017). Nodig voor een
+   *  `voorgeregistreerd` sessie, anders komt eerst het hervatscherm. */
   bevestigd?: boolean;
+  /** `session.resumable` in `my_bar_state`; standaard zoals de server: waar
+   *  in modus bar, onwaar in modus beheer. */
+  resumable?: boolean;
+  /** De gebruiker die `GET /auth/v1/user` teruggeeft (standaard met factor). */
+  user?: typeof USER | typeof USER_ZONDER_FACTOR;
 };
 
 export type BarSessieMock = {
@@ -141,6 +183,8 @@ export type BarSessieMock = {
   dienstGesloten: boolean;
   /** De `p_shift_id` van elke `resume_orphan_shift`-aanroep. */
   hervattingen: string[];
+  /** De `p_reason` van elke `end_bar_session`-aanroep. */
+  beeindigingen: string[];
 };
 
 /**
@@ -161,13 +205,22 @@ export async function mockBarSessie(
     registraties: [],
     dienstGesloten: false,
     hervattingen: [],
+    beeindigingen: [],
   };
   let hervat = false;
   const nu = new Date().toISOString();
 
   if (opties.bevestigd) {
-    await page.addInitScript(() => window.sessionStorage.setItem("abas.bar.bevestigd", "1"));
+    await page.addInitScript((id) => {
+      document.cookie = `abas_bar_bevestigd=${id}; Path=/; SameSite=Strict`;
+    }, SESSION_ID);
   }
+
+  // `mfa.listFactors()` leest de gebruiker (de tweede factor, ADR 0017).
+  await page.route(/\/auth\/v1\/user(\?|$)/, (route) => {
+    if (route.request().method() !== "GET") return route.fallback();
+    return json(route, 200, opties.user ?? USER);
+  });
 
   await page.route(/\/rest\/v1\/rpc\/my_bar_state(\?|$)/, (route) => {
     if (staat.modus === null) return json(route, 200, { session: null });
@@ -190,6 +243,7 @@ export async function mockBarSessie(
         started_at: nu,
         last_activity_at: nu,
         left_shift_open: false,
+        resumable: opties.resumable ?? staat.modus === "bar",
       },
       shift: eigen
         ? {
@@ -235,6 +289,8 @@ export async function mockBarSessie(
   });
   await page.route(/\/rest\/v1\/rpc\/touch_bar_session(\?|$)/, (route) => json(route, 200, {}));
   await page.route(/\/rest\/v1\/rpc\/end_bar_session(\?|$)/, (route) => {
+    const reden = (route.request().postDataJSON() as { p_reason?: string } | null)?.p_reason;
+    staat.beeindigingen.push(reden ?? "uitgelogd");
     staat.modus = null;
     return route.fulfill({ status: 204, headers: SUPABASE_HEADERS, body: "" });
   });
@@ -242,5 +298,33 @@ export async function mockBarSessie(
     route.fulfill({ status: 204, headers: SUPABASE_HEADERS, body: "" })
   );
 
+  return staat;
+}
+
+// ── Tweede factor (ADR 0017) ─────────────────────────────────────────────
+
+export type TweedeFactorMock = {
+  /** De `code` van elke `verify`-aanroep. */
+  codes: string[];
+};
+
+/**
+ * Mockt `challenge` en `verify` van de TOTP-factor. `verify(n)` geeft per
+ * aanroep status en body; standaard slaagt alles, met een aal2-sessie terug.
+ */
+export async function mockTweedeFactor(
+  page: Page,
+  verify?: (n: number) => [number, unknown]
+): Promise<TweedeFactorMock> {
+  const staat: TweedeFactorMock = { codes: [] };
+  await page.route(/\/auth\/v1\/factors\/[^/]+\/challenge(\?|$)/, (route) =>
+    json(route, 200, { id: "00000000-0000-4000-8000-0000000000c9", type: "totp", expires_at: 9999999999 })
+  );
+  await page.route(/\/auth\/v1\/factors\/[^/]+\/verify(\?|$)/, (route) => {
+    const n = staat.codes.length;
+    staat.codes.push(String((route.request().postDataJSON() as { code?: string } | null)?.code));
+    const [status, body] = verify?.(n) ?? [200, fakeSession({ aal: "aal2" })];
+    return json(route, status, body);
+  });
   return staat;
 }

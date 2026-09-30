@@ -7,6 +7,7 @@ import { useBarHartslag } from "@/hooks/queries/useBarHartslag";
 import { useEndBarSession } from "@/hooks/queries/useEndBarSession";
 import {
   STATE_POLL_INTERVAL_MS,
+  browserCookies,
   browserSessionStorage,
   clearResume,
   confirmResume,
@@ -28,14 +29,19 @@ const TOAST_DURATION_MS = 4000;
  *
  * - bijhoudt of er een Supabase-sessie is en wat `my_bar_state()` zegt;
  * - bepaalt in welke fase de browser staat (zie `BarSessieFase`), inclusief
- *   het hervatscherm na "browser dicht en weer open" (een vlag in
- *   `sessionStorage`);
+ *   het hervatscherm na "browser dicht en weer open": het sessiecookie
+ *   `abas_bar_bevestigd` met het `session_id` geldt voor alle tabbladen van
+ *   deze browser (ADR 0017, docs/features/beheer-tweede-factor.md → B), en
+ *   een sessie die niet te hervatten is (`resumable = false`) sluit de
+ *   provider met `niet_hervat`;
  * - de hartslag zet (elke tik of toets, hooguit één per minuut) en de
  *   toestand elke 30 seconden stil ververst, zodat "Je dienst is
  *   overgenomen" en nieuwe beheerdermeldingen ook verschijnen zonder dat
  *   iemand iets aanraakt;
  * - elke sessiecode van een RPC (`notifySessionCode`) oppakt en de toestand
- *   ververst — de database is de waarheid, de client is alleen UX;
+ *   ververst — de database is de waarheid, de client is alleen UX; bij
+ *   `aal2_required` (beheer zonder tweede factor) logt hij lokaal uit, zodat
+ *   de beheerlogin volgt;
  * - bij een gesloten sessie de melding met de reden toont, lokaal uitlogt en
  *   het scherm in de juiste toestand zet (uitgelogd, of "geen eigen dienst").
  */
@@ -44,11 +50,17 @@ export function BarSessieProvider({ children }: { children: ReactNode }) {
   const dienst = useMijnDienst(auth.status === "signed-in");
   const eindeSessie = useEndBarSession();
 
-  const [bevestigd, setBevestigd] = useState<boolean>(() => isResumeConfirmed(browserSessionStorage()));
-  // Na het lezen van sessionStorage in de eerste render kan de server-render
-  // afwijken (geen storage): synchroniseer één keer na mount.
-  useEffect(() => {
-    setBevestigd(isResumeConfirmed(browserSessionStorage()));
+  // Bevestigd: het hervat-cookie bestaat en hoort bij deze sessie. Elke render
+  // leest het cookie opnieuw (goedkoop); `cookieVersie` dwingt een render af
+  // na het zetten of wissen ervan. Buiten de browser en zolang de sessie nog
+  // laadt is het `false`, dus server- en eerste client-render zijn gelijk.
+  const sessionId = auth.status === "signed-in" ? auth.sessionId : null;
+  const [, setCookieVersie] = useState(0);
+  const bevestigd = isResumeConfirmed(browserCookies(), sessionId);
+  const zetBevestigd = useCallback((id: string | null) => {
+    if (id) confirmResume(browserCookies(), id);
+    else clearResume(browserCookies());
+    setCookieVersie((v) => v + 1);
   }, []);
 
   const [melding, setMelding] = useState<SessieMelding | null>(null);
@@ -93,9 +105,10 @@ export function BarSessieProvider({ children }: { children: ReactNode }) {
   } else if (session.status !== "active") {
     fase = "laden";
   } else if (!bevestigd) {
-    // Een beheersessie wordt niet hervat (ADR 0016 → Beslissing 8): de effect
-    // hieronder sluit haar. Tot dan een neutrale laadstand.
-    fase = session.mode === "bar" ? "hervatten" : "laden";
+    // Een sessie die niet te hervatten is (modus beheer, ADR 0016 → Beslissing
+    // 8; of de bar-sessie van een beheerder zonder tweede factor, ADR 0017):
+    // de effect hieronder sluit haar. Tot dan een neutrale laadstand.
+    fase = session.resumable ? "hervatten" : "laden";
   } else {
     fase = "actief";
   }
@@ -104,11 +117,10 @@ export function BarSessieProvider({ children }: { children: ReactNode }) {
 
   const { signOutLocal } = auth;
   const lokaalUitloggen = useCallback(async () => {
-    clearResume(browserSessionStorage());
-    setBevestigd(false);
+    zetBevestigd(null);
     hadSessie.current = false;
     await signOutLocal();
-  }, [signOutLocal]);
+  }, [signOutLocal, zetBevestigd]);
 
   // ── Gesloten sessie: melding, lokaal uitloggen ─────────────────────────
 
@@ -143,19 +155,23 @@ export function BarSessieProvider({ children }: { children: ReactNode }) {
     if (session && session.status === "active") hadSessie.current = true;
   }, [session]);
 
-  // ── Een beheersessie wordt niet hervat ─────────────────────────────────
+  // ── Een niet te hervatten sessie wordt gesloten ────────────────────────
 
-  const nietHervatten = session?.status === "active" && session.mode === "beheer" && !bevestigd;
+  // Per sessie hooguit één keer: tussen het antwoord van de RPC en het
+  // uitloggen kan de effect nog eens draaien met de oude toestand.
+  const nietHervatSessie = session?.status === "active" && !session.resumable && !bevestigd ? session.id : null;
+  const nietHervatGesloten = useRef<string | null>(null);
   const { endBarSession } = eindeSessie;
   useEffect(() => {
-    if (!nietHervatten || opgeruimd.current) return;
+    if (!nietHervatSessie || nietHervatGesloten.current === nietHervatSessie || opgeruimd.current) return;
+    nietHervatGesloten.current = nietHervatSessie;
     opgeruimd.current = true;
     void (async () => {
       const resultaat = await endBarSession(false, "niet_hervat");
       if (!resultaat.ok) await lokaalUitloggen();
       opgeruimd.current = false;
     })();
-  }, [nietHervatten, endBarSession, lokaalUitloggen]);
+  }, [nietHervatSessie, endBarSession, lokaalUitloggen]);
 
   // ── Melding "overgenomen" / "afgesloten door beheerder" ────────────────
   // De sessie blijft ingelogd; de melding hoort één keer bij die dienst.
@@ -201,7 +217,17 @@ export function BarSessieProvider({ children }: { children: ReactNode }) {
     };
   }, [lopend, poll]);
 
-  useEffect(() => onSessionCode(() => poll()), [poll]);
+  // `aal2_required`: een beheersessie zonder tweede factor. De sessie staat
+  // voor de server nog, dus verversen verandert niets: lokaal uitloggen, en
+  // daarna de beheerlogin (docs/features/beheer-tweede-factor.md).
+  useEffect(
+    () =>
+      onSessionCode((code) => {
+        if (code === "aal2_required") void lokaalUitloggen();
+        else poll();
+      }),
+    [poll, lokaalUitloggen]
+  );
 
   // UX-spiegel van de inactiviteitstijd: net na het verwachte einde de
   // toestand verversen, ook als niemand iets aanraakt. De server bepaalt.
@@ -217,35 +243,31 @@ export function BarSessieProvider({ children }: { children: ReactNode }) {
 
   const { refresh } = auth;
   const naLogin = useCallback(async () => {
-    confirmResume(browserSessionStorage());
-    setBevestigd(true);
-    await refresh();
+    const id = await refresh();
+    zetBevestigd(id);
     refetch();
-  }, [refresh, refetch]);
+  }, [refresh, refetch, zetBevestigd]);
 
   const naRegistratie = useCallback(() => {
-    confirmResume(browserSessionStorage());
-    setBevestigd(true);
+    zetBevestigd(sessionId);
     refetch();
-  }, [refetch]);
+  }, [refetch, sessionId, zetBevestigd]);
 
   const bevestig = useCallback(() => {
-    confirmResume(browserSessionStorage());
-    setBevestigd(true);
-  }, []);
+    zetBevestigd(sessionId);
+  }, [sessionId, zetBevestigd]);
 
   const uitloggen = useCallback(
     async (sluitDienst: boolean) => {
       const resultaat = await endBarSession(sluitDienst);
       if (!resultaat.ok) return false;
-      clearResume(browserSessionStorage());
-      setBevestigd(false);
+      zetBevestigd(null);
       hadSessie.current = false;
       // Geen melding: dit is de eigen actie.
       await refresh();
       return true;
     },
-    [endBarSession, refresh]
+    [endBarSession, refresh, zetBevestigd]
   );
 
   const actief = session && (fase === "actief" || fase === "hervatten") ? session : null;

@@ -19,6 +19,7 @@ const SESSIE = {
   started_at: "2026-09-29T10:00:00Z",
   last_activity_at: "2026-09-29T10:30:00Z",
   left_shift_open: false,
+  resumable: true,
 };
 
 test("geen sessie: { session: null }", () => {
@@ -34,6 +35,7 @@ test("een actieve sessie zonder dienst", () => {
   assert.equal(state.session.mode, "bar");
   assert.equal(state.session.status, "active");
   assert.equal(state.session.leftShiftOpen, false);
+  assert.equal(state.session.resumable, true);
   assert.equal(state.shift, null);
   assert.equal(state.otherShift, null);
   assert.equal(state.lastLeft, null);
@@ -211,4 +213,13 @@ test("een vorm die de RPC nooit teruggeeft, gooit", () => {
   assert.throws(() => parseBarState({ session: { ...SESSIE, member_role: "lid" } }));
   assert.throws(() => parseBarState({ session: { ...SESSIE, mode: "kassa" } }));
   assert.throws(() => parseBarState({ session: { ...SESSIE, id: undefined } }));
+});
+
+test("resumable (0034, ADR 0017): alleen true als de RPC het zegt", () => {
+  const nietTeHervatten = parseBarState({ session: { ...SESSIE, resumable: false } });
+  assert.equal(nietTeHervatten.session?.resumable, false);
+  const zonderVeld = { ...SESSIE } as Record<string, unknown>;
+  delete zonderVeld.resumable;
+  assert.equal(parseBarState({ session: zonderVeld }).session?.resumable, false);
+  assert.equal(parseBarState({ session: { ...SESSIE, resumable: "true" } }).session?.resumable, false);
 });

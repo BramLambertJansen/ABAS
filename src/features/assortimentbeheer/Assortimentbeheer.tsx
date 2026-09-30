@@ -4,11 +4,13 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useBeheerSession } from "@/hooks/queries/useBeheerSession";
 import { useRegisterBarSession } from "@/hooks/queries/useRegisterBarSession";
+import { useBarMfa } from "@/hooks/queries/useBarMfa";
+import type { CodeFout } from "@/lib/mfa";
 import { BarSessieProvider } from "@/features/bar-sessie/BarSessieProvider";
 import { useBarSessie } from "@/features/bar-sessie/BarSessieContext";
 import { BeheerLogin } from "./BeheerLogin";
 import { BeheerTabs } from "./BeheerTabs";
-import { ModusKeuze } from "./ModusKeuze";
+import { ModusKeuze, type BeheerTegel } from "./ModusKeuze";
 
 function Laden() {
   return (
@@ -26,6 +28,15 @@ function BeheerSchermen() {
   const register = useRegisterBarSession();
   const router = useRouter();
   const [registreerFout, setRegistreerFout] = useState<string | null>(null);
+  const [codeStap, setCodeStap] = useState(false);
+
+  // De tweede factor (ADR 0017): alleen nodig voor een beheerder in de
+  // modus-keuze.
+  const inModusKeuze =
+    sessie.fase === "geen_bar_sessie" && beheerSessie.status === "signed-in" && beheerSessie.role === "beheerder";
+  const mfa = useBarMfa(inModusKeuze);
+  const beheerTegel: BeheerTegel =
+    mfa.status === "ready" ? (mfa.factorId ? "beschikbaar" : "geen_factor") : mfa.status === "error" ? "beschikbaar" : "laden";
 
   const barSessie = sessie.session?.mode === "bar";
 
@@ -42,12 +53,32 @@ function BeheerSchermen() {
     setRegistreerFout(null);
     const resultaat = await register.registerBarSession(modus);
     if (resultaat.ok) {
+      setCodeStap(false);
       sessie.naRegistratie();
     } else {
-      // De sessiecodes krijgen de centrale melding; al het andere is een
-      // gewone foutregel.
+      setCodeStap(false);
+      // Intussen geen factor meer (verwijderd via het dashboard): de tegel
+      // gaat uit. De sessiecodes (ook `aal2_required`) krijgen de centrale
+      // afhandeling; al het andere is een gewone foutregel.
+      if (resultaat.code === "mfa_not_enrolled") mfa.refetch();
       setRegistreerFout("er ging iets mis, probeer het opnieuw");
     }
+  }
+
+  /** "Beheer": met aal2 meteen registreren, anders eerst de code. */
+  function kiesBeheer() {
+    setRegistreerFout(null);
+    if (mfa.status === "ready" && !mfa.aal2) {
+      setCodeStap(true);
+      return;
+    }
+    void kies("beheer");
+  }
+
+  async function verifieerCode(code: string): Promise<CodeFout | null> {
+    const fout = await mfa.verifieer(code);
+    if (!fout) await kies("beheer");
+    return fout;
   }
 
   switch (sessie.fase) {
@@ -83,8 +114,12 @@ function BeheerSchermen() {
           pending={register.status === "pending"}
           errorMessage={registreerFout}
           onChooseBar={() => kies("bar")}
-          onChooseBeheer={() => kies("beheer")}
+          onChooseBeheer={kiesBeheer}
           onSignOut={() => void sessie.lokaalUitloggen()}
+          beheerTegel={beheerTegel}
+          codeStap={codeStap}
+          onVerifieerCode={verifieerCode}
+          onAnnuleerCode={() => setCodeStap(false)}
         />
       );
     }
@@ -114,7 +149,9 @@ function BeheerSchermen() {
  *   duidelijke foutmelding).
  * - Een Supabase-sessie zonder geregistreerde bar-sessie: `ModusKeuze`
  *   (Bar | Beheer, ADR 0003 → Beslissing 2). De keuze registreert de sessie in
- *   die modus (`register_bar_session`); daarna wisselt ze nooit meer.
+ *   die modus (`register_bar_session`); daarna wisselt ze nooit meer. Beheer
+ *   eist sinds ADR 0017 een tweede factor: eerst de code (aal2), dan pas de
+ *   registratie.
  * - Een actieve beheersessie: `BeheerTabs`. Na browser dicht en weer open
  *   wordt een beheersessie niet hervat (ADR 0016 → Beslissing 8): de provider
  *   sluit haar (`niet_hervat`) en het inlogformulier volgt.

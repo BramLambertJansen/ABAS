@@ -2,6 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { loginMetWachtwoord, portalLoginMetWachtwoord } from "./helpers/supabaseMock";
 import { FEMKE, TOM, WACHTWOORD_FEMKE, WACHTWOORD_TOM, logInOpBar } from "./helpers/barLogin";
+import { FEMKE_TOTP_SECRET, versTotpCode, vulCodeIn } from "./helpers/totp";
 
 /**
  * The WCAG-AA gate CLAUDE.md calls for: axe-core against every shell's
@@ -496,13 +497,30 @@ test.describe("portal (a11y)", () => {
  * hun eigen a11y-scenario's van de Tester (spec → Randgevallen → A11y) —
  * deze aanpassing bestaat alleen om het bestaande, al gemergede scenario
  * kloppend te houden met het nu gewijzigde schermverloop.
+ *
+ * Sinds ADR 0017 (docs/features/beheer-tweede-factor.md) eist beheer een
+ * tweede factor: na de tik op "Beheer" volgt de code uit de authenticator-app.
+ * Femke Bos heeft in supabase/seed.sql een geverifieerde TOTP-factor met een
+ * vast secret; de code rekent e2e/helpers/totp.ts uit, en de echte Supabase
+ * Auth controleert hem (challenge + verify → aal2).
  */
-async function loginAsBeheerder(page: Page) {
+async function naarCodeStap(page: Page) {
   await loginMetWachtwoord(page, "femke.bos@aurora.local", "local-beheerder-dev-only");
 
-  const beheerTegel = page.getByRole("button", { name: "Beheer" });
+  const beheerTegel = page.getByRole("button", { name: /^Beheer/ });
   await beheerTegel.waitFor({ state: "visible", timeout: 15_000 });
+  // De tegel is aria-disabled tot de factoren gelezen zijn.
+  await expect(beheerTegel).not.toHaveAttribute("aria-disabled", "true", { timeout: 15_000 });
   await beheerTegel.click();
+
+  await page
+    .getByRole("heading", { name: "Code uit je authenticator-app" })
+    .waitFor({ state: "visible", timeout: 15_000 });
+}
+
+async function loginAsBeheerder(page: Page) {
+  await naarCodeStap(page);
+  await vulCodeIn(page, await versTotpCode(FEMKE_TOTP_SECRET));
 
   await page
     .getByRole("tablist", { name: "Beheer-navigatie" })
@@ -605,6 +623,19 @@ test.describe("beheer ingelogde staat (a11y)", () => {
    * through to `BeheerTabs`, so this is the only scenario that actually
    * scans this intermediate screen.
    */
+  /**
+   * docs/features/beheer-tweede-factor.md (ADR 0017): de code-stap in de
+   * modus-keuze, na een tik op "Beheer" met een aal1-sessie. Scant de lege
+   * invoer; de muis gaat eerst van de knoppen af (hover-kleuren).
+   */
+  test("beheer (/beheer) code-stap in de modus-keuze has no WCAG2A/AA violations", async ({ page }) => {
+    await naarCodeStap(page);
+    await page.mouse.move(0, 0);
+
+    const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+    expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
+  });
+
   test("beheer (/beheer) modus-keuze (ingelogd, vóór modus gekozen) has no WCAG2A/AA violations", async ({
     page,
   }) => {
@@ -821,7 +852,7 @@ test.describe("beheer ingelogde staat (a11y)", () => {
  */
 /**
  * De naamknop van de beheerder waarmee de scenario's werken. Anchored on
- * purpose: StaffPicker's button is named "Femke Bos, beheerder", but since
+ * purpose: StaffPicker's button is named "Femke Bos" (sinds ADR 0017 zonder rol), but since
  * #83 the Verkoop screen's BezettingPil is a button named "Bezetting: Femke
  * Bos — tik om te wijzigen". An unanchored /Femke Bos/ matched that pill.
  */
@@ -978,14 +1009,16 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
 
   /**
    * docs/features/dienst-per-sessie.md → Schermflow punt 3: "Verder als {naam}?"
-   * na browser dicht en weer open. Een sessie zonder de vlag in sessionStorage
-   * is nog niet bevestigd; de vlag wissen en herladen simuleert dat. Scant het
-   * hervatscherm zelf en bewijst dat "Verder" de gewone schermen teruggeeft.
+   * na browser dicht en weer open. Een sessie zonder het sessiecookie
+   * `abas_bar_bevestigd` (ADR 0017) is nog niet bevestigd; het cookie wissen en
+   * herladen simuleert dat. Femke Bos heeft een tweede factor, dus haar
+   * bar-sessie is te hervatten. Scant het hervatscherm zelf en bewijst dat
+   * "Verder" de gewone schermen teruggeeft.
    */
   test("bar shell (/) hervatscherm (Verder als …) has no WCAG2A/AA violations", async ({ page }) => {
     await ensureNoOpenShift(page);
 
-    await page.evaluate(() => window.sessionStorage.clear());
+    await page.context().clearCookies({ name: "abas_bar_bevestigd" });
     await page.reload();
 
     await page

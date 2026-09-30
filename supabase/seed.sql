@@ -70,6 +70,20 @@ update members set auth_user_id = (
   pin_hash = null
 where name = 'Femke Bos';
 
+-- Tweede factor (TOTP) voor Femke Bos (docs/features/beheer-tweede-factor.md,
+-- ADR 0017): beheer eist aal2, en een beheerder zonder factor krijgt geen
+-- beheer, geen PIN en geen hervatting. Een geverifieerde factor met een
+-- vast, bekend secret, zodat e2e/a11y.spec.ts (en elke lokale ontwikkelaar)
+-- de code kan uitrekenen (e2e/helpers/totp.ts). Het secret staat onversleuteld:
+-- Supabase Auth leest een secret zonder versleutelingsprefix als platte tekst.
+-- Alleen lokaal, nooit in een echte omgeving.
+insert into auth.mfa_factors (
+  id, user_id, friendly_name, factor_type, status, created_at, updated_at, secret
+)
+select gen_random_uuid(), id, null, 'totp', 'verified', now(), now(),
+  'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP'
+from auth.users where email = 'femke.bos@aurora.local';
+
 -- Bardienst e-mail/wachtwoord account for Sanne Bakker, so
 -- e2e/a11y.spec.ts can prove issue #19's role-gate on BeheerTabs.tsx (the
 -- Logboek-tab only renders for `role === "beheerder"`) against a genuine
@@ -367,6 +381,7 @@ from (values
   ('e2e.profiel.naam@aurora.local',       'local-e2e-profiel-naam-dev-only'),
   ('e2e.profiel.wachtwoord@aurora.local', 'local-e2e-profiel-wachtwoord-dev-only'),
   ('e2e.profiel.bardienst@aurora.local',  'local-e2e-profiel-bardienst-dev-only'),
+  ('e2e.profiel.tweestap@aurora.local',   'local-e2e-profiel-tweestap-dev-only'),
   ('e2e.ongekoppeld@aurora.local',        'local-e2e-ongekoppeld-dev-only')
 ) as fixture(email, password);
 
@@ -382,6 +397,7 @@ where email in (
   'e2e.profiel.naam@aurora.local',
   'e2e.profiel.wachtwoord@aurora.local',
   'e2e.profiel.bardienst@aurora.local',
+  'e2e.profiel.tweestap@aurora.local',
   'e2e.ongekoppeld@aurora.local'
 );
 
@@ -393,6 +409,10 @@ select fixture.name, fixture.role::member_role, null, 0, false, u.id, u.email
 from (values
   ('E2E Profiel Naam',       'lid',       'e2e.profiel.naam@aurora.local'),
   ('E2E Profiel Wachtwoord', 'lid',       'e2e.profiel.wachtwoord@aurora.local'),
-  ('E2E Profiel Bardienst',  'bardienst', 'e2e.profiel.bardienst@aurora.local')
+  ('E2E Profiel Bardienst',  'bardienst', 'e2e.profiel.bardienst@aurora.local'),
+  -- Een beheerder zonder tweede factor, voor de portal-sheet
+  -- Tweestapsverificatie (ADR 0017). De test stelt de factor in en ruimt hem
+  -- daarna op via de Admin API.
+  ('E2E Profiel Tweestap',   'beheerder', 'e2e.profiel.tweestap@aurora.local')
 ) as fixture(name, role, email)
 join auth.users u on u.email = fixture.email;

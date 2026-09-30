@@ -38,3 +38,10 @@ enable_signup = true
 [auth.email]
 enable_signup = true
 enable_confirmations = false
+
+# Beheer eist een tweede factor (TOTP, aal2): docs/features/
+# beheer-tweede-factor.md → Config, ADR 0017. Op het gehoste project staat
+# dit in het dashboard (Auth → MFA), zie de uitrolstap in die spec.
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true

@@ -26,6 +26,11 @@ export type BarSessionInfo = {
   lastActivityAt: string;
   /** De sessie is weggevallen terwijl de dienst open bleef. */
   leftShiftOpen: boolean;
+  /** Mag deze sessie na "browser dicht en weer open" hervat worden? `false`
+   *  voor modus `beheer` en voor de bar-sessie van een beheerder zonder
+   *  tweede factor (0034, ADR 0017); dan sluit de client haar met
+   *  `niet_hervat`. */
+  resumable: boolean;
 };
 
 /** De dienst van deze sessie. Ongewijzigd t.o.v. useOpenShift: DienstTabs,
@@ -195,6 +200,7 @@ export function parseBarState(raw: unknown): BarState {
     startedAt: str(sessionRaw, "started_at"),
     lastActivityAt: str(sessionRaw, "last_activity_at"),
     leftShiftOpen: sessionRaw.left_shift_open === true,
+    resumable: sessionRaw.resumable === true,
   };
 
   const lastLeftRaw = raw.last_left;

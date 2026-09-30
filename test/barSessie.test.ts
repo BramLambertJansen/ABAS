@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   BAR_INACTIVITY_LIMIT_MS,
   HEARTBEAT_MIN_INTERVAL_MS,
-  RESUME_STORAGE_KEY,
+  RESUME_COOKIE_NAME,
   SESSION_ERROR_CODES,
   clearResume,
   confirmResume,
@@ -18,7 +18,8 @@ import {
 /**
  * De pure client-logica van de bar-sessie (docs/features/dienst-per-sessie.md,
  * ADR 0016): de spiegel van de inactiviteitstijd, de hartslag-throttle, het
- * hervatten na "browser dicht" en de herkenning van de zes sessiecodes. De
+ * hervatten na "browser dicht" (een sessiecookie per browser, ADR 0017) en de
+ * herkenning van de sessiecodes. De
  * afdwinging zelf staat in de database (supabase/tests/); dit is de UX-helft.
  */
 
@@ -32,8 +33,9 @@ test("de hartslag gaat hooguit één keer per minuut", () => {
 
 // ── Sessiecodes ──────────────────────────────────────────────────────────
 
-test("de zes sessiecodes van de guards", () => {
+test("de sessiecodes van de guards, met aal2_required (0034, ADR 0017)", () => {
   assert.deepEqual([...SESSION_ERROR_CODES].sort(), [
+    "aal2_required",
     "no_bar_role",
     "no_bar_session",
     "session_ended",
@@ -100,49 +102,108 @@ test("msUntilInactive wordt nooit negatief", () => {
 
 // ── Hervatten ────────────────────────────────────────────────────────────
 
-function fakeStorage(initial: Record<string, string> = {}) {
-  const data = new Map(Object.entries(initial));
+const SESSIE_A = "11111111-1111-4111-8111-111111111111";
+const SESSIE_B = "22222222-2222-4222-8222-222222222222";
+
+/** Een nep-`document.cookie`: schrijven voegt toe of vervangt, `Max-Age=0`
+ *  verwijdert. `writes` bewaart de ruwe cookie-regels voor de attributen. */
+function fakeJar(initial = "", secure = false) {
+  const cookies = new Map<string, string>();
+  for (const part of initial.split(";")) {
+    const [name, ...rest] = part.trim().split("=");
+    if (name) cookies.set(name, rest.join("="));
+  }
+  const writes: string[] = [];
   return {
-    getItem: (key: string) => data.get(key) ?? null,
-    setItem: (key: string, value: string) => void data.set(key, value),
-    removeItem: (key: string) => void data.delete(key),
-    data,
+    secure,
+    writes,
+    read: () => [...cookies].map(([k, v]) => `${k}=${v}`).join("; "),
+    write: (cookie: string) => {
+      writes.push(cookie);
+      const [pair, ...attrs] = cookie.split(";").map((x) => x.trim());
+      const [name, ...rest] = pair.split("=");
+      if (attrs.some((a) => a.toLowerCase() === "max-age=0")) cookies.delete(name);
+      else cookies.set(name, rest.join("="));
+    },
+    cookies,
   };
 }
 
-test("zonder vlag is een sessie nog niet bevestigd (browser dicht en weer open)", () => {
-  assert.equal(isResumeConfirmed(fakeStorage()), false);
+test("zonder cookie is een sessie nog niet bevestigd (browser dicht en weer open)", () => {
+  assert.equal(isResumeConfirmed(fakeJar(), SESSIE_A), false);
 });
 
 test("na 'Verder' of een login is de sessie bevestigd, tot uitloggen", () => {
-  const storage = fakeStorage();
-  confirmResume(storage);
-  assert.equal(storage.data.get(RESUME_STORAGE_KEY), "1");
-  assert.equal(isResumeConfirmed(storage), true);
-  clearResume(storage);
-  assert.equal(isResumeConfirmed(storage), false);
+  const jar = fakeJar();
+  confirmResume(jar, SESSIE_A);
+  assert.equal(jar.cookies.get(RESUME_COOKIE_NAME), SESSIE_A);
+  assert.equal(isResumeConfirmed(jar, SESSIE_A), true);
+  clearResume(jar);
+  assert.equal(jar.cookies.has(RESUME_COOKIE_NAME), false);
+  assert.equal(isResumeConfirmed(jar, SESSIE_A), false);
 });
 
-test("geen storage (buiten de browser): nooit bevestigd, en niets gooit", () => {
-  assert.equal(isResumeConfirmed(null), false);
-  assert.doesNotThrow(() => confirmResume(null));
+test("bevestigd alleen bij een gelijk session_id: een vlag van een vorige sessie bevestigt geen nieuwe login", () => {
+  const jar = fakeJar(`${RESUME_COOKIE_NAME}=${SESSIE_A}`);
+  assert.equal(isResumeConfirmed(jar, SESSIE_A), true);
+  assert.equal(isResumeConfirmed(jar, SESSIE_B), false);
+  assert.equal(isResumeConfirmed(jar, null), false);
+  assert.equal(isResumeConfirmed(jar, ""), false);
+});
+
+test("het cookie is een sessiecookie: Path=/, SameSite=Strict, geen Max-Age/Expires, geen HttpOnly", () => {
+  const jar = fakeJar();
+  confirmResume(jar, SESSIE_A);
+  const regel = jar.writes[0];
+  assert.equal(regel, `${RESUME_COOKIE_NAME}=${SESSIE_A}; Path=/; SameSite=Strict`);
+  assert.doesNotMatch(regel, /max-age|expires|httponly/i);
+});
+
+test("op https krijgt het cookie Secure", () => {
+  const jar = fakeJar("", true);
+  confirmResume(jar, SESSIE_A);
+  assert.match(jar.writes[0], /; Secure$/);
+  clearResume(jar);
+  assert.match(jar.writes[1], /Max-Age=0; Secure$/);
+});
+
+test("wissen zet Max-Age=0 op hetzelfde pad", () => {
+  const jar = fakeJar(`${RESUME_COOKIE_NAME}=${SESSIE_A}`);
+  clearResume(jar);
+  assert.equal(jar.writes[0], `${RESUME_COOKIE_NAME}=; Path=/; SameSite=Strict; Max-Age=0`);
+});
+
+test("andere cookies naast het cookie verstoren het lezen niet", () => {
+  const jar = fakeJar(`sb-x-auth-token=abc; ${RESUME_COOKIE_NAME}=${SESSIE_B}; abas_andere=1`);
+  assert.equal(isResumeConfirmed(jar, SESSIE_B), true);
+  const lijkt = fakeJar(`x${RESUME_COOKIE_NAME}=${SESSIE_B}`);
+  assert.equal(isResumeConfirmed(lijkt, SESSIE_B), false);
+});
+
+test("een ongeldig session_id wordt niet geschreven", () => {
+  const jar = fakeJar();
+  confirmResume(jar, "geen-uuid; Domain=evil.example");
+  assert.deepEqual(jar.writes, []);
+});
+
+test("geen cookies (buiten de browser): nooit bevestigd, en niets gooit", () => {
+  assert.equal(isResumeConfirmed(null, SESSIE_A), false);
+  assert.doesNotThrow(() => confirmResume(null, SESSIE_A));
   assert.doesNotThrow(() => clearResume(undefined));
 });
 
-test("geblokkeerde storage (privémodus): liever een keer te vaak vragen dan gooien", () => {
+test("geblokkeerde cookies: liever een keer te vaak vragen dan gooien", () => {
   const kapot = {
-    getItem: () => {
+    secure: false,
+    read: () => {
       throw new Error("blocked");
     },
-    setItem: () => {
-      throw new Error("blocked");
-    },
-    removeItem: () => {
+    write: () => {
       throw new Error("blocked");
     },
   };
-  assert.equal(isResumeConfirmed(kapot), false);
-  assert.doesNotThrow(() => confirmResume(kapot));
+  assert.equal(isResumeConfirmed(kapot, SESSIE_A), false);
+  assert.doesNotThrow(() => confirmResume(kapot, SESSIE_A));
   assert.doesNotThrow(() => clearResume(kapot));
 });
 

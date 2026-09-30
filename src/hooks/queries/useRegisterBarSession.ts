@@ -6,12 +6,15 @@ import { reportClientError } from "@/lib/clientErrors";
 import { isSessionErrorCode, notifySessionCode, type SessionErrorCode } from "@/lib/barSessie";
 
 /** Foutcodes van `register_bar_session` (0028). `mode_locked`: deze sessie
- *  staat al in de andere modus (modus wisselen = uitloggen, ADR 0003). */
+ *  staat al in de andere modus (modus wisselen = uitloggen, ADR 0003).
+ *  `mfa_not_enrolled` (0034, ADR 0017): beheer zonder geverifieerde tweede
+ *  factor. `aal2_required` is een sessiecode en zit in `SessionErrorCode`. */
 export type RegisterBarSessionErrorCode =
   | SessionErrorCode
   | "invalid_mode"
   | "no_admin_role"
   | "mode_locked"
+  | "mfa_not_enrolled"
   | "unknown";
 
 export type RegisterBarSessionResult =
@@ -28,7 +31,8 @@ function toErrorCode(message: string | undefined): RegisterBarSessionErrorCode {
     isSessionErrorCode(message) ||
     message === "invalid_mode" ||
     message === "no_admin_role" ||
-    message === "mode_locked"
+    message === "mode_locked" ||
+    message === "mfa_not_enrolled"
   ) {
     return message as RegisterBarSessionErrorCode;
   }

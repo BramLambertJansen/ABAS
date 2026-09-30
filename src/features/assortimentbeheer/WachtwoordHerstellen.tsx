@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { AuroraMerk } from "@/components/AuroraMerk";
+import { CodeInvoer } from "@/components/CodeInvoer";
+import { TWEESTAP_TEKSTEN, type CodeFout } from "@/lib/mfa";
 import { NieuwWachtwoordVelden, isPasswordReady } from "@/components/NieuwWachtwoordVelden";
 import { passwordUpdateErrorMessage } from "@/lib/authErrors";
 import { useNieuwWachtwoordInstellen } from "@/hooks/queries/useWachtwoordHerstellen";
@@ -35,13 +37,26 @@ export function WachtwoordHerstellen({ tokenHash }: { tokenHash: string | null }
 
   const linkInvalid = herstel.errorCode === "link_invalid";
 
+  // Tweede factor (docs/features/beheer-tweede-factor.md, ADR 0017): heeft
+  // het account een factor, dan eerst de code, dan het nieuwe wachtwoord.
+  async function verifieerCode(code: string): Promise<CodeFout | null> {
+    const fout = await herstel.verifieer(code);
+    if (!fout) await herstel.setNewPassword(password);
+    return fout;
+  }
+
   return (
     <main className="flex min-h-screen w-full flex-col items-center justify-center gap-8 bg-canvas px-6 py-10 font-sans text-ink">
       <AuroraMerk>
         <h1 className="text-xl font-extrabold tracking-tight">Nieuw wachtwoord instellen</h1>
       </AuroraMerk>
 
-      {linkInvalid ? (
+      {herstel.status === "code" ? (
+        <div className="flex w-full max-w-sm flex-col gap-4 rounded-2xl border border-border bg-white p-6">
+          <p className="text-sm font-medium leading-relaxed text-muted">{TWEESTAP_TEKSTEN.wachtwoordCodeStap}</p>
+          <CodeInvoer tone="light" onVerifieer={verifieerCode} />
+        </div>
+      ) : linkInvalid ? (
         <div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-2xl border border-border bg-white p-6 text-center">
           <p className="text-sm font-bold text-danger" role="alert">
             Deze link is verlopen of al gebruikt. Vraag een nieuwe aan.
