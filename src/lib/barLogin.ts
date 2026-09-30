@@ -15,6 +15,7 @@ import {
   type BarLoginOpties,
   type BarNaam,
   type PinLoginResultaat,
+  type VergetenResultaat,
   type WachtwoordLoginResultaat,
 } from "@/lib/barLoginTypes";
 
@@ -35,6 +36,12 @@ import {
  *
  * Elke `.from()/.rpc()/.auth.admin.*`-aanroep leeft hier, onder src/lib/: de
  * routes zelf doen dat niet (check:policy).
+ *
+ * Sinds ADR 0017 heeft de login een eigen limiet vóór Supabase Auth
+ * (docs/features/login-rate-limit.md): per IP-adres van de gebruiker (de
+ * route geeft het door, `clientIp`) en per lid, via de service_role-functies
+ * `login_throttle_allowed`/`login_throttle_record` (0035). Wachtwoord en PIN
+ * tellen alleen foute pogingen, "wachtwoord vergeten" telt aanvragen.
  */
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -44,6 +51,32 @@ export function isUuid(value: unknown): value is string {
 }
 
 type AdminClient = ReturnType<typeof createAdminClient>;
+
+// ── Eigen limiet (ADR 0017 → Beslissing 3) ───────────────────────────────
+
+type ThrottleBucket =
+  | "wachtwoord_ip"
+  | "pin_ip"
+  | "wachtwoord_lid"
+  | "vergeten_lid"
+  | "vergeten_ip"
+  | "vergeten_totaal";
+
+/** Mag er nog een poging in deze bucket? De limieten staan vast in de
+ *  database (0035). Een fout gooit: liever geen login dan een login zonder
+ *  rem. */
+async function magPoging(admin: AdminClient, bucket: ThrottleBucket, sleutel: string): Promise<boolean> {
+  const { data, error } = await admin.rpc("login_throttle_allowed", { p_bucket: bucket, p_key: sleutel });
+  if (error) throw error;
+  return data === true;
+}
+
+/** Een poging registreren. Mislukt dat, dan alleen loggen: de gebruiker
+ *  krijgt de uitkomst van zijn eigen poging. */
+async function registreerPoging(admin: AdminClient, bucket: ThrottleBucket, sleutel: string): Promise<void> {
+  const { error } = await admin.rpc("login_throttle_record", { p_bucket: bucket, p_key: sleutel });
+  if (error) console.error("barLogin: poging registreren mislukt:", bucket, error.message);
+}
 
 type LidUitkomst =
   | { ok: true; authUserId: string }
@@ -92,18 +125,20 @@ async function zetApparaatCookie(token: string): Promise<void> {
 /**
  * Alle niet-gearchiveerde leden met rol bardienst of beheerder, op naam. Géén
  * filter op `has_pin`, en geen e-mail, saldo of PIN-gegevens: de lijst is
- * openbaar (besloten, vraag 5).
+ * openbaar (besloten, vraag 5). Sinds ADR 0017 ook zonder rol: alleen `id` en
+ * `name` (docs/features/login-rate-limit.md → Namenlijst zonder rol). Het
+ * filter op rol blijft hier, server-side.
  */
 export async function leesNamenlijst(): Promise<BarNaam[]> {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("members")
-    .select("id, name, role")
+    .select("id, name")
     .in("role", ["bardienst", "beheerder"])
     .eq("archived", false)
     .order("name", { ascending: true });
   if (error) throw error;
-  return (data ?? []) as BarNaam[];
+  return ((data ?? []) as { id: string; name: string }[]).map(({ id, name }) => ({ id, name }));
 }
 
 /**
@@ -114,7 +149,7 @@ export async function leesNamenlijst(): Promise<BarNaam[]> {
  */
 export async function leesLoginOpties(memberId: string): Promise<BarLoginOpties> {
   const token = await leesApparaatToken();
-  if (!token) return { pinAvailable: false, pinLocked: false };
+  if (!token) return { pinAvailable: false, pinLocked: false, pinNeedsMfa: false };
   const admin = createAdminClient();
   const { data, error } = await admin.rpc("bar_login_options", {
     p_device_token_hash: await hashApparaatToken(token),
@@ -125,6 +160,7 @@ export async function leesLoginOpties(memberId: string): Promise<BarLoginOpties>
   return {
     pinAvailable: rij?.pin_available === true,
     pinLocked: rij?.pin_locked === true,
+    pinNeedsMfa: rij?.pin_needs_mfa === true,
   };
 }
 
@@ -179,12 +215,21 @@ function isRateLimit(error: { status?: number; code?: string; message?: string }
  * Zoekt het e-mailadres op, logt server-side in (de sessie landt in de
  * cookies), maakt het apparaat vertrouwd voor de PIN, heft een PIN-blokkade
  * op en registreert de sessie in modus bar.
+ *
+ * Eerst de eigen limiet (`wachtwoord_ip`, `wachtwoord_lid`): is een van beide
+ * vol, dan `rate_limited` zonder aanroep naar Supabase Auth. Alleen een fout
+ * wachtwoord (`invalid_credentials`) telt, in beide buckets.
  */
 export async function loginMetWachtwoord(
   memberId: string,
-  wachtwoord: string
+  wachtwoord: string,
+  ip: string
 ): Promise<WachtwoordLoginResultaat> {
   const admin = createAdminClient();
+  if (!(await magPoging(admin, "wachtwoord_ip", ip)) || !(await magPoging(admin, "wachtwoord_lid", memberId))) {
+    return { ok: false, code: "rate_limited" };
+  }
+
   const lid = await zoekLid(admin, memberId);
   if (!lid.ok) return { ok: false, code: lid.code };
 
@@ -197,6 +242,8 @@ export async function loginMetWachtwoord(
     if (error && isRateLimit(error)) return { ok: false, code: "rate_limited" };
     const normalized = (error?.message ?? "").toLowerCase();
     if (error?.code === "invalid_credentials" || normalized.includes("invalid login credentials")) {
+      await registreerPoging(admin, "wachtwoord_ip", ip);
+      await registreerPoging(admin, "wachtwoord_lid", memberId);
       return { ok: false, code: "invalid_credentials" };
     }
     console.error("barLogin: signInWithPassword mislukt:", error?.code, error?.status);
@@ -246,13 +293,20 @@ export async function loginMetWachtwoord(
  * succes een sessie voor het account van het lid zonder wachtwoord:
  * `generateLink({ type: 'magiclink' })` verstuurt geen mail, en direct daarna
  * `verifyOtp({ token_hash })` met de server-client (ADR 0008-patroon).
+ *
+ * Vóór `verify_bar_pin` de eigen limiet per IP (`pin_ip`): is die vol, dan
+ * `rate_limited` zonder poging op de lockout per lid. Alleen `invalid_pin`
+ * telt; `pin_locked`, `pin_not_available`, `pin_needs_mfa` en een geslaagde
+ * login niet.
  */
-export async function loginMetPin(memberId: string, pin: string): Promise<PinLoginResultaat> {
+export async function loginMetPin(memberId: string, pin: string, ip: string): Promise<PinLoginResultaat> {
   const token = await leesApparaatToken();
   if (!token) return { ok: false, code: "pin_not_available" };
   if (!/^[0-9]{4}$/.test(pin)) return { ok: false, code: "invalid_pin" };
 
   const admin = createAdminClient();
+  if (!(await magPoging(admin, "pin_ip", ip))) return { ok: false, code: "rate_limited" };
+
   const { data, error } = await admin.rpc("verify_bar_pin", {
     p_device_token_hash: await hashApparaatToken(token),
     p_member_id: memberId,
@@ -264,6 +318,7 @@ export async function loginMetPin(memberId: string, pin: string): Promise<PinLog
   }
   const rij = Array.isArray(data) ? data[0] : data;
   if (!rij || rij.result_code !== "ok") {
+    if (rij?.result_code === "invalid_pin") await registreerPoging(admin, "pin_ip", ip);
     const attemptsLeft = typeof rij?.attempts_left === "number" ? rij.attempts_left : undefined;
     return { ok: false, code: pinResultaatNaarFout(rij?.result_code), attemptsLeft };
   }
@@ -312,14 +367,34 @@ export async function loginMetPin(memberId: string, pin: string): Promise<PinLog
  * 0008) naar het adres van dit lid. Het antwoord is altijd neutraal (ADR
  * 0013): ook een lid zonder account of een onbekend id geeft hetzelfde,
  * en fouten worden alleen gelogd.
+ *
+ * Eerst de eigen limiet (`vergeten_lid`, `vergeten_ip`, `vergeten_totaal`):
+ * is er een vol, dan geen mail en `limited: true`. Anders telt de aanvraag
+ * in alle drie, ook voor een lid zonder account: de teller gaat over
+ * aanvragen, niet over accounts.
  */
-export async function stuurHerstellink(memberId: string, origin: string): Promise<void> {
+export async function stuurHerstellink(
+  memberId: string,
+  origin: string,
+  ip: string
+): Promise<VergetenResultaat> {
   try {
     const admin = createAdminClient();
+    if (
+      !(await magPoging(admin, "vergeten_lid", memberId)) ||
+      !(await magPoging(admin, "vergeten_ip", ip)) ||
+      !(await magPoging(admin, "vergeten_totaal", "*"))
+    ) {
+      return { ok: true, limited: true };
+    }
+    await registreerPoging(admin, "vergeten_lid", memberId);
+    await registreerPoging(admin, "vergeten_ip", ip);
+    await registreerPoging(admin, "vergeten_totaal", "*");
+
     const lid = await zoekLid(admin, memberId);
-    if (!lid.ok) return;
+    if (!lid.ok) return { ok: true, limited: false };
     const email = await zoekEmail(admin, lid.authUserId);
-    if (!email) return;
+    if (!email) return { ok: true, limited: false };
     const { error } = await admin.auth.resetPasswordForEmail(email, {
       redirectTo: `${origin}/beheer/wachtwoord-herstellen`,
     });
@@ -327,4 +402,5 @@ export async function stuurHerstellink(memberId: string, origin: string): Promis
   } catch (err) {
     console.error("barLogin: wachtwoord vergeten mislukt:", err);
   }
+  return { ok: true, limited: false };
 }

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { isUuid, loginMetWachtwoord } from "@/lib/barLogin";
+import { clientIp } from "@/lib/clientIp";
 
 /**
  * Inloggen met wachtwoord vanaf de namenlijst (docs/features/
@@ -20,7 +21,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const result = await loginMetWachtwoord(body.memberId, body.password);
+    const result = await loginMetWachtwoord(body.memberId, body.password, clientIp(request.headers));
     return NextResponse.json(result, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     console.error("POST /inloggen/wachtwoord:", err);

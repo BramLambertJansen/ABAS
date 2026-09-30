@@ -17,8 +17,8 @@ import { alertOf, json } from "./helpers/supabaseMock";
 
 const TEKST = "je kunt niet op de bar inloggen — vraag een beheerder";
 
-const LID = { id: "00000000-0000-4000-8000-0000000000d1", name: "Joris de Vries", role: "bardienst" };
-const ANDER = { id: "00000000-0000-4000-8000-0000000000d2", name: "Sanne Smit", role: "bardienst" };
+const LID = { id: "00000000-0000-4000-8000-0000000000d1", name: "Joris de Vries" };
+const ANDER = { id: "00000000-0000-4000-8000-0000000000d2", name: "Sanne Smit" };
 
 async function mockInloggen(page: Page, opties: { pin: boolean }) {
   const namenAanvragen: number[] = [];

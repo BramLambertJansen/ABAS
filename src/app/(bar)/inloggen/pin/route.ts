@@ -1,10 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { isUuid, loginMetPin } from "@/lib/barLogin";
+import { clientIp } from "@/lib/clientIp";
 
 /**
  * Inloggen met PIN vanaf de namenlijst (docs/features/dienst-per-sessie.md →
  * Inloggen op de bar, punt 4): alleen op een vertrouwd apparaat, met
- * lockout. De PIN wordt niet gelogd.
+ * lockout. De PIN wordt niet gelogd. Het IP-adres van de gebruiker gaat mee
+ * voor de eigen limiet (docs/features/login-rate-limit.md).
  */
 export const dynamic = "force-dynamic";
 
@@ -20,7 +22,7 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const result = await loginMetPin(body.memberId, body.pin);
+    const result = await loginMetPin(body.memberId, body.pin, clientIp(request.headers));
     return NextResponse.json(result, { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
     console.error("POST /inloggen/pin:", err);

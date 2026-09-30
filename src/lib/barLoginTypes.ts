@@ -6,11 +6,13 @@
  * client-bestand dit mag importeren.
  */
 
-/** Een lid uit de openbare namenlijst: naam en rol, verder niets. */
+/** Een lid uit de openbare namenlijst: id en naam, verder niets. Sinds ADR
+ *  0017 zonder rol, zodat beheerders van buitenaf niet als doelwit te
+ *  herkennen zijn (docs/features/login-rate-limit.md → Namenlijst zonder
+ *  rol). */
 export type BarNaam = {
   id: string;
   name: string;
-  role: "bardienst" | "beheerder";
 };
 
 export type BarLoginOpties = {
@@ -18,6 +20,9 @@ export type BarLoginOpties = {
   pinAvailable: boolean;
   /** PIN geblokkeerd na te veel foute pogingen (alleen voor de tekst). */
   pinLocked: boolean;
+  /** De PIN zou werken, maar dit is een beheerder zonder tweede factor (ADR
+   *  0017; alleen voor de tekst). */
+  pinNeedsMfa: boolean;
 };
 
 export type WachtwoordLoginFout =
@@ -31,6 +36,7 @@ export type PinLoginFout =
   | "pin_not_available"
   | "invalid_pin"
   | "pin_locked"
+  | "pin_needs_mfa"
   | "not_allowed"
   | "no_account"
   | "rate_limited"
@@ -41,6 +47,11 @@ export type WachtwoordLoginResultaat = { ok: true } | { ok: false; code: Wachtwo
 export type PinLoginResultaat =
   | { ok: true }
   | { ok: false; code: PinLoginFout; attemptsLeft?: number };
+
+/** "Wachtwoord vergeten": altijd neutraal (ADR 0013). `limited`: er ging
+ *  geen mail, want de eigen limiet is bereikt (docs/features/
+ *  login-rate-limit.md → `POST /inloggen/vergeten`). */
+export type VergetenResultaat = { ok: true; limited: boolean };
 
 const WACHTWOORD_FOUTEN: readonly string[] = [
   "invalid_credentials",
@@ -54,6 +65,7 @@ const PIN_FOUTEN: readonly string[] = [
   "pin_not_available",
   "invalid_pin",
   "pin_locked",
+  "pin_needs_mfa",
   "not_allowed",
   "no_account",
   "rate_limited",

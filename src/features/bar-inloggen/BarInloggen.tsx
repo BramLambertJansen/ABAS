@@ -43,6 +43,8 @@ function pinFout(code: PinLoginFout, attemptsLeft: number | undefined): string {
       return INLOGGEN.foutNietToegestaan;
     case "pin_locked":
       return INLOGGEN.lockout;
+    case "pin_needs_mfa":
+      return INLOGGEN.pinBeheerderZonderFactor;
     case "pin_not_available":
     case "unknown":
       return INLOGGEN.foutOverig;
@@ -63,6 +65,10 @@ type Weergave = "pin" | "wachtwoord" | "vergeten";
  * - Anders het wachtwoordveld, met "Wachtwoord vergeten?" en, als PIN kan, een
  *   toggle terug.
  * - PIN geblokkeerd: het wachtwoordveld met de lockoutmelding.
+ * - Een beheerder zonder tweede factor (`pinNeedsMfa`, ADR 0017): het
+ *   wachtwoordveld met de uitleg dat de PIN pas werkt na tweestapsverificatie.
+ * - "Wachtwoord vergeten" met de eigen limiet (`limited`): een eigen tekst in
+ *   plaats van de bevestiging (docs/features/login-rate-limit.md).
  *
  * Een geslaagde login maakt de persoonlijke sessie aan (server-side) en geeft
  * de sessie via `naLogin()` door aan de provider. Hergebruikt `StaffPicker`,
@@ -76,6 +82,7 @@ export function BarInloggen() {
   const [gekozen, setGekozen] = useState<BarNaam | null>(null);
   const [pinBeschikbaar, setPinBeschikbaar] = useState(false);
   const [pinGeblokkeerd, setPinGeblokkeerd] = useState(false);
+  const [pinNodigFactor, setPinNodigFactor] = useState(false);
   const [weergave, setWeergave] = useState<Weergave>("wachtwoord");
   const [pin, setPin] = useState("");
   const [wachtwoord, setWachtwoord] = useState("");
@@ -86,6 +93,7 @@ export function BarInloggen() {
   // lijst wordt gewist.
   const [lijstMelding, setLijstMelding] = useState<string | null>(null);
   const [vergetenVerstuurd, setVergetenVerstuurd] = useState(false);
+  const [vergetenBeperkt, setVergetenBeperkt] = useState(false);
   const [optiesLaden, setOptiesLaden] = useState(false);
 
   const wachtwoordRef = useRef<HTMLInputElement>(null);
@@ -113,14 +121,17 @@ export function BarInloggen() {
     setWachtwoord("");
     setFout(null);
     setVergetenVerstuurd(false);
+    setVergetenBeperkt(false);
     setPinBeschikbaar(false);
     setPinGeblokkeerd(false);
+    setPinNodigFactor(false);
     setOptiesLaden(true);
     setWeergave("wachtwoord");
     const opties = await login.haalOpties(naam.id);
     setOptiesLaden(false);
     setPinBeschikbaar(opties.pinAvailable);
     setPinGeblokkeerd(opties.pinLocked);
+    setPinNodigFactor(opties.pinNeedsMfa);
     setWeergave(opties.pinAvailable ? "pin" : "wachtwoord");
   }
 
@@ -130,6 +141,7 @@ export function BarInloggen() {
     setWachtwoord("");
     setFout(null);
     setVergetenVerstuurd(false);
+    setVergetenBeperkt(false);
   }, []);
 
   /** Het lid mag niet (meer) inloggen: de lijst is verouderd. Terug naar de
@@ -164,6 +176,11 @@ export function BarInloggen() {
         return;
       case "pin_not_available":
         setPinBeschikbaar(false);
+        wissel("wachtwoord");
+        return;
+      case "pin_needs_mfa":
+        setPinBeschikbaar(false);
+        setPinNodigFactor(true);
         wissel("wachtwoord");
         return;
       case "not_allowed":
@@ -203,7 +220,8 @@ export function BarInloggen() {
   async function verstuurHerstellink(event: FormEvent) {
     event.preventDefault();
     if (!gekozen || login.pending) return;
-    await login.vergeten(gekozen.id);
+    const resultaat = await login.vergeten(gekozen.id);
+    setVergetenBeperkt(resultaat.limited);
     setVergetenVerstuurd(true);
   }
 
@@ -309,7 +327,7 @@ export function BarInloggen() {
           )}
           {!pinBeschikbaar && !pinGeblokkeerd && (
             <p className="text-center text-xs font-medium text-rail-muted">
-              {INLOGGEN.pinNietMogelijk}
+              {pinNodigFactor ? INLOGGEN.pinBeheerderZonderFactor : INLOGGEN.pinNietMogelijk}
             </p>
           )}
 
@@ -383,7 +401,7 @@ export function BarInloggen() {
           </h2>
           {vergetenVerstuurd ? (
             <p className="text-center text-sm font-bold text-white" role="status">
-              {INLOGGEN.vergetenBevestiging}
+              {vergetenBeperkt ? INLOGGEN.vergetenLimiet : INLOGGEN.vergetenBevestiging}
             </p>
           ) : (
             <>

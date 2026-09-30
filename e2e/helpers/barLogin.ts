@@ -10,7 +10,7 @@ import type { Page } from "@playwright/test";
  * maakt de sessie aan, dus hier zit geen mock in.
  *
  * `naam` is een RegExp zoals /^Femke Bos\b/: de knop van de `StaffPicker`
- * heet "Femke Bos, beheerder", en na het inloggen staat er ook een
+ * heet "Femke Bos" (sinds ADR 0017 zonder rol), en na het inloggen staat er ook een
  * "Bezetting: Femke Bos — tik om te wijzigen"-knop.
  *
  * Wacht niet op wat er na het inloggen volgt (activiteitkeuze, "Er loopt al

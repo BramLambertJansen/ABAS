@@ -33,8 +33,13 @@ export const INLOGGEN = {
   pinNietMogelijk:
     "Met je pincode inloggen kan op dit apparaat pas nadat je hier een keer met je wachtwoord bent ingelogd.",
   lockout: "Je pincode is geblokkeerd na te veel foute pogingen. Log in met je wachtwoord.",
+  /** Beheerder zonder tweede factor (docs/features/beheer-tweede-factor.md →
+   *  Teksten, ADR 0017). */
+  pinBeheerderZonderFactor:
+    "Als beheerder kun je pas met je pincode inloggen als je tweestapsverificatie hebt ingesteld in de portal.",
   foutWachtwoord: "onjuist wachtwoord",
-  foutRateLimit: "te veel pogingen — wacht even en probeer het opnieuw",
+  /** docs/features/login-rate-limit.md → Teksten (ADR 0017). */
+  foutRateLimit: "te veel foute pogingen — probeer het over een paar minuten opnieuw",
   foutGeenAccount:
     "er is voor jou nog geen wachtwoord ingesteld — vraag een beheerder om een uitnodiging",
   foutNietToegestaan: "je kunt niet op de bar inloggen — vraag een beheerder",
@@ -43,6 +48,10 @@ export const INLOGGEN = {
   vergetenKnop: "Stuur herstellink",
   vergetenBevestiging:
     "Als er een account bij je naam hoort, is de mail onderweg. De link is 1 uur geldig.",
+  /** Eigen limiet op "wachtwoord vergeten" (docs/features/login-rate-limit.md
+   *  → Teksten). Zegt niets over het bestaan van een account. */
+  vergetenLimiet:
+    "Er is net al een herstellink aangevraagd. Kijk in je mail, of probeer het over een kwartier opnieuw.",
 } as const;
 
 /** "onjuiste pincode — nog {n} pogingen", en bij de laatste poging de tekst

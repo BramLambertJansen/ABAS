@@ -20,11 +20,12 @@ test("wachtwoord: al het andere is unknown", () => {
   }
 });
 
-test("pin: de zeven bekende foutcodes komen door", () => {
+test("pin: de acht bekende foutcodes komen door", () => {
   for (const code of [
     "pin_not_available",
     "invalid_pin",
     "pin_locked",
+    "pin_needs_mfa",
     "not_allowed",
     "no_account",
     "rate_limited",
@@ -45,7 +46,14 @@ test("verify_bar_pin.result_code: ok is geen fout en wordt nooit als succes door
 });
 
 test("verify_bar_pin.result_code: de andere codes worden foutcodes", () => {
-  for (const code of ["not_allowed", "no_account", "pin_not_available", "pin_locked", "invalid_pin"]) {
+  for (const code of [
+    "not_allowed",
+    "no_account",
+    "pin_not_available",
+    "pin_locked",
+    "pin_needs_mfa",
+    "invalid_pin",
+  ]) {
     assert.equal(pinResultaatNaarFout(code), code);
   }
   assert.equal(pinResultaatNaarFout(undefined), "unknown");

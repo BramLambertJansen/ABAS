@@ -7,6 +7,7 @@ import {
   toWachtwoordFout,
   type BarLoginOpties,
   type PinLoginResultaat,
+  type VergetenResultaat,
   type WachtwoordLoginResultaat,
 } from "@/lib/barLoginTypes";
 
@@ -14,6 +15,7 @@ export type {
   BarLoginOpties,
   PinLoginFout,
   PinLoginResultaat,
+  VergetenResultaat,
   WachtwoordLoginFout,
   WachtwoordLoginResultaat,
 } from "@/lib/barLoginTypes";
@@ -51,10 +53,11 @@ export function useBarLogin() {
       return {
         pinAvailable: body?.ok === true && body.pinAvailable === true,
         pinLocked: body?.ok === true && body.pinLocked === true,
+        pinNeedsMfa: body?.ok === true && body.pinNeedsMfa === true,
       };
     } catch (err) {
       logLocalError("useBarLogin (opties)", err);
-      return { pinAvailable: false, pinLocked: false };
+      return { pinAvailable: false, pinLocked: false, pinNeedsMfa: false };
     }
   }
 
@@ -94,13 +97,17 @@ export function useBarLogin() {
   }
 
   /** Het antwoord is altijd neutraal (ADR 0013): ook een fout meldt zich als
-   *  verstuurd. */
-  async function vergeten(memberId: string): Promise<void> {
+   *  verstuurd. `limited`: de eigen limiet is bereikt en er ging geen mail
+   *  (docs/features/login-rate-limit.md); ook dat zegt niets over een
+   *  account. */
+  async function vergeten(memberId: string): Promise<VergetenResultaat> {
     setPending(true);
     try {
-      await post("/inloggen/vergeten", { memberId });
+      const body = await post("/inloggen/vergeten", { memberId });
+      return { ok: true, limited: body?.limited === true };
     } catch (err) {
       logLocalError("useBarLogin (vergeten)", err);
+      return { ok: true, limited: false };
     } finally {
       setPending(false);
     }
