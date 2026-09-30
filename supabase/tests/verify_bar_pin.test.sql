@@ -19,7 +19,9 @@
 --     zonder bar-rol, en heft alleen de blokkade van het eigen lid op;
 --   * een geslaagde PIN zet de teller terug, een null-PIN telt mee, en een
 --     poging op een ingetrokken apparaat telt niet mee;
---   * de grens van 30 dagen: 29 dagen is nog vertrouwd.
+--   * de grens van 30 dagen: 29 dagen is nog vertrouwd;
+--   * het vertrouwen geldt per lid per apparaat (0033): de login van een
+--     ander lid verlengt het niet, en een login verlengt alleen het eigen.
 --
 -- Niet hier te toetsen: "een fout wachtwoord telt niet mee". Dat is een
 -- eigenschap van de loginflow (src/lib/barLogin.ts roept bij een mislukte
@@ -31,7 +33,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(70);
+select plan(74);
 
 -- ── Fixtures ──────────────────────────────────────────────────────────────
 
@@ -369,12 +371,33 @@ select is(
   'ook na een wachtwoordlogin blijft het ingetrokken apparaat ingetrokken'
 );
 
--- Verlopen: 30 dagen zonder login.
-update bar_devices set last_seen_at = now() - interval '31 days' where token_hash = 'hash-c';
+-- Verlopen: 30 dagen zonder login van dít lid op dit apparaat (0033: per lid
+-- per apparaat, niet meer op bar_devices.last_seen_at).
+update bar_device_members set last_login_at = now() - interval '31 days'
+  where member_id = '00000000-0000-0000-0000-00000000b120'
+    and device_id = (select id from bar_devices where token_hash = 'hash-c');
 select is(
   (select result_code from verify_bar_pin('hash-c', '00000000-0000-0000-0000-00000000b120', '4821')),
   'pin_not_available',
-  'een apparaat waar 31 dagen niet is ingelogd, is niet meer vertrouwd'
+  'een lid dat 31 dagen niet op dit apparaat inlogde, kan er niet meer met de PIN in'
+);
+-- Een login van een ander lid op hetzelfde apparaat verlengt het vertrouwen
+-- van lid A niet (0033), ook al is het apparaat daarmee net "gezien".
+select record_bar_password_login('hash-c', '00000000-0000-0000-0000-00000000b121');
+select is(
+  (select last_seen_at from bar_devices where token_hash = 'hash-c'),
+  now(),
+  'stap: lid B logde zojuist in op hetzelfde apparaat'
+);
+select is(
+  (select result_code from verify_bar_pin('hash-c', '00000000-0000-0000-0000-00000000b120', '4821')),
+  'pin_not_available',
+  'de login van een ander lid verlengt het PIN-vertrouwen van lid A niet: na 31 dagen geweigerd'
+);
+select is(
+  (select failed_count from pin_failures where member_id = '00000000-0000-0000-0000-00000000b120'),
+  0,
+  'een poging na het verlopen van het vertrouwen telt niet mee voor de lockout'
 );
 select record_bar_password_login('hash-c', '00000000-0000-0000-0000-00000000b120');
 select is(
@@ -502,16 +525,34 @@ select is(
 -- ── Vertrouwen: 29 dagen is nog geldig, en een login verlengt het ─────────
 
 select record_bar_password_login('hash-c', '00000000-0000-0000-0000-00000000b120');
-update bar_devices set last_seen_at = now() - interval '29 days' where token_hash = 'hash-c';
+update bar_device_members set last_login_at = now() - interval '29 days'
+  where member_id = '00000000-0000-0000-0000-00000000b120'
+    and device_id = (select id from bar_devices where token_hash = 'hash-c');
+-- Lid B logde 20 dagen geleden in: de PIN-login van lid A hieronder mag dat
+-- niet verlengen.
+update bar_device_members set last_login_at = now() - interval '20 days'
+  where member_id = '00000000-0000-0000-0000-00000000b121'
+    and device_id = (select id from bar_devices where token_hash = 'hash-c');
+-- En het apparaat zelf is al 40 dagen niet gezien: dat telt niet meer.
+update bar_devices set last_seen_at = now() - interval '40 days' where token_hash = 'hash-c';
 select is(
   (select result_code from verify_bar_pin('hash-c', '00000000-0000-0000-0000-00000000b120', '4821')),
   'ok',
-  'een apparaat waar 29 dagen niet is ingelogd, is nog vertrouwd'
+  'een lid dat 29 dagen geleden op dit apparaat inlogde, kan er nog met de PIN in'
 );
 select is(
-  (select last_seen_at from bar_devices where token_hash = 'hash-c'),
+  (select last_login_at from bar_device_members
+     where member_id = '00000000-0000-0000-0000-00000000b120'
+       and device_id = (select id from bar_devices where token_hash = 'hash-c')),
   now(),
-  'een geslaagde PIN-login verlengt het vertrouwen (last_seen_at = nu)'
+  'een geslaagde PIN-login verlengt het vertrouwen van dit lid op dit apparaat (last_login_at = nu)'
+);
+select is(
+  (select last_login_at from bar_device_members
+     where member_id = '00000000-0000-0000-0000-00000000b121'
+       and device_id = (select id from bar_devices where token_hash = 'hash-c')),
+  now() - interval '20 days',
+  'de PIN-login van lid A verlengt het vertrouwen van lid B op hetzelfde apparaat niet'
 );
 
 select * from finish();

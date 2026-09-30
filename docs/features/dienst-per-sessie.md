@@ -175,8 +175,9 @@ mechanism", "Device sign-in mechanism", "PIN storage/hashing", "Auth-methode
 - **Apparaatcookie**: `abas_apparaat`, een willekeurig token dat de server
   uitgeeft bij de eerste wachtwoordlogin via de namenlijst. Het overleeft
   uitloggen. Het is nodig voor vraag 3 ("alleen op dit apparaat") en voor
-  niets anders. Het vertrouwen geldt 30 dagen en elke login verlengt het
-  (besloten, 27).
+  niets anders. Het PIN-vertrouwen geldt per lid per apparaat: 30 dagen na
+  de laatste login van dát lid op dat apparaat, en alleen een login van dat
+  lid zelf verlengt het (besloten, 27; per lid: Bram, 2026-09-30).
 - **Vertrouwd apparaat (voor een lid)**: een apparaat waarop dat lid via de
   namenlijst met het wachtwoord heeft ingelogd. Alleen daar kan dat lid met
   de PIN inloggen.
@@ -307,7 +308,7 @@ Lezen: bardienst en beheerder (`not caller_is_lid()`). Een lid ziet niets.
 | `id` | uuid pk | |
 | `token_hash` | text not null unique | SHA-256 van het cookie-token; het token zelf staat nergens |
 | `created_at` | timestamptz not null default now() | |
-| `last_seen_at` | timestamptz not null default now() | |
+| `last_seen_at` | timestamptz not null default now() | laatste login op dit apparaat, van wie ook; alleen informatief (0033) |
 | `revoked_at` | timestamptz null | zie vraag 27 |
 
 **`bar_device_members`** (nieuw): welk lid op welk apparaat met de PIN mag
@@ -318,6 +319,7 @@ inloggen.
 | `device_id` | uuid → `bar_devices` | |
 | `member_id` | uuid → `members` | |
 | `password_login_at` | timestamptz not null | laatste wachtwoordlogin via de namenlijst op dit apparaat |
+| `last_login_at` | timestamptz not null default now() | laatste login (wachtwoord of PIN) van dit lid op dit apparaat; het PIN-vertrouwen verloopt 30 dagen daarna (0033, vraag 27) |
 | `revoked_at` | timestamptz null | zie vraag 27 |
 
 pk `(device_id, member_id)`.
@@ -528,7 +530,7 @@ inhoudelijk gedekt. De functie zelf blijft bestaan: de RLS-leespolicies uit
 | `remove_shift_member` | idem | `require_shift_session(p_shift_id)`. De sessiehouder zelf verwijderen: zie Randgevallen. |
 | `end_shift` | `caller_is_lid()`, stille no-op bij een onbekende dienst | `require_shift_session(p_shift_id)`. Sluit ook alle koppelingen (`dienst_afgesloten`). Zonder koppeling is het een fout, geen stille no-op. |
 | `reverse_order_as_admin` | ADR 0002-actorcheck | `require_beheer_session()` plus de actorcheck. `bar_session_id` blijft null. |
-| `set_own_pin` | ADR 0002-actorcheck | Ongewijzigd, alleen nog vanuit de portal. Hasht met de nieuwe kostenfactor (B1). |
+| `set_own_pin` | ADR 0002-actorcheck | Alleen nog vanuit de portal: weigert vanuit een geregistreerde bar-sessie (`wrong_mode`, 0032). Hasht met de nieuwe kostenfactor (B1). |
 | `set_member_role`, `set_member_archived` | actorcheck | `require_beheer_session()`. Maakt het lid `lid` of gearchiveerd, dan eindigen diens actieve bar-sessies meteen (`geen_bar_rol`), met hun koppelingen, en bij een wees-dienst een melding. De guard weigert ook zonder deze stap al (21); dit zorgt dat de melding er meteen is. |
 
 ### Nieuwe RPC's en functies
@@ -1122,6 +1124,12 @@ nog open"), foutregels klein met een gedachtestreepje ("onjuiste pincode",
 "de dienst is niet meer actief — herlaad het scherm"), "je", kort.
 `{…}` is een invulveld.
 
+| Invulveld | Tekst als het leeg is |
+|---|---|
+| `{activiteit}` (een dienst zonder activiteittype) | geen activiteit |
+
+"geen activiteit" is goedgekeurd door Bram (2026-09-30).
+
 ### Startscherm (namenlijst)
 
 | Plek | Tekst |
@@ -1281,7 +1289,7 @@ de RPC zichtbaar wordt (zelfde verdeling als de €500).
 
 | Plek | Tekst |
 |---|---|
-| Bij de login (race met de lijst) | je kunt niet op de bar inloggen — vraag een beheerder |
+| Bij de login (race met de lijst) | je kunt niet op de bar inloggen — vraag een beheerder (staat bij de verversde namenlijst, na een PIN- en na een wachtwoordlogin) |
 | Tijdens de sessie | zie "Rol gewijzigd of gearchiveerd" hierboven |
 | Afrekenen of opwaarderen bij een gearchiveerd lid (bestaat) | dit lid bestaat niet meer of is gearchiveerd — kies een ander lid |
 
@@ -1292,8 +1300,10 @@ Geen nieuwe tekst: de app toont "Bar openen" met `ActiviteitKeuze` en
 
 ## Zoals gebouwd (fase 1)
 
-Migraties `0027` (datamodel), `0028` (guards, sessie-RPC's, PIN-login) en `0029`
-(bestaande RPC's). De tekst hierboven is de spec; dit is wat er bij de bouw
+Migraties `0027` (datamodel), `0028` (guards, sessie-RPC's, PIN-login), `0029`
+(bestaande RPC's), `0030` (dienst hervatten) en de review-fixes `0031`
+(`check_beheer_session`), `0032` (`set_own_pin` alleen vanuit de portal) en
+`0033` (PIN-vertrouwen per lid per apparaat). De tekst hierboven is de spec; dit is wat er bij de bouw
 anders of extra is geworden, en waarom.
 
 **Database**
@@ -1312,8 +1322,10 @@ anders of extra is geworden, en waarom.
   opheffen en het apparaat vertrouwen; geeft `null` bij een ingetrokken apparaat,
   dan geeft de server een nieuw cookie uit — een ingetrokken apparaat blijft
   voor altijd ingetrokken) en de interne `bar_pin_state`.
-- **Vertrouwen verloopt server-side na 30 dagen** (`bar_devices.last_seen_at`,
-  elke login verlengt het), niet alleen via de levensduur van het cookie.
+- **Vertrouwen verloopt server-side na 30 dagen, per lid per apparaat**
+  (`bar_device_members.last_login_at`, sinds `0033`; eerst was het
+  `bar_devices.last_seen_at`, dat elke login op het apparaat verlengde, van wie
+  ook), niet alleen via de levensduur van het cookie.
 - **`end_bar_session(p_close_shift, p_reason default 'uitgelogd')`**: de extra
   parameter (`uitgelogd` of `niet_hervat`) legt vast dat een beheersessie niet is
   hervat (Schermflow punt 3). Geen hartslag: uitloggen is geen activiteit.
@@ -1380,8 +1392,8 @@ anders of extra is geworden, en waarom.
   met de uitleg uit Teksten voor een bezettinglid van een wees-dienst
   (`my_bar_state` leverde `other_shift.in_bezetting` al). Alleen voor een
   bardienst: een beheerder in de bezetting houdt "Overnemen" en "Afsluiten".
-  Geen toast na het hervatten (er is geen goedgekeurde tekst): het scherm gaat
-  meteen naar de dienst. Nieuwe foutcodes `shift_not_orphan` en
+  Na het hervatten gaat het scherm meteen naar de dienst, met de toast "Dienst
+  hervat" (Teksten). Nieuwe foutcodes `shift_not_orphan` en
   `not_in_shift_crew` zijn bekende domeinuitkomsten (niet naar `client_errors`).
   Tests: `supabase/tests/resume_orphan_shift.test.sql` (elke weigering, de happy
   path en het oplossen van de melding), `rpc_execute_grants.test.sql`,
@@ -1395,6 +1407,31 @@ anders of extra is geworden, en waarom.
   inloggen" in de weergave wachtwoord vergeten. Bram keurt ze goed of past ze aan.
 - Fase 2 (de instelling, `join_shift`, stand (b) en (c)) niet.
 
+**Review-fixes (goedgekeurd door Bram, 2026-09-30)**
+
+1. **Invite pas na de sessiecontrole.** `src/lib/inviteMember.ts` roept vóór
+   `inviteUserByEmail` de nieuwe RPC `check_beheer_session()` (`0031`,
+   alleen `authenticated`) aan: dezelfde voorwaarde als
+   `require_beheer_session()`, zonder hartslag. Een weigering krijgt dezelfde
+   afhandeling als een weigering van `mark_member_invite_sent`. Een beheerder
+   in een bar-sessie verstuurt dus geen mail meer. Tests:
+   `test/inviteMember.test.ts`, `supabase/tests/beheer_rpcs_modus.test.sql`,
+   `rpc_execute_grants.test.sql`.
+2. **`set_own_pin` alleen vanuit de portal** (`0032`, besluit 10): heeft de
+   sessie van de aanroeper een rij in `bar_sessions` (bar of beheer, ook
+   beëindigd), dan `wrong_mode`. De portal registreert nooit een bar-sessie
+   en werkt zoals voorheen. Tests: `supabase/tests/set_own_pin.test.sql`.
+3. **"je kunt niet op de bar inloggen — vraag een beheerder"** staat nu bij de
+   verversde namenlijst na `not_allowed`, voor het PIN- en het wachtwoordpad,
+   tot er een naam gekozen wordt. Test: `e2e/bar-inloggen-niet-toegestaan.spec.ts`
+   (gemockt).
+4. **PIN-vertrouwen per lid per apparaat** (`0033`, vraag 27): nieuwe kolom
+   `bar_device_members.last_login_at`, gezet door `record_bar_password_login`
+   en een geslaagde `verify_bar_pin` van dát lid; `bar_pin_state` eist dat die
+   binnen 30 dagen ligt. Een login van een ander lid verlengt het niet. Het
+   apparaatcookie is ongewijzigd. Bestaande rijen krijgen `password_login_at`.
+   Tests: `supabase/tests/verify_bar_pin.test.sql`.
+
 **Uitrol** (uitbreiding van de volgorde onder Tablet koppelen verwijderen):
 
 1. Controle en actie op productie, vóór alles:
@@ -1406,7 +1443,7 @@ anders of extra is geworden, en waarom.
 2. Alle diensten afsluiten (de migratie weigert anders).
 3. `SUPABASE_SECRET_KEY` in Vercel (de login op de bar draait ermee), en de
    pg_cron-extensie staat al aan (`0025`).
-4. Deployen (migraties `0027`–`0029`).
+4. Deployen (migraties `0027`–`0033`).
 5. Device-account intrekken en verwijderen, daarna `SUPABASE_DEVICE_EMAIL`,
    `SUPABASE_DEVICE_PASSWORD` en `BAR_DEVICE_SECRET` uit Vercel en CI.
 6. Op het echte tablet testen (vooral iPadOS en de PWA): hervatscherm,
@@ -1712,7 +1749,10 @@ niet bouwen zonder een keuze.
 - **26: zoals aanbevolen.** Kostenfactor 12, met herhashen bij de volgende
   PIN-login.
 - **27: een maand (30 dagen) in plaats van 400 dagen, en elke login
-  verlengt die.** "Apparaat afmelden" trekt het vertrouwen van dat apparaat
+  verlengt die.** Aangescherpt door Bram (2026-09-30): het vertrouwen geldt
+  per lid per apparaat. De PIN van lid X werkt op apparaat D alleen als X zelf
+  in de laatste 30 dagen op D inlogde (wachtwoord of PIN), en alleen een login
+  van X verlengt dat (`0033`). "Apparaat afmelden" trekt het vertrouwen van dat apparaat
   in. Archiveren of de rol terugzetten naar `lid` trekt het op alle
   apparaten in.
 - **De keuzes van de Architect zijn akkoord.** Een e-maillogin op `/beheer`

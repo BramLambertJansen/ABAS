@@ -80,6 +80,11 @@ export function BarInloggen() {
   const [pin, setPin] = useState("");
   const [wachtwoord, setWachtwoord] = useState("");
   const [fout, setFout] = useState<string | null>(null);
+  // De melding bij de namenlijst nadat de login `not_allowed` gaf
+  // (gearchiveerd of geen bar-rol, spec → Teksten → Gearchiveerd lid). Los
+  // van `fout`, dat bij het inlogscherm hoort en bij de terugkeer naar de
+  // lijst wordt gewist.
+  const [lijstMelding, setLijstMelding] = useState<string | null>(null);
   const [vergetenVerstuurd, setVergetenVerstuurd] = useState(false);
   const [optiesLaden, setOptiesLaden] = useState(false);
 
@@ -102,6 +107,7 @@ export function BarInloggen() {
   }
 
   async function kiesNaam(naam: BarNaam) {
+    setLijstMelding(null);
     setGekozen(naam);
     setPin("");
     setWachtwoord("");
@@ -126,10 +132,12 @@ export function BarInloggen() {
     setVergetenVerstuurd(false);
   }, []);
 
-  /** Het lid mag niet (meer) inloggen: de lijst is verouderd. */
+  /** Het lid mag niet (meer) inloggen: de lijst is verouderd. Terug naar de
+   *  namenlijst, met de melding daar. */
   const ververstLijst = useCallback(() => {
     namen.refetch();
     terugNaarNamen();
+    setLijstMelding(INLOGGEN.foutNietToegestaan);
   }, [namen, terugNaarNamen]);
 
   async function drukCijfer(cijfer: string) {
@@ -159,7 +167,6 @@ export function BarInloggen() {
         wissel("wachtwoord");
         return;
       case "not_allowed":
-        setFout(INLOGGEN.foutNietToegestaan);
         ververstLijst();
         return;
       default:
@@ -214,6 +221,12 @@ export function BarInloggen() {
           </p>
         )}
       </AuroraMerk>
+
+      {!gekozen && lijstMelding && (
+        <p className="max-w-xs text-center text-sm font-semibold text-rail-error" role="alert">
+          {lijstMelding}
+        </p>
+      )}
 
       {!gekozen && namen.status === "loading" && (
         <p className="text-sm font-semibold text-rail-muted" role="status">

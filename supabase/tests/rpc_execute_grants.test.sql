@@ -26,7 +26,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(35);
+select plan(36);
 
 -- ── 1) Niets in public is uitvoerbaar zonder sessie ──────────────────────
 
@@ -324,6 +324,14 @@ select ok(
   has_function_privilege('authenticated', 'public.set_own_pin(text)', 'EXECUTE')
   and not has_function_privilege('anon', 'public.set_own_pin(text)', 'EXECUTE'),
   'set_own_pin blijft een RPC voor een ingelogde sessie (de portal)'
+);
+
+-- 0031: check_beheer_session, de controle vooraf van de invite-route.
+select ok(
+  not has_function_privilege('anon', 'public.check_beheer_session()', 'EXECUTE')
+  and not has_function_privilege('public', 'public.check_beheer_session()', 'EXECUTE')
+  and has_function_privilege('authenticated', 'public.check_beheer_session()', 'EXECUTE'),
+  'check_beheer_session: EXECUTE ingetrokken voor PUBLIC en anon, alleen authenticated mag'
 );
 
 select ok(

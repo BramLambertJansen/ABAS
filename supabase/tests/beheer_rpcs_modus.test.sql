@@ -5,14 +5,15 @@
 -- lid komt er niet in — ook al zou de ADR 0002-actorcheck hem toelaten. Zo
 -- komt een PIN-sessie (altijd `bar`) nooit in beheer.
 --
--- Data-gedreven: één lijst met de vijftien beheer-RPC's, één ronde per
+-- Data-gedreven: één lijst met de vijftien beheer-RPC's (plus
+-- check_beheer_session, 0031), één ronde per
 -- faalmodus. De guard staat vóór de actorcheck en de invoervalidatie, dus de
 -- argumenten mogen dummy zijn. Run met `npm run db:test`.
 
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(111);
+select plan(119);
 
 -- ── Sessie-helper (dienst per sessie, ADR 0016) ────────────────────────────
 -- De bar-RPC's eisen een geregistreerde bar-sessie met een actieve koppeling
@@ -127,7 +128,9 @@ as $q$
     ('update_member_email', $s$ select update_member_email('00000000-0000-0000-0000-00000000c021', 'a@b.nl') $s$),
     ('list_members_admin', $s$ select * from list_members_admin() $s$),
     ('mark_member_invite_sent', $s$ select mark_member_invite_sent('00000000-0000-0000-0000-00000000c021') $s$),
-    ('reverse_order_as_admin', $s$ select reverse_order_as_admin('00000000-0000-0000-0000-00000000c031', 'reden') $s$)
+    ('reverse_order_as_admin', $s$ select reverse_order_as_admin('00000000-0000-0000-0000-00000000c031', 'reden') $s$),
+    -- 0031: de controle vooraf van de invite-route, zelfde voorwaarde.
+    ('check_beheer_session', $s$ select check_beheer_session() $s$)
   ) as v(name, sql)
 $q$;
 
@@ -175,6 +178,15 @@ update members set role = 'beheerder' where id = '00000000-0000-0000-0000-000000
 -- ── Herstel: een geldige beheer-sessie werkt, en zet de hartslag ─────────
 update bar_sessions set last_activity_at = now() - interval '5 minutes'
   where auth_session_id = '00000000-0000-0000-0000-00000000c010';
+select lives_ok(
+  $$ select check_beheer_session() $$,
+  'check_beheer_session slaagt in een geldige beheer-sessie'
+);
+select is(
+  (select last_activity_at from bar_sessions where auth_session_id = '00000000-0000-0000-0000-00000000c010'),
+  now() - interval '5 minutes',
+  'check_beheer_session leest alleen: geen hartslag'
+);
 select lives_ok(
   $$ select update_negative_limit(0) $$,
   'een beheerder in een beheer-sessie mag een beheer-RPC aanroepen'
