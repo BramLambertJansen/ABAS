@@ -70,9 +70,14 @@ begin
     on conflict (auth_session_id) do nothing;
   end if;
   perform set_config('request.jwt.claim.sub', p_auth_user::text, true);
+  -- Een beheersessie is altijd aal2: register_bar_session('beheer') en
+  -- require_beheer_session eisen dat (ADR 0017, 0034).
   perform set_config(
     'request.jwt.claims',
-    json_build_object('sub', p_auth_user::text, 'session_id', p_auth_user::text)::text,
+    json_build_object(
+      'sub', p_auth_user::text, 'session_id', p_auth_user::text,
+      'aal', case when p_mode = 'beheer' then 'aal2' else 'aal1' end
+    )::text,
     true
   );
 end;
@@ -109,6 +114,14 @@ insert into members (id, name, role, pin_hash, balance_cents, archived, auth_use
   ('00000000-0000-0000-0000-00000000e013', 'SR Beheerder Twee', 'beheerder', null, 0, false, '00000000-0000-0000-0000-00000000e0a3'),
   ('00000000-0000-0000-0000-00000000e014', 'SR Zonder account', 'bardienst', null, 0, false, null),
   ('00000000-0000-0000-0000-00000000e015', 'SR Bardienst Twee', 'bardienst', null, 0, false, null);
+
+-- Beide beheerders hebben een geverifieerde tweede factor: zonder factor
+-- geeft register_bar_session('beheer') `mfa_not_enrolled` (0034, ADR 0017).
+-- Die weigering zelf staat in beheer_tweede_factor.test.sql.
+insert into auth.mfa_factors (id, user_id, friendly_name, factor_type, status, created_at, updated_at, secret)
+values
+  (gen_random_uuid(), '00000000-0000-0000-0000-00000000e0a0', null, 'totp', 'verified', now(), now(), 'SRADMINSECRET'),
+  (gen_random_uuid(), '00000000-0000-0000-0000-00000000e0a3', null, 'totp', 'verified', now(), now(), 'SRADMIN2SECRET');
 
 insert into activity_types (id, name, archived) values
   ('00000000-0000-0000-0000-00000000e0b0', 'SR Training', false);
@@ -158,10 +171,11 @@ select throws_ok(
   'een bardienst kan zich niet in modus beheer registreren'
 );
 
--- Een beheerder met een bar-sessie (bv. na een PIN-login): nooit naar beheer.
+-- Een beheerder met een bar-sessie (bv. na een PIN-login): nooit naar beheer,
+-- ook niet met aal2 (na de code; zonder code is het `aal2_required`).
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000e0a0', true);
 select set_config('request.jwt.claims',
-  '{"sub":"00000000-0000-0000-0000-00000000e0a0","session_id":"00000000-0000-0000-0000-00000000e0d2"}', true);
+  '{"sub":"00000000-0000-0000-0000-00000000e0a0","session_id":"00000000-0000-0000-0000-00000000e0d2","aal":"aal2"}', true);
 select lives_ok($$ select register_bar_session('bar') $$, 'een beheerder registreert een bar-sessie');
 select throws_ok(
   $$ select register_bar_session('beheer') $$,
@@ -172,7 +186,7 @@ select throws_ok(
 -- Een beheerder: beide modi, elk in een eigen sessie.
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000e0a0', true);
 select set_config('request.jwt.claims',
-  '{"sub":"00000000-0000-0000-0000-00000000e0a0","session_id":"00000000-0000-0000-0000-00000000e0d3"}', true);
+  '{"sub":"00000000-0000-0000-0000-00000000e0a0","session_id":"00000000-0000-0000-0000-00000000e0d3","aal":"aal2"}', true);
 select lives_ok(
   $$ select register_bar_session('beheer') $$,
   'een beheerder registreert een sessie in modus beheer'
@@ -186,7 +200,7 @@ select throws_ok(
 -- De sessie van iemand anders.
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000e0a3', true);
 select set_config('request.jwt.claims',
-  '{"sub":"00000000-0000-0000-0000-00000000e0a3","session_id":"00000000-0000-0000-0000-00000000e0d3"}', true);
+  '{"sub":"00000000-0000-0000-0000-00000000e0a3","session_id":"00000000-0000-0000-0000-00000000e0d3","aal":"aal2"}', true);
 select throws_ok(
   $$ select register_bar_session('beheer') $$,
   'P0001', 'no_bar_role',

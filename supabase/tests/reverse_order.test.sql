@@ -75,9 +75,14 @@ begin
     on conflict (auth_session_id) do nothing;
   end if;
   perform set_config('request.jwt.claim.sub', p_auth_user::text, true);
+  -- Een beheersessie is altijd aal2: register_bar_session('beheer') en
+  -- require_beheer_session eisen dat (ADR 0017, 0034).
   perform set_config(
     'request.jwt.claims',
-    json_build_object('sub', p_auth_user::text, 'session_id', p_auth_user::text)::text,
+    json_build_object(
+      'sub', p_auth_user::text, 'session_id', p_auth_user::text,
+      'aal', case when p_mode = 'beheer' then 'aal2' else 'aal1' end
+    )::text,
     true
   );
 end;

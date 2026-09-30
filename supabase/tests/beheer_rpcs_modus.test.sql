@@ -7,13 +7,13 @@
 --
 -- Data-gedreven: één lijst met de vijftien beheer-RPC's (plus
 -- check_beheer_session, 0031), één ronde per
--- faalmodus. De guard staat vóór de actorcheck en de invoervalidatie, dus de
+-- faalmodus, sinds 0034 ook aal1 (`aal2_required`, ADR 0017). De guard staat vóór de actorcheck en de invoervalidatie, dus de
 -- argumenten mogen dummy zijn. Run met `npm run db:test`.
 
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(119);
+select plan(135);
 
 -- ── Sessie-helper (dienst per sessie, ADR 0016) ────────────────────────────
 -- De bar-RPC's eisen een geregistreerde bar-sessie met een actieve koppeling
@@ -76,9 +76,14 @@ begin
     on conflict (auth_session_id) do nothing;
   end if;
   perform set_config('request.jwt.claim.sub', p_auth_user::text, true);
+  -- Een beheersessie is altijd aal2: register_bar_session('beheer') en
+  -- require_beheer_session eisen dat (ADR 0017, 0034).
   perform set_config(
     'request.jwt.claims',
-    json_build_object('sub', p_auth_user::text, 'session_id', p_auth_user::text)::text,
+    json_build_object(
+      'sub', p_auth_user::text, 'session_id', p_auth_user::text,
+      'aal', case when p_mode = 'beheer' then 'aal2' else 'aal1' end
+    )::text,
     true
   );
 end;
@@ -174,6 +179,17 @@ update members set role = 'bardienst' where id = '00000000-0000-0000-0000-000000
 select throws_ok(c.sql, 'P0001', 'no_admin_role', c.name || ' weigert een beheer-sessie van een lid dat geen beheerder (meer) is (no_admin_role)')
   from pg_temp.calls() c;
 update members set role = 'beheerder' where id = '00000000-0000-0000-0000-00000000c020';
+
+-- ── Ronde 7: een beheer-sessie met aal1 (ADR 0017, 0034) ─────────────────
+-- Modus `beheer`, rol beheerder, actief, maar zonder tweede factor in deze
+-- sessie (aal1): elke beheer-RPC weigert met `aal2_required`. In de praktijk
+-- registreert register_bar_session zo'n sessie niet, maar de guard is het
+-- tweede slot.
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000c010","session_id":"00000000-0000-0000-0000-00000000c010","aal":"aal1"}', true);
+select throws_ok(c.sql, 'P0001', 'aal2_required', c.name || ' weigert een beheer-sessie met aal1 (aal2_required)')
+  from pg_temp.calls() c;
+select pg_temp.act_as_user('00000000-0000-0000-0000-00000000c010');
 
 -- ── Herstel: een geldige beheer-sessie werkt, en zet de hartslag ─────────
 update bar_sessions set last_activity_at = now() - interval '5 minutes'

@@ -26,7 +26,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(36);
+select plan(38);
 
 -- ── 1) Niets in public is uitvoerbaar zonder sessie ──────────────────────
 
@@ -215,7 +215,10 @@ select ok(
         'public.close_bar_session_internal(uuid,text,uuid)',
         'public.end_member_bar_sessions(uuid)',
         'public.bar_pin_state(text,uuid)',
-        'public.close_inactive_bar_sessions()'
+        'public.close_inactive_bar_sessions()',
+        -- 0034/0035 (ADR 0017)
+        'public.member_has_verified_factor(uuid)',
+        'public.purge_login_throttle()'
       ]) as f(sig)
      where has_function_privilege('anon', f.sig, 'EXECUTE')
         or has_function_privilege('authenticated', f.sig, 'EXECUTE')
@@ -231,7 +234,10 @@ select ok(
         'public.verify_bar_pin(text,uuid,text)',
         'public.record_bar_password_login(text,uuid)',
         'public.bar_login_options(text,uuid)',
-        'public.register_bar_session_server(uuid,uuid,uuid)'
+        'public.register_bar_session_server(uuid,uuid,uuid)',
+        -- 0035 (ADR 0017): de eigen loginlimiet
+        'public.login_throttle_allowed(text,text)',
+        'public.login_throttle_record(text,text)'
       ]) as f(sig)
      where has_function_privilege('anon', f.sig, 'EXECUTE')
         or has_function_privilege('authenticated', f.sig, 'EXECUTE')
@@ -332,6 +338,26 @@ select ok(
   and not has_function_privilege('public', 'public.check_beheer_session()', 'EXECUTE')
   and has_function_privilege('authenticated', 'public.check_beheer_session()', 'EXECUTE'),
   'check_beheer_session: EXECUTE ingetrokken voor PUBLIC en anon, alleen authenticated mag'
+);
+
+-- 0034 (ADR 0017): bar_login_options is opnieuw aangemaakt (extra kolom
+-- pin_needs_mfa) en krijgt zijn grants opnieuw; member_has_verified_factor is
+-- een interne helper.
+select ok(
+  not has_function_privilege('public', 'public.bar_login_options(text,uuid)', 'EXECUTE')
+  and not has_function_privilege('anon', 'public.bar_login_options(text,uuid)', 'EXECUTE')
+  and not has_function_privilege('authenticated', 'public.bar_login_options(text,uuid)', 'EXECUTE')
+  and has_function_privilege('service_role', 'public.bar_login_options(text,uuid)', 'EXECUTE'),
+  'bar_login_options (0034): alleen service_role, niet PUBLIC, anon of authenticated'
+);
+
+-- 0035 (ADR 0017): de throttle-functies alleen voor de server.
+select ok(
+  not has_function_privilege('public', 'public.login_throttle_allowed(text,text)', 'EXECUTE')
+  and not has_function_privilege('public', 'public.login_throttle_record(text,text)', 'EXECUTE')
+  and not has_function_privilege('authenticated', 'public.login_throttle_allowed(text,text)', 'EXECUTE')
+  and not has_function_privilege('authenticated', 'public.login_throttle_record(text,text)', 'EXECUTE'),
+  'login_throttle_allowed/record (0035): niet voor PUBLIC of authenticated'
 );
 
 select ok(
