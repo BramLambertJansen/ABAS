@@ -4,7 +4,7 @@
 gebouwd (2026-09-29, nog niet gemerged), inclusief vraag 24 (ii) (`resume_orphan_shift`,
 migratie `0030`, 2026-09-29); fase 2 niet.** **Aangevuld door
 [ADR 0017](../adr/0017-beheer-eist-tweede-factor-en-eigen-loginlimiet.md)
-(2026-09-30, goedgekeurd, nog niet gebouwd):**
+(2026-09-30, goedgekeurd, gebouwd, nog niet gemerged):**
 [`beheer-tweede-factor.md`](beheer-tweede-factor.md) (beheer eist aal2,
 Auth-sessie intrekken, hervatten per browser) en
 [`login-rate-limit.md`](login-rate-limit.md) (eigen loginlimiet, namenlijst

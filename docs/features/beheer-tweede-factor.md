@@ -1,7 +1,7 @@
 # Beheer met tweede factor, Auth-sessie intrekken, en hervatten per browser
 
-Status: **goedgekeurd door Bram (2026-09-30)**, inclusief de teksten. Nog
-niet gebouwd. Hoort bij
+Status: **goedgekeurd door Bram (2026-09-30)**, inclusief de teksten.
+Gebouwd (2026-09-30, nog niet gemerged; zie "Zoals gebouwd"). Hoort bij
 [ADR 0017](../adr/0017-beheer-eist-tweede-factor-en-eigen-loginlimiet.md).
 Vult [`dienst-per-sessie.md`](dienst-per-sessie.md) aan; de verwijzingen
 daar zijn bijgewerkt (zie "Doorgevoerd in bestaande documenten").
@@ -380,3 +380,61 @@ Komt bovenop de uitrol van `dienst-per-sessie.md`.
 
 Bij de bouw vult de Developer "Zoals gebouwd" in deze spec en in
 `login-rate-limit.md` aan, zoals bij `dienst-per-sessie.md`.
+
+## Zoals gebouwd (2026-09-30)
+
+Wat er afwijkt van of bijkomt op de spec hierboven, en waarom.
+
+- **Migratie `0034_beheer_tweede_factor.sql`.** `member_has_verified_factor`
+  (voor geen API-rol uitvoerbaar), `require_beheer_session` en
+  `check_beheer_session` (0031) met `aal2_required` ná de bestaande checks
+  (een sessie in de verkeerde modus houdt `wrong_mode`),
+  `register_bar_session` met `mfa_not_enrolled` en `aal2_required` direct na
+  `no_admin_role`, `close_bar_session_internal` met de `delete from
+  auth.sessions`, `bar_pin_state` met `pin_needs_mfa` en `my_bar_state` met
+  `session.resumable`.
+- **`pin_needs_mfa` staat in `bar_pin_state`, vlak vóór `ok`.** Zo geeft
+  `verify_bar_pin` de code terug zonder zelf te veranderen en zonder de
+  foutteller te raken, en krijgt `bar_login_options` de vlag uit dezelfde
+  bron. Gevolg: de vlag verschijnt alleen als de PIN anders zou werken
+  (vertrouwd apparaat, PIN ingesteld, geen lockout); een geblokkeerde PIN
+  blijft `pin_locked`. `bar_login_options` is opnieuw aangemaakt (extra
+  uitvoerkolom) en krijgt zijn grants opnieuw.
+- **Het gedeelde code-component** is `src/components/CodeInvoer.tsx`, een
+  schil om `PinToetsenbord`, dat een instelbare lengte en een eigen
+  statuslabel kreeg (`PinPad` zelf bleef ongewijzigd: dat bevat de
+  bar-specifieke `StaffHeader`). Zonder knop gaat de code weg bij het zesde
+  cijfer (modus-keuze, wachtwoordflows); in de portal-sheet volgt eerst
+  "Bevestigen". De pure MFA-logica en de teksten staan in `src/lib/mfa.ts`;
+  de hooks per shell zijn `useBarMfa` en `usePortalTweestap`, en de
+  wachtwoordhooks kregen een code-stap.
+- **Een herstellink levert het token pas bij "Wachtwoord opslaan" in** (ADR
+  0008). Daarom vraagt `/beheer/wachtwoord-herstellen` en
+  `/portal/wachtwoord-herstellen` de code ná het invullen van het nieuwe
+  wachtwoord en vóór `updateUser`: eerder is niet bekend of het account een
+  factor heeft. In de portal-sheet "Wachtwoord wijzigen" komt de code wél
+  eerst, vóór de velden.
+- **`ModusKeuze`.** De tegel "Beheer" staat uit met `aria-disabled` (niet
+  `disabled`), zodat hij met de uitleg focusbaar en voorleesbaar blijft. De
+  code-stap heeft een knop "Annuleren" (bestaande tekst) terug naar de
+  tegels. Kan de factorstatus niet gelezen worden, dan blijft de tegel aan
+  en beslist de server.
+- **Hervatten.** `useBarAuth` levert het `session_id` uit het access token;
+  `BarSessieProvider` leest het cookie bij elke render en sluit een niet te
+  hervatten sessie hooguit één keer per sessie met `niet_hervat`.
+  `aal2_required` staat in `SESSION_ERROR_CODES` en logt centraal lokaal uit.
+- **Portal-rij** alleen voor een niet-gearchiveerde beheerder (zelfde regel
+  als de PIN-rij). "Aan" is geen knop. De QR-code heeft als alt-tekst
+  "QR-code"; de spec gaf daar geen tekst voor.
+- **Seed en CI.** `supabase/config.toml` zet TOTP aan. Femke Bos heeft in
+  `supabase/seed.sql` een geverifieerde TOTP-factor met een vast secret;
+  `e2e/helpers/totp.ts` rekent de code uit, zodat de a11y-tests op `/beheer`
+  echt aal2 halen. Een eigen fixture `e2e.profiel.tweestap@aurora.local`
+  (beheerder zonder factor) dekt het instellen in de portal; de test ruimt de
+  factor op via de Admin API.
+- **Tests.** pgTAP: `beheer_tweede_factor.test.sql` (nieuw) en een ronde
+  aal1 in `beheer_rpcs_modus.test.sql`; de testhelpers voor een beheersessie
+  zetten nu `aal2`. Unit: `test/mfa.test.ts`, de cookielogica in
+  `test/barSessie.test.ts`. e2e: `e2e/beheer-tweede-factor.spec.ts`
+  (gemockt), de portal-tests in `e2e/portal-profiel.spec.ts` en de echte
+  code-stap in `e2e/a11y.spec.ts`.

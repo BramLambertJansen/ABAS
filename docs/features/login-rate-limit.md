@@ -1,7 +1,7 @@
 # Eigen limiet op de server-side bar-login
 
 Status: **goedgekeurd door Bram (2026-09-30)**, inclusief waarden en teksten.
-Nog niet gebouwd. Hoort bij
+Gebouwd (2026-09-30, nog niet gemerged; zie "Zoals gebouwd"). Hoort bij
 [ADR 0017](../adr/0017-beheer-eist-tweede-factor-en-eigen-loginlimiet.md) →
 Beslissing 3. Vult [`dienst-per-sessie.md`](dienst-per-sessie.md) →
 Veiligheid aan ("de rate limit (...) per gebruiker blijft gelden", vraag 25).
@@ -227,3 +227,28 @@ De openbare namenlijst verklapt niet meer wie beheerder is.
   ingelogd geweest. Acceptabel.
 - **Tests:** e2e en unit die op de rolbadge in de namenlijst leunen, gaan mee.
   Een test controleert dat de API geen `role` teruggeeft.
+
+## Zoals gebouwd (2026-09-30)
+
+- **Migratie `0035_login_throttle.sql`**: de tabel, `login_throttle_allowed`,
+  `login_throttle_record` (alleen `service_role`) en `purge_login_throttle`
+  (voor geen API-rol, `pg_cron` elk uur op minuut 23). De sha256 van de
+  sleutel rekent de database uit (`pgcrypto`); een lege sleutel of een
+  onbekende bucket geeft `invalid_key`/`invalid_bucket`.
+- **Volgorde in `src/lib/barLogin.ts`.** De limiet komt vóór elke andere
+  aanroep: bij het wachtwoord vóór het opzoeken van het lid, bij de PIN na
+  het apparaatcookie en het formaat en vóór `verify_bar_pin`, bij "vergeten"
+  vóór alles. Kan de limiet niet gelezen worden, dan gooit de login (de route
+  geeft `unknown`); mislukt alleen het registreren, dan wordt dat gelogd en
+  krijgt de gebruiker de uitkomst van zijn poging.
+- **`clientIp`** staat in `src/lib/clientIp.ts` en gebruikt `node:net` om een
+  IP-adres te herkennen.
+- **e2e.** De UI-tests (`e2e/login-rate-limit.spec.ts`) mocken de routes
+  onder `/inloggen/`: in CI delen alle verzoeken de sleutel `'onbekend'`, en
+  echte foute pogingen zouden de rest van de run blokkeren. Er is dus geen
+  tabel om leeg te maken. De telling zelf bewijzen
+  `supabase/tests/login_throttle.test.sql` en `test/barLogin.test.ts`. Eén
+  live test leest `GET /inloggen/namen` en controleert dat er geen `role` in
+  staat.
+- **`RoleBadge` en `ROLE_LABELS`** blijven: `BezettingOverlay` en
+  `LidBestellingenOverlay` gebruiken ze nog.

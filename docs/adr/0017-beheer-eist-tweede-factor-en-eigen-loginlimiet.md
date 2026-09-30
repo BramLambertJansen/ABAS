@@ -3,7 +3,8 @@
 Status: **geaccepteerd door Bram (2026-09-30)**, samen met de specs
 [`docs/features/beheer-tweede-factor.md`](../features/beheer-tweede-factor.md)
 en [`docs/features/login-rate-limit.md`](../features/login-rate-limit.md).
-Nog niet gebouwd. Aanleiding: de review van PR #120 (dienst per sessie, fase 1).
+Gebouwd (2026-09-30, migraties `0034` en `0035`, nog niet gemerged).
+Aanleiding: de review van PR #120 (dienst per sessie, fase 1).
 
 **Amendeert:**
 
