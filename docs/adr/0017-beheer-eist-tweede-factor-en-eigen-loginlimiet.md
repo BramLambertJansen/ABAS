@@ -1,10 +1,9 @@
 # 0017 — Beheer eist een tweede factor (aal2), een beëindigde bar-sessie trekt ook de Auth-sessie in, en de server-side bar-login heeft een eigen limiet
 
-Status: **concept.** De drie beslissingen hieronder zijn door Bram gekozen
-(2026-09-30). Er staan nog open vragen in de twee specs:
+Status: **geaccepteerd door Bram (2026-09-30)**, samen met de specs
 [`docs/features/beheer-tweede-factor.md`](../features/beheer-tweede-factor.md)
 en [`docs/features/login-rate-limit.md`](../features/login-rate-limit.md).
-Aanleiding: de review van PR #120 (dienst per sessie, fase 1).
+Nog niet gebouwd. Aanleiding: de review van PR #120 (dienst per sessie, fase 1).
 
 **Amendeert:**
 
@@ -122,8 +121,11 @@ Dat gebeurt:
 - per IP-adres van de gebruiker, uit de proxy-header van Vercel;
 - per lid.
 
-De tellers lopen via functies die alleen `service_role` mag uitvoeren. De
-limiet van Supabase blijft eronder bestaan, maar is niet meer de enige rem.
+De tellers lopen via functies die alleen `service_role` mag uitvoeren.
+Wachtwoord en PIN tellen alleen foute pogingen, "wachtwoord vergeten" telt
+aanvragen (Bram, 2026-09-30). De namenlijst verliest de rol, zodat
+beheerders van buitenaf niet als doelwit te herkennen zijn. De limiet van
+Supabase blijft eronder bestaan, maar is niet meer de enige rem.
 CAPTCHA komt pas als dit niet genoeg blijkt. `Sb-Forwarded-For` komt pas
 als Supabase bevestigt dat het op het gehoste project veilig kan. Beide zijn
 een latere aanvulling, geen vervanging.
@@ -156,12 +158,14 @@ een latere aanvulling, geen vervanging.
 - **Beheerders hebben een authenticator-app nodig.** Direct na de uitrol is
   beheer onbereikbaar tot de beheerder in de portal een factor heeft
   ingesteld. Het eerst in te stellen account is dat van Bram.
-- **Een verloren telefoon maakt beheer onbereikbaar** tot iemand de factor
-  terugzet. Wie dat doet, is een open vraag in de spec.
+- **Een verloren telefoon maakt beheer onbereikbaar** tot Bram de factor
+  via het Supabase-dashboard terugzet (besloten 2026-09-30). De app heeft
+  daar geen functie voor.
 - **Restrisico dat blijft:**
   - een bardienst zonder factor. Wie diens PIN kent en bij een vertrouwd
     apparaat kan, kan het wachtwoord van die bardienst wijzigen. Dat geeft
-    geen beheer. Een open vraag aan Bram;
+    geen beheer. **Geaccepteerd door Bram (2026-09-30)**; een bardienst krijgt
+    geen tweede factor;
   - een onbeheerde, actieve bar-sessie van een beheerder die nog geen factor
     heeft. Dat is hetzelfde restrisico als een gestolen apparaat, en het
     verdwijnt zodra de beheerder een factor instelt.
@@ -170,7 +174,11 @@ een latere aanvulling, geen vervanging.
   een herstelsessie is aal1.
 - **Een inactieve sessie heeft geen Auth-sessie meer.** De melding "Je bent
   uitgelogd" verschijnt alleen zolang het access token nog geldig is.
-  Daarna ziet de gebruiker direct het startscherm.
+  Daarna ziet de gebruiker direct het startscherm. Akkoord van Bram
+  (2026-09-30).
+- **De beheerdersingrepen vanuit bar-modus** (afsluiten, overnemen,
+  afmelden; besloten 12a/12c in `dienst-per-sessie.md`) vragen geen aal2.
+  Akkoord van Bram (2026-09-30).
 - **Te controleren op het gehoste project:**
   - TOTP staat aan (Auth → MFA);
   - `postgres` mag uit `auth.sessions` verwijderen en `auth.mfa_factors`

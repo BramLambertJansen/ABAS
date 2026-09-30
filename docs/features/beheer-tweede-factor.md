@@ -1,11 +1,10 @@
 # Beheer met tweede factor, Auth-sessie intrekken, en hervatten per browser
 
-Status: **concept.** De keuzes zijn gemaakt door Bram (2026-09-30), maar
-een aantal vragen is nog open (onderaan) en de teksten wachten op
-goedkeuring. De Developer begint pas na akkoord. Hoort bij
+Status: **goedgekeurd door Bram (2026-09-30)**, inclusief de teksten. Nog
+niet gebouwd. Hoort bij
 [ADR 0017](../adr/0017-beheer-eist-tweede-factor-en-eigen-loginlimiet.md).
-Vult [`dienst-per-sessie.md`](dienst-per-sessie.md) aan. Dat bestand wordt
-nu niet gewijzigd; zie "Later door te voeren".
+Vult [`dienst-per-sessie.md`](dienst-per-sessie.md) aan; de verwijzingen
+daar zijn bijgewerkt (zie "Doorgevoerd in bestaande documenten").
 
 Deze spec dekt twee reviewbevindingen op PR #120:
 
@@ -24,6 +23,14 @@ De eigen loginlimiet staat in [`login-rate-limit.md`](login-rate-limit.md).
 2. **De factor stel je in de portal in.**
 3. **De hervat-bevestiging geldt per browser**, via een sessiecookie met het
    `session_id`.
+4. **Een verloren factor zet Bram terug via het Supabase-dashboard.** De app
+   krijgt daar geen functie voor.
+5. **Alleen beheerders** zien en gebruiken de tweede factor.
+6. **Het restrisico bij bardienst is geaccepteerd** (zie Randgevallen).
+7. **De melding bij inactiviteit mag wegvallen** als het access token ook
+   verlopen is. De Auth-sessie wordt bij elke reden ingetrokken.
+8. **De beheerdersingrepen vanuit bar-modus vragen geen aal2.**
+9. **De teksten zijn goedgekeurd.**
 
 ## Doel
 
@@ -97,8 +104,7 @@ krijgen dezelfde centrale afhandeling als `wrong_mode`: niet naar
 Dat zijn `admin_end_shift`, `admin_take_over_shift` en
 `admin_end_bar_session`, besloten 12a en 12c in `dienst-per-sessie.md`. Ze
 vragen modus `bar` en rol `beheerder`, geen aal2. Ze geven geen toegang tot
-het account en geen beheerschermen. Willen we hier ook aal2 eisen, dan is
-dat een aparte vraag (zie Open vragen, 6).
+het account en geen beheerschermen. Ze blijven zonder aal2 (besloten, 8).
 
 ### `verify_bar_pin` en `bar_login_options`
 
@@ -247,7 +253,7 @@ tabbladen delen. Het eerste tabblad krijgt daarna `session_ended`.
 ## Rolzichtbaarheid
 
 - **Lid en bardienst:** niets nieuws. De rij Tweestapsverificatie staat er
-  alleen voor een beheerder; zie Open vragen, 2.
+  alleen voor een beheerder (besloten, 5).
 - **Beheerder:** de rij in de portal, de code-stap op `/beheer` en in de
   herstelflows.
 
@@ -256,9 +262,9 @@ tabbladen delen. Het eerste tabblad krijgt daarna `session_ended`.
 - **Beheerder na de uitrol, nog zonder factor:** geen beheer (de tegel staat
   uit), geen PIN op de bar, en de bar-sessie wordt niet hervat. Bar-werk met
   het wachtwoord kan gewoon.
-- **Telefoon kwijt:** geen beheer tot de factor is teruggezet. Wie dat doet,
-  is een open vraag (1). Tot er een antwoord is, kan het alleen via het
-  Supabase-dashboard.
+- **Telefoon kwijt:** geen beheer tot Bram de factor via het
+  Supabase-dashboard verwijdert (Authentication → Users → het account → MFA).
+  Daarna stelt de beheerder in de portal een nieuwe in (besloten, 4).
 - **Onbeheerde actieve bar-sessie van een beheerder zonder factor:** die
   sessie kan zelf een factor toevoegen, en daarmee aal2 en beheer krijgen.
   Dat is hetzelfde restrisico als een gestolen apparaat, en het verdwijnt
@@ -266,11 +272,11 @@ tabbladen delen. Het eerste tabblad krijgt daarna `session_ended`.
   instellen na de uitrol.
 - **Bardienst:** heeft geen factor. Wie diens PIN kent op een vertrouwd
   apparaat, kan het wachtwoord van die bardienst wijzigen. Dat geeft geen
-  beheer. Open vraag (3).
+  beheer. Geaccepteerd restrisico (besloten, 6).
 - **Een inactieve sessie na 60 minuten:** de Auth-sessie is weg. Is het
   access token nog geldig, dan verschijnt de melding "inactief". Is het
   verlopen, dan kan `my_bar_state` niet meer gelezen worden en volgt het
-  startscherm zonder melding. Open vraag (4).
+  startscherm zonder melding. Akkoord (besloten, 7).
 - **Afgemelde tablet (`admin_end_bar_session`):** een gekopieerd token kan
   niet meer verversen en geen `/auth/v1/user` meer aanroepen. PostgREST
   accepteert het access token tot het verloopt (`jwt_expiry` 3600); de RPC's
@@ -326,13 +332,13 @@ Komt bovenop de uitrol van `dienst-per-sessie.md`.
 
 ## Expliciet buiten scope
 
-- Een tweede factor voor bardienst of lid (open vraag 3).
-- De factor zelf uitzetten of terugzetten in de app (open vraag 1).
+- Een tweede factor voor bardienst of lid (besloten, 5 en 6).
+- De factor zelf uitzetten of terugzetten in de app (besloten, 4).
 - Herstelcodes, WebAuthn en sms.
-- aal2 voor de beheerdersingrepen in bar-modus (open vraag 6).
+- aal2 voor de beheerdersingrepen in bar-modus (besloten, 8).
 - HttpOnly-sessiecookies (ADR 0017 → Verworpen).
 
-## Teksten (voorstel, ter goedkeuring)
+## Teksten (goedgekeurd door Bram, 2026-09-30)
 
 | Plek | Tekst |
 |---|---|
@@ -353,70 +359,24 @@ Komt bovenop de uitrol van `dienst-per-sessie.md`.
 | Wachtwoord wijzigen/herstellen, code-stap | Voer eerst de code uit je authenticator-app in. |
 | Bar, PIN: beheerder zonder tweede factor | Als beheerder kun je pas met je pincode inloggen als je tweestapsverificatie hebt ingesteld in de portal. |
 
-## Open vragen voor Bram
+## Doorgevoerd in bestaande documenten (2026-09-30)
 
-1. **Wie zet een factor terug bij een verloren telefoon?** Opties:
-   - (a) alleen jij, via het Supabase-dashboard (geen bouw nodig);
-   - (b) een andere beheerder via ledenbeheer, met een server-actie
-     (ADR 0006) die de factoren van dat lid verwijdert. Dat vraagt zelf
-     aal2;
-   - (c) de beheerder zelf, na een herstelmail. Zwakker: wie de mailbox
-     heeft, heeft dan beheer met alleen het wachtwoord.
+- **`docs/features/dienst-per-sessie.md`:**
+  - status-regel met een verwijzing naar ADR 0017 en de twee specs;
+  - Inloggen op de bar, punt 1 (namenlijst zonder rol) en punt 4 (codes
+    `pin_needs_mfa` en `rate_limited`), plus de alinea "Een PIN-login geeft
+    geen beheer";
+  - Schermflow punt 3 (sessiecookie, `resumable`);
+  - Veiligheid (namenlijst, wachtwoordpogingen, PIN-sessie en account,
+    verloren apparaat);
+  - Rolzichtbaarheid en Randgevallen (twee tabbladen, PWA op iOS);
+  - Zoals gebouwd (codes van `register_bar_session`, de rate limit) en de
+    uitrolstap op het echte tablet.
+- **CLAUDE.md → Auth:** beheer vraagt modus beheer met een tweede factor
+  (aal2), en een PIN-login geeft ook via een wachtwoordwijziging geen beheer
+  (ADR 0017).
+- **ADR 0002, 0003, 0005 en 0016:** een amendementregel met een verwijzing
+  naar ADR 0017.
 
-   Tot er een antwoord is, geldt (a).
-2. **Ziet een bardienst de rij Tweestapsverificatie ook** (vrijwillig), of
-   alleen een beheerder? Het voorstel hierboven: alleen een beheerder.
-3. **Restrisico bij bardienst:** wie de PIN van een bardienst kent en bij
-   een vertrouwd apparaat kan, kan diens wachtwoord wijzigen. Dat geeft geen
-   beheer, wel het account: portal en bar-logins als die persoon.
-   Accepteer je dat? Of wil je ook voor bardienst een tweede factor, of een
-   andere maatregel?
-4. **Inactief na 60 minuten:** is het acceptabel dat de melding "Je bent
-   uitgelogd" wegblijft als het access token ook al verlopen is (gevolg van
-   het intrekken van de Auth-sessie)? Alternatief: bij `inactief` de
-   Auth-sessie niet intrekken, en bij alle andere redenen wel.
-5. **De teksten hierboven:** goedkeuren of aanpassen.
-6. **Beheerdersingrepen vanuit bar-modus** (afsluiten, overnemen,
-   afmelden): zonder aal2 laten, zoals nu besloten (12a/12c)? Of ook daar
-   de code vragen?
-
-## Later door te voeren in `dienst-per-sessie.md` en CLAUDE.md
-
-Deze bestanden worden nu niet gewijzigd: een Developer werkt eraan op deze
-branch. Na akkoord en na de merge van dat werk:
-
-**`docs/features/dienst-per-sessie.md`:**
-
-- **Schermflow punt 3:** "een vlag in `sessionStorage`" wordt "een
-  sessiecookie met het `session_id` (zie `beheer-tweede-factor.md` → B)".
-  "actieve sessie in modus `beheer`" wordt "een sessie met
-  `resumable = false` (modus `beheer`, of de bar-sessie van een beheerder
-  zonder tweede factor)".
-- **Randgevallen, "Twee tabbladen in één browser":** aanvullen met "de
-  hervat-bevestiging geldt voor de hele browser".
-- **Randgevallen, PWA op iOS:** "`sessionStorage`" wordt "het sessiecookie".
-- **Veiligheid, "Een PIN-sessie komt niet in beheer":** aanvullen. De
-  PIN-sessie zelf komt niet in beheer (`mode_locked`), en het account ook
-  niet via een wachtwoordwijziging, omdat beheer aal2 eist (ADR 0017).
-- **Veiligheid, "Verloren of gestolen apparaat":** afmelden trekt ook de
-  Auth-sessie in.
-- **Veiligheid, "Wachtwoordpogingen via de namenlijst":** verwijzen naar
-  `login-rate-limit.md`.
-- **Inloggen op de bar, punt 4:** foutcode `pin_needs_mfa`.
-- **RPC's:** de gewijzigde functies uit deze spec, en `aal2_required` en
-  `mfa_not_enrolled` bij de codes van `register_bar_session`.
-- **Zoals gebouwd, "De rate limit van Supabase Auth":** vervangen door een
-  verwijzing naar `login-rate-limit.md`.
-
-**CLAUDE.md:**
-
-- **Auth:** na "Beheeracties (...) vragen een sessie in modus beheer" komt:
-  "met een tweede factor (TOTP, aal2); de factor stel je in de portal in (ADR
-  0017)". "een PIN-login geeft nooit beheer" blijft staan, nu met ADR 0017
-  als afdwinging.
-- **Domein, Dienst & bezetting:** geen wijziging.
-- **ADR-verwijzingen in Auth:** "ADR 0002/0003/0016" wordt
-  "ADR 0002/0003/0016/0017".
-
-**ADR 0016:** status-regel "geamendeerd door ADR 0017 (Beslissing 4 en 7)".
-**ADR 0002, 0003 en 0005:** idem, met een verwijzing naar ADR 0017.
+Bij de bouw vult de Developer "Zoals gebouwd" in deze spec en in
+`login-rate-limit.md` aan, zoals bij `dienst-per-sessie.md`.

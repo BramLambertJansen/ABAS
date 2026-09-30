@@ -8,6 +8,13 @@ De teksten en de vragen 24–27 zijn beantwoord; de waarden staan in die spec
 (lockout na 5 foute PIN's, kostenfactor 12, vertrouwen 30 dagen, inactiviteit
 60 minuten).
 
+**Geamendeerd door [ADR 0017](0017-beheer-eist-tweede-factor-en-eigen-loginlimiet.md)
+(2026-09-30):** Beslissing 4 (het einde van een bar-sessie trekt ook de
+Auth-sessie in `auth.sessions` in) en Beslissing 7/8 (beheer eist daarnaast
+aal2; de PIN werkt niet voor een beheerder zonder tweede factor; een
+bar-sessie van zo'n beheerder wordt niet hervat). De namenlijst geeft geen
+rol meer en de login heeft een eigen limiet vóór Supabase.
+
 **Vervangt:**
 
 - [ADR 0011](0011-device-sessie-alleen-voor-gekoppelde-tablet.md) (device-sessie

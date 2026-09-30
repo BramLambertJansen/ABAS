@@ -1,5 +1,9 @@
 # 0003 — Auth-methode is een per-lid either/or-keuze; modus (bar/beheer) is vast, niet wisselbaar binnen een sessie
 
+**Geamendeerd door [ADR 0017](0017-beheer-eist-tweede-factor-en-eigen-loginlimiet.md)
+(2026-09-30):** Beslissing 2 blijft; de modus
+`beheer` vraagt daarnaast een sessie met aal2 (tweede factor).
+
 **Geamendeerd door [ADR 0016](0016-dienst-hoort-bij-geregistreerde-app-sessies.md)
 (dienst per sessie, 2026-09-29):** Beslissing 2 (losse modi, geen wisselknop)
 blijft, en wordt nu server-side vastgelegd in `bar_sessions.mode` (een sessie

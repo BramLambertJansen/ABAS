@@ -2,7 +2,13 @@
 
 **Status: goedgekeurd door Bram (2026-09-29), inclusief de teksten. Fase 1 is
 gebouwd (2026-09-29, nog niet gemerged), inclusief vraag 24 (ii) (`resume_orphan_shift`,
-migratie `0030`, 2026-09-29); fase 2 niet.** Wat er afwijkt van of
+migratie `0030`, 2026-09-29); fase 2 niet.** **Aangevuld door
+[ADR 0017](../adr/0017-beheer-eist-tweede-factor-en-eigen-loginlimiet.md)
+(2026-09-30, goedgekeurd, nog niet gebouwd):**
+[`beheer-tweede-factor.md`](beheer-tweede-factor.md) (beheer eist aal2,
+Auth-sessie intrekken, hervatten per browser) en
+[`login-rate-limit.md`](login-rate-limit.md) (eigen loginlimiet, namenlijst
+zonder rol). Waar die afwijken van deze spec, gaan zij voor. Wat er afwijkt van of
 bijkomt op deze spec, staat onder "Zoals gebouwd (fase 1)" en gaat voor op de
 rest van dit document. Bram
 past teksten later aan als dat nodig is. Geschreven en bijgewerkt 2026-09-29. Het
@@ -380,8 +386,10 @@ sessie, dus de databasekant loopt via functies die alleen voor `service_role`
 uitvoerbaar zijn (niet voor `anon`/`authenticated`). Zie ADR 0016 →
 Beslissing 6.
 
-1. **Namenlijst.** Geeft `id`, `name` en `role` van alle niet-gearchiveerde
-   leden met rol `bardienst` of `beheerder`, gesorteerd op naam. **Geen**
+1. **Namenlijst.** Geeft `id` en `name` van alle niet-gearchiveerde
+   leden met rol `bardienst` of `beheerder`, gesorteerd op naam. Sinds ADR
+   0017 zonder `role` en zonder rolbadge (`login-rate-limit.md` → Namenlijst
+   zonder rol). **Geen**
    filter op `has_pin` (5: alle bardienstleden). Geen e-mail, geen
    `has_pin`, geen saldo. Dit vervangt `useBarStaff` op het startscherm;
    `BezettingOverlay` blijft `useBarStaff` met de sessie gebruiken.
@@ -415,7 +423,9 @@ Beslissing 6.
      de server-client (ADR 0008-patroon). Daarna registreren zoals bij 3;
    - foutcodes: `pin_not_available` (apparaat niet vertrouwd, geen PIN of
      ingetrokken), `invalid_pin` (met het aantal resterende pogingen),
-     `pin_locked`, `not_allowed`, `no_account`, `unknown`.
+     `pin_locked`, `pin_needs_mfa` (beheerder zonder tweede factor, ADR
+     0017), `rate_limited` (`login-rate-limit.md`), `not_allowed`,
+     `no_account`, `unknown`.
 5. **Wachtwoord vergeten** (`member_id`): zoekt het e-mailadres op en start
    de bestaande herstelflow (`docs/features/wachtwoord-vergeten.md`, ADR
    0008) naar dat adres. Het antwoord is altijd neutraal (ADR 0013), ook als
@@ -424,7 +434,9 @@ Beslissing 6.
 **Een PIN-login geeft geen beheer** (6). Dat volgt vanzelf: de
 PIN-login registreert de sessie in modus `bar`, en een sessie wisselt nooit
 van modus (`mode_locked`, ADR 0003 Beslissing 2). Beheer blijft via `/beheer`
-met e-mail (wachtwoord of magic link, zoals nu).
+met e-mail (wachtwoord of magic link, zoals nu), en eist sinds ADR 0017 ook
+een tweede factor (aal2). Dat laatste is nodig, want een PIN-sessie kan het
+wachtwoord van het account wijzigen (`beheer-tweede-factor.md`).
 
 **`/beheer` blijft zoals het is, op twee punten na:**
 
@@ -665,15 +677,18 @@ De teksten staan in de sectie Teksten. Hieronder de toestanden.
    - PIN geblokkeerd: het wachtwoordveld, met de lockoutmelding.
    - Na een geslaagde login: punt 4 of 5.
 3. **Hervatten na browser dicht en weer open.** Er is een sessie, maar in
-   deze browserstart is die nog niet bevestigd (een vlag in `sessionStorage`
-   ontbreekt). De app leest eerst alleen de toestand (`my_bar_state()`, geen
+   deze browserstart is die nog niet bevestigd (het sessiecookie
+   `abas_bar_bevestigd` met het `session_id` ontbreekt; het geldt voor alle
+   tabbladen, zie `beheer-tweede-factor.md` → B). De app leest eerst alleen de toestand (`my_bar_state()`, geen
    hartslag):
    - actieve sessie in modus `bar`: het hervatscherm, met "Verder" en
      "Uitloggen". Iedereen mag bevestigen (Bram). Pas na "Verder" volgt de
      hartslag;
-   - actieve sessie in modus `beheer`: geen hervatscherm. Hervatten geeft
-     alleen bar-werk (10) en een sessie wisselt niet van modus, dus de app
-     sluit de sessie (`niet_hervat`) en toont de beheerlogin;
+   - actieve sessie die niet te hervatten is (`resumable = false`: modus
+     `beheer`, of de bar-sessie van een beheerder zonder tweede factor):
+     geen hervatscherm. Hervatten geeft alleen bar-werk (10) en een sessie
+     wisselt niet van modus, dus de app sluit de sessie (`niet_hervat`) en
+     toont de login;
    - inactief of beëindigd: de melding (punt 6), daarna het startscherm.
 4. **Bar-sessie, geen eigen dienst.** Bovenaan "Ingelogd als {naam}" en
    "Uitloggen".
@@ -772,14 +787,12 @@ apparaat (12a).
 
 - **De URL is publiek.** Zonder sessie toont de bar alleen de namenlijst en
   het inlogscherm. Alle bar-data en bar-RPC's vragen een persoonlijke login
-  van een bardienst of beheerder. De namenlijst (naam en rol) is openbaar;
-  Bram vindt dat acceptabel (5).
+  van een bardienst of beheerder. De namenlijst (alleen namen, sinds ADR
+  0017 zonder rol) is openbaar; Bram vindt dat acceptabel (5).
 - **Wachtwoordpogingen via de namenlijst.** De server doet de
   wachtwoordlogin, dus Supabase ziet het IP-adres van de server, niet dat van
-  de gebruiker. De Developer moet nagaan hoe de rate limit van Supabase Auth
-  dan werkt en zorgen dat die per gebruiker blijft gelden, niet voor
-  iedereen samen. Of er daarnaast een eigen limiet op wachtwoordpogingen
-  komt: vraag 25.
+  de gebruiker. Daarom een eigen limiet per IP en per lid vóór Supabase:
+  [`login-rate-limit.md`](login-rate-limit.md) (ADR 0017).
 - **De PIN-login.** Vier cijfers blijven zwak. Drie lagen samen maken het
   verdedigbaar:
   - alleen op een vertrouwd apparaat (3). Buiten zo'n apparaat is er geen
@@ -791,7 +804,10 @@ apparaat (12a).
   Wie het cookie kopieert, heeft nog steeds de PIN nodig.
 - **Een PIN-sessie komt niet in beheer.** De sessie wordt bij aanmaken als
   `bar` geregistreerd, en `register_bar_session('beheer')` geeft dan
-  `mode_locked`. Beheer-RPC's eisen modus `beheer` (11).
+  `mode_locked`. Beheer-RPC's eisen modus `beheer` (11). Het **account**
+  komt ook niet in beheer via een wachtwoordwijziging vanuit een PIN-sessie:
+  beheer eist een tweede factor (aal2), en met een factor weigert Supabase
+  Auth een wachtwoordwijziging vanuit een aal1-sessie (ADR 0017).
 - **De anon-key is publiek.** Elke nieuwe functie trekt `EXECUTE` in voor
   `PUBLIC`/`anon`. De guards, `verify_bar_pin`,
   `register_bar_session_server` en `close_inactive_bar_sessions` krijgen geen
@@ -819,7 +835,8 @@ apparaat (12a).
   neutraal (ADR 0013).
 - **Verloren of gestolen apparaat.** Het Supabase-sessiecookie is niet
   `HttpOnly` (restrisico, nu per persoon). `admin_end_bar_session` laat de
-  RPC's meteen weigeren. Leesrechten via RLS blijven voor dat account tot
+  RPC's meteen weigeren en trekt ook de Auth-sessie in (ADR 0017), dus een
+  gekopieerd token kan niet meer verversen of het account wijzigen. Leesrechten via RLS blijven voor dat account tot
   het access token verloopt: de status quo voor elke persoonlijke
   bardienst-sessie (ADR 0012). Of afmelden ook de PIN op dat apparaat
   intrekt: vraag 27.
@@ -861,7 +878,7 @@ vervallen van de device-route gaan daarom samen (#117).
 - **Lid**: niets hiervan. Een lid staat niet in de namenlijst en kan geen
   bar-sessie krijgen. `bar_sessions`, `shift_sessions`, `admin_notifications`
   en de apparaat- en lockouttabellen zijn niet leesbaar.
-- **Iedereen zonder sessie**: de namenlijst (naam en rol) en het
+- **Iedereen zonder sessie**: de namenlijst (alleen namen) en het
   inlogscherm.
 - **Bardienst**: de eigen sessie. Welke dienst er loopt, met starter,
   activiteit, en per koppeling de naam en laatste activiteit. Geen ingrepen
@@ -873,7 +890,9 @@ vervallen van de device-route gaan daarom samen (#117).
 ## Randgevallen
 
 - **Twee tabbladen in één browser**: één sessie, één apparaat. Ze werken
-  samen in dezelfde dienst, zoals nu.
+  samen in dezelfde dienst, zoals nu. De hervat-bevestiging geldt voor de
+  hele browser (sessiecookie), dus een nieuw tabblad beëindigt ook een
+  beheersessie niet.
 - **Dezelfde persoon op twee apparaten**: twee sessies. In (a) kan de tweede
   niet in de dienst werken, en de starter kan de dienst niet zelf verhuizen
   (12d).
@@ -881,8 +900,8 @@ vervallen van de device-route gaan daarom samen (#117).
   en het startscherm.
 - **Supabase-sessie verlopen** (refresh token ongeldig): het startscherm. De
   `bar_sessions`-rij blijft actief tot de cron-job hem inactief maakt.
-- **Een geïnstalleerde PWA op iOS/iPadOS** kan `sessionStorage` vaker wissen
-  dan "browser dicht". Het hervatscherm verschijnt dan vaker. Ongevaarlijk,
+- **Een geïnstalleerde PWA op iOS/iPadOS** kan het sessiecookie anders
+  bewaren of wissen dan "browser dicht". Het hervatscherm verschijnt dan vaker. Ongevaarlijk,
   maar testen op het echte apparaat.
 - **Privévenster of gewiste cookies**: geen apparaatcookie, dus alleen
   wachtwoord. Na een wachtwoordlogin is het apparaat weer vertrouwd.
@@ -1334,7 +1353,8 @@ anders of extra is geworden, en waarom.
   voor "jouw eigen sessie is beëindigd" en krijgt op de client een eigen,
   centrale afhandeling.
 - **`register_bar_session` codes**: `invalid_mode`, `no_bar_session`,
-  `no_bar_role`, `no_admin_role`, `session_ended`, `mode_locked`.
+  `no_bar_role`, `no_admin_role`, `session_ended`, `mode_locked`; na ADR 0017
+  ook `mfa_not_enrolled` en `aal2_required` (`beheer-tweede-factor.md`).
 - **`my_bar_state()`** geeft één JSON-object (typen in `src/lib/barState.ts`): de
   sessie met `status` (`active`/`inactive`/`ended`/`no_role`), de eigen dienst,
   `last_left` (overgenomen of afgesloten door een beheerder), de dienst elders
@@ -1358,8 +1378,8 @@ anders of extra is geworden, en waarom.
   te controleren vanuit deze omgeving. De server logt in namens de gebruiker, dus
   Supabase ziet het IP-adres van de server. Er is bewust geen `X-Forwarded-For`
   doorgegeven: als Supabase dat vertrouwt, kan iedereen zijn IP verzinnen en is
-  de limiet weg. **Te controleren op het gehoste project** dat de limiet niet voor
-  iedereen samen geldt en de bar niet blokkeert.
+  de limiet weg. **Opgevolgd door ADR 0017:** een eigen limiet per IP en per lid
+  (`login-rate-limit.md`); `Sb-Forwarded-For` pas als Supabase het bevestigt.
 - **`BarSessieProvider`** (`src/features/bar-sessie/`) is de centrale afhandeling
   van de zes sessiecodes. Een hook die een sessiecode ontvangt, roept
   `notifySessionCode` aan; `reportClientError` doet dat ook voor hooks die de
@@ -1447,7 +1467,7 @@ anders of extra is geworden, en waarom.
 5. Device-account intrekken en verwijderen, daarna `SUPABASE_DEVICE_EMAIL`,
    `SUPABASE_DEVICE_PASSWORD` en `BAR_DEVICE_SECRET` uit Vercel en CI.
 6. Op het echte tablet testen (vooral iPadOS en de PWA): hervatscherm,
-   `sessionStorage`, het apparaatcookie en de PIN-login.
+   het sessiecookie van het hervatten, het apparaatcookie en de PIN-login.
 
 ## Open vragen voor Bram (historie)
 

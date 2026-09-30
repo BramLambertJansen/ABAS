@@ -1,14 +1,22 @@
 # Eigen limiet op de server-side bar-login
 
-Status: **concept.** De keuzes zijn gemaakt door Bram (2026-09-30): een eigen
-limiet met de voorgestelde waarden, CAPTCHA pas als het nodig blijkt, en
-`Sb-Forwarded-For` later als Supabase het bevestigt. Er zijn nog open vragen
-(onderaan) en de teksten wachten op goedkeuring. Hoort bij
+Status: **goedgekeurd door Bram (2026-09-30)**, inclusief waarden en teksten.
+Nog niet gebouwd. Hoort bij
 [ADR 0017](../adr/0017-beheer-eist-tweede-factor-en-eigen-loginlimiet.md) →
 Beslissing 3. Vult [`dienst-per-sessie.md`](dienst-per-sessie.md) →
-Veiligheid aan: "de rate limit (...) per gebruiker blijft gelden" en vraag
-25. Dat bestand wordt nu niet gewijzigd; zie "Later door te voeren" in
-[`beheer-tweede-factor.md`](beheer-tweede-factor.md).
+Veiligheid aan ("de rate limit (...) per gebruiker blijft gelden", vraag 25).
+
+## Besloten (Bram, 2026-09-30)
+
+1. **Een eigen limiet vóór Supabase.** CAPTCHA komt pas als dat nodig blijkt.
+   `Sb-Forwarded-For` komt later, als Supabase het bevestigt.
+2. **Wachtwoord en PIN tellen alleen foute pogingen.** Per IP: 5 foute per 10
+   minuten, voor zowel het wachtwoord als de PIN. De overige waarden blijven
+   zoals voorgesteld (tabel hieronder).
+3. **De teksten zijn goedgekeurd**, ook de eigen tekst bij "vergeten" met
+   limiet.
+4. **De rolbadge gaat van de openbare namenlijst af** (zie Namenlijst zonder
+   rol).
 
 ## Aanleiding (geverifieerd in de code)
 
@@ -87,7 +95,8 @@ voor `PUBLIC`, `anon` en `authenticated` (`0018`,
 
 | Bucket | Sleutel | Telt | Weigert als |
 |---|---|---|---|
-| `wachtwoord_ip` | IP | foute wachtwoordpogingen (zie open vraag 1) | ≥ 10 in de laatste 15 minuten |
+| `wachtwoord_ip` | IP | foute wachtwoordpogingen | ≥ 5 in de laatste 10 minuten |
+| `pin_ip` | IP | foute PIN-pogingen (`invalid_pin`) | ≥ 5 in de laatste 10 minuten |
 | `wachtwoord_lid` | `member_id` | foute wachtwoordpogingen | ≥ 10 in de laatste 15 minuten **én** de laatste minder dan 1 minuut geleden (daarna één poging per minuut) |
 | `vergeten_lid` | `member_id` | aanvragen | ≥ 1 in de laatste 15 minuten |
 | `vergeten_ip` | IP | aanvragen | ≥ 5 in het laatste uur |
@@ -123,24 +132,33 @@ Alle databasetoegang blijft in `src/lib/` (`check:policy`).
 ### `POST /inloggen/vergeten`
 
 1. Controleer `vergeten_lid`, `vergeten_ip` en `vergeten_totaal`. Een van de
-   drie vol: geen mail, en het antwoord `{ ok: true, limited: true }` (zie
-   Teksten en open vraag 2).
+   drie vol: geen mail, en het antwoord `{ ok: true, limited: true }`. Het
+   scherm toont dan de eigen tekst uit Teksten.
 2. Anders registreer in alle drie en verstuur zoals nu. Het antwoord blijft
    neutraal (ADR 0013), ook voor een lid zonder account: de teller gaat over
    aanvragen, niet over accounts.
 
 ### `POST /inloggen/pin`
 
-Geen eigen bucket. De lockout per lid (5 foute PIN's) en "alleen op een
-vertrouwd apparaat" blijven de rem (vraag 25). Een PIN-bucket per IP is
-genoemd maar niet besloten; zie open vraag 3.
+1. Zoals nu: eerst het apparaatcookie en het formaat van de PIN.
+2. Controleer `pin_ip`. Is die vol, dan `{ ok: false, code: 'rate_limited' }`,
+   zonder `verify_bar_pin`. Er is dus geen poging op de lockout per lid.
+3. Zoals nu: `verify_bar_pin`.
+4. Bij `result_code = 'invalid_pin'` wordt geregistreerd in `pin_ip`.
+   `pin_locked`, `pin_not_available`, `pin_needs_mfa` en een geslaagde login
+   tellen niet.
+
+De lockout per lid (5 foute PIN's) en "alleen op een vertrouwd apparaat"
+blijven bestaan (vraag 25). `pin_ip` remt daarbovenop iemand die op één
+vertrouwd apparaat de PIN's van meerdere leden probeert.
 
 ## Randgevallen
 
 - **Een hele bar achter één IP (wifi van de vereniging).** `wachtwoord_ip`
-  telt alleen foute pogingen. Tien tikfouten in een kwartier blokkeren het
-  wachtwoord op de hele bar voor de rest van dat kwartier. De PIN-login werkt
-  dan nog wel.
+  telt alleen foute pogingen. Vijf tikfouten in tien minuten blokkeren het
+  wachtwoord op de hele bar voor de rest van die tien minuten. Voor de PIN
+  (`pin_ip`) geldt hetzelfde, apart geteld. Het ene blokkeert het andere
+  niet.
 - **Lokaal en in CI:** alle verzoeken hebben de sleutel `'onbekend'`. Een
   e2e-test die foute wachtwoorden probeert, kan de rest van de run raken. De
   Developer maakt de tabel leeg in de setup van die test.
@@ -159,8 +177,11 @@ genoemd maar niet besloten; zie open vraag 3.
     (negatieve test, `check:rls`).
 - **Unit:** `clientIp` (header-volgorde, lijst in `x-forwarded-for`,
   ongeldige waarde).
-- **e2e (gemockt of met een lege tabel):** na 10 foute wachtwoorden de tekst
-  bij `rate_limited`.
+- **e2e (gemockt of met een lege tabel):**
+  - na 5 foute wachtwoorden de tekst bij `rate_limited`;
+  - na 5 foute PIN's (verdeeld over twee leden, zodat de lockout per lid niet
+    eerst grijpt) dezelfde tekst;
+  - de namenlijst toont geen rol.
 
 ## Expliciet buiten scope
 
@@ -170,31 +191,39 @@ genoemd maar niet besloten; zie open vraag 3.
   op de server-client, en blijft deze limiet staan.
 - **Een limiet op de portal- en `/beheer`-login:** die lopen vanuit de
   browser, dus de limiet per IP van Supabase grijpt daar al.
-- **Een PIN-bucket per IP:** open vraag 3.
 
-## Teksten (voorstel, ter goedkeuring)
+## Teksten (goedgekeurd door Bram, 2026-09-30)
 
-| Plek | Nu | Voorstel |
+| Plek | Was | Wordt |
 |---|---|---|
-| Inlogscherm, `rate_limited` (wachtwoord) | te veel pogingen — wacht even en probeer het opnieuw | te veel foute pogingen — probeer het over een paar minuten opnieuw |
+| Inlogscherm, `rate_limited` (wachtwoord en PIN, `INLOGGEN.foutRateLimit`) | te veel pogingen — wacht even en probeer het opnieuw | te veel foute pogingen — probeer het over een paar minuten opnieuw |
 | Wachtwoord vergeten, `limited` | (bestaat niet) | Er is net al een herstellink aangevraagd. Kijk in je mail, of probeer het over een kwartier opnieuw. |
 
 De tekst bij "vergeten" zegt niets over het bestaan van een account. Hij
 verschijnt ook voor een lid zonder account, omdat de teller over aanvragen
 gaat.
 
-## Open vragen voor Bram
+## Namenlijst zonder rol (besloten, 4)
 
-1. **"10 per IP per 15 minuten":** ik lees dat als 10 **foute**
-   wachtwoordpogingen, zodat een wisseling van dienst met veel geslaagde
-   logins de bar niet blokkeert. Klopt dat, of bedoel je alle pogingen?
-2. **Tekst bij `rate_limited` en bij "vergeten" met limiet:** goedkeuren of
-   aanpassen (tabel hierboven). En bij "vergeten": de nieuwe tekst tonen, of
-   altijd de gewone bevestiging ("Als er een account bij je naam hoort, is de
-   mail onderweg.") ook als er niets is verstuurd?
-3. **Een PIN-bucket per IP**, bovenop de lockout per lid: wel of niet, en zo
-   ja welke waarde?
-4. **Rolbadge op de openbare namenlijst:** `GET /inloggen/namen` geeft de rol
-   mee, en `StaffPicker` toont die. Daarmee zijn beheerders als doelwit te
-   herkennen. Blijft de badge (jouw eerdere keuze, vraag 5), of gaat de rol
-   van het startscherm af?
+De openbare namenlijst verklapt niet meer wie beheerder is.
+
+- **`leesNamenlijst`** (`src/lib/barLogin.ts`) selecteert en geeft alleen `id`
+  en `name`. Het filter op rol (`bardienst`, `beheerder`) en niet-gearchiveerd
+  blijft server-side.
+- **`BarNaam`** (`src/lib/barLoginTypes.ts`) wordt `{ id, name }`.
+- **`GET /inloggen/namen`** geeft `{ ok, namen: [{ id, name }] }`.
+- **`StaffPicker`** (`src/features/dienst-starten/StaffPicker.tsx`, nu alleen
+  nog gebruikt door `BarInloggen`):
+  - neemt `{ id, name }[]` in plaats van `BarStaffMember[]`;
+  - toont geen `RoleBadge` meer;
+  - krijgt als `aria-label` alleen de naam.
+- **`RoleBadge` en `ROLE_LABELS`** blijven bestaan zolang ze elders gebruikt
+  worden. Zijn ze daarna ongebruikt, dan verwijdert de Developer ze.
+- **De rest van de login heeft de rol niet nodig.** De inlogopties, de PIN
+  (`pin_needs_mfa`) en de wachtwoordlogin kijken server-side naar de rol.
+- **Gevolg:** `bar_login_options` geeft `pin_needs_mfa` alleen op een
+  vertrouwd apparaat (zonder apparaatcookie is het antwoord altijd "alleen
+  wachtwoord"). De rol lekt dus alleen daar, aan wie op dat apparaat al is
+  ingelogd geweest. Acceptabel.
+- **Tests:** e2e en unit die op de rolbadge in de namenlijst leunen, gaan mee.
+  Een test controleert dat de API geen `role` teruggeeft.

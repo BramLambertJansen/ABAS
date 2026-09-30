@@ -1,7 +1,9 @@
 # 0002 — Beheeracties gebeuren in een eigen e-mail-sessie, niet via de gedeelde tablet-sessie
 
 Status: **geïmplementeerd, geamendeerd door
-[ADR 0016](0016-dienst-hoort-bij-geregistreerde-app-sessies.md)** (zie het
+[ADR 0016](0016-dienst-hoort-bij-geregistreerde-app-sessies.md) en
+[ADR 0017](0017-beheer-eist-tweede-factor-en-eigen-loginlimiet.md)** (ADR 0017: een
+beheersessie vraagt daarnaast een tweede factor, aal2) (zie het
 amendement hieronder) (issue #14, PR #45, gemerged 2026-08-27 —
 `create_product`/`update_product_price`/`set_product_archived` en
 `/beheer` op `main`, zie `docs/features/assortimentbeheer.md`). Oorspronkelijk
