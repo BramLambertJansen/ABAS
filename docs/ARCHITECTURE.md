@@ -323,7 +323,11 @@ scope).
   elke bar-RPC met een `p_shift_id` eist een actieve, niet-inactieve sessie in
   modus `bar` mét een actieve koppeling aan die dienst (`require_shift_session`,
   `0028`), elke beheer-RPC een sessie in modus `beheer` met aal2
-  (`require_beheer_session`, ADR 0017). Het einde van een sessie (uitloggen,
+  (`require_beheer_session`, ADR 0017). Uitzondering, bewust: de
+  beheerdersingrepen `admin_end_shift`, `admin_take_over_shift` en
+  `admin_end_bar_session` controleren alleen de rol beheerder en werken ook
+  vanuit een bar-sessie zonder aal2 (`require_session(['bar','beheer'])` of
+  `require_bar_session()`; ADR 0017, besloten 8 in `beheer-tweede-factor.md`). Het einde van een sessie (uitloggen,
   60 minuten inactiviteit, afmelden door een beheerder, rolwijziging,
   promotie naar beheerder) is een database-feit: de RPC's weigeren meteen,
   ook als het access token nog geldig is, en de bijbehorende rij in
@@ -909,9 +913,11 @@ is niet gebouwd).
   geen policies, alles ingetrokken; alleen een sha256 van de sleutel, geen
   ruwe IP's), `login_throttle_reserve`/`login_throttle_release` (alleen
   `service_role`; atomair met een advisory lock per bucket en sleutel) en
-  `purge_login_throttle` (pg_cron, elk uur, rijen ouder dan 24 uur). Buckets
-  per IP en per lid voor wachtwoord, PIN en "vergeten"; de waarden staan in
-  `login-rate-limit.md`. Het IP komt uit `x-real-ip`/`x-forwarded-for`
+  `purge_login_throttle` (pg_cron, elk uur, rijen ouder dan 24 uur). Buckets:
+  wachtwoord per IP en per lid (`wachtwoord_ip`, `wachtwoord_lid`), PIN alleen
+  per IP (`pin_ip`; per lid geldt de lockout na 5 foute PIN's in
+  `pin_failures`, geen tijdsbucket), en "vergeten" per lid, per IP en in
+  totaal; de waarden staan in `login-rate-limit.md`. Het IP komt uit `x-real-ip`/`x-forwarded-for`
   (`src/lib/clientIp.ts`).
 - *Server* (`src/lib/barLogin.ts`, Route Handlers onder
   `src/app/(bar)/inloggen/`: `namen`, `opties`, `wachtwoord`, `pin`,
