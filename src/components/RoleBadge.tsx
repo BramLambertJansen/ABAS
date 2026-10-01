@@ -1,4 +1,4 @@
-import type { BarStaffMember } from "@/hooks/queries/useBarStaff";
+import type { ShiftCandidate } from "@/hooks/queries/useShiftCandidates";
 import { ROLE_LABELS } from "@/lib/staff";
 
 /**
@@ -20,7 +20,7 @@ export function RoleBadge({
   role,
   tone = "dark",
 }: {
-  role: BarStaffMember["role"];
+  role: ShiftCandidate["role"];
   tone?: "dark" | "light";
 }) {
   return (

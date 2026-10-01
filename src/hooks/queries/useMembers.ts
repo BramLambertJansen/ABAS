@@ -18,7 +18,7 @@ type State =
 
 /** Niet-gearchiveerde `members`, alfabetisch op naam — voor de ledenzoeker
  *  in het mandje-paneel (docs/features/verkoop.md → §2). Ongefilterd op
- *  rol, in tegenstelling tot useBarStaff(): elk niet-gearchiveerd lid kan
+ *  rol, in tegenstelling tot useShiftCandidates(): elk niet-gearchiveerd lid kan
  *  afrekenen, ook een bardienst/beheerder die zelf iets koopt. `refetch()`
  *  wordt na een geslaagde `place_order` aangeroepen zodat een volgende
  *  zoekactie het bijgewerkte saldo toont, en na `member_not_found`/
