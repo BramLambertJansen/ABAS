@@ -31,7 +31,7 @@ type State =
  *  list, visually muted, not filtered out (see
  *  docs/features/assortimentbeheer.md → Schermflow stap 1, otherwise
  *  there'd be no way to find it again to un-archive). Sorted server-side,
- *  category then name, same `.order()` style as useBarStaff(). */
+ *  category then name, same `.order()` style as useShiftCandidates(). */
 export function useAlleProducten(): State & { refetch: () => void } {
   const [state, setState] = useState<State>({ status: "loading" });
   const [tick, setTick] = useState(0);

@@ -1035,6 +1035,36 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
     }
   });
 
+  test("T02: echte bezetting biedt medewerkers zonder PIN aan en bewaart de servercrew", async ({ page }) => {
+    await ensureNoOpenShift(page);
+    await page.getByRole("combobox", { name: "Activiteit" }).click();
+    await page.getByRole("option", { name: "Training" }).click();
+    await page.getByRole("tab", { name: "Dienst" }).click();
+    await page.getByRole("button", { name: "Bezetting wijzigen", exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: "Bezetting van deze dienst" });
+    // De lokale seed: Tom met PIN, Sanne/Femke zonder PIN, Anna gewoon lid.
+    const sanne = dialog.getByRole("button", { name: /^Sanne Bakker, bardienst/ });
+    await expect(sanne).toHaveAttribute("aria-pressed", "false");
+    await expect(dialog.getByRole("button", { name: /^Tom Willems, bardienst/ })).toBeVisible();
+    await expect(dialog.getByRole("button", { name: /^Femke Bos, beheerder/ })).toHaveAttribute("aria-pressed", "true");
+    await expect(dialog.getByRole("button", { name: /^Anna de Vries/ })).toHaveCount(0);
+    const add = page.waitForResponse(/\/rpc\/add_shift_member/);
+    await sanne.click();
+    const added = await add;
+    expect(added.ok()).toBe(true);
+    await expect(sanne).toHaveAttribute("aria-pressed", "true");
+    const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+    expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
+    const remove = page.waitForResponse(/\/rpc\/remove_shift_member/);
+    await sanne.click();
+    const removed = await remove;
+    expect(removed.ok()).toBe(true);
+    expect(removed.request().postDataJSON()).toEqual(added.request().postDataJSON());
+    await expect(sanne).toHaveAttribute("aria-pressed", "false");
+    await dialog.getByRole("button", { name: "Klaar", exact: true }).click();
+    await expect(page.getByRole("button", { name: /^Bezetting:/ })).toHaveAccessibleName("Bezetting: Femke Bos — tik om te wijzigen");
+  });
+
   /**
    * docs/features/dienst-per-sessie.md → Schermflow punt 2: het inlogscherm
    * na een tik op een naam. Op een apparaat zonder apparaatcookie (elke test

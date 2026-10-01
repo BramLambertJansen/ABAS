@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Overlay } from "@/components/Overlay";
-import { useBarStaff, type BarStaffMember } from "@/hooks/queries/useBarStaff";
+import { useShiftCandidates } from "@/hooks/queries/useShiftCandidates";
 import type { ShiftMember } from "@/hooks/queries/useShiftMembers";
 import {
   useAddShiftMember,
@@ -16,6 +16,7 @@ import { ROLE_LABELS, NO_BAR_STAFF_MESSAGE } from "@/lib/staff";
 import { SESSION_CODE_INLINE_MESSAGE, isSessionErrorCode } from "@/lib/barSessie";
 import { InitialsAvatar } from "@/components/InitialsAvatar";
 import { RoleBadge } from "@/components/RoleBadge";
+import { TekstVeld } from "@/components/TekstVeld";
 
 function addErrorMessage(code: AddShiftMemberErrorCode): string {
   // De zes sessiecodes (dienst-per-sessie) krijgen één centrale melding.
@@ -49,26 +50,42 @@ function removeErrorMessage(code: RemoveShiftMemberErrorCode): string {
 export function BezettingOverlay({
   shiftId,
   members,
+  membersStatus,
   onMembersChanged,
   onClose,
 }: {
   shiftId: string;
   members: ShiftMember[];
+  membersStatus: "loading" | "error" | "ready";
   onMembersChanged: () => void;
   onClose: () => void;
 }) {
-  const barStaff = useBarStaff();
+  const candidates = useShiftCandidates();
   const addMutation = useAddShiftMember();
   const removeMutation = useRemoveShiftMember();
 
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [lastAction, setLastAction] = useState<"add" | "remove" | null>(null);
+  const [search, setSearch] = useState("");
+  const unavailableId = useId();
 
   const memberIds = new Set(members.map((member) => member.id));
+  const available = candidates.status === "ready" ? candidates.candidates : [];
+  const candidateById = new Map(available.map((member) => [member.id, member]));
+  // De echte crew is de bron voor verwijderen, ook als een lid niet meer
+  // voorkomt in de kandidatenquery of die query tijdelijk niet bereikbaar is.
+  const rows = [
+    ...members,
+    ...available.filter((member) => !memberIds.has(member.id)),
+  ].sort((a, b) => a.name.localeCompare(b.name, "nl"));
+  const query = search.trim().toLocaleLowerCase("nl");
+  const visibleRows = rows.filter((member) =>
+    member.name.toLocaleLowerCase("nl").includes(query)
+  );
 
-  async function toggle(member: BarStaffMember) {
-    if (pendingId) return; // one toggle at a time — see "geen scope" op
-    // race-condition-bescherming in docs/features/bezetting-beheren.md.
+  async function toggle(member: ShiftMember) {
+    // Wacht op de mutatie en op de actuele crew vóór een volgende toggle.
+    if (pendingId || membersStatus !== "ready") return;
     setPendingId(member.id);
 
     const inBezetting = memberIds.has(member.id);
@@ -81,6 +98,8 @@ export function BezettingOverlay({
     setPendingId(null);
     if (ok) {
       onMembersChanged();
+    } else if (!inBezetting) {
+      candidates.refetch();
     }
     // On failure the row simply stays in its old state — `members` (and
     // therefore memberIds) is only updated by onMembersChanged(), which we
@@ -104,36 +123,67 @@ export function BezettingOverlay({
         {errorMessage ?? ""}
       </p>
 
-      {barStaff.status === "loading" && (
+      {membersStatus === "loading" && (
+        <p className="text-sm font-semibold text-muted" role="status">Bezetting laden…</p>
+      )}
+      {membersStatus === "error" && (
+        <div className="flex flex-col gap-2">
+          <p className="text-sm font-semibold text-danger" role="alert">Kan de bezetting niet laden.</p>
+          <button type="button" onClick={onMembersChanged} className="min-h-[44px] text-sm font-bold text-ink">
+            Bezetting opnieuw laden
+          </button>
+        </div>
+      )}
+
+      {candidates.status === "loading" && (
         <p className="text-sm font-semibold text-muted" role="status">
           Bardienst-lijst laden…
         </p>
       )}
 
-      {barStaff.status === "error" && (
-        <p className="text-sm font-semibold text-danger" role="alert">
-          {barStaff.message}
-        </p>
+      {candidates.status === "error" && (
+        <div className="flex flex-col gap-2">
+          <p className="text-sm font-semibold text-danger" role="alert">{candidates.message}</p>
+          <button type="button" onClick={candidates.refetch} className="min-h-[44px] text-sm font-bold text-ink">
+            Bardienst-lijst opnieuw laden
+          </button>
+        </div>
       )}
 
-      {barStaff.status === "ready" && barStaff.staff.length === 0 && (
+      {candidates.status === "ready" && rows.length === 0 && membersStatus === "ready" && (
         <p className="text-sm font-semibold text-muted">
           {NO_BAR_STAFF_MESSAGE}
         </p>
       )}
 
-      {barStaff.status === "ready" && barStaff.staff.length > 0 && (
+      {rows.length > 0 && (
+        <TekstVeld
+          label="Zoek medewerker"
+          tone="light"
+          type="search"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+        />
+      )}
+      {rows.length > 0 && visibleRows.length === 0 && (
+        <p className="text-sm font-semibold text-muted" role="status">Geen medewerkers gevonden.</p>
+      )}
+
+      {visibleRows.length > 0 && (
         <ul className="flex flex-col gap-2">
-          {barStaff.staff.map((member) => {
+          {visibleRows.map((member) => {
             const inBezetting = memberIds.has(member.id);
             const isPending = pendingId === member.id;
+            const candidate = candidateById.get(member.id);
+            const unavailable = inBezetting && candidates.status === "ready" && !candidate;
             return (
               <li key={member.id}>
                 <button
                   type="button"
-                  disabled={pendingId !== null}
+                  disabled={pendingId !== null || membersStatus !== "ready"}
                   aria-pressed={inBezetting}
-                  aria-label={`${member.name}, ${ROLE_LABELS[member.role]}${
+                  aria-describedby={unavailable ? `${unavailableId}-${member.id}` : undefined}
+                  aria-label={`${member.name}${candidate ? `, ${ROLE_LABELS[candidate.role]}` : ""}${
                     inBezetting ? ", in de bezetting — tik om af te melden" : ", tik om toe te voegen"
                   }`}
                   onClick={() => toggle(member)}
@@ -148,7 +198,12 @@ export function BezettingOverlay({
                     <span className="truncate text-sm font-bold text-ink">
                       {member.name}
                     </span>
-                    <RoleBadge role={member.role} tone="light" />
+                    {candidate && <RoleBadge role={candidate.role} tone="light" />}
+                    {unavailable && (
+                      <span id={`${unavailableId}-${member.id}`} className="text-xs font-semibold text-muted-strong">
+                        Niet meer beschikbaar om toe te voegen. Afmelden kan wel.
+                      </span>
+                    )}
                   </span>
                   <span
                     aria-hidden="true"

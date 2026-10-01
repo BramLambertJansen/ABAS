@@ -23,7 +23,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(14);
+select plan(32);
 
 -- ── Sessie-helper (dienst per sessie, ADR 0016) ────────────────────────────
 -- De bar-RPC's eisen een geregistreerde bar-sessie met een actieve koppeling
@@ -224,6 +224,66 @@ select is(
   0,
   'the lid member got no roster row'
 );
+
+-- T02: een PIN is geen voorwaarde voor bezetting of geldattributie.
+-- Eigen fixtures binnen de rollback; geen gedeelde seedleden wijzigen.
+insert into members (id, name, role, balance_cents) values
+  ('00000000-0000-0000-0000-000000000064', 'Bardienst zonder PIN', 'bardienst', 0),
+  ('00000000-0000-0000-0000-000000000065', 'Beheerder zonder PIN', 'beheerder', 0);
+insert into products (id, name, category, price_cents) values
+  ('00000000-0000-0000-0000-000000000066', 'T02 product', 'Test', 100);
+update members set balance_cents = 1000 where id = '00000000-0000-0000-0000-000000000062';
+
+select lives_ok($$ select add_shift_member('00000000-0000-0000-0000-000000000070', '00000000-0000-0000-0000-000000000064') $$,
+  'T02: bardienst zonder PIN mag in de bezetting');
+select lives_ok($$ select add_shift_member('00000000-0000-0000-0000-000000000070', '00000000-0000-0000-0000-000000000065') $$,
+  'T02: beheerder zonder PIN mag in de bezetting');
+select lives_ok($$ select place_order(
+  '00000000-0000-0000-0000-000000000070', '00000000-0000-0000-0000-000000000062',
+  '[{"product_id":"00000000-0000-0000-0000-000000000066","qty":1}]', '00000000-0000-0000-0000-000000000064') $$,
+  'T02: bardienst zonder PIN kan als served_by afrekenen');
+select is((select served_by from orders where shift_id = '00000000-0000-0000-0000-000000000070'),
+  '00000000-0000-0000-0000-000000000064'::uuid, 'T02: bestelling schrijft de gekozen crew op');
+select lives_ok($$ select top_up(
+  '00000000-0000-0000-0000-000000000070', '00000000-0000-0000-0000-000000000062',
+  500, 'cash', '00000000-0000-0000-0000-000000000065') $$,
+  'T02: beheerder zonder PIN kan als served_by opwaarderen');
+select is((select served_by from top_ups where shift_id = '00000000-0000-0000-0000-000000000070'),
+  '00000000-0000-0000-0000-000000000065'::uuid, 'T02: opwaardering schrijft de gekozen crew op');
+
+select lives_ok($$ select add_shift_member('00000000-0000-0000-0000-000000000070', '00000000-0000-0000-0000-000000000061') $$,
+  'T02: medewerker met PIN wordt toegevoegd');
+update members set pin_hash = null where id = '00000000-0000-0000-0000-000000000061';
+select ok((select not has_pin from members where id = '00000000-0000-0000-0000-000000000061')
+  and is_shift_member('00000000-0000-0000-0000-000000000070', '00000000-0000-0000-0000-000000000061'),
+  'T02: PIN uitzetten verwijdert bestaande crew niet');
+select lives_ok($$ select place_order(
+  '00000000-0000-0000-0000-000000000070', '00000000-0000-0000-0000-000000000062',
+  '[{"product_id":"00000000-0000-0000-0000-000000000066","qty":1}]', '00000000-0000-0000-0000-000000000061') $$,
+  'T02: na PIN uitzetten blijft served_by bruikbaar');
+select lives_ok($$ select remove_shift_member('00000000-0000-0000-0000-000000000070', '00000000-0000-0000-0000-000000000061') $$,
+  'T02: medewerker zonder PIN kan worden verwijderd');
+select lives_ok($$ select add_shift_member('00000000-0000-0000-0000-000000000070', '00000000-0000-0000-0000-000000000061') $$,
+  'T02: medewerker zonder PIN kan opnieuw worden toegevoegd');
+
+update members set archived = true where id = '00000000-0000-0000-0000-000000000064';
+select ok(is_shift_member('00000000-0000-0000-0000-000000000070', '00000000-0000-0000-0000-000000000064'),
+  'T02: archivering wist bestaande crew niet');
+select lives_ok($$ select remove_shift_member('00000000-0000-0000-0000-000000000070', '00000000-0000-0000-0000-000000000064') $$,
+  'T02: gearchiveerde crew kan worden verwijderd');
+select throws_ok($$ select add_shift_member('00000000-0000-0000-0000-000000000070', '00000000-0000-0000-0000-000000000064') $$,
+  'P0001', 'member_not_eligible', 'T02: gearchiveerde crew kan niet opnieuw worden toegevoegd');
+update members set role = 'lid' where id = '00000000-0000-0000-0000-000000000061';
+select ok(is_shift_member('00000000-0000-0000-0000-000000000070', '00000000-0000-0000-0000-000000000061'),
+  'T02: rolwijziging wist bestaande crew niet');
+select lives_ok($$ select remove_shift_member('00000000-0000-0000-0000-000000000070', '00000000-0000-0000-0000-000000000061') $$,
+  'T02: crew met gewijzigde rol kan worden verwijderd');
+select throws_ok($$ select add_shift_member('00000000-0000-0000-0000-000000000070', '00000000-0000-0000-0000-000000000061') $$,
+  'P0001', 'member_not_eligible', 'T02: gewoon lid kan niet opnieuw worden toegevoegd');
+select throws_ok($$ select place_order(
+  '00000000-0000-0000-0000-000000000070', '00000000-0000-0000-0000-000000000062',
+  '[{"product_id":"00000000-0000-0000-0000-000000000066","qty":1}]', '00000000-0000-0000-0000-000000000061') $$,
+  'P0001', 'served_by_not_on_shift', 'T02: verwijderde crew kan niet meer afrekenen');
 
 select * from finish();
 rollback;

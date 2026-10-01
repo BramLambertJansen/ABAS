@@ -242,6 +242,7 @@ export function DienstActief({
         <BezettingOverlay
           shiftId={shift.id}
           members={members}
+          membersStatus={shiftMembers.status}
           onMembersChanged={shiftMembers.refetch}
           onClose={() => setOverlayOpen(false)}
         />
