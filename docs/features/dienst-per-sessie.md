@@ -1358,12 +1358,13 @@ er bij de bouw anders of extra is geworden, en waarom.
 
 **Niet gebouwd of open**
 
-- **Teksten die niet in de goedgekeurde sectie staan** en er wel moesten komen:
+- **Teksten die niet in de goedgekeurde sectie stonden** en er wel moesten komen
+  (goedgekeurd door Bram, 2026-09-29):
   het tabblad "Diensten" en de kopjes "Diensten" en "Ingelogd" in het
   beheeroverzicht, "sinds {tijd}" en "laatst actief om {tijd}" daarin, "Er loopt
   geen dienst." en "Niemand is ingelogd.", "Opnieuw proberen" en de laadteksten
   ("Bardienst-lijst laden…", "Bezig met laden…"), en de hint "← terug naar
-  inloggen" in de weergave wachtwoord vergeten. Bram keurt ze goed of past ze aan.
+  inloggen" in de weergave wachtwoord vergeten.
 - Fase 2 (de instelling, `join_shift`, stand (b) en (c)) niet.
 
 **Review-fixes (goedgekeurd door Bram, 2026-09-30)**
@@ -1725,7 +1726,5 @@ De teksten zijn goedgekeurd (2026-09-29): "goedkeuren, later aanpassen".
    niet, maar het is een verplichte stap vóór fase 1 live gaat. Controle:
    `select name, role from members where role in ('bardienst','beheerder')
    and not archived and auth_user_id is null;`.
-2. **Teksten buiten de goedgekeurde sectie** (Zoals gebouwd → Niet gebouwd of
-   open): nog niet door Bram goedgekeurd.
-3. **Fase 2** (de instelling (a)/(b)/(c), `join_shift`,
+2. **Fase 2** (de instelling (a)/(b)/(c), `join_shift`,
    `set_shift_session_mode`): ontwerp goedgekeurd, niet gebouwd.
