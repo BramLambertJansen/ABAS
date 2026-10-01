@@ -23,6 +23,83 @@ create extension if not exists pgtap with schema extensions;
 begin;
 select plan(9);
 
+-- ── Sessie-helper (dienst per sessie, ADR 0016) ────────────────────────────
+-- Beheer-RPC's eisen een geregistreerde sessie in modus `beheer`
+-- (require_beheer_session, 0028). Zet de JWT-claims voor `p_auth_user` en
+-- registreert, als er een lid bij hoort, een bar-sessie in `p_mode`. Bewust
+-- rechtstreeks geïnsert, ook voor een bardienst of een gearchiveerd lid: zo
+-- bewijzen deze tests de guard zelf en niet register_bar_session. Een account
+-- zonder lid krijgt geen bar-sessie (no_bar_session).
+create function pg_temp.act_as_user(p_auth_user uuid, p_mode text default 'beheer')
+returns void
+language plpgsql
+as $fn$
+declare
+  v_member uuid;
+begin
+  select id into v_member from members where auth_user_id = p_auth_user;
+  if v_member is not null then
+    insert into bar_sessions (auth_session_id, member_id, mode)
+    values (p_auth_user, v_member, p_mode)
+    on conflict (auth_session_id) do nothing;
+  end if;
+  perform set_config('request.jwt.claim.sub', p_auth_user::text, true);
+  -- Een beheersessie is altijd aal2: register_bar_session('beheer') en
+  -- require_beheer_session eisen dat (ADR 0017, 0034).
+  perform set_config(
+    'request.jwt.claims',
+    json_build_object(
+      'sub', p_auth_user::text, 'session_id', p_auth_user::text,
+      'aal', case when p_mode = 'beheer' then 'aal2' else 'aal1' end
+    )::text,
+    true
+  );
+end;
+$fn$;
+
+-- Bar-sessie voor een lid (modus `bar`, met een koppeling aan `p_shift`): voor
+-- de bar-RPC's die deze test naast de beheer-RPC's gebruikt. Maakt zo nodig
+-- een auth-account voor het lid.
+create function pg_temp.act_as_bar(p_member uuid, p_shift uuid default null, p_session uuid default null)
+returns void
+language plpgsql
+as $fn$
+declare
+  v_auth uuid;
+  v_session uuid;
+begin
+  select auth_user_id into v_auth from members where id = p_member;
+  if v_auth is null then
+    v_auth := p_member;
+    insert into auth.users (
+      id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
+      created_at, updated_at, raw_app_meta_data, raw_user_meta_data
+    ) values (
+      v_auth, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
+      v_auth::text || '@bar.test.local', crypt('not-used', gen_salt('bf')), now(),
+      now(), now(), '{"provider":"email","providers":["email"]}', '{}'
+    ) on conflict (id) do nothing;
+    update members set auth_user_id = v_auth where id = p_member;
+  end if;
+  insert into bar_sessions (auth_session_id, member_id, mode)
+  values (coalesce(p_session, p_member), p_member, 'bar')
+  on conflict (auth_session_id) do nothing;
+  select id into v_session from bar_sessions where auth_session_id = coalesce(p_session, p_member);
+  if p_shift is not null then
+    insert into shift_sessions (shift_id, bar_session_id)
+    values (p_shift, v_session)
+    on conflict do nothing;
+  end if;
+  perform set_config('request.jwt.claim.sub', v_auth::text, true);
+  perform set_config(
+    'request.jwt.claims',
+    json_build_object('sub', v_auth::text, 'session_id', coalesce(p_session, p_member)::text)::text,
+    true
+  );
+end;
+$fn$;
+
+
 -- ── Fixtures ──────────────────────────────────────────────────────────
 
 -- auth.users: minimal rows so members.auth_user_id's FK is satisfiable and
@@ -67,7 +144,7 @@ insert into shift_members (shift_id, member_id) values
   ('00000000-0000-0000-0000-0000000001a3', '00000000-0000-0000-0000-0000000001a0');
 
 -- ── 1) Happy path ─────────────────────────────────────────────────────
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000180', true);
+select pg_temp.act_as_user('00000000-0000-0000-0000-000000000180');
 
 select lives_ok(
   $$ select update_negative_limit(1000) $$,
@@ -94,6 +171,7 @@ select is(
   'app_settings.negative_limit_cents is 0 after the RPC call'
 );
 
+select pg_temp.act_as_bar('00000000-0000-0000-0000-0000000001a0', '00000000-0000-0000-0000-0000000001a3');
 select throws_ok(
   $$ select place_order(
        '00000000-0000-0000-0000-0000000001a3'::uuid,
@@ -106,6 +184,7 @@ select throws_ok(
 );
 
 -- ── 3) invalid_negative_limit ────────────────────────────────────────────
+select pg_temp.act_as_user('00000000-0000-0000-0000-000000000180');
 select throws_ok(
   $$ select update_negative_limit(-100) $$,
   'P0001', 'invalid_negative_limit',
@@ -119,15 +198,15 @@ select throws_ok(
 );
 
 -- ── 4) actor_not_found ────────────────────────────────────────────────────
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000182', true);
+select pg_temp.act_as_user('00000000-0000-0000-0000-000000000182');
 select throws_ok(
   $$ select update_negative_limit(500) $$,
-  'P0001', 'actor_not_found',
+  'P0001', 'no_bar_session',
   'update_negative_limit rejects a caller whose auth.uid() matches no members row'
 );
 
 -- ── 5) no_admin_role ──────────────────────────────────────────────────────
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000181', true);
+select pg_temp.act_as_user('00000000-0000-0000-0000-000000000181');
 select throws_ok(
   $$ select update_negative_limit(500) $$,
   'P0001', 'no_admin_role',

@@ -6,7 +6,7 @@ import {
   json,
   portalLoginMetWachtwoord,
 } from "./helpers/supabaseMock";
-import { koppelTablet } from "./helpers/tabletKoppelen";
+import { FEMKE, WACHTWOORD_FEMKE, logInOpBar } from "./helpers/barLogin";
 import { supabaseStatus } from "./helpers/supabaseAdmin";
 
 /**
@@ -25,10 +25,10 @@ import { supabaseStatus } from "./helpers/supabaseAdmin";
  *   2. "live backend" — net als e2e/a11y.spec.ts's "stateful bar-shell
  *      scenarios": vereist een echte, lokale Supabase-stack (`supabase
  *      start`, gevuld met `supabase/seed.sql`) en de bouwstenen die
- *      `src/middleware.ts` nodig heeft (SUPABASE_DEVICE_EMAIL/PASSWORD).
+ *      `src/lib/barLogin.ts` nodig heeft (SUPABASE_SECRET_KEY).
  *      Dit is de enige manier om de dingen te bewijzen die niet vanuit de
- *      browser te mocken zijn: `src/middleware.ts`'s server-side
- *      device-inlog (acceptatiecriterium 4) en `src/app/auth/callback/
+ *      browser te mocken zijn: de server-side bar-login (acceptatiecriterium
+ *      4) en `src/app/auth/callback/
  *      route.ts`'s server-side sessie-uitwisseling — beide draaien in het
  *      Next.js-serverproces zelf, niet als een browser-`fetch`/XHR die
  *      `page.route()` kan onderscheppen. Voor de magic-link-kant van die
@@ -94,19 +94,17 @@ const dashboardHeading = (page: Page, firstName: string) =>
 test.describe("live backend (echte lokale Supabase, supabase/seed.sql)", () => {
   /**
    * Acceptatiecriterium 4 (ADR 0009) — het kernscenario van deze hele spec:
-   * een bar-sessie (het gedeelde device-account dat `src/middleware.ts`
-   * server-side inlogt zodra een niet-`/portal`-route bezocht wordt, sinds
-   * ADR 0011 alleen op een gekoppelde tablet) mag nooit als ingelogde staat
-   * op `/portal` verschijnen. Koppelt eerst via `/koppel` en komt dan op `/`
-   * (geeft het device-cookie de kans te zetten, zelfde manier als
-   * e2e/a11y.spec.ts's stateful bar-shell scenario's), dan pas `/portal`.
+   * een bar-sessie (sinds dienst-per-sessie, ADR 0016, een persoonlijke sessie
+   * die op de namenlijst is aangemaakt en in de cookies van de bar staat) mag
+   * nooit als ingelogde staat op `/portal` verschijnen. Logt eerst in op de
+   * bar (zelfde manier als e2e/a11y.spec.ts's stateful bar-shell scenario's),
+   * dan pas `/portal`.
    */
-  test("bar-sessie (device-cookie) op / toont geen ingelogde staat op /portal", async ({ page }) => {
-    await koppelTablet(page);
-    // Het device-cookie is een server-side Set-Cookie op de eerste request
-    // naar een niet-/portal-route — geen UI om op te wachten, dus gewoon een
-    // korte networkidle-wachttijd voor de middleware/eerste render.
-    await page.waitForLoadState("networkidle");
+  test("bar-sessie op / toont geen ingelogde staat op /portal", async ({ page }) => {
+    await logInOpBar(page, FEMKE, WACHTWOORD_FEMKE);
+    // De login zet de sessie server-side in de cookies; wacht tot de bar-
+    // schermen klaar zijn, dan is de sessie er zeker.
+    await page.getByRole("button", { name: "Uitloggen" }).waitFor({ state: "visible", timeout: 15_000 });
 
     await page.goto("/portal");
     const emailVeld = page.locator('input[type="email"]');

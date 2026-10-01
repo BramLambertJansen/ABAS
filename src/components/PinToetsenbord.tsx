@@ -17,6 +17,10 @@ const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "⌫"] as co
  * A11y: de puntjes zijn `aria-hidden`, de voortgang staat in een sr-only
  * `role="status"`; de foutregel is een `role="alert"` die altijd in de DOM
  * staat, zodat een nieuwe melding wordt voorgelezen.
+ *
+ * `length` en `statusLabel` zijn instelbaar voor de 6-cijferige code van de
+ * tweede factor (docs/features/beheer-tweede-factor.md → "eerst nagaan of
+ * PinPad een instelbare lengte kan krijgen"); standaard de 4-cijferige PIN.
  */
 export function PinToetsenbord({
   pin,
@@ -25,6 +29,8 @@ export function PinToetsenbord({
   onDigit,
   onBackspace,
   tone,
+  length = PIN_LENGTH,
+  statusLabel = "Pincode",
 }: {
   pin: string;
   errorMessage: string | null;
@@ -32,6 +38,10 @@ export function PinToetsenbord({
   onDigit: (digit: string) => void;
   onBackspace: () => void;
   tone: "rail" | "light";
+  /** Aantal cijfers (standaard 4, de PIN). */
+  length?: number;
+  /** Wat er ingevoerd wordt, voor de sr-only voortgang. */
+  statusLabel?: string;
 }) {
   const dark = tone === "rail";
   const dotFilled = errorMessage ? (dark ? "bg-rail-error" : "bg-danger") : "bg-accent";
@@ -43,7 +53,7 @@ export function PinToetsenbord({
   return (
     <>
       <div className="flex justify-center gap-3" aria-hidden="true">
-        {Array.from({ length: PIN_LENGTH }).map((_, i) => (
+        {Array.from({ length }).map((_, i) => (
           <div
             key={i}
             className={`h-3.5 w-3.5 rounded-full transition-colors ${
@@ -53,7 +63,7 @@ export function PinToetsenbord({
         ))}
       </div>
       <span className="sr-only" role="status">
-        {`Pincode: ${pin.length} van ${PIN_LENGTH} cijfers ingevoerd`}
+        {`${statusLabel}: ${pin.length} van ${length} cijfers ingevoerd`}
       </span>
 
       <p

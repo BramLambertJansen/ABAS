@@ -1,7 +1,10 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { Overlay } from "@/components/Overlay";
+import { CodeInvoer } from "@/components/CodeInvoer";
+import { TWEESTAP_TEKSTEN, type CodeFout } from "@/lib/mfa";
+import { useFocusNaWissel } from "@/hooks/useFocusNaWissel";
 import { NieuwWachtwoordVelden, isPasswordReady } from "@/components/NieuwWachtwoordVelden";
 import { usePortalWachtwoordWijzigen } from "@/hooks/queries/usePortalWachtwoordWijzigen";
 import { passwordUpdateErrorMessage } from "@/lib/authErrors";
@@ -16,6 +19,10 @@ import { SheetKnoppen } from "./SheetKnoppen";
  * Voor bardienst/beheerder staat er een uitlegregel bij: het is één
  * account, dus dit wachtwoord geldt ook voor `/beheer` (besluit 7).
  * Bij `reauth_required` is de Uitloggen-knop in de header de weg terug.
+ *
+ * Heeft het account een tweede factor en is de sessie aal1, dan eerst de
+ * code, pas daarna de velden (docs/features/beheer-tweede-factor.md →
+ * Schermflow, ADR 0017).
  */
 export function WachtwoordWijzigenSheet({
   isBarRole,
@@ -29,6 +36,15 @@ export function WachtwoordWijzigenSheet({
   const [password, setPassword] = useState("");
   const [repeat, setRepeat] = useState("");
   const mutation = usePortalWachtwoordWijzigen();
+  // Na de code: de focus naar de kop van de stap met de wachtwoordvelden, de
+  // titel van de sheet (besloten 12).
+  const kopRef = useRef<HTMLHeadingElement>(null);
+  const markeerWissel = useFocusNaWissel(mutation.codeStap, (stap) => (stap === "klaar" ? kopRef.current : null));
+
+  async function verifieer(code: string): Promise<CodeFout | null> {
+    markeerWissel();
+    return mutation.verifieer(code);
+  }
 
   const disabled = !isPasswordReady(password, repeat) || mutation.status === "pending";
 
@@ -44,7 +60,27 @@ export function WachtwoordWijzigenSheet({
       title="Wachtwoord wijzigen"
       description={isBarRole ? "Dit is ook je wachtwoord voor beheer op de bar-tablet." : undefined}
       onClose={onClose}
+      titleRef={kopRef}
     >
+      {mutation.codeStap === "controleren" && (
+        <p className="py-6 text-center text-sm font-bold text-muted" role="status">
+          Bezig met laden…
+        </p>
+      )}
+      {mutation.codeStap === "nodig" && (
+        <div className="flex flex-col gap-[14px]">
+          <p className="text-sm font-medium leading-relaxed text-muted">{TWEESTAP_TEKSTEN.wachtwoordCodeStap}</p>
+          <CodeInvoer tone="light" onVerifieer={verifieer} />
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-[52px] w-full items-center justify-center rounded-2xl border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink"
+          >
+            Annuleer
+          </button>
+        </div>
+      )}
+      {mutation.codeStap === "klaar" && (
       <form onSubmit={submit} className="flex flex-col gap-[14px]" noValidate>
         <NieuwWachtwoordVelden
           password={password}
@@ -59,6 +95,7 @@ export function WachtwoordWijzigenSheet({
 
         <SheetKnoppen submitLabel="Wijzigen" disabled={disabled} onCancel={onClose} />
       </form>
+      )}
     </Overlay>
   );
 }

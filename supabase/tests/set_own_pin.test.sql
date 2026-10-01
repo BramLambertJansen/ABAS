@@ -22,7 +22,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(15);
+select plan(20);
 
 -- ── Fixtures ──────────────────────────────────────────────────────────
 
@@ -186,6 +186,64 @@ select lives_ok(
 select ok(
   (select crypt('9012', pin_hash) = pin_hash from members where id = '00000000-0000-0000-0000-000000000123'),
   'the beheerder actor''s pin_hash is updated to match the new pin'
+);
+
+-- ── 0032: alleen vanuit de portal (geen geregistreerde bar-sessie) ────────
+--
+-- Spec dienst-per-sessie → besluit 10: de portal is de enige plek om de PIN
+-- te zetten. De portal registreert nooit een bar-sessie; de bar en /beheer
+-- altijd. Een sessie met een rij in bar_sessions (modus bar of beheer, ook
+-- beëindigd) krijgt wrong_mode. De sessie-id's hieronder zijn eigen, vaste
+-- waarden: geen andere test gebruikt ze.
+
+-- 11) portal: een session_id zonder bar-sessie werkt (beheerder-fixture).
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-000000000114","session_id":"00000000-0000-4000-8000-00000000f301"}', true);
+select lives_ok(
+  $$ select set_own_pin('3456') $$,
+  'set_own_pin werkt vanuit een portal-sessie (session_id zonder bar-sessie)'
+);
+
+-- 12) bar-sessie (modus bar) van dezelfde beheerder: geweigerd.
+insert into bar_sessions (auth_session_id, member_id, mode) values
+  ('00000000-0000-4000-8000-00000000f302', '00000000-0000-0000-0000-000000000123', 'bar');
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-000000000114","session_id":"00000000-0000-4000-8000-00000000f302"}', true);
+select throws_ok(
+  $$ select set_own_pin('7777') $$,
+  'P0001', 'wrong_mode',
+  'set_own_pin weigert vanuit een bar-sessie in modus bar'
+);
+
+-- 13) sessie in modus beheer: ook geweigerd.
+insert into bar_sessions (auth_session_id, member_id, mode) values
+  ('00000000-0000-4000-8000-00000000f303', '00000000-0000-0000-0000-000000000123', 'beheer');
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-000000000114","session_id":"00000000-0000-4000-8000-00000000f303"}', true);
+select throws_ok(
+  $$ select set_own_pin(null) $$,
+  'P0001', 'wrong_mode',
+  'set_own_pin weigert vanuit een sessie in modus beheer (ook uitzetten)'
+);
+
+-- 14) een beëindigde bar-sessie blijft een bar-sessie: geweigerd.
+insert into bar_sessions (auth_session_id, member_id, mode, ended_at, end_reason) values
+  ('00000000-0000-4000-8000-00000000f304', '00000000-0000-0000-0000-000000000120', 'bar',
+   now(), 'uitgelogd');
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000110', true);
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-000000000110","session_id":"00000000-0000-4000-8000-00000000f304"}', true);
+select throws_ok(
+  $$ select set_own_pin('7777') $$,
+  'P0001', 'wrong_mode',
+  'set_own_pin weigert vanuit een beëindigde bar-sessie'
+);
+
+-- De geweigerde aanroepen lieten de PIN van beide leden ongemoeid.
+select ok(
+  (select crypt('3456', pin_hash) = pin_hash from members where id = '00000000-0000-0000-0000-000000000123')
+  and (select pin_hash from members where id = '00000000-0000-0000-0000-000000000120') is null,
+  'na de geweigerde aanroepen is geen enkele PIN veranderd'
 );
 
 select * from finish();

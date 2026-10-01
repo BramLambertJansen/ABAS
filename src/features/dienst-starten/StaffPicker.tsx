@@ -1,17 +1,22 @@
 "use client";
 
 import { useShell } from "@/lib/shell/ShellProvider";
-import type { BarStaffMember } from "@/hooks/queries/useBarStaff";
-import { ROLE_LABELS, NO_BAR_STAFF_MESSAGE } from "@/lib/staff";
+import { NO_BAR_STAFF_MESSAGE } from "@/lib/staff";
 import { InitialsAvatar } from "@/components/InitialsAvatar";
-import { RoleBadge } from "@/components/RoleBadge";
+import type { BarNaam } from "@/lib/barLoginTypes";
 
+/**
+ * De openbare namenlijst van het startscherm (`BarInloggen`). Sinds ADR 0017
+ * zonder rol en zonder `RoleBadge`: de lijst verklapt niet wie beheerder is
+ * (docs/features/login-rate-limit.md → Namenlijst zonder rol). De knop heet
+ * alleen de naam.
+ */
 export function StaffPicker({
   staff,
   onSelect,
 }: {
-  staff: BarStaffMember[];
-  onSelect: (member: BarStaffMember) => void;
+  staff: BarNaam[];
+  onSelect: (member: BarNaam) => void;
 }) {
   const shell = useShell();
 
@@ -31,14 +36,13 @@ export function StaffPicker({
               key={member.id}
               type="button"
               onClick={() => onSelect(member)}
-              aria-label={`${member.name}, ${ROLE_LABELS[member.role]}`}
+              aria-label={member.name}
               className="flex flex-col items-center gap-2 rounded-card border border-rail-border bg-rail-card px-2 py-[15px] text-center transition-colors hover:border-accent hover:bg-[#23262d]"
             >
               <InitialsAvatar name={member.name} size="md" />
               <span className="text-[12.5px] font-bold leading-tight text-white">
                 {member.name}
               </span>
-              <RoleBadge role={member.role} />
             </button>
           ))}
         </div>

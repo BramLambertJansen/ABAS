@@ -1,14 +1,16 @@
 "use client";
 
-import Link from "next/link";
 import { useId, useState } from "react";
 import { ProductenLijst } from "./ProductenLijst";
 import { NegatieveLimietInstellingen } from "./NegatieveLimietInstellingen";
 import { ActiviteitstypesInstellingen } from "./ActiviteitstypesInstellingen";
 import { LedenLijst } from "../ledenbeheer/LedenLijst";
 import { LogboekLijst } from "../logboek/LogboekLijst";
+import { DienstenApparaten } from "../bar-beheer/DienstenApparaten";
+import { AdminMeldingen } from "../bar-sessie/AdminMeldingen";
+import { useBarSessie } from "../bar-sessie/BarSessieContext";
 
-type Tab = "assortiment" | "leden" | "instellingen" | "logboek";
+type Tab = "assortiment" | "leden" | "instellingen" | "logboek" | "diensten";
 
 /**
  * Navigatie tussen Assortiment (bestaande `ProductenLijst`, ongewijzigd),
@@ -36,10 +38,16 @@ type Tab = "assortiment" | "leden" | "instellingen" | "logboek";
  * mount/unmount-lifecycle als `DienstTabs`, geen hidden-toggle) — zo krijgt
  * elke tab bij elke terugkeer altijd een verse leeshook-lezing.
  *
- * De "Ingelogd als {naam} — uitloggen"-indicator en de
- * "← terug naar bardienst"-link staan hier, niet meer in
- * `ProductenLijst.tsx` — ze horen bij de sessie, niet bij één specifiek
- * tabblad (spec → Betrokken shell).
+ * De "Ingelogd als {naam} — uitloggen"-indicator staat hier, niet meer in
+ * `ProductenLijst.tsx` — ze hoort bij de sessie, niet bij één specifiek
+ * tabblad (spec → Betrokken shell). De "← terug naar bardienst"-link is
+ * vervallen (dienst-per-sessie, ADR 0016): een beheersessie kan niet naar de
+ * bar, modus wisselen is uitloggen.
+ *
+ * Diensten (`DienstenApparaten`, alleen voor een beheerder) is het overzicht
+ * van open diensten en ingelogde apparaten, met afsluiten en afmelden
+ * (docs/features/dienst-per-sessie.md → Beheer). De meldingen "Dienst zonder
+ * apparaat" staan boven de tabpanelen, zodat ze op elke tab zichtbaar zijn.
  */
 export function BeheerTabs({
   name,
@@ -50,40 +58,19 @@ export function BeheerTabs({
   role: "bardienst" | "beheerder";
   onSignOut: () => void;
 }) {
+  const sessie = useBarSessie();
   const [tab, setTab] = useState<Tab>("assortiment");
   const assortimentTabId = useId();
   const ledenTabId = useId();
   const instellingenTabId = useId();
   const logboekTabId = useId();
+  const dienstenTabId = useId();
 
   return (
     <main className="flex min-h-screen w-full flex-col bg-canvas font-sans text-ink antialiased">
       {/* Eén kopbalk zoals het prototype (`beheerOpen`): terug-link, tabs als
           pillen (actief = donker), rechts de BEHEER-badge en uitloggen. */}
       <header className="flex h-[60px] flex-none items-center gap-3.5 border-b border-border bg-white px-5">
-        <Link
-          href="/"
-          className="flex h-9 items-center gap-1.5 whitespace-nowrap rounded-[10px] pl-2.5 pr-3.5 text-[12.5px] font-extrabold text-muted-strong transition-colors hover:bg-border-subtle hover:text-ink"
-        >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 14 14"
-            fill="none"
-            aria-hidden="true"
-          >
-            <polyline
-              points="8.6,3.2 4.2,7 8.6,10.8"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          terug naar bardienst
-        </Link>
-        <div aria-hidden="true" className="h-[26px] w-px flex-none bg-border" />
-
         <div
           role="tablist"
           aria-label="Beheer-navigatie"
@@ -134,6 +121,23 @@ export function BeheerTabs({
           >
             Instellingen
           </button>
+          {role === "beheerder" && (
+            <button
+              type="button"
+              role="tab"
+              id={dienstenTabId}
+              aria-selected={tab === "diensten"}
+              aria-controls="diensten-panel"
+              onClick={() => setTab("diensten")}
+              className={`flex h-9 items-center whitespace-nowrap rounded-[10px] px-[15px] text-[12.5px] font-extrabold transition-colors ${
+                tab === "diensten"
+                  ? "bg-ink text-white"
+                  : "text-muted-strong hover:bg-border-subtle"
+              }`}
+            >
+              Diensten
+            </button>
+          )}
           {role === "beheerder" && (
             <button
               type="button"
@@ -201,6 +205,10 @@ export function BeheerTabs({
       </header>
 
       <div className="flex min-h-0 flex-1 flex-col gap-5 px-5 py-[18px]">
+        {role === "beheerder" && sessie.notifications.length > 0 && (
+          <AdminMeldingen meldingen={sessie.notifications} modus="beheer" className="max-w-xl" />
+        )}
+
         {tab === "assortiment" && (
           <div
             id="assortiment-panel"
@@ -235,6 +243,17 @@ export function BeheerTabs({
               — responsief, scrollbaar raster (issue #18, chat37.md), geen
               vierde tab. Zie docs/features/activiteittypes.md → Schermflow §1. */}
             <ActiviteitstypesInstellingen />
+          </div>
+        )}
+
+        {tab === "diensten" && role === "beheerder" && (
+          <div
+            id="diensten-panel"
+            role="tabpanel"
+            aria-labelledby={dienstenTabId}
+            className="flex min-h-0 flex-1 flex-col gap-5"
+          >
+            <DienstenApparaten />
           </div>
         )}
 

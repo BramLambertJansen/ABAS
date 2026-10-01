@@ -3,13 +3,16 @@
 import { useEffect, useState } from "react";
 import { InitialsAvatar } from "@/components/InitialsAvatar";
 import { usePortalProfiel } from "@/hooks/queries/usePortalProfiel";
+import { usePortalTweestap } from "@/hooks/queries/usePortalTweestap";
+import { TWEESTAP_TEKSTEN } from "@/lib/mfa";
 import { NaamWijzigenSheet } from "./NaamWijzigenSheet";
 import { PincodeSheet } from "./PincodeSheet";
+import { TweestapSheet } from "./TweestapSheet";
 import { WachtwoordWijzigenSheet } from "./WachtwoordWijzigenSheet";
 
 const TOAST_DURATION_MS = 3500;
 
-type Sheet = "naam" | "wachtwoord" | "pincode";
+type Sheet = "naam" | "wachtwoord" | "pincode" | "tweestap";
 
 /**
  * Account-tabblad van `PortalDashboard` — docs/features/portal-profiel.md →
@@ -22,6 +25,10 @@ type Sheet = "naam" | "wachtwoord" | "pincode";
  * is gemak, geen beveiliging: `set_own_pin`/`update_own_name` dwingen het
  * zelf af. Zolang het profiel laadt geen rijen, zodat de PIN-rij niet
  * opflitst en weer verdwijnt.
+ *
+ * Tweestapsverificatie (docs/features/beheer-tweede-factor.md, ADR 0017):
+ * alleen voor een beheerder, onder de PIN-rij. "Uit" opent de sheet om hem in
+ * te stellen; "Aan" is geen knop (uitzetten kan niet in de app, besloten 4).
  *
  * `email` komt uit de sessie (`usePortalSession()` in `PortalShellHome`),
  * niet uit `members.email` (RPC-gated, ADR 0004). `onProfileChanged` is de
@@ -39,6 +46,9 @@ export function AccountTab({
   onProfileChanged: () => void;
 }) {
   const profiel = usePortalProfiel();
+  const isBeheerder =
+    profiel.status === "ready" && profiel.profiel.role === "beheerder" && !profiel.profiel.archived;
+  const tweestap = usePortalTweestap(isBeheerder);
   const [sheet, setSheet] = useState<Sheet | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -109,6 +119,9 @@ export function AccountTab({
                   onClick={() => setSheet("pincode")}
                 />
               )}
+              {isBeheerder && tweestap.status === "ready" && (
+                <TweestapRij aan={tweestap.aan} onClick={() => setSheet("tweestap")} />
+              )}
             </ul>
           </div>
 
@@ -137,6 +150,17 @@ export function AccountTab({
               onSet={() => done("Pincode ingesteld")}
               onRemoved={() => done("Pincode verwijderd")}
               onStale={profiel.refetch}
+            />
+          )}
+          {sheet === "tweestap" && (
+            <TweestapSheet
+              start={tweestap.start}
+              bevestig={tweestap.bevestig}
+              onClose={() => setSheet(null)}
+              onIngesteld={() => {
+                done(TWEESTAP_TEKSTEN.toast);
+                tweestap.refetch();
+              }}
             />
           )}
         </>
@@ -175,6 +199,41 @@ function AccountRij({
           <span className="text-sm font-bold text-ink">{title}</span>
           {hint && <span className="truncate text-[12.5px] font-medium text-muted">{hint}</span>}
         </span>
+        <span aria-hidden="true" className="flex-none text-[17px] font-bold text-muted">
+          ›
+        </span>
+      </button>
+    </li>
+  );
+}
+
+/** De rij Tweestapsverificatie: status Aan/Uit met uitleg. Alleen "Uit" is een
+ *  knop (de factor instellen); "Aan" kan in de app niet uit. */
+function TweestapRij({ aan, onClick }: { aan: boolean; onClick: () => void }) {
+  const inhoud = (
+    <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+      <span className="text-sm font-bold text-ink">{TWEESTAP_TEKSTEN.rij}</span>
+      <span className="text-[12.5px] font-medium text-muted">
+        {aan ? TWEESTAP_TEKSTEN.aan : TWEESTAP_TEKSTEN.uit}
+      </span>
+      <span className="text-[12.5px] font-medium leading-snug text-muted">{TWEESTAP_TEKSTEN.rijUitleg}</span>
+    </span>
+  );
+  if (aan) {
+    return (
+      <li className="flex min-h-[60px] items-center gap-3.5 border-b border-border px-4 py-3 last:border-b-0">
+        {inhoud}
+      </li>
+    );
+  }
+  return (
+    <li className="border-b border-border last:border-b-0">
+      <button
+        type="button"
+        onClick={onClick}
+        className="flex min-h-[60px] w-full items-center gap-3.5 px-4 py-3 text-left transition-colors hover:bg-canvas focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
+      >
+        {inhoud}
         <span aria-hidden="true" className="flex-none text-[17px] font-bold text-muted">
           ›
         </span>

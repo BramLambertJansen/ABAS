@@ -1,11 +1,15 @@
 "use client";
 
 import { useId, useState, type ReactNode } from "react";
-import type { OpenShift } from "@/hooks/queries/useOpenShift";
+import type { OpenShift } from "@/hooks/queries/useMijnDienst";
 import { DienstActief } from "@/features/bezetting-beheren/DienstActief";
 import { DienstTeLangOpenMelding } from "@/features/dienst-te-lang-open/DienstTeLangOpenMelding";
 import { OverlayPresenceProvider } from "@/components/OverlayPresence";
 import { VerkoopScherm } from "./VerkoopScherm";
+import { useBarSessie } from "@/features/bar-sessie/BarSessieContext";
+import { AdminMeldingen } from "@/features/bar-sessie/AdminMeldingen";
+import { UitloggenKnop } from "@/features/bar-sessie/UitloggenKnop";
+import { ingelogdAls } from "@/features/bar-sessie/teksten";
 
 type Tab = "verkoop" | "dienst";
 
@@ -24,6 +28,11 @@ type Tab = "verkoop" | "dienst";
  * (assortiment, leden, bezetting) in plaats van een stale snapshot van
  * vóór het wisselen.
  *
+ * Sinds dienst-per-sessie (docs/features/dienst-per-sessie.md → Schermflow
+ * punt 5) onderaan de rail "Ingelogd als {naam}" en "Uitloggen" (met de
+ * keuze uit vraag 17 als de dienst nog loopt), en voor een beheerder de
+ * meldingen "Dienst zonder apparaat" rechtsboven.
+ *
  * `OverlayPresenceProvider` omvat de tabpanelen én de melding "Dienst staat
  * nog open" (docs/features/dienst-te-lang-open.md, ADR 0014): de melding is
  * een sibling van de tabpanelen, dus verschijnt over beide tabs heen en
@@ -36,6 +45,7 @@ export function DienstTabs({
   shift: OpenShift;
   onShiftEnded: () => void;
 }) {
+  const sessie = useBarSessie();
   const [tab, setTab] = useState<Tab>("verkoop");
   const verkoopTabId = useId();
   const dienstTabId = useId();
@@ -94,6 +104,18 @@ export function DienstTabs({
               Dienst
             </RailTab>
           </div>
+
+          <div className="mt-auto flex w-full flex-col items-center gap-2 px-1.5 pt-4">
+            {sessie.session && (
+              <p className="break-words text-center text-[9.5px] font-semibold leading-tight text-rail-muted">
+                {ingelogdAls(sessie.session.memberName)}
+              </p>
+            )}
+            <UitloggenKnop
+              shift={shift}
+              className="flex w-[70px] items-center justify-center rounded-[10px] border border-rail-border py-2 text-[10.5px] font-bold text-rail-muted transition-colors hover:border-accent hover:text-white"
+            />
+          </div>
         </nav>
 
         {tab === "verkoop" && (
@@ -119,6 +141,14 @@ export function DienstTabs({
         )}
 
         <DienstTeLangOpenMelding shift={shift} onShiftEnded={onShiftEnded} />
+
+        {sessie.session?.memberRole === "beheerder" && sessie.notifications.length > 0 && (
+          <AdminMeldingen
+            meldingen={sessie.notifications}
+            modus="bar"
+            className="fixed right-4 top-4 z-40 w-[360px] max-w-[calc(100vw-2rem)]"
+          />
+        )}
       </div>
     </OverlayPresenceProvider>
   );

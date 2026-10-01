@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { OpenShift } from "@/hooks/queries/useOpenShift";
+import type { OpenShift } from "@/hooks/queries/useMijnDienst";
 import { useShiftMembers } from "@/hooks/queries/useShiftMembers";
 import { useShiftSummary } from "@/hooks/queries/useShiftSummary";
 import { useShiftLedger } from "@/hooks/queries/useShiftLedger";
@@ -156,7 +156,7 @@ export function DienstActief({
             </span>
           </div>
           {/* Alleen null voor een dienst gestart vóór 0019_activiteittypes.sql
-              — zie useOpenShift.ts (docs/features/activiteittypes.md →
+              — zie barState.ts (OpenShift) (docs/features/activiteittypes.md →
               Schermflow §3). */}
           {shift.activityTypeName && (
             <span

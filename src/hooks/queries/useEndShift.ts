@@ -3,14 +3,19 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { reportClientError } from "@/lib/clientErrors";
+import { isSessionErrorCode, notifySessionCode, type SessionErrorCode } from "@/lib/barSessie";
 
-/** Error codes `end_shift` actually raises. Tot 0023 raisede het niets
- *  (0001_init.sql: alleen een `update ... where ended_at is null`);
- *  0023_bar_rpcs_weigeren_lid.sql voegt `no_bar_role` toe voor een
- *  lid-sessie. Anything else (network failure, unexpected server error)
- *  falls through to "unknown". Same pattern as useAddShiftMember.ts /
- *  useRemoveShiftMember.ts. */
-export type EndShiftErrorCode = "no_bar_role" | "unknown";
+/** Error codes `end_shift` actually raises: sinds dienst-per-sessie (0029)
+ *  alleen de sessiecodes van de guard — `end_shift` is geen stille no-op meer
+ *  voor een onbekende of al gesloten dienst maar `session_not_on_shift`.
+ *  Anything else (network failure, unexpected server error) falls through to
+ *  "unknown". Same pattern as useAddShiftMember.ts / useRemoveShiftMember.ts. *
+ *  De zes sessiecodes van de guard (`SessionErrorCode`, dienst-per-sessie,
+ *  0028/0029; zie usePlaceOrder.ts) zijn bekende domeinuitkomsten: niet
+ *  gemeld aan `client_errors`, maar naar de centrale afhandeling
+ *  (`notifySessionCode`). `no_bar_role` betekent sinds 0028 "het lid van
+ *  deze bar-sessie heeft geen bar-rol meer". */
+export type EndShiftErrorCode = SessionErrorCode | "unknown";
 
 type State =
   | { status: "idle" }
@@ -18,7 +23,8 @@ type State =
   | { status: "error"; code: EndShiftErrorCode };
 
 function toErrorCode(message: string | undefined): EndShiftErrorCode {
-  if (message === "no_bar_role") {
+  if (isSessionErrorCode(message)) {
+    notifySessionCode(message);
     return message;
   }
   return "unknown";

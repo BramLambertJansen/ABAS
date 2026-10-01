@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/portalClient";
 import { logLocalError, reportClientError } from "@/lib/clientErrors";
 import { toPasswordUpdateErrorCode, type PasswordUpdateErrorCode } from "@/lib/authErrors";
+import { sessieNodigCode, verifieerCode, type CodeFout } from "@/lib/mfa";
 
 type State =
   | { status: "idle" }
@@ -21,9 +22,44 @@ type State =
  * Staat Supabase "Secure password change" aan en valt de sessie buiten het
  * venster, dan geeft Supabase `reauthentication_needed`; de gedeelde
  * mapping in src/lib/authErrors.ts maakt daar `reauth_required` van.
+ *
+ * Tweede factor (docs/features/beheer-tweede-factor.md, ADR 0017): heeft het
+ * account een geverifieerde factor en is de sessie aal1, dan weigert Supabase
+ * Auth `updateUser` (`insufficient_aal`). `codeStap` zegt daarom eerst of de
+ * code nodig is (`nodig`), en `verifieer(code)` maakt de sessie aal2; pas
+ * daarna (`klaar`) het wachtwoord.
  */
 export function usePortalWachtwoordWijzigen() {
   const [state, setState] = useState<State>({ status: "idle" });
+  const [codeStap, setCodeStap] = useState<"controleren" | "nodig" | "klaar">("controleren");
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      let nodig = false;
+      try {
+        nodig = await sessieNodigCode(createClient().auth.mfa);
+      } catch (err) {
+        // Dan beslist Supabase Auth zelf bij `updateUser`.
+        logLocalError("usePortalWachtwoordWijzigen (aal)", err);
+      }
+      if (!cancelled) setCodeStap(nodig ? "nodig" : "klaar");
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const verifieer = useCallback(async (code: string): Promise<CodeFout | null> => {
+    try {
+      const fout = await verifieerCode(createClient().auth.mfa, code);
+      if (!fout) setCodeStap("klaar");
+      return fout;
+    } catch (err) {
+      logLocalError("usePortalWachtwoordWijzigen (verify)", err);
+      return "unknown";
+    }
+  }, []);
 
   async function changePassword(password: string): Promise<boolean> {
     setState({ status: "pending" });
@@ -54,6 +90,8 @@ export function usePortalWachtwoordWijzigen() {
   return {
     status: state.status,
     errorCode: state.status === "error" ? state.code : null,
+    codeStap,
+    verifieer,
     changePassword,
     reset: () => setState({ status: "idle" }),
   };

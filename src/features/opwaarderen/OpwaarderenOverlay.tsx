@@ -7,8 +7,10 @@ import { formatCents, parseEuroToCents } from "@/lib/money";
 import { useTopUp, type TopUpErrorCode } from "@/hooks/queries/useTopUp";
 import type { MemberOption } from "@/hooks/queries/useMembers";
 import type { ShiftMember } from "@/hooks/queries/useShiftMembers";
+import { useBarSessie } from "@/features/bar-sessie/BarSessieContext";
 import {
   AMOUNT_CHIPS_CENTS,
+  SELF_TOP_UP_MESSAGE,
   TOP_UP_CONFIRM_THRESHOLD_CENTS,
   TOP_UP_MAX_CENTS,
   topUpAmountTooHighMessage,
@@ -46,6 +48,7 @@ export function OpwaarderenOverlay({
   onRefetchShiftMembers: () => void;
 }) {
   const topUpMutation = useTopUp();
+  const sessie = useBarSessie();
   const amountLimitId = useId();
   const [servedBy, setServedBy] = useState<string | null>(null);
   const [selectedChipCents, setSelectedChipCents] = useState<number | null>(null);
@@ -79,7 +82,12 @@ export function OpwaarderenOverlay({
     amountCents !== null && amountCents > TOP_UP_CONFIRM_THRESHOLD_CENTS;
 
   const pending = topUpMutation.status === "pending";
-  const bookDisabled = !amountBookable || !effectiveServedBy || pending;
+  // A4 (besloten, alle standen): nooit een opwaardering naar het lid van de
+  // ingelogde sessie. De regel staat er al vóór het boeken, zodat de weigering
+  // niet pas na de RPC zichtbaar wordt (zelfde verdeling als de €500): `top_up`
+  // weigert het ook zelf (`self_top_up_forbidden`).
+  const isSelf = sessie.session !== null && member.id === sessie.session.memberId;
+  const bookDisabled = !amountBookable || !effectiveServedBy || pending || isSelf;
 
   // Elke bedragswijziging trekt een openstaande bevestiging in: anders zou
   // een bevestigd bedrag blijven staan terwijl er inmiddels een ander bedrag
@@ -100,7 +108,7 @@ export function OpwaarderenOverlay({
   }
 
   async function handleBook() {
-    if (!amountBookable || !effectiveServedBy || pending) return;
+    if (!amountBookable || !effectiveServedBy || pending || isSelf) return;
 
     // Eerste tik op een groot bedrag boekt niet, maar vraagt na. Pas de
     // tweede tik ("ja, … boeken") komt hier voorbij.
@@ -164,6 +172,12 @@ export function OpwaarderenOverlay({
         </span>
         <span className="text-[13px] font-extrabold text-ink">contant</span>
       </div>
+
+      {isSelf && (
+        <p className="text-sm font-bold text-danger" role="alert">
+          {SELF_TOP_UP_MESSAGE}
+        </p>
+      )}
 
       {needsPicker && (
         <BezettingKeuze

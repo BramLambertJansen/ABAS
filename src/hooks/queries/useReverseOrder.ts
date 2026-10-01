@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { reportClientError } from "@/lib/clientErrors";
+import { isSessionErrorCode, notifySessionCode, type SessionErrorCode } from "@/lib/barSessie";
 
 /** Foutcodes van reverse_order_at_bar / reverse_order_as_admin
  *  (0020_bestelling_terugdraaien.sql, docs/features/
@@ -10,9 +11,11 @@ import { reportClientError } from "@/lib/clientErrors";
  *  onverwachte serverfout) valt onder "unknown". Zelfde patroon als
  *  useTopUp.ts → TopUpErrorCode. */
 export type ReverseOrderErrorCode =
-  // alleen bar — no_bar_role sinds 0023_bar_rpcs_weigeren_lid.sql (lid-sessie
-  // geweigerd); reverse_order_as_admin raiset hem niet
-  | "no_bar_role"
+  // De zes sessiecodes van de guard (dienst-per-sessie, 0028/0029): bar en
+  // beheer (require_beheer_session). Bekende domeinuitkomsten, niet gemeld
+  // aan client_errors maar naar de centrale afhandeling (notifySessionCode).
+  | SessionErrorCode
+  // alleen bar
   | "shift_not_open"
   | "order_not_in_shift"
   | "reversed_by_not_on_shift"
@@ -27,7 +30,6 @@ export type ReverseOrderErrorCode =
   | "unknown";
 
 const KNOWN_CODES: ReverseOrderErrorCode[] = [
-  "no_bar_role",
   "shift_not_open",
   "order_not_in_shift",
   "reversed_by_not_on_shift",
@@ -40,6 +42,10 @@ const KNOWN_CODES: ReverseOrderErrorCode[] = [
 ];
 
 function toErrorCode(message: string | undefined): ReverseOrderErrorCode {
+  if (isSessionErrorCode(message)) {
+    notifySessionCode(message);
+    return message;
+  }
   if (message && (KNOWN_CODES as string[]).includes(message)) {
     return message as ReverseOrderErrorCode;
   }

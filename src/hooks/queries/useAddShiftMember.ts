@@ -3,13 +3,18 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { reportClientError } from "@/lib/clientErrors";
+import { isSessionErrorCode, notifySessionCode, type SessionErrorCode } from "@/lib/barSessie";
 
-/** Error codes `add_shift_member` (0001_init.sql; `no_bar_role` sinds
- *  0023_bar_rpcs_weigeren_lid.sql, lid-sessie geweigerd) actually raises. Anything
- *  else (network failure, unexpected server error) falls through to
- *  "unknown". Same pattern as useStartShift.ts → StartShiftErrorCode. */
+/** Error codes `add_shift_member` (0001_init.sql, 0029) actually raises.
+ *  Anything else (network failure, unexpected server error) falls through to
+ *  "unknown". Same pattern as useStartShift.ts → StartShiftErrorCode. *
+ *  De zes sessiecodes van de guard (`SessionErrorCode`, dienst-per-sessie,
+ *  0028/0029; zie usePlaceOrder.ts) zijn bekende domeinuitkomsten: niet
+ *  gemeld aan `client_errors`, maar naar de centrale afhandeling
+ *  (`notifySessionCode`). `no_bar_role` betekent sinds 0028 "het lid van
+ *  deze bar-sessie heeft geen bar-rol meer". */
 export type AddShiftMemberErrorCode =
-  | "no_bar_role"
+  | SessionErrorCode
   | "shift_not_open"
   | "member_not_eligible"
   | "unknown";
@@ -20,8 +25,11 @@ type State =
   | { status: "error"; code: AddShiftMemberErrorCode };
 
 function toErrorCode(message: string | undefined): AddShiftMemberErrorCode {
+  if (isSessionErrorCode(message)) {
+    notifySessionCode(message);
+    return message;
+  }
   if (
-    message === "no_bar_role" ||
     message === "shift_not_open" ||
     message === "member_not_eligible"
   ) {

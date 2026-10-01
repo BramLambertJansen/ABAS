@@ -7,6 +7,19 @@ Hernummerd van 0004 naar 0005 bij het mergen van `main` in deze branch
 ADR ([0004 — PII-kolommen vereisen RPC-gated lezen](0004-pii-kolommen-vereisen-rpc-gated-lezen.md),
 uit issue #57/PR #59). Inhoudelijk is dit ADR ongewijzigd t.o.v. de versie
 die Bram hierboven goedkeurde.
+**Geamendeerd door [ADR 0017](0017-beheer-eist-tweede-factor-en-eigen-loginlimiet.md)
+(2026-09-30):** een beheerder kan pas met de PIN inloggen
+als hij een geverifieerde tweede factor (TOTP) heeft. Beslissing 1 en 3
+blijven.
+
+**Geamendeerd door [ADR 0016](0016-dienst-hoort-bij-geregistreerde-app-sessies.md)
+(Beslissing 2, 2026-09-29):** de PIN is een optionele login voor bar-modus,
+alleen op een apparaat waar het lid eerder met het wachtwoord inlogde, met
+lockout. Hij geeft nooit beheer, en het wachtwoord blijft altijd werken. Een lid
+kan in de portal zelf een PIN aan- of uitzetten (niet meer via "Mijn account" op
+de bar). Beslissing 1 en 3 blijven ongewijzigd; Beslissing 5 (provisioning voor
+leden zonder account) is de uitrolvoorwaarde uit de spec: elke bardienst en
+beheerder heeft een werkend wachtwoord.
 **Amendeert [ADR 0003](0003-auth-methode-per-lid-en-vaste-modus-bar-beheer.md)
 → Beslissing 1 alleen.** Beslissing 2 (modus-keuze na login, losse
 instanties, geen wisselknop), Beslissing 3 (bar-modus functioneel identiek,

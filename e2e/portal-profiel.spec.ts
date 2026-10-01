@@ -1,12 +1,16 @@
 import { test, expect, type Page, type Route } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
 import {
   USER,
+  USER_ZONDER_FACTOR,
   alertOf,
   fakeSession,
   json,
+  mockTweedeFactor,
   portalLoginMetWachtwoord,
 } from "./helpers/supabaseMock";
-import { adminSetPassword } from "./helpers/supabaseAdmin";
+import { adminSetPassword, adminVerwijderFactoren } from "./helpers/supabaseAdmin";
+import { totpCode, versTotpCode, vulCodeIn } from "./helpers/totp";
 
 /**
  * docs/features/portal-profiel.md (#17) → Testplan → e2e. Het Account-
@@ -43,10 +47,17 @@ async function mockPortal(
     profiel,
     updateUser,
     setOwnPin,
+    sessie,
+    gebruiker,
   }: {
     profiel: ProfielRow;
     updateUser?: (n: number) => [number, unknown];
     setOwnPin?: (n: number) => [number, unknown];
+    /** De sessie na het inloggen (standaard aal2 met factor). */
+    sessie?: unknown;
+    /** Wat `GET /auth/v1/user` teruggeeft (`mfa.listFactors`); zonder dit
+     *  gaat die aanroep niet via de mock. */
+    gebruiker?: () => unknown;
   }
 ): Promise<PortalMock> {
   const calls: PortalMock = { updateUser: [], setOwnPin: [] };
@@ -55,7 +66,7 @@ async function mockPortal(
     return json(route, 200, accept.includes("vnd.pgrst.object") ? row : row ? [row] : []);
   };
 
-  await page.route(/\/auth\/v1\/token(\?|$)/, (route) => json(route, 200, fakeSession()));
+  await page.route(/\/auth\/v1\/token(\?|$)/, (route) => json(route, 200, sessie ?? fakeSession()));
   // Vangnet voor elke andere REST-call (app_settings, order_lines, …).
   await page.route(/\/rest\/v1\//, (route) => objectOrList(route, null));
   await page.route(/\/rest\/v1\/members(\?|$)/, (route) => {
@@ -70,6 +81,7 @@ async function mockPortal(
     return json(route, status, body);
   });
   await page.route(/\/auth\/v1\/user(\?|$)/, (route) => {
+    if (route.request().method() === "GET" && gebruiker) return json(route, 200, gebruiker());
     if (route.request().method() !== "PUT") return route.fallback();
     const n = calls.updateUser.length;
     calls.updateUser.push(route.request().postDataJSON());
@@ -88,6 +100,7 @@ async function openAccount(page: Page) {
 
 const LID: ProfielRow = { name: "Mock Lid", role: "lid", archived: false, has_pin: false };
 const BARDIENST: ProfielRow = { name: "Mock Bardienst", role: "bardienst", archived: false, has_pin: false };
+const BEHEERDER: ProfielRow = { name: "Mock Beheerder", role: "beheerder", archived: false, has_pin: false };
 
 test.describe("gemockt — wachtwoord wijzigen", () => {
   async function openSheet(page: Page) {
@@ -241,6 +254,124 @@ test.describe("gemockt — pincode", () => {
   });
 });
 
+test.describe("gemockt — tweestapsverificatie (ADR 0017)", () => {
+  const SVG = '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10"/></svg>';
+
+  async function scan(page: Page) {
+    await page.mouse.move(0, 0);
+    const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+    expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
+  }
+
+  for (const profiel of [LID, BARDIENST]) {
+    test(`${profiel.role}: geen rij Tweestapsverificatie`, async ({ page }) => {
+      await mockPortal(page, { profiel });
+      await openAccount(page);
+      await expect(page.getByText("Tweestapsverificatie", { exact: true })).toHaveCount(0);
+    });
+  }
+
+  test("beheerder zonder factor: 'Uit' → sheet (QR en sleutel, code, Bevestigen) → toast, 'Aan' zonder knop", async ({
+    page,
+  }) => {
+    let ingesteld = false;
+    const verwijderd: string[] = [];
+    await mockPortal(page, {
+      profiel: BEHEERDER,
+      sessie: fakeSession({ aal: "aal1", user: USER_ZONDER_FACTOR }),
+      gebruiker: () =>
+        ingesteld
+          ? USER
+          : {
+              ...USER_ZONDER_FACTOR,
+              // Een niet-afgemaakte factor van een eerdere poging: die gaat eerst weg.
+              factors: [{ ...USER.factors[0], id: "00000000-0000-4000-8000-0000000000f0", status: "unverified" }],
+            },
+    });
+    await page.route(/\/auth\/v1\/factors\/[^/]+(\?|$)/, (route) => {
+      if (route.request().method() !== "DELETE") return route.fallback();
+      verwijderd.push(route.request().url().split("/factors/")[1].split("?")[0]);
+      return json(route, 200, { id: "x" });
+    });
+    await page.route(/\/auth\/v1\/factors(\?|$)/, (route) =>
+      json(route, 200, {
+        id: USER.factors[0].id,
+        type: "totp",
+        friendly_name: "",
+        totp: { qr_code: SVG, secret: "GEHEIMESLEUTEL234", uri: "otpauth://totp/x" },
+      })
+    );
+    const factor = await mockTweedeFactor(page, (n) => {
+      if (n === 0) return [422, { code: "mfa_verification_failed", msg: "Invalid TOTP code entered" }];
+      ingesteld = true;
+      return [200, fakeSession({ aal: "aal2" })];
+    });
+
+    await openAccount(page);
+    const rij = page.getByRole("button", { name: /^Tweestapsverificatie/ });
+    await expect(rij).toContainText("Uit", { timeout: 15_000 });
+    await expect(rij).toContainText(
+      "Nodig om in beheer te komen. Je gebruikt een app zoals Google Authenticator of Microsoft Authenticator."
+    );
+    await rij.click();
+
+    const stap1 = page.getByRole("dialog", { name: "Tweestapsverificatie instellen" });
+    await expect(stap1.getByText("GEHEIMESLEUTEL234")).toBeVisible({ timeout: 15_000 });
+    await expect(
+      stap1.getByText("Scan deze code met je authenticator-app. Lukt scannen niet, typ dan deze sleutel over:")
+    ).toBeVisible();
+    await expect(stap1.getByRole("img", { name: "QR-code" })).toBeVisible();
+    expect(verwijderd).toEqual(["00000000-0000-4000-8000-0000000000f0"]);
+    await scan(page);
+    await stap1.getByRole("button", { name: "Volgende" }).click();
+
+    const stap2 = page.getByRole("dialog", { name: "Code invoeren" });
+    await expect(stap2.getByText("Voer de 6 cijfers in die je app nu toont.")).toBeVisible();
+    // Besloten 12 (docs/features/beheer-tweede-factor.md): focus naar de kop.
+    await expect(stap2.getByRole("heading", { name: "Code invoeren" })).toBeFocused();
+    const bevestigen = stap2.getByRole("button", { name: "Bevestigen" });
+    await expect(bevestigen).toHaveAttribute("aria-disabled", "true");
+    await scan(page);
+
+    await vulCodeIn(page, "000000");
+    await bevestigen.click();
+    await expect(stap2.getByText("onjuiste code — probeer het opnieuw")).toBeVisible();
+
+    await vulCodeIn(page, "123456");
+    await bevestigen.click();
+    await expect(page.getByRole("status").filter({ hasText: "Tweestapsverificatie ingesteld" })).toBeVisible();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    expect(factor.codes).toEqual(["000000", "123456"]);
+
+    await expect(page.getByText("Aan", { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Tweestapsverificatie/ })).toHaveCount(0);
+  });
+
+  test("wachtwoord wijzigen met een factor en een aal1-sessie: eerst de code, dan de velden", async ({ page }) => {
+    const calls = await mockPortal(page, { profiel: BEHEERDER, sessie: fakeSession({ aal: "aal1" }), gebruiker: () => USER });
+    await mockTweedeFactor(page);
+    await openAccount(page);
+    await page.getByRole("button", { name: /^Wachtwoord wijzigen/ }).click();
+
+    const dialog = page.getByRole("dialog", { name: "Wachtwoord wijzigen" });
+    await expect(dialog.getByText("Voer eerst de code uit je authenticator-app in.")).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(dialog.getByLabel("Nieuw wachtwoord")).toHaveCount(0);
+    await scan(page);
+
+    await vulCodeIn(page, "123456");
+    await expect(dialog.getByLabel("Nieuw wachtwoord")).toBeVisible();
+    // Besloten 12: na de code de focus naar de kop van de stap met de velden.
+    await expect(dialog.getByRole("heading", { name: "Wachtwoord wijzigen" })).toBeFocused();
+    await dialog.getByLabel("Nieuw wachtwoord").fill("Aurora#2026");
+    await dialog.getByLabel("Herhaal wachtwoord").fill("Aurora#2026");
+    await dialog.getByRole("button", { name: "Wijzigen" }).click();
+    await expect(page.getByRole("status").filter({ hasText: "Wachtwoord gewijzigd" })).toBeVisible();
+    expect(calls.updateUser).toEqual([expect.objectContaining({ password: "Aurora#2026" })]);
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Live backend
 // ---------------------------------------------------------------------------
@@ -290,6 +421,52 @@ test.describe("live backend (echte lokale Supabase, supabase/seed.sql)", () => {
 
     await page.reload();
     await expect(heading(page, firstName)).toBeVisible({ timeout: 15_000 });
+  });
+
+  /** Eigen fixture (een beheerder zonder factor, supabase/seed.sql). Stelt
+   *  tweestapsverificatie echt in tegen Supabase Auth, met de code uit de
+   *  getoonde sleutel. Opzet en teardown verwijderen de factor via de Admin
+   *  API (docs/features/beheer-tweede-factor.md, ADR 0017). */
+  test.describe("profiel-beheerder-tweestap", () => {
+    const EMAIL = "e2e.profiel.tweestap@aurora.local";
+    const WACHTWOORD = "local-e2e-profiel-tweestap-dev-only";
+
+    test.beforeEach(async () => {
+      await adminVerwijderFactoren(EMAIL);
+    });
+    test.afterEach(async () => {
+      await adminVerwijderFactoren(EMAIL);
+    });
+
+    test("stelt tweestapsverificatie in: QR en sleutel, code, toast, rij 'Aan'", async ({ page }) => {
+      await portalLoginMetWachtwoord(page, EMAIL, WACHTWOORD);
+      await expect(page.getByRole("heading", { name: /^Hoi / })).toBeVisible({ timeout: 15_000 });
+      await page.getByRole("tab", { name: "Account" }).click();
+
+      const rij = page.getByRole("button", { name: /^Tweestapsverificatie/ });
+      await expect(rij).toContainText("Uit", { timeout: 15_000 });
+      await rij.click();
+
+      const stap1 = page.getByRole("dialog", { name: "Tweestapsverificatie instellen" });
+      const sleutel = stap1.locator("code");
+      await expect(sleutel).toBeVisible({ timeout: 15_000 });
+      const secret = (await sleutel.innerText()).trim();
+      expect(secret).toMatch(/^[A-Z2-7]+=*$/);
+      // De sleutel en de QR-code horen bij elkaar; de code volgt uit de sleutel.
+      expect(totpCode(secret)).toMatch(/^[0-9]{6}$/);
+      await stap1.getByRole("button", { name: "Volgende" }).click();
+
+      const stap2 = page.getByRole("dialog", { name: "Code invoeren" });
+      await expect(stap2).toBeVisible();
+      await vulCodeIn(page, await versTotpCode(secret));
+      await stap2.getByRole("button", { name: "Bevestigen" }).click();
+
+      await expect(page.getByRole("status").filter({ hasText: "Tweestapsverificatie ingesteld" })).toBeVisible({
+        timeout: 15_000,
+      });
+      await expect(page.getByText("Aan", { exact: true })).toBeVisible({ timeout: 15_000 });
+      await expect(page.getByRole("button", { name: /^Tweestapsverificatie/ })).toHaveCount(0);
+    });
   });
 
   /** 5. Eigen fixture. Teardown zet het seed-wachtwoord terug via de Admin

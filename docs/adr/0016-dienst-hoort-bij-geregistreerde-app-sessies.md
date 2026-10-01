@@ -1,10 +1,19 @@
 # 0016 — Een dienst hoort bij een of meer geregistreerde, persoonlijke app-sessies, niet bij een gedeeld device-account
 
-Status: **geaccepteerd door Bram (2026-09-29); niet gebouwd.** Hoort
+Status: **geaccepteerd door Bram (2026-09-29); fase 1 gebouwd** (migraties
+`0027`–`0029`, de login vanaf de namenlijst en de schermen; fase 2, de
+instelling (a)/(b)/(c), is niet gebouwd). Hoort
 bij [`docs/features/dienst-per-sessie.md`](../features/dienst-per-sessie.md).
-De teksten en de vragen 24–27 in die spec staan nog open. Ze veranderen het
-mechanisme hieronder niet, alleen de parameters (lockout, kostenfactor,
-geldigheid van een vertrouwd apparaat) en wie een wees-dienst mag heropenen.
+De teksten en de vragen 24–27 zijn beantwoord; de waarden staan in die spec
+(lockout na 5 foute PIN's, kostenfactor 12, vertrouwen 30 dagen, inactiviteit
+60 minuten).
+
+**Geamendeerd door [ADR 0017](0017-beheer-eist-tweede-factor-en-eigen-loginlimiet.md)
+(2026-09-30):** Beslissing 4 (het einde van een bar-sessie trekt ook de
+Auth-sessie in `auth.sessions` in) en Beslissing 7/8 (beheer eist daarnaast
+aal2; de PIN werkt niet voor een beheerder zonder tweede factor; een
+bar-sessie van zo'n beheerder wordt niet hervat). De namenlijst geeft geen
+rol meer en de login heeft een eigen limiet vóór Supabase.
 
 **Vervangt:**
 
@@ -225,8 +234,10 @@ voor elke functie.
   sign-in in `src/middleware.ts`) en het device-account verdwijnen in dezelfde
   uitrol. Voorwaarde: elke bardienst en beheerder heeft een werkend wachtwoord.
 - **Een stille bar wordt een wees-dienst.** Na 60 minuten zonder activiteit
-  heeft de dienst geen sessie meer. Wie hem dan weer mag oppakken, is spec →
-  vraag 24.
+  heeft de dienst geen sessie meer. Een beheerder neemt hem over of sluit hem;
+  een bardienst uit de bezetting hervat hem met `resume_orphan_shift` (`0030`,
+  spec → vraag 24 (ii)). Een dienst met een actieve koppeling elders blijft
+  onaantastbaar.
 - **Nieuwe negatieve tests** in `supabase/tests/`: elke bar-RPC weigert zonder
   bar-sessie, met een beëindigde of inactieve sessie, met een sessie in modus
   `beheer`, met een gearchiveerd lid, en met een sessie die niet aan de dienst

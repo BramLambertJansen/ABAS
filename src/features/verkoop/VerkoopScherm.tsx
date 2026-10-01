@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { OpenShift } from "@/hooks/queries/useOpenShift";
+import type { OpenShift } from "@/hooks/queries/useMijnDienst";
 import { useProducts } from "@/hooks/queries/useProducts";
 import { useMembers, type MemberOption } from "@/hooks/queries/useMembers";
 import { useAppSettings } from "@/hooks/queries/useAppSettings";
@@ -15,6 +15,7 @@ import { BezettingOverlay } from "@/features/bezetting-beheren/BezettingOverlay"
 import { BezettingPil } from "@/features/bezetting-beheren/BezettingPil";
 import { applyDelta, removeLine, type CartLine } from "./cart";
 import { EMPTY_ROSTER_MESSAGE, placeOrderErrorMessage } from "./messages";
+import { useMandjeMelding } from "@/features/bar-sessie/BarSessieContext";
 
 const TOAST_DURATION_MS = 4000;
 
@@ -33,6 +34,9 @@ export function VerkoopScherm({ shift }: { shift: OpenShift }) {
   const [bezettingOpen, setBezettingOpen] = useState(false);
 
   const [cartLines, setCartLines] = useState<CartLine[]>([]);
+  // Een gesloten sessie meldt dat het half ingevulde mandje niet is afgerekend
+  // (docs/features/dienst-per-sessie.md → Teksten → Meldingen).
+  useMandjeMelding(cartLines.length > 0);
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
   // Losstaand van selectedMemberId gehouden zodat clearMember() ("wissel")
   // het niet wist — chooseMember()'s keep-logica moet weten wie er vóór het

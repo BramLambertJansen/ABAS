@@ -1,5 +1,20 @@
 # 0003 — Auth-methode is een per-lid either/or-keuze; modus (bar/beheer) is vast, niet wisselbaar binnen een sessie
 
+**Geamendeerd door [ADR 0017](0017-beheer-eist-tweede-factor-en-eigen-loginlimiet.md)
+(2026-09-30):** Beslissing 2 blijft; de modus
+`beheer` vraagt daarnaast een sessie met aal2 (tweede factor).
+
+**Geamendeerd door [ADR 0016](0016-dienst-hoort-bij-geregistreerde-app-sessies.md)
+(dienst per sessie, 2026-09-29):** Beslissing 2 (losse modi, geen wisselknop)
+blijft, en wordt nu server-side vastgelegd in `bar_sessions.mode` (een sessie
+wisselt nooit van modus, `mode_locked`). Beslissing 3: "de ingelogde persoon
+stelt de bezetting samen (...) andere leden loggen niet zelf in, ze liften op
+die sessie" blijft, maar "die sessie" is de persoonlijke sessie van wie
+ingelogd is, niet een gedeelde; en "het is dezelfde RPC-laag, ongeacht welke
+sessie de aanroep doet" **vervalt**: de RPC's eisen een gekoppelde bar-sessie.
+Beslissing 4: de verwijzing naar het geaccepteerde risico van de gedeelde
+device-sessie (#34) **vervalt**.
+
 **Beslissing 1 (either/or, "nooit allebei tegelijk") is aangevuld door
 [ADR 0005](0005-wachtwoord-verplicht-pin-optionele-snelkoppeling.md)
 (2026-09-02)** — Bram heeft, bij het beoordelen van de #42-conceptspec die

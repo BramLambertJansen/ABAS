@@ -18,7 +18,53 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(13);
+select plan(14);
+
+-- ── Sessie-helper (dienst per sessie, ADR 0016) ────────────────────────────
+-- De bar-RPC's eisen een geregistreerde bar-sessie met een actieve koppeling
+-- aan de dienst (require_shift_session, 0028). Deze helper registreert voor
+-- een lid een sessie in modus `bar` (rechtstreeks geïnsert), koppelt haar aan
+-- `p_shift` en zet de JWT-claims. Het lid krijgt zo nodig een auth-account.
+-- `p_session`: het sessie-id (standaard het lid-id); geef een ander id mee voor
+-- een tweede of nieuwe sessie van hetzelfde lid.
+create function pg_temp.act_as_bar(p_member uuid, p_shift uuid default null, p_session uuid default null)
+returns void
+language plpgsql
+as $fn$
+declare
+  v_auth uuid;
+  v_session uuid;
+begin
+  select auth_user_id into v_auth from members where id = p_member;
+  if v_auth is null then
+    v_auth := p_member;
+    insert into auth.users (
+      id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
+      created_at, updated_at, raw_app_meta_data, raw_user_meta_data
+    ) values (
+      v_auth, '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated',
+      v_auth::text || '@bar.test.local', crypt('not-used', gen_salt('bf')), now(),
+      now(), now(), '{"provider":"email","providers":["email"]}', '{}'
+    ) on conflict (id) do nothing;
+    update members set auth_user_id = v_auth where id = p_member;
+  end if;
+  insert into bar_sessions (auth_session_id, member_id, mode)
+  values (coalesce(p_session, p_member), p_member, 'bar')
+  on conflict (auth_session_id) do nothing;
+  select id into v_session from bar_sessions where auth_session_id = coalesce(p_session, p_member);
+  if p_shift is not null then
+    insert into shift_sessions (shift_id, bar_session_id)
+    values (p_shift, v_session)
+    on conflict do nothing;
+  end if;
+  perform set_config('request.jwt.claim.sub', v_auth::text, true);
+  perform set_config(
+    'request.jwt.claims',
+    json_build_object('sub', v_auth::text, 'session_id', coalesce(p_session, p_member)::text)::text,
+    true
+  );
+end;
+$fn$;
 
 -- ── Fixtures ──────────────────────────────────────────────────────────
 -- Pin the negative limit explicitly rather than relying on the migration's
@@ -50,6 +96,9 @@ insert into shifts (id, started_by, ended_at) values
 insert into shift_members (shift_id, member_id) values
   ('00000000-0000-0000-0000-000000000021', '00000000-0000-0000-0000-000000000010');
 
+-- De starter is ingelogd in een bar-sessie die aan dienst ...20 gekoppeld is.
+select pg_temp.act_as_bar('00000000-0000-0000-0000-000000000010', '00000000-0000-0000-0000-000000000020');
+
 -- ── 1) happy path ─────────────────────────────────────────────────────
 select lives_ok(
   $$ select place_order(
@@ -72,6 +121,12 @@ select is(
      where o.member_id = '00000000-0000-0000-0000-000000000012'),
   250,
   'order_lines.unit_cents freezes the product price at order time'
+);
+
+select is(
+  (select bar_session_id from orders where member_id = '00000000-0000-0000-0000-000000000012'),
+  (select id from bar_sessions where auth_session_id = '00000000-0000-0000-0000-000000000010'),
+  'orders.bar_session_id is door de RPC uit de sessie gevuld'
 );
 
 -- ── 2) insufficient balance beyond the negative limit (default €0) ─────
@@ -99,9 +154,10 @@ select throws_ok(
 );
 
 -- ── 4) shift not open (ended) ────────────────────────────────────────────
--- Reachable via the verkoop screen per docs/features/verkoop.md →
--- Randgevallen ("shift_not_open"): UI shows "de dienst is niet meer actief
--- — herlaad het scherm" for this exact code.
+-- Sinds dienst-per-sessie komt de guard (require_shift_session) vóór de
+-- shift_not_open-check: een afgesloten dienst heeft geen actieve koppeling
+-- meer, dus de RPC geeft session_not_on_shift. De client behandelt beide
+-- codes als "deze sessie werkt niet (meer) in deze dienst".
 select throws_ok(
   $$ select place_order(
        '00000000-0000-0000-0000-000000000021'::uuid,
@@ -109,8 +165,8 @@ select throws_ok(
        '[{"product_id":"00000000-0000-0000-0000-000000000001","qty":1}]'::jsonb,
        '00000000-0000-0000-0000-000000000010'::uuid
      ) $$,
-  'P0001', 'shift_not_open',
-  'place_order rejects an order against a shift that has already ended'
+  'P0001', 'session_not_on_shift',
+  'place_order rejects an order against a shift that has already ended (de sessie is er niet aan gekoppeld)'
 );
 
 -- ── 5) empty order (empty lines array) ──────────────────────────────────

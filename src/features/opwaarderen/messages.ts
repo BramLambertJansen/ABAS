@@ -1,5 +1,5 @@
 import { formatCents } from "@/lib/money";
-import { NO_BAR_ROLE_SESSION_MESSAGE } from "@/lib/staff";
+import { SESSION_CODE_INLINE_MESSAGE, isSessionErrorCode } from "@/lib/barSessie";
 import type { TopUpErrorCode } from "@/hooks/queries/useTopUp";
 
 /** Harde bovengrens per contante opwaardering, afgedwongen server-side door
@@ -19,6 +19,13 @@ export const TOP_UP_MAX_CENTS = 50000;
  *  Expliciet buiten scope) is een vergissing hierboven alleen met directe
  *  databasetoegang terug te draaien — vandaar de tussenstap. */
 export const TOP_UP_CONFIRM_THRESHOLD_CENTS = 10000;
+
+/** A4 (besloten, alle standen): nooit een opwaardering naar het lid van de
+ *  ingelogde sessie. Dezelfde tekst als inline regel bij het kiezen van jezelf
+ *  (vóór het boeken, zoals de €500) en als foutmelding van `top_up`
+ *  (`self_top_up_forbidden`). De RPC dwingt het af, dit is de UX. */
+export const SELF_TOP_UP_MESSAGE =
+  "je kunt jezelf niet opwaarderen — laat een collega of een beheerder dit doen";
 
 /** Inline melding bij een bedrag boven de harde grens. Geen foutcode-
  *  melding: dit staat er al vóórdat er iets aangeroepen is, als uitleg bij
@@ -40,7 +47,12 @@ export function topUpConfirmQuestion(
  *  voorschrijft. Zelfde switch-vorm als placeOrderErrorMessage
  *  (src/features/verkoop/messages.ts). */
 export function topUpErrorMessage(code: TopUpErrorCode): string {
+  // De zes sessiecodes (dienst-per-sessie) krijgen één centrale melding, geen
+  // inline regel per scherm.
+  if (isSessionErrorCode(code)) return SESSION_CODE_INLINE_MESSAGE;
   switch (code) {
+    case "self_top_up_forbidden":
+      return SELF_TOP_UP_MESSAGE;
     case "served_by_not_on_shift":
       return "degene die je koos staat niet meer in de bezetting — kies opnieuw";
     case "member_not_found":
@@ -55,8 +67,6 @@ export function topUpErrorMessage(code: TopUpErrorCode): string {
       return topUpAmountTooHighMessage();
     case "shift_not_open":
       return "de dienst is niet meer actief — herlaad het scherm";
-    case "no_bar_role":
-      return NO_BAR_ROLE_SESSION_MESSAGE;
     case "unknown":
       return "er ging iets mis, probeer het opnieuw";
   }

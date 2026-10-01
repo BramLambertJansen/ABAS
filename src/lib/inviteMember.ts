@@ -101,6 +101,18 @@ export async function sendMemberInvite(
     return { ok: false, errorCode: "no_admin_role" };
   }
 
+  // 1b. Sessie in modus beheer (dienst-per-sessie, review-fix B2): dezelfde
+  //     voorwaarde als `require_beheer_session()` in mark_member_invite_sent,
+  //     maar vóór de mail de deur uit gaat. Zonder deze stap verstuurde een
+  //     beheerder in een bar-sessie wél een invite, en weigerde alleen de
+  //     registratie ervan. `check_beheer_session` (0031) leest alleen. Een
+  //     weigering krijgt dezelfde afhandeling als een weigering van
+  //     mark_member_invite_sent hieronder.
+  const { error: sessionError } = await supabase.rpc("check_beheer_session");
+  if (sessionError) {
+    return { ok: false, errorCode: toMarkErrorCode(sessionError.message) };
+  }
+
   // 2. Doellid lezen via de service-role-client — mag hier, stap 1 heeft de
   //    aanroeper al geautoriseerd; een gewone lezing, geen RLS-gevoelige
   //    schrijving (spec → RPC's punt 3).

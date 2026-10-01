@@ -1,5 +1,11 @@
 # Wachtwoord vergeten (`/beheer`)
 
+> **Aangevuld door [`dienst-per-sessie.md`](dienst-per-sessie.md) (2026-09-29,
+> ADR 0016):** er is een tweede ingang vanaf de namenlijst van de bar. "Wachtwoord
+> vergeten?" op het inlogscherm van een naam start dezelfde herstelflow (server-
+> side: het e-mailadres wordt opgezocht, het antwoord is altijd neutraal, ADR
+> 0013) naar het adres van dat lid.
+
 **Status: gebouwd en gemerged (2026-09-23) —
 [PR #69](https://github.com/BramLambertJansen/ABAS/pull/69).** Zie
 "Gebouwd vs. gespecificeerd" onderaan voor wat er naast deze spec kwam.

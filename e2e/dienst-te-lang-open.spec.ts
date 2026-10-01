@@ -1,6 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import { USER, fakeSession, json, loginMetWachtwoord } from "./helpers/supabaseMock";
-import { koppelTablet } from "./helpers/tabletKoppelen";
+import { USER, fakeSession, json, loginMetWachtwoord, mockBarSessie } from "./helpers/supabaseMock";
 
 /**
  * De melding "Dienst staat nog open" (docs/features/dienst-te-lang-open.md →
@@ -8,14 +7,14 @@ import { koppelTablet } from "./helpers/tabletKoppelen";
  * zitten en dus niet unit-testbaar zijn (de pure beslissing zelf staat in
  * test/dienstTeLangOpen.test.ts).
  *
- * De koppeling is echt (koppelTablet, BAR_DEVICE_SECRET, zie
- * e2e/tablet-koppelen.spec.ts); daarna mockt elke test de REST-lezingen van
- * de browser via `page.route()`, zelfde aanpak als
- * e2e/bestelling-terugdraaien.spec.ts. Zo bepaalt de test zelf `started_at`,
- * en raakt hij de ene gedeelde open dienst van de echte database niet — die
- * is van het `describe.serial`-block in e2e/a11y.spec.ts, dat parallel aan
- * dit bestand kan draaien. De browserklok loopt via `page.clock`, zodat een
- * uur snooze in een seconde voorbij is.
+ * Elke test mockt Supabase via `page.route()`, zelfde aanpak als
+ * e2e/bestelling-terugdraaien.spec.ts: de login, de REST-lezingen en, sinds
+ * dienst-per-sessie (ADR 0016), de bar-sessie (`my_bar_state` met een
+ * bevestigde sessie in modus bar en een eigen dienst). Zo bepaalt de test
+ * zelf `started_at`, en raakt hij de ene gedeelde open dienst van de echte
+ * database niet — die is van het `describe.serial`-block in
+ * e2e/a11y.spec.ts, dat parallel aan dit bestand kan draaien. De browserklok
+ * loopt via `page.clock`, zodat een uur snooze in een seconde voorbij is.
  */
 
 const HOUR_MS = 60 * 60 * 1000;
@@ -66,17 +65,28 @@ async function mockBar(page: Page, startedAt: string) {
   );
 }
 
-/** Koppelt, zet de mocks met een dienst die `openForMs` geleden startte, en
- *  opent `/` op de Verkoop-tab. De klok is vóór de eerste navigatie
- *  geïnstalleerd en loopt tot een `fastForward` gewoon mee. */
+/** Zet de mocks met een dienst die `openForMs` geleden startte, logt in en
+ *  komt op de Verkoop-tab. De sessie is een bevestigde bar-sessie met deze
+ *  dienst als eigen dienst; de login loopt via het (gemockte) `/beheer`-
+ *  formulier, en een bar-sessie stuurt `/beheer` door naar `/`. De klok is
+ *  vóór de eerste navigatie geïnstalleerd en loopt tot een `fastForward`
+ *  gewoon mee. */
 async function openBar(page: Page, openForMs: number) {
   await page.clock.install();
-  await koppelTablet(page);
-  await mockBar(page, new Date(Date.now() - openForMs).toISOString());
-  await page.goto("/");
+  const startedAt = new Date(Date.now() - openForMs).toISOString();
+  await mockBar(page, startedAt);
+  const sessie = await mockBarSessie(page, {
+    naam: TOM.name,
+    rol: "bardienst",
+    voorgeregistreerd: "bar",
+    bevestigd: true,
+    shift: { id: SHIFT_ID, startedAt, startedByName: TOM.name, activityTypeName: "Training" },
+  });
+  await loginMetWachtwoord(page, USER.email, "Aurora#2026");
   await page
     .getByRole("tab", { name: "Verkoop" })
     .waitFor({ state: "visible", timeout: 15_000 });
+  return sessie;
 }
 
 function melding(page: Page) {
@@ -94,6 +104,13 @@ test("uitstellen: de melding wacht tot Afrekenen dicht is, en komt dan meteen (b
   page,
 }) => {
   await openBar(page, 6 * HOUR_MS - 3 * MINUTE_MS);
+
+  // De poll van de bar-sessie (elke 30s, BarSessieProvider) mag in deze klok-
+  // sprong niet antwoorden: een antwoord kan een render tussen de tick en de
+  // tik forceren, en deze test meet juist die ene volgorde. Alleen de poll
+  // hangt; de eerste lezing is al binnen.
+  await page.route(/\/rest\/v1\/rpc\/my_bar_state(\?|$)/, () => new Promise<void>(() => {}));
+  await page.route(/\/auth\/v1\/token(\?|$)/, () => new Promise<void>(() => {}));
 
   await page.getByRole("button", { name: /^Pils,/ }).click();
   await page.getByLabel("Zoek lid op naam").fill("Anna");
@@ -124,19 +141,21 @@ test("race: grens en een tik op Afrekenen in dezelfde klokstap → melding pas n
   await page.getByRole("button", { name: /Anna de Vries/ }).click();
   await expect(page.getByRole("button", { name: "Tik afrekenen" })).toBeEnabled();
 
-  // Een timer op de (nep)klok die afgaat ná de 30s-tick van de melding in
-  // dezelfde fastForward: de tick maakt de melding "aan de beurt", en nog
-  // vóór diens passieve effect de teller leest, opent de tik Afrekenen.
-  await page.evaluate((delayMs) => {
-    setTimeout(() => {
-      const knop = Array.from(document.querySelectorAll("button")).find((b) =>
-        b.textContent?.includes("Tik afrekenen")
-      );
-      knop?.click();
-    }, delayMs);
-  }, 5 * MINUTE_MS);
-
-  await page.clock.fastForward("05:00");
+  // De grens en de tik vallen in één synchrone JS-taak: de klok springt 5
+  // minuten, `visibilitychange` (de melding leest dan de klok, besluit 5)
+  // maakt de melding "aan de beurt", en nog vóór diens passieve effect de
+  // teller leest, opent de tik Afrekenen. Geen timers in het spel: die zijn
+  // sinds de sessiepoll (BarSessieProvider, elke 30s) niet meer de enige
+  // die op dezelfde klokstap afgaan, en een render tussen tick en tik zou
+  // deze volgorde verbreken zonder iets over de melding te zeggen.
+  await page.clock.setSystemTime(new Date(Date.now() + 5 * MINUTE_MS));
+  await page.evaluate(() => {
+    document.dispatchEvent(new Event("visibilitychange"));
+    const knop = Array.from(document.querySelectorAll("button")).find((b) =>
+      b.textContent?.includes("Tik afrekenen")
+    );
+    knop?.click();
+  });
 
   const afrekenen = page.getByRole("dialog", { name: /^Afrekenen bij/ });
   await expect(afrekenen).toBeVisible();
@@ -336,7 +355,7 @@ test("terug uit de slaapstand: visibilitychange toont de melding zonder op de ti
 });
 
 test("negatief: na afsluiten vanuit de melding geen melding meer (Schermflow §3)", async ({ page }) => {
-  await openBar(page, 6 * HOUR_MS + 5 * MINUTE_MS);
+  const sessie = await openBar(page, 6 * HOUR_MS + 5 * MINUTE_MS);
 
   let ended = false;
   const startedAt = new Date(Date.now() - 6 * HOUR_MS - 5 * MINUTE_MS).toISOString();
@@ -358,6 +377,7 @@ test("negatief: na afsluiten vanuit de melding geen melding meer (Schermflow §3
   await page.route(/\/rest\/v1\/rpc\/end_shift(\?|$)/, (route) => {
     endShiftCalls.push(route.request().postDataJSON());
     ended = true;
+    sessie.dienstGesloten = true;
     return json(route, 200, null);
   });
 
@@ -403,6 +423,9 @@ test("negatief: in beheer-modus geen melding, ook met een dienst die 7 uur opens
       activity_types: { name: "Training" },
     })
   );
+
+  // Een beheerder kiest "Beheer": de sessie wordt in die modus geregistreerd.
+  await mockBarSessie(page);
 
   await loginMetWachtwoord(page, USER.email, "Aurora#2026");
   await page.getByRole("button", { name: "Beheer" }).click();

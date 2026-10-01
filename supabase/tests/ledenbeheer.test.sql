@@ -26,6 +26,41 @@ create extension if not exists pgtap with schema extensions;
 begin;
 select plan(99);
 
+-- ── Sessie-helper (dienst per sessie, ADR 0016) ────────────────────────────
+-- Beheer-RPC's eisen een geregistreerde sessie in modus `beheer`
+-- (require_beheer_session, 0028). Zet de JWT-claims voor `p_auth_user` en
+-- registreert, als er een lid bij hoort, een bar-sessie in `p_mode`. Bewust
+-- rechtstreeks geïnsert, ook voor een bardienst of een gearchiveerd lid: zo
+-- bewijzen deze tests de guard zelf en niet register_bar_session. Een account
+-- zonder lid krijgt geen bar-sessie (no_bar_session).
+create function pg_temp.act_as_user(p_auth_user uuid, p_mode text default 'beheer')
+returns void
+language plpgsql
+as $fn$
+declare
+  v_member uuid;
+begin
+  select id into v_member from members where auth_user_id = p_auth_user;
+  if v_member is not null then
+    insert into bar_sessions (auth_session_id, member_id, mode)
+    values (p_auth_user, v_member, p_mode)
+    on conflict (auth_session_id) do nothing;
+  end if;
+  perform set_config('request.jwt.claim.sub', p_auth_user::text, true);
+  -- Een beheersessie is altijd aal2: register_bar_session('beheer') en
+  -- require_beheer_session eisen dat (ADR 0017, 0034).
+  perform set_config(
+    'request.jwt.claims',
+    json_build_object(
+      'sub', p_auth_user::text, 'session_id', p_auth_user::text,
+      'aal', case when p_mode = 'beheer' then 'aal2' else 'aal1' end
+    )::text,
+    true
+  );
+end;
+$fn$;
+
+
 -- ── Fixtures ──────────────────────────────────────────────────────────
 
 -- auth.users: minimal rows so members.auth_user_id's FK is satisfiable and
@@ -159,15 +194,15 @@ insert into members (id, name, role, pin_hash, balance_cents, archived, email, i
 -- ── create_member ─────────────────────────────────────────────────────
 
 -- 1) actor_not_found, variant A: auth.uid() matches no members row at all.
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000283', true);
+select pg_temp.act_as_user('00000000-0000-0000-0000-000000000283');
 select throws_ok(
   $$ select create_member('Nieuw Lid', null) $$,
-  'P0001', 'actor_not_found',
+  'P0001', 'no_bar_session',
   'create_member rejects a caller whose auth.uid() matches no members row'
 );
 
 -- 2) no_admin_role: caller resolves to a real, active member, but not beheerder.
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000281', true);
+select pg_temp.act_as_user('00000000-0000-0000-0000-000000000281');
 select throws_ok(
   $$ select create_member('Nieuw Lid', null) $$,
   'P0001', 'no_admin_role',
@@ -175,7 +210,7 @@ select throws_ok(
 );
 
 -- From here on, act as the admin fixture.
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000280', true);
+select pg_temp.act_as_user('00000000-0000-0000-0000-000000000280');
 
 -- 3) invalid_name
 select throws_ok(
@@ -256,22 +291,22 @@ select is(
 
 -- 10) actor_not_found, variant B: caller resolves to a real members row, but
 -- it's archived.
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000282', true);
+select pg_temp.act_as_user('00000000-0000-0000-0000-000000000282');
 select throws_ok(
   $$ select update_member_name('00000000-0000-0000-0000-0000000002a1', 'X') $$,
-  'P0001', 'actor_not_found',
+  'P0001', 'no_bar_role',
   'update_member_name rejects a caller whose members row is archived'
 );
 
 -- 11) no_admin_role
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000281', true);
+select pg_temp.act_as_user('00000000-0000-0000-0000-000000000281');
 select throws_ok(
   $$ select update_member_name('00000000-0000-0000-0000-0000000002a1', 'X') $$,
   'P0001', 'no_admin_role',
   'update_member_name rejects a caller whose role is bardienst, not beheerder'
 );
 
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000280', true);
+select pg_temp.act_as_user('00000000-0000-0000-0000-000000000280');
 
 -- 12) member_not_found
 select throws_ok(
@@ -322,22 +357,22 @@ select is(
 -- ── set_member_archived ──────────────────────────────────────────────────
 
 -- 16) actor_not_found, variant A
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000283', true);
+select pg_temp.act_as_user('00000000-0000-0000-0000-000000000283');
 select throws_ok(
   $$ select set_member_archived('00000000-0000-0000-0000-0000000002a3', true) $$,
-  'P0001', 'actor_not_found',
+  'P0001', 'no_bar_session',
   'set_member_archived rejects a caller whose auth.uid() matches no members row'
 );
 
 -- 17) no_admin_role
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000281', true);
+select pg_temp.act_as_user('00000000-0000-0000-0000-000000000281');
 select throws_ok(
   $$ select set_member_archived('00000000-0000-0000-0000-0000000002a3', true) $$,
   'P0001', 'no_admin_role',
   'set_member_archived rejects a caller whose role is bardienst, not beheerder'
 );
 
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000280', true);
+select pg_temp.act_as_user('00000000-0000-0000-0000-000000000280');
 
 -- 18) member_not_found
 select throws_ok(
@@ -394,22 +429,22 @@ select is(
 -- ── set_member_role ───────────────────────────────────────────────────────
 
 -- 23) actor_not_found, variant B
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000282', true);
+select pg_temp.act_as_user('00000000-0000-0000-0000-000000000282');
 select throws_ok(
   $$ select set_member_role('00000000-0000-0000-0000-0000000002a4', 'bardienst') $$,
-  'P0001', 'actor_not_found',
+  'P0001', 'no_bar_role',
   'set_member_role rejects a caller whose members row is archived'
 );
 
 -- 24) no_admin_role
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000281', true);
+select pg_temp.act_as_user('00000000-0000-0000-0000-000000000281');
 select throws_ok(
   $$ select set_member_role('00000000-0000-0000-0000-0000000002a4', 'bardienst') $$,
   'P0001', 'no_admin_role',
   'set_member_role rejects a caller whose role is bardienst, not beheerder'
 );
 
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000280', true);
+select pg_temp.act_as_user('00000000-0000-0000-0000-000000000280');
 
 -- 25) member_not_found
 select throws_ok(
@@ -504,31 +539,31 @@ select is(
 -- ── update_member_email (#57) ────────────────────────────────────────────
 
 -- 33) actor_not_found, variant A: auth.uid() matches no members row at all.
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000283', true);
+select pg_temp.act_as_user('00000000-0000-0000-0000-000000000283');
 select throws_ok(
   $$ select update_member_email('00000000-0000-0000-0000-0000000002a5', 'x@test.local') $$,
-  'P0001', 'actor_not_found',
+  'P0001', 'no_bar_session',
   'update_member_email rejects a caller whose auth.uid() matches no members row'
 );
 
 -- 34) actor_not_found, variant B: caller resolves to a real members row, but
 -- it's archived.
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000282', true);
+select pg_temp.act_as_user('00000000-0000-0000-0000-000000000282');
 select throws_ok(
   $$ select update_member_email('00000000-0000-0000-0000-0000000002a5', 'x@test.local') $$,
-  'P0001', 'actor_not_found',
+  'P0001', 'no_bar_role',
   'update_member_email rejects a caller whose members row is archived'
 );
 
 -- 35) no_admin_role
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000281', true);
+select pg_temp.act_as_user('00000000-0000-0000-0000-000000000281');
 select throws_ok(
   $$ select update_member_email('00000000-0000-0000-0000-0000000002a5', 'x@test.local') $$,
   'P0001', 'no_admin_role',
   'update_member_email rejects a caller whose role is bardienst, not beheerder'
 );
 
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000280', true);
+select pg_temp.act_as_user('00000000-0000-0000-0000-000000000280');
 
 -- 36) member_not_found
 select throws_ok(
@@ -627,31 +662,31 @@ select throws_ok(
 -- actorcheck-vorm/fixtures als de rest van dit bestand.
 
 -- 41) actor_not_found, variant A: auth.uid() matches no members row at all.
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000283', true);
+select pg_temp.act_as_user('00000000-0000-0000-0000-000000000283');
 select throws_ok(
   $$ select * from list_members_admin() $$,
-  'P0001', 'actor_not_found',
+  'P0001', 'no_bar_session',
   'list_members_admin rejects a caller whose auth.uid() matches no members row'
 );
 
 -- 42) actor_not_found, variant B: caller resolves to a real members row, but
 -- it's archived.
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000282', true);
+select pg_temp.act_as_user('00000000-0000-0000-0000-000000000282');
 select throws_ok(
   $$ select * from list_members_admin() $$,
-  'P0001', 'actor_not_found',
+  'P0001', 'no_bar_role',
   'list_members_admin rejects a caller whose members row is archived'
 );
 
 -- 43) no_admin_role
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000281', true);
+select pg_temp.act_as_user('00000000-0000-0000-0000-000000000281');
 select throws_ok(
   $$ select * from list_members_admin() $$,
   'P0001', 'no_admin_role',
   'list_members_admin rejects a caller whose role is bardienst, not beheerder'
 );
 
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000280', true);
+select pg_temp.act_as_user('00000000-0000-0000-0000-000000000280');
 
 -- 44) happy path: beheerder-sessie krijgt de ledenlijst terug.
 select lives_ok(
@@ -715,15 +750,15 @@ select is(
 -- geretourneerde resultaat in een temp table vast.
 
 -- 50) actor_not_found, variant A: auth.uid() matches no members row at all.
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000283', true);
+select pg_temp.act_as_user('00000000-0000-0000-0000-000000000283');
 select throws_ok(
   $$ select mark_member_invite_sent('00000000-0000-0000-0000-0000000002a9') $$,
-  'P0001', 'actor_not_found',
+  'P0001', 'no_bar_session',
   'mark_member_invite_sent rejects a caller whose auth.uid() matches no members row'
 );
 
 -- 51) no_admin_role: caller resolves to a real, active member, but not beheerder.
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000281', true);
+select pg_temp.act_as_user('00000000-0000-0000-0000-000000000281');
 select throws_ok(
   $$ select mark_member_invite_sent('00000000-0000-0000-0000-0000000002a9') $$,
   'P0001', 'no_admin_role',
@@ -731,7 +766,7 @@ select throws_ok(
 );
 
 -- From here on, act as the admin fixture.
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000280', true);
+select pg_temp.act_as_user('00000000-0000-0000-0000-000000000280');
 
 -- 52) member_not_found
 select throws_ok(
@@ -833,7 +868,7 @@ select is(
 -- sessie-claim hieronder is lowercase), auth_user_id null, invited_at
 -- gezet. Koppelt auth_user_id aan het session-uid en scrubt pin_hash in het
 -- geretourneerde resultaat.
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000284', true);
+select pg_temp.act_as_user('00000000-0000-0000-0000-000000000284');
 select set_config('request.jwt.claim.email', 'link-happy@test.local', true);
 select lives_ok(
   $$ create temp table lima_happy_result as

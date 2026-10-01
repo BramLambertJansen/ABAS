@@ -22,6 +22,7 @@
  */
 
 import { classifyLoadError, type LoadErrorKind } from "./loadErrors.ts";
+import { notifySessionCode, sessionCodeFromError } from "./barSessie.ts";
 
 /** Herhalingen binnen dit venster tellen op in plaats van een eigen rij. */
 export const DEDUPE_WINDOW_MS = 5 * 60 * 1000;
@@ -174,9 +175,21 @@ function currentPathname(): string {
  * `log_client_error`. Blokkeert niet, gooit nooit, en een mislukte melding
  * wordt niet opnieuw gemeld (geen lus). Alleen voor onverwachte fouten —
  * een domeinuitkomst die een RPC bewust teruggeeft (`insufficient_balance`
- * en dergelijke) hoort hier niet.
+ * en dergelijke) hoort hier niet. De zes sessiecodes van de guards zijn zo'n
+ * uitkomst: die gaan naar `notifySessionCode` in plaats van naar de log.
  */
 export function reportClientError(client: ClientErrorClientSource, hook: string, err: unknown): void {
+  // Een sessiecode van de guards (0028) is geen fout maar een bekende
+  // domeinuitkomst: "deze sessie kan niet (meer) in deze dienst werken". Die
+  // gaat naar de centrale afhandeling (BarSessieProvider) in plaats van naar
+  // client_errors, ook voor hooks die hem niet zelf als bekende code kennen
+  // (de beheer-hooks, useMijnDienst, ...). Anders zou elke afgemelde of
+  // inactieve sessie bij de eerstvolgende actie als "fout" in de log staan.
+  const sessionCode = sessionCodeFromError(err);
+  if (sessionCode) {
+    notifySessionCode(sessionCode);
+    return;
+  }
   logLocalError(hook, err);
   try {
     const payload = buildClientErrorPayload(hook, err, currentPathname(), BUILD);

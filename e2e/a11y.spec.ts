@@ -1,7 +1,8 @@
 import { test, expect, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { loginMetWachtwoord, portalLoginMetWachtwoord } from "./helpers/supabaseMock";
-import { koppelTablet, koppelformulier, openKoppelscherm } from "./helpers/tabletKoppelen";
+import { FEMKE, TOM, WACHTWOORD_FEMKE, WACHTWOORD_TOM, logInOpBar } from "./helpers/barLogin";
+import { FEMKE_TOTP_SECRET, versTotpCode, vulCodeIn } from "./helpers/totp";
 
 /**
  * The WCAG-AA gate CLAUDE.md calls for: axe-core against every shell's
@@ -11,11 +12,11 @@ import { koppelTablet, koppelformulier, openKoppelscherm } from "./helpers/table
  * npm run check:all.
  */
 const routes = [
-  // docs/features/tablet-koppelen.md → e2e en CI: zonder koppeling stuurt
-  // de middleware `/` door naar `/koppel`, dus dat scherm staat hier. Het
-  // gekoppelde `/` wordt gescand in het stateful block hieronder
-  // (activiteitkeuze, pincode, Verkoop, …).
-  { name: "tablet koppelen", path: "/koppel" },
+  // docs/features/dienst-per-sessie.md → Schermflow punt 1: zonder sessie
+  // toont `/` de namenlijst. De schermen daarna (inloggen, hervatten,
+  // activiteitkeuze, Verkoop, …) worden gescand in het stateful block
+  // hieronder.
+  { name: "bar shell (startscherm, namenlijst)", path: "/" },
   { name: "portal shell", path: "/portal" },
   { name: "beheer login", path: "/beheer" },
   // docs/features/wachtwoord-vergeten.md — aanvraagweergave, en het
@@ -59,28 +60,6 @@ for (const { name, path } of routes) {
  * daarom met reducedMotion "reduce", en globals.css zet overgangen dan uit.
  * Deze test bewaakt dat die twee samen blijven werken.
  */
-/**
- * docs/features/tablet-koppelen.md → Testplan → "A11y": de foutstaat van
- * het koppelscherm (melding in role="alert", veld leeg met focus) als eigen
- * scan. Leunt niet op de schermteksten, alleen op rol.
- */
-test("tablet koppelen (/koppel) foutstaat na een verkeerde code has no WCAG2A/AA violations", async ({
-  page,
-}) => {
-  await openKoppelscherm(page);
-  const formulier = koppelformulier(page);
-  await formulier.getByRole("textbox").fill("AAAAA-AAAAA-AAAAA-AAAAA-AAAAA-A");
-  await formulier.getByRole("button").click();
-  await expect(formulier.getByRole("alert")).toHaveText(/\S/);
-
-  const results = await new AxeBuilder({ page })
-    .withTags(["wcag2a", "wcag2aa"])
-    .analyze();
-
-  expect(results.violations, JSON.stringify(results.violations, null, 2))
-    .toEqual([]);
-});
-
 test("a11y-scans draaien zonder kleurovergangen (#71)", async ({ page }) => {
   await page.goto("/beheer");
 
@@ -518,13 +497,30 @@ test.describe("portal (a11y)", () => {
  * hun eigen a11y-scenario's van de Tester (spec → Randgevallen → A11y) —
  * deze aanpassing bestaat alleen om het bestaande, al gemergede scenario
  * kloppend te houden met het nu gewijzigde schermverloop.
+ *
+ * Sinds ADR 0017 (docs/features/beheer-tweede-factor.md) eist beheer een
+ * tweede factor: na de tik op "Beheer" volgt de code uit de authenticator-app.
+ * Femke Bos heeft in supabase/seed.sql een geverifieerde TOTP-factor met een
+ * vast secret; de code rekent e2e/helpers/totp.ts uit, en de echte Supabase
+ * Auth controleert hem (challenge + verify → aal2).
  */
-async function loginAsBeheerder(page: Page) {
+async function naarCodeStap(page: Page) {
   await loginMetWachtwoord(page, "femke.bos@aurora.local", "local-beheerder-dev-only");
 
-  const beheerTegel = page.getByRole("button", { name: "Beheer" });
+  const beheerTegel = page.getByRole("button", { name: /^Beheer/ });
   await beheerTegel.waitFor({ state: "visible", timeout: 15_000 });
+  // De tegel is aria-disabled tot de factoren gelezen zijn.
+  await expect(beheerTegel).not.toHaveAttribute("aria-disabled", "true", { timeout: 15_000 });
   await beheerTegel.click();
+
+  await page
+    .getByRole("heading", { name: "Code uit je authenticator-app" })
+    .waitFor({ state: "visible", timeout: 15_000 });
+}
+
+async function loginAsBeheerder(page: Page) {
+  await naarCodeStap(page);
+  await vulCodeIn(page, await versTotpCode(FEMKE_TOTP_SECRET));
 
   await page
     .getByRole("tablist", { name: "Beheer-navigatie" })
@@ -543,30 +539,6 @@ async function loginToModusKeuze(page: Page) {
 
   await page
     .getByRole("heading", { name: /^Welkom,/ })
-    .waitFor({ state: "visible", timeout: 15_000 });
-}
-
-/**
- * docs/features/logboek.md (#19) → Randgevallen: signs in as the seeded
- * `bardienst` e-mail/wachtwoord account (Sanne Bakker, `supabase/seed.sql`)
- * and clicks through to `BeheerTabs`, same shape as `loginAsBeheerder()`
- * above but for the other role `useBeheerSession.ts` accepts into
- * `/beheer`. Not `role="beheerder"`: BeheerTabs.tsx renders the Logboek tab
- * only for that role, and this helper exists specifically to prove the
- * opposite case genuinely reaches the tabbalk (Assortiment/Leden/
- * Instellingen) without Logboek, rather than being denied outright by
- * `useBeheerSession.ts` — a `bardienst` session is a fully accepted
- * "signed-in" state there (ADR 0005), not a "denied" one.
- */
-async function loginAsBardienst(page: Page) {
-  await loginMetWachtwoord(page, "sanne.bakker@aurora.local", "local-bardienst-dev-only");
-
-  const beheerTegel = page.getByRole("button", { name: "Beheer" });
-  await beheerTegel.waitFor({ state: "visible", timeout: 15_000 });
-  await beheerTegel.click();
-
-  await page
-    .getByRole("tablist", { name: "Beheer-navigatie" })
     .waitFor({ state: "visible", timeout: 15_000 });
 }
 
@@ -651,43 +623,23 @@ test.describe("beheer ingelogde staat (a11y)", () => {
    * through to `BeheerTabs`, so this is the only scenario that actually
    * scans this intermediate screen.
    */
+  /**
+   * docs/features/beheer-tweede-factor.md (ADR 0017): de code-stap in de
+   * modus-keuze, na een tik op "Beheer" met een aal1-sessie. Scant de lege
+   * invoer; de muis gaat eerst van de knoppen af (hover-kleuren).
+   */
+  test("beheer (/beheer) code-stap in de modus-keuze has no WCAG2A/AA violations", async ({ page }) => {
+    await naarCodeStap(page);
+    await page.mouse.move(0, 0);
+
+    const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+    expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
+  });
+
   test("beheer (/beheer) modus-keuze (ingelogd, vóór modus gekozen) has no WCAG2A/AA violations", async ({
     page,
   }) => {
     await loginToModusKeuze(page);
-
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-
-    expect(results.violations, JSON.stringify(results.violations, null, 2))
-      .toEqual([]);
-  });
-
-  /**
-   * docs/features/auth-methode-per-lid.md (#42) → Randgevallen → "A11y" (b):
-   * the new "Mijn account"-overlay/PIN-toggle (`MijnAccountOverlay.tsx`),
-   * opened from `ModusKeuze.tsx`'s "Mijn account"-knop — this app's fifth
-   * real `Overlay.tsx` consumer. Scans the "geen pincode ingesteld"-staat
-   * (Femke Bos, the seeded beheerder used here, has no `pin_hash` set in
-   * `supabase/seed.sql`), i.e. the invoerveld-variant of the overlay rather
-   * than the "pincode uitzetten"-knop-variant — both variants share the same
-   * `Overlay.tsx` chrome/markup already scanned elsewhere in this file, the
-   * form-vs-button difference is the part unique to this scenario.
-   */
-  test("beheer (/beheer) Mijn-account-overlay has no WCAG2A/AA violations", async ({
-    page,
-  }) => {
-    await loginToModusKeuze(page);
-
-    await page.getByRole("button", { name: "Mijn account" }).click();
-
-    const dialog = page.getByRole("dialog", { name: "Mijn account" });
-    await dialog.waitFor({ state: "visible" });
-
-    // Same focus-on-open contract as every Overlay.tsx consumer (see
-    // docs/features/bezetting-beheren.md → useShell()-contract).
-    await expect(dialog).toBeFocused();
 
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa"])
@@ -852,175 +804,194 @@ test.describe("beheer ingelogde staat (a11y)", () => {
   });
 
   /**
-   * docs/features/logboek.md (#19) → Randgevallen: "beheerder only" was
-   * previously only claimed in the spec, never enforced — BeheerTabs.tsx
-   * now gates the Logboek tab on `role === "beheerder"` (commit ab7dfe6),
-   * with `role` threaded through from `useBeheerSession.ts`. This proves
-   * that structurally, against a genuine `bardienst` session
-   * (`loginAsBardienst()`, Sanne Bakker — `supabase/seed.sql`), not by
-   * inspecting the source.
-   *
-   * Asserts absence via `.getByRole("tab", { name: "Logboek" })` +
-   * `toHaveCount(0)` — the tab button isn't in the DOM at all for this
-   * role (no `hidden`/`display: none` toggle to check instead, see
-   * BeheerTabs.tsx's `{role === "beheerder" && (...)}` guard). Also
-   * confirms the other three tabs (Assortiment/Leden/Instellingen) ARE
-   * present for this same session, so this test actually distinguishes
-   * "correctly scoped to one missing tab" from "everything broken/empty" —
-   * an empty tablist would otherwise also make the Logboek-absence
-   * assertion pass for the wrong reason. Not an axe scan itself (no new
-   * screen state beyond what the Assortiment-/Leden-/Instellingen-tab
-   * tests above already cover) — this is the role-gate's own regression
-   * test, not a duplicate a11y pass.
+   * docs/features/logboek.md (#19): de Logboek-tab was "beheerder only" en
+   * BeheerTabs.tsx bewaakt dat nog. Sinds dienst-per-sessie (ADR 0016) komt een
+   * bardienst helemaal niet meer in beheer: `register_bar_session('beheer')`
+   * is alleen voor een beheerder, en de modus-keuze biedt hem de tegel niet
+   * aan. Dit bewijst dat tegen een echte `bardienst`-sessie (Sanne Bakker,
+   * `supabase/seed.sql`): wel "Bar", geen "Beheer".
    */
-  test("beheer (/beheer) Logboek-tab is genuinely absent for a bardienst session (#19)", async ({
+  test("beheer (/beheer) modus-keuze biedt een bardienst geen Beheer-tegel (#19, dienst-per-sessie)", async ({
     page,
   }) => {
-    await loginAsBardienst(page);
+    await loginMetWachtwoord(page, "sanne.bakker@aurora.local", "local-bardienst-dev-only");
 
-    await expect(page.getByRole("tab", { name: "Assortiment" })).toHaveCount(1);
-    await expect(page.getByRole("tab", { name: "Leden" })).toHaveCount(1);
-    await expect(page.getByRole("tab", { name: "Instellingen" })).toHaveCount(1);
-    await expect(page.getByRole("tab", { name: "Logboek" })).toHaveCount(0);
+    await page
+      .getByRole("heading", { name: /^Welkom,/ })
+      .waitFor({ state: "visible", timeout: 15_000 });
+
+    await expect(page.getByRole("button", { name: "Bar" })).toHaveCount(1);
+    await expect(page.getByRole("button", { name: "Beheer" })).toHaveCount(0);
   });
 });
 
 /**
- * Both scenarios below need a shift already open on the shared bar-tablet
- * session before they can reach their target screen — there is exactly one
- * "current open shift" (docs/ARCHITECTURE.md → "Shared bar-tablet session
- * mechanism"), not scoped per browser/page; since #29 `start_shift` refuses
- * a second open shift (`shift_already_open`). Grouped in
- * `test.describe.serial` so Playwright runs them one after another rather
- * than in separate parallel workers (`fullyParallel: true` in
- * playwright.config.ts) — two concurrent `start_shift`/`place_order` calls
- * against that shared "one open shift" state would be racy
- * (whichever finishes last "wins" as the shift the other test's page
- * observes, independent of which test's assertions expect it).
- * `ensureShiftStarted()` below also tolerates a shift that's already open
- * from an earlier test in the block, or one left running by a previous
- * failed attempt on the *same* commit (Playwright retries in CI reuse the
- * same local Postgres, only the browser context is fresh) — so this suite
- * doesn't additionally assume a specific run order beyond "not interleaved
- * with itself".
+ * De stateful scenario's van de bar-shell hieronder hebben elk een eigen,
+ * verse browsercontext, en dus een eigen persoonlijke sessie (dienst-per-sessie,
+ * ADR 0016): geen gedeeld device-account meer, geen koppelcode. Elke test logt
+ * in vanaf de namenlijst (`logInOpBar`, e2e/helpers/barLogin.ts) als een
+ * seed-bardienst.
+ *
+ * Er is nog steeds hooguit één open dienst in de database (fase 1 is stand
+ * (a), `start_shift` weigert een tweede met `shift_already_open`), en die
+ * dienst hoort bij de sessie waarin hij gestart is. Een nieuwe test ziet de
+ * dienst van de vorige dus als "Er loopt al een dienst" en kan er niet in
+ * werken — tenzij het een beheerder is: die neemt hem over
+ * (`admin_take_over_shift`). Daarom werken de scenario's als Femke Bos
+ * (beheerder), en `ensureShiftStarted()` start een dienst óf neemt de lopende
+ * over. Grouped in `test.describe.serial` so Playwright runs them one after
+ * another rather than in separate parallel workers (`fullyParallel: true` in
+ * playwright.config.ts) — twee gelijktijdige overnames of starts tegen die ene
+ * open dienst zijn racy.
  *
  * Needs a live Supabase instance reachable at build/run time
- * (NEXT_PUBLIC_SUPABASE_URL/NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
- * SUPABASE_DEVICE_EMAIL/PASSWORD, plus BAR_DEVICE_SECRET for the koppeling
- * each test starts with — ADR 0011) seeded with supabase/seed.sql — see
- * docs/ARCHITECTURE.md → "Local/CI device account" for how CI provisions
- * that. Confirmed actually passing in real CI as of PR #40 (merged
- * 2026-08-26), which also fixed two pre-existing bugs (`useOpenShift`'s
- * PGRST201 embed ambiguity, a WCAG-AA contrast gap in the `accent` design
- * token) that this test was the first thing in the repo to ever reach far
- * enough to surface.
+ * (NEXT_PUBLIC_SUPABASE_URL/NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, plus
+ * SUPABASE_SECRET_KEY voor de server-side bar-login, src/lib/barLogin.ts) seeded
+ * with supabase/seed.sql — see .github/workflows/ci.yml for how CI provisions
+ * that.
  */
 /**
- * The stafkeuze-knop for the demo bardienst account. Anchored on purpose:
- * StaffPicker's button is named "Tom Willems, bardienst", but since #83 the
- * Verkoop screen's BezettingPil is a button named "Bezetting: Tom Willems —
- * tik om te wijzigen". An unanchored /Tom Willems/ matched that pill as
- * soon as the bezetting loaded, so ensureShiftStarted()/ensureNoOpenShift()
- * took the "no shift open" branch with a shift actually open — timing-
- * dependent, and it failed PR #82's CI run.
+ * De naamknop van de beheerder waarmee de scenario's werken. Anchored on
+ * purpose: StaffPicker's button is named "Femke Bos" (sinds ADR 0017 zonder rol), but since
+ * #83 the Verkoop screen's BezettingPil is a button named "Bezetting: Femke
+ * Bos — tik om te wijzigen". An unanchored /Femke Bos/ matched that pill.
  */
-const STAFF_BUTTON_NAME = /^Tom Willems\b/;
+const STAFF_BUTTON_NAME = FEMKE;
 
-test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
-  // docs/features/tablet-koppelen.md → e2e en CI: elke test krijgt een
-  // verse browsercontext, dus zonder koppeling geen abas_tablet-cookie en
-  // geen device-sessie. Eén formulier-POST per test via de echte flow.
-  test.beforeEach(async ({ page }) => {
-    await koppelTablet(page);
-  });
-
-  /** Starts a shift as the demo "Tom Willems" bardienst account (PIN 1234,
-   *  per seed.sql's comment: "Demo PIN for every bar/beheer member below is
-   *  1234") if none is open yet on this shared session, or reuses whichever
-   *  shift is already open (e.g. left open by an earlier test in this
-   *  block). Note: since #12 (docs/features/dienst-afsluiten.md) there *is*
-   *  an end_shift UI (the "Dienst afsluiten"-overlay, scanned in its own
-   *  test below) — this helper itself only ever starts a shift, it never
-   *  closes one, so a shift left open by an earlier test in this block is
-   *  still the expected/reused case here, not a stale assumption. Lands on
-   *  the Verkoop tab either way (docs/features/verkoop.md → Navigatie:
-   *  Verkoop is the default tab after start / on an already-open shift).
+test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () => {
+  /**
+   * Logt in als Femke Bos en zorgt dat deze sessie in een lopende dienst werkt:
+   * start er een ("Training", één van de vier seed-rijen uit
+   * 0019_activiteittypes.sql) als er geen loopt, of neemt de lopende over
+   * (een beheerder in bar-modus, docs/features/dienst-per-sessie.md → Beheerder).
+   * Landt op de Verkoop-tab (docs/features/verkoop.md → Navigatie).
    *
-   *  Updated for #18 (docs/features/activiteittypes.md): `start_shift` now
-   *  requires an activity type, and DienstStarten.tsx inserted a new
-   *  activiteitkeuze-stap (ActiviteitKeuze.tsx) between the staff picker and
-   *  the PIN pad — tapping the staff button no longer lands directly on
-   *  PinPad. "Training" is one of the four seed rows
-   *  (0019_activiteittypes.sql; supabase/seed.sql doesn't override them).
-   *  Without this step the PIN digits below would be typed into a screen
-   *  that doesn't exist yet, and every test using this helper would time
-   *  out waiting for the Verkoop tab. */
+   * Race op de drie landingsstaten in plaats van te raden welke eerst komt (PR
+   * #41, run 33012912605): de activiteitkeuze (geen dienst), "Er loopt al een
+   * dienst" (een dienst elders), of Verkoop (al een eigen dienst).
+   */
   async function ensureShiftStarted(page: Page) {
-    await page.goto("/");
+    await logInOpBar(page, STAFF_BUTTON_NAME, WACHTWOORD_FEMKE);
 
     const verkoopTab = page.getByRole("tab", { name: "Verkoop" });
-    const staffButton = page.getByRole("button", { name: STAFF_BUTTON_NAME });
-
-    // A short isVisible()-with-timeout pre-check here was racy in CI: on a
-    // slower/cold navigation, hydration can take longer than a couple of
-    // seconds, so a too-short check would give up and wrongly assume no
-    // shift is open — then wait 15s for a staff button that, with a shift
-    // actually already open, never renders (PR #41, run 33012912605). Race
-    // both landing states with the full timeout instead of pre-guessing
-    // which one shows first — same pattern as the bezetting-overlay test's
-    // own retry-vs-fresh-login race (PR #40).
+    const activitySelect = page.getByRole("combobox", { name: "Activiteit" });
+    const overnemen = page.getByRole("button", { name: "Overnemen", exact: true });
     await Promise.race([
       verkoopTab.waitFor({ state: "visible", timeout: 15_000 }),
-      staffButton.waitFor({ state: "visible", timeout: 15_000 }),
+      activitySelect.waitFor({ state: "visible", timeout: 15_000 }),
+      overnemen.waitFor({ state: "visible", timeout: 15_000 }),
     ]);
 
-    if (await staffButton.isVisible()) {
-      await staffButton.click();
-
-      const activitySelect = page.getByRole("combobox", { name: "Activiteit" });
-      await activitySelect.waitFor({ state: "visible", timeout: 15_000 });
+    if (await overnemen.isVisible()) {
+      await overnemen.click();
+      const dialog = page.getByRole("dialog", { name: "Dienst overnemen?" });
+      await dialog.waitFor({ state: "visible" });
+      await dialog.getByRole("button", { name: "Overnemen", exact: true }).click();
+    } else if (await activitySelect.isVisible()) {
       await activitySelect.click();
       await page.getByRole("option", { name: "Training" }).click();
-
-      for (const digit of ["1", "2", "3", "4"]) {
-        await page.getByRole("button", { name: `Cijfer ${digit}` }).click();
-      }
-
-      await verkoopTab.waitFor({ state: "visible", timeout: 15_000 });
     }
+
+    await verkoopTab.waitFor({ state: "visible", timeout: 15_000 });
   }
 
   /**
-   * docs/features/activiteittypes.md (#18) → Randgevallen → "A11y van de
-   * nieuwe Instellingen-kaart ... en de nieuwe activiteitkeuze-stap in
-   * dienst-starten": ActiviteitKeuze.tsx, the new step between StaffPicker
-   * and PinPad (DienstStarten.tsx → step "activity"). Deliberately the
-   * *first* test in this `describe.serial` block, before
-   * `ensureShiftStarted()` runs anywhere else in the file — that helper is
-   * the only place a shift gets started on this shared bar-tablet session,
-   * so running first (same worker, in declaration order, per
-   * `.serial()`'s own guarantee) is what keeps the staff picker — and this
-   * step right after it — reachable rather than already replaced by
-   * DienstTabs. Position alone isn't enough, though (#88): the later tests
-   * in this block leave a shift open, so a second run against the same
-   * local Postgres — or a CI retry of this block — landed on DienstTabs
-   * and timed out waiting for the staff button. `ensureNoOpenShift()`
-   * closes any such leftover first. Doesn't pick an activity or type a PIN (that would start a
-   * shift as a side effect of an a11y-only scan, same reasoning as the
-   * dienst-afsluiten-overlay test below not clicking its own confirm
-   * button).
+   * The inverse of `ensureShiftStarted()`: logt in als Femke en laat deze sessie
+   * met *geen* open dienst achter, zodat `/` de activiteitkeuze toont in plaats
+   * van DienstTabs. Sluit een lopende dienst via de echte flows (de eigen dienst
+   * via "Dienst afsluiten", een dienst elders via "Afsluiten" van de
+   * beheerder), niet via de database: zo kan deze helper niet uit de pas lopen
+   * met het gedrag van de app. Op een Playwright-retry in CI (`retries: 1`)
+   * staat de dienst van de vorige poging nog open, tegen dezelfde lokale
+   * Postgres (#88).
+   */
+  async function ensureNoOpenShift(page: Page) {
+    await logInOpBar(page, STAFF_BUTTON_NAME, WACHTWOORD_FEMKE);
+
+    const verkoopTab = page.getByRole("tab", { name: "Verkoop" });
+    const activitySelect = page.getByRole("combobox", { name: "Activiteit" });
+    const afsluitenElders = page.getByRole("button", { name: "Afsluiten", exact: true });
+    await Promise.race([
+      verkoopTab.waitFor({ state: "visible", timeout: 15_000 }),
+      activitySelect.waitFor({ state: "visible", timeout: 15_000 }),
+      afsluitenElders.waitFor({ state: "visible", timeout: 15_000 }),
+    ]);
+
+    if (await activitySelect.isVisible()) return;
+
+    if (await afsluitenElders.isVisible()) {
+      await afsluitenElders.click();
+    } else {
+      await page.getByRole("tab", { name: "Dienst" }).click();
+      await page
+        .getByRole("heading", { name: "Dienst", exact: true })
+        .waitFor({ state: "visible", timeout: 15_000 });
+      await page.getByRole("button", { name: "Dienst afsluiten" }).click();
+    }
+
+    // Scope the confirm to the dialog: the trigger button behind it has
+    // the same accessible name, and Playwright's name matching ignores
+    // case, so an unscoped locator would be a strict-mode violation.
+    const dialog = page.getByRole("dialog", { name: "Dienst afsluiten" });
+    await dialog.waitFor({ state: "visible" });
+    await dialog.getByRole("button", { name: "dienst afsluiten" }).click();
+
+    await activitySelect.waitFor({ state: "visible", timeout: 15_000 });
+  }
+
+  /**
+   * docs/features/dienst-per-sessie.md → Schermflow punt 2: het inlogscherm
+   * na een tik op een naam. Op een apparaat zonder apparaatcookie (elke test
+   * begint met een verse context) kan alleen het wachtwoord: het veld, de
+   * uitleg waarom de pincode hier nog niet kan, en "Wachtwoord vergeten?".
+   */
+  test("bar shell (/) inlogscherm met wachtwoord has no WCAG2A/AA violations", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: FEMKE }).click();
+    await page.locator('input[type="password"]').waitFor({ state: "visible", timeout: 15_000 });
+
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+
+    expect(results.violations, JSON.stringify(results.violations, null, 2))
+      .toEqual([]);
+  });
+
+  /** Schermflow punt 2 → "Wachtwoord vergeten?": de aanvraagweergave vanaf de
+   *  namenlijst. Er wordt niets verstuurd; alleen de weergave wordt gescand. */
+  test("bar shell (/) wachtwoord vergeten vanaf de namenlijst has no WCAG2A/AA violations", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: FEMKE }).click();
+    await page.getByRole("button", { name: "Wachtwoord vergeten?" }).click();
+    await page
+      .getByRole("button", { name: "Stuur herstellink" })
+      .waitFor({ state: "visible", timeout: 15_000 });
+
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+
+    expect(results.violations, JSON.stringify(results.violations, null, 2))
+      .toEqual([]);
+  });
+
+  /**
+   * docs/features/activiteittypes.md (#18) → Randgevallen → "A11y van de nieuwe
+   * ... activiteitkeuze-stap in dienst-starten": ActiviteitKeuze.tsx, sinds
+   * dienst-per-sessie de enige stap na de login (geen PIN-stap meer). Deliberately
+   * doesn't pick an activity (that would start a shift as a side effect of an
+   * a11y-only scan). `ensureNoOpenShift()` closes any leftover shift first
+   * (#88).
    */
   test("bar shell (/) activiteitkeuze-stap (dienst starten) has no WCAG2A/AA violations", async ({
     page,
   }) => {
     await ensureNoOpenShift(page);
 
-    const staffButton = page.getByRole("button", { name: STAFF_BUTTON_NAME });
-    await staffButton.waitFor({ state: "visible", timeout: 15_000 });
-    await staffButton.click();
-
     const activitySelect = page.getByRole("combobox", { name: "Activiteit" });
-    await activitySelect.waitFor({ state: "visible", timeout: 15_000 });
     // Scan met het menu open: de listbox en haar opties tellen dan mee
     // (dicht is de listbox `display: none` en slaat axe haar over).
     await activitySelect.click();
@@ -1037,215 +1008,54 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
   });
 
   /**
-   * docs/features/activiteittypes.md (#18), task item 5: going back from
-   * the PIN-stap to the activiteitkeuze-stap (`backToActivityKeuze()`,
-   * DienstStarten.tsx) clears `pin`/foutstatus but deliberately does NOT
-   * clear `selectedActivityType` in React state (spec → Schermflow §2 stap
-   * 3: "`selectedStaff` blijft daarbij behouden" — the same is true in the
-   * implementation for `selectedActivityType`). ActiviteitKeuze.tsx's own
-   * `<select>` always renders `value=""` though (hardcoded, never bound to
-   * `selectedActivityType`), so the dropdown visually resets to the
-   * placeholder while the internal state still holds the earlier choice —
-   * a UI/state mismatch, not a functional break: the user has to interact
-   * with the dropdown again regardless (`onSelect` only fires on a real
-   * `onChange`), and doing so immediately overwrites the stale state before
-   * it can be submitted anywhere. This test locks down that this is the
-   * CURRENT behaviour, not a statement that it's the correct one.
-   *
-   * The PIN-stap's back button now has its own label ("← andere
-   * activiteit", `PinPad`'s `backLabel` prop) distinct from
-   * ActiviteitKeuze's own "← andere bardienst" — fixed after the Tester
-   * flagged the copy as misleading (PinPad's back button went to the
-   * activiteitkeuze-stap, not back to staff selection).
-   *
-   * Placed second in this block (after the a11y-only scan above, before
-   * `ensureShiftStarted()`'s own tests); like that first test it closes a
-   * leftover shift via `ensureNoOpenShift()` rather than assuming none is
-   * open (#88).
+   * docs/features/dienst-per-sessie.md → Schermflow punt 3: "Verder als {naam}?"
+   * na browser dicht en weer open. Een sessie zonder het sessiecookie
+   * `abas_bar_bevestigd` (ADR 0017) is nog niet bevestigd; het cookie wissen en
+   * herladen simuleert dat. Femke Bos heeft een tweede factor, dus haar
+   * bar-sessie is te hervatten. Scant het hervatscherm zelf en bewijst dat
+   * "Verder" de gewone schermen teruggeeft.
    */
-  test("bar shell (/) activiteitkeuze toont na 'terug' vanaf de PIN-stap weer de placeholder", async ({
-    page,
-  }) => {
+  test("bar shell (/) hervatscherm (Verder als …) has no WCAG2A/AA violations", async ({ page }) => {
     await ensureNoOpenShift(page);
 
-    const staffButton = page.getByRole("button", { name: STAFF_BUTTON_NAME });
-    await staffButton.waitFor({ state: "visible", timeout: 15_000 });
-    await staffButton.click();
+    await page.context().clearCookies({ name: "abas_bar_bevestigd" });
+    await page.reload();
 
-    const activitySelect = page.getByRole("combobox", { name: "Activiteit" });
-    await activitySelect.waitFor({ state: "visible", timeout: 15_000 });
-    await activitySelect.click();
-    await page.getByRole("option", { name: "Training" }).click();
+    await page
+      .getByRole("heading", { name: /^Verder als / })
+      .waitFor({ state: "visible", timeout: 15_000 });
 
-    // Auto-advances to the PIN-stap once an activity is picked (spec →
-    // Schermflow §2 stap 2) — geen aparte "volgende"-knop.
-    const digit1 = page.getByRole("button", { name: "Cijfer 1" });
-    await digit1.waitFor({ state: "visible", timeout: 15_000 });
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
 
-    await page.getByRole("button", { name: "← andere activiteit" }).click();
+    expect(results.violations, JSON.stringify(results.violations, null, 2))
+      .toEqual([]);
 
-    const activitySelectAgain = page.getByRole("combobox", { name: "Activiteit" });
-    await activitySelectAgain.waitFor({ state: "visible", timeout: 15_000 });
-    await expect(activitySelectAgain).toHaveText("Kies een activiteit…");
-
-    // Functioneel onschadelijk (Reviewer's beoordeling): opnieuw kiezen
-    // (ook dezelfde activiteit) werkt gewoon en komt weer op de PIN-stap
-    // uit — geen dead end.
-    await activitySelectAgain.click();
-    await page.getByRole("option", { name: "Training" }).click();
-    await digit1.waitFor({ state: "visible", timeout: 15_000 });
+    await page.getByRole("button", { name: "Verder", exact: true }).click();
+    await page
+      .getByRole("combobox", { name: "Activiteit" })
+      .waitFor({ state: "visible", timeout: 15_000 });
   });
 
   /**
-   * The inverse of `ensureShiftStarted()`: leaves the shared session with
-   * *no* open shift, so `/` renders the stafkeuze/PIN-entry screen rather
-   * than DienstTabs. The two activiteitkeuze scenarios above and the
-   * pincode-invoer scenario below need this — those screens are unreachable
-   * while a shift is open, and on a Playwright
-   * retry in CI (`retries: 1`) the previous attempt's shift is still open
-   * against the same local Postgres.
-   *
-   * Closes the shift through the real "Dienst afsluiten"-flow rather than
-   * touching the database directly: it's the same path a bardienst takes
-   * (docs/features/dienst-afsluiten.md), so this helper can't drift away
-   * from the app's own behaviour. The scan below re-starts nothing — the
-   * next test in this block calls `ensureShiftStarted()` as usual.
+   * docs/features/dienst-per-sessie.md → Inloggen op de bar, punt 4 en ADR 0016
+   * → Beslissing 7: de PIN werkt alleen op een apparaat waar het lid eerder met
+   * het wachtwoord inlogde. Tom Willems (bardienst, PIN 1234 in supabase/seed.sql)
+   * logt eerst met zijn wachtwoord in, logt uit, en tikt daarna weer op zijn
+   * naam: nu verschijnt de pincode-invoer (`PinPad`), die als enige interactieve
+   * bar-scherm zonder scan zou zijn. Scant de pad in zijn lege staat en tikt
+   * geen cijfers: een vierde cijfer logt in.
    */
-  async function ensureNoOpenShift(page: Page) {
-    await page.goto("/");
-
-    const verkoopTab = page.getByRole("tab", { name: "Verkoop" });
-    const staffButton = page.getByRole("button", { name: STAFF_BUTTON_NAME });
-
-    // Same "race both landing states rather than pre-guessing which one
-    // shows first" reasoning as ensureShiftStarted() above.
-    await Promise.race([
-      verkoopTab.waitFor({ state: "visible", timeout: 15_000 }),
-      staffButton.waitFor({ state: "visible", timeout: 15_000 }),
-    ]);
-
-    if (await staffButton.isVisible()) return;
-
-    await page.getByRole("tab", { name: "Dienst" }).click();
-    await page
-      .getByRole("heading", { name: "Dienst", exact: true })
-      .waitFor({ state: "visible", timeout: 15_000 });
-    await page.getByRole("button", { name: "Dienst afsluiten" }).click();
-
-    // Scope the confirm to the dialog: the trigger button behind it has
-    // the same accessible name, and Playwright's name matching ignores
-    // case, so an unscoped locator would be a strict-mode violation.
-    const dialog = page.getByRole("dialog", { name: "Dienst afsluiten" });
-    await dialog.waitFor({ state: "visible" });
-    await dialog.getByRole("button", { name: "dienst afsluiten" }).click();
-
-    await staffButton.waitFor({ state: "visible", timeout: 15_000 });
-  }
-
-  /**
-   * docs/features/portal-profiel.md (#17) → Testplan → e2e stap 3 + 4: een
-   * PIN die de bardienst zelf in de portal zet, zet hem in de stafkeuze op
-   * het bar-tablet (`useBarStaff` filtert op `has_pin`); na "Pincode
-   * verwijderen" staat hij er niet meer in. Eén test voor beide kanten, met
-   * de eigen fixture `e2e.profiel.bardienst` (geen andere test gebruikt
-   * hem). In deze serial-groep omdat de stafkeuze alleen zichtbaar is zonder
-   * open dienst; `ensureNoOpenShift()` zorgt daarvoor. De portal draait in
-   * een tweede tab van dezelfde context: de portal-sessie heeft een eigen
-   * cookie (ADR 0009) en raakt de device-sessie van het tablet niet. Geen
-   * dienst starten met de nieuwe PIN: dat bewijst
-   * supabase/tests/set_own_pin_start_shift.test.sql.
-   */
-  test("portal-PIN instellen zet de bardienst in de stafkeuze, verwijderen haalt hem eruit", async ({
+  test("bar shell (/) pincode-invoer op een vertrouwd apparaat has no WCAG2A/AA violations", async ({
     page,
   }) => {
-    const FIXTURE_STAFF = /^E2E Profiel Bardienst\b/;
-    await ensureNoOpenShift(page);
+    await logInOpBar(page, TOM, WACHTWOORD_TOM);
+    await page.getByRole("button", { name: "Uitloggen" }).waitFor({ state: "visible", timeout: 15_000 });
+    await page.getByRole("button", { name: "Uitloggen" }).click();
 
-    const portal = await page.context().newPage();
-    await portalLoginMetWachtwoord(
-      portal,
-      "e2e.profiel.bardienst@aurora.local",
-      "local-e2e-profiel-bardienst-dev-only"
-    );
-    await portal
-      .getByRole("heading", { name: /^Hoi / })
-      .waitFor({ state: "visible", timeout: 15_000 });
-    await portal.getByRole("tab", { name: "Account" }).click();
-    const pinRow = portal.getByRole("button", { name: /^Pincode voor de bar-tablet/ });
-    await pinRow.waitFor({ state: "visible", timeout: 15_000 });
-
-    async function removePin() {
-      await pinRow.click();
-      await portal.getByRole("button", { name: "Pincode verwijderen" }).click();
-      await portal
-        .getByRole("status")
-        .filter({ hasText: "Pincode verwijderd" })
-        .waitFor({ state: "visible", timeout: 15_000 });
-    }
-
-    // Opruimen na een eerder afgebroken run op dezelfde stack.
-    if (await pinRow.getByText("ingesteld", { exact: true }).isVisible()) {
-      await removePin();
-    }
-    await expect(pinRow.getByText("niet ingesteld", { exact: true })).toBeVisible();
-
-    await pinRow.click();
-    for (const digit of ["4", "8", "2", "1", "4", "8", "2", "1"]) {
-      await portal.getByRole("button", { name: `Cijfer ${digit}` }).click();
-    }
-    await expect(portal.getByRole("status").filter({ hasText: "Pincode ingesteld" })).toBeVisible({
-      timeout: 15_000,
-    });
-    await expect(pinRow.getByText("ingesteld", { exact: true })).toBeVisible();
-
-    await page.goto("/");
-    await expect(page.getByRole("button", { name: FIXTURE_STAFF })).toBeVisible({ timeout: 15_000 });
-
-    await removePin();
-    await expect(pinRow.getByText("niet ingesteld", { exact: true })).toBeVisible();
-
-    await page.goto("/");
-    await page
-      .getByRole("button", { name: STAFF_BUTTON_NAME })
-      .waitFor({ state: "visible", timeout: 15_000 });
-    await expect(page.getByRole("button", { name: FIXTURE_STAFF })).toHaveCount(0);
-
-    await portal.close();
-  });
-
-  /**
-   * docs/features/dienst-starten.md (#6) → the PIN-entry screen
-   * (PinPad.tsx). Added at the app-review of 2026-09-21: this was the only
-   * interactive screen in the app with no axe coverage at all. The routes
-   * loop at the top of this file used to scan `/` (now `/koppel`, ADR
-   * 0011), but that landed on the stafkeuze — the numpad only renders after picking a bardienst, and
-   * `ensureShiftStarted()` clicks straight through it without scanning.
-   *
-   * Scans the pad in its empty, pre-entry state and deliberately enters no
-   * digits: a fourth digit submits (see DienstStarten.tsx → pressDigit),
-   * which would start a shift as a side effect of an a11y scan. The pad's
-   * non-obvious a11y affordances are all present in this state anyway —
-   * the `aria-hidden` dot row with its `sr-only` `role="status"`
-   * counterpart, the per-key `aria-label`s ("Cijfer 3", "Wis laatste
-   * cijfer"), and the `role="alert"` error line.
-   *
-   * Updated for #18 (docs/features/activiteittypes.md): a staff pick no
-   * longer lands on PinPad directly — the new activiteitkeuze-stap sits in
-   * between (same as `ensureShiftStarted()` above) — so an activity has to
-   * be selected first, otherwise the "Cijfer 1"-wait below would time out
-   * against a `<select>` that isn't PinPad.
-   */
-  test("bar shell (/) pincode-invoer has no WCAG2A/AA violations", async ({
-    page,
-  }) => {
-    await ensureNoOpenShift(page);
-
-    await page.getByRole("button", { name: STAFF_BUTTON_NAME }).click();
-
-    const activitySelect = page.getByRole("combobox", { name: "Activiteit" });
-    await activitySelect.waitFor({ state: "visible", timeout: 15_000 });
-    await activitySelect.click();
-    await page.getByRole("option", { name: "Training" }).click();
+    await page.getByRole("button", { name: TOM }).waitFor({ state: "visible", timeout: 15_000 });
+    await page.getByRole("button", { name: TOM }).click();
 
     await page
       .getByRole("button", { name: "Cijfer 1" })
@@ -1257,6 +1067,71 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
 
     expect(results.violations, JSON.stringify(results.violations, null, 2))
       .toEqual([]);
+  });
+
+  /**
+   * docs/features/dienst-per-sessie.md → Teksten → Dienst loopt op een ander
+   * apparaat: een bardienst die inlogt terwijl er elders een dienst loopt, ziet
+   * "Er loopt al een dienst" en kan er niets mee (alleen een beheerder neemt over
+   * of sluit af). Femke start de dienst in de ene context, Tom logt in de andere
+   * in.
+   */
+  test("bar shell (/) 'Er loopt al een dienst' voor een bardienst has no WCAG2A/AA violations", async ({
+    page,
+    browser,
+  }) => {
+    await ensureShiftStarted(page);
+
+    const tweedeContext = await browser.newContext();
+    try {
+      const tom = await tweedeContext.newPage();
+      await logInOpBar(tom, TOM, WACHTWOORD_TOM);
+      await tom
+        .getByRole("heading", { name: "Er loopt al een dienst" })
+        .waitFor({ state: "visible", timeout: 15_000 });
+      await expect(tom.getByRole("button", { name: "Overnemen", exact: true })).toHaveCount(0);
+
+      const results = await new AxeBuilder({ page: tom })
+        .withTags(["wcag2a", "wcag2aa"])
+        .analyze();
+
+      expect(results.violations, JSON.stringify(results.violations, null, 2))
+        .toEqual([]);
+    } finally {
+      await tweedeContext.close();
+    }
+  });
+
+  /**
+   * docs/features/dienst-per-sessie.md → Teksten → Overnemen: de beheerder op
+   * een ander apparaat ziet "Overnemen" en "Afsluiten", en de overname-dialoog
+   * ("Dienst overnemen?") is een echte `Overlay`. Scant de dialoog open en
+   * annuleert, zodat de dienst blijft staan.
+   */
+  test("bar shell (/) overnemen-dialoog has no WCAG2A/AA violations", async ({ page, browser }) => {
+    await ensureShiftStarted(page);
+
+    const tweedeContext = await browser.newContext();
+    try {
+      const femke = await tweedeContext.newPage();
+      await logInOpBar(femke, FEMKE, WACHTWOORD_FEMKE);
+      await femke.getByRole("button", { name: "Overnemen", exact: true }).click();
+
+      const dialog = femke.getByRole("dialog", { name: "Dienst overnemen?" });
+      await dialog.waitFor({ state: "visible" });
+      await expect(dialog).toBeFocused();
+
+      const results = await new AxeBuilder({ page: femke })
+        .withTags(["wcag2a", "wcag2aa"])
+        .analyze();
+
+      expect(results.violations, JSON.stringify(results.violations, null, 2))
+        .toEqual([]);
+
+      await dialog.getByRole("button", { name: "Annuleren" }).click();
+    } finally {
+      await tweedeContext.close();
+    }
   });
 
   /**
@@ -1458,7 +1333,7 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
     expect(results.violations, JSON.stringify(results.violations, null, 2))
       .toEqual([]);
 
-    // Tom staat alleen in de bezetting (zie de afrekenbevestiging-test
+    // Femke staat alleen in de bezetting (zie de afrekenbevestiging-test
     // hieronder), dus geen keuze nodig: de knop is nu actief.
     await dialog.getByRole("button", { name: "terugdraaien", exact: true }).click();
     await dialog.waitFor({ state: "hidden", timeout: 15_000 });
@@ -1480,7 +1355,7 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
    * Picker coverage: per the spec, the "Wie geeft uit?"-picker inside this
    * dialog is only rendered once the bezetting is 2+ (docs/features/
    * verkoop.md → Schermflow §3 / Randgevallen). The demo account used here
-   * ("Tom Willems") starts a shift alone and this suite never adds a second
+   * ("Femke Bos") starts (or takes over) a shift alone and this suite never adds a second
    * crew member, so against supabase/seed.sql the bezetting stays at 1 and
    * this test exercises the auto-toewijzing path (no picker), not the 2+
    * picker-visible path — noted explicitly per tester.md rather than
@@ -1630,6 +1505,11 @@ test.describe.serial("stateful bar-shell scenarios (shared session)", () => {
     await dialog.waitFor({ state: "visible", timeout: 15_000 });
     await expect(dialog).toBeFocused();
     await expect(dialog).toHaveAccessibleDescription(/^Deze dienst staat al \d+ uur open\. Klopt dat\?$/);
+
+    // De login-klikken laten de muis achter waar de melding straks zijn
+    // knoppen heeft; `hover:bg-accent` op "Dienst afsluiten" geeft dan een
+    // contrast van 3,42 in plaats van dat van de rustkleur.
+    await page.mouse.move(0, 0);
 
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa"])

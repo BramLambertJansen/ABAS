@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { toPasswordUpdateErrorCode, type PasswordUpdateErrorCode } from "@/lib/authErrors";
 import { createClient } from "@/lib/supabase/client";
 import { logLocalError } from "@/lib/clientErrors";
+import { sessieNodigCode, verifieerCode, type CodeFout } from "@/lib/mfa";
 
 /**
  * Wachtwoord vergeten op `/beheer` — docs/features/wachtwoord-vergeten.md.
@@ -59,6 +60,7 @@ export type NieuwWachtwoordErrorCode = "link_invalid" | PasswordUpdateErrorCode;
 type SetState =
   | { status: "idle" }
   | { status: "pending" }
+  | { status: "code" }
   | { status: "done" }
   | { status: "error"; code: NieuwWachtwoordErrorCode };
 
@@ -98,6 +100,15 @@ export function useNieuwWachtwoordInstellen(tokenHash: string | null) {
         verified.current = true;
       }
 
+      // Een herstelsessie is aal1. Heeft het account een tweede factor, dan
+      // eerst de code (docs/features/beheer-tweede-factor.md, ADR 0017);
+      // anders weigert Supabase Auth met `insufficient_aal`. Het scherm vraagt
+      // de code en roept daarna `setNewPassword` opnieuw aan.
+      if (await sessieNodigCode(supabase.auth.mfa)) {
+        setState({ status: "code" });
+        return false;
+      }
+
       const { error } = await supabase.auth.updateUser({ password });
       if (error) {
         logLocalError("useNieuwWachtwoordInstellen (updateUser)", error.message);
@@ -118,9 +129,21 @@ export function useNieuwWachtwoordInstellen(tokenHash: string | null) {
     }
   }
 
+  /** De code uit de authenticator-app voor deze herstelsessie. `null` bij
+   *  succes; daarna `setNewPassword` opnieuw. */
+  const verifieer = useCallback(async (code: string): Promise<CodeFout | null> => {
+    try {
+      return await verifieerCode(createClient().auth.mfa, code);
+    } catch (err) {
+      logLocalError("useNieuwWachtwoordInstellen (verify)", err);
+      return "unknown";
+    }
+  }, []);
+
   return {
     status: state.status,
     errorCode: state.status === "error" ? state.code : null,
     setNewPassword,
+    verifieer,
   };
 }

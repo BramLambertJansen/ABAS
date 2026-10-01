@@ -591,10 +591,9 @@ test("focus volgt 'Stuur inloglink' en 'Andere inlogmethode'", async ({ page }) 
 const MAGIC_LINK_SENT = "hebben we een inloglink gestuurd";
 
 /**
- * De foutregel ín het inlogformulier. Niet alertOf(): op een tablet (en in
- * CI) logt de middleware /beheer in als het gedeelde device-account, en dan
- * staat er boven het formulier nog een tweede alert ("Dit account is niet
- * gekoppeld aan een lid").
+ * De foutregel ín het inlogformulier. Niet alertOf(): boven het formulier
+ * kan nog een tweede alert staan (bv. "Dit account is niet gekoppeld aan een
+ * lid").
  */
 function formulierAlert(page: Page) {
   return page.locator("form").getByRole("alert");

@@ -33,6 +33,41 @@ create extension if not exists pgtap with schema extensions;
 begin;
 select plan(26);
 
+-- ── Sessie-helper (dienst per sessie, ADR 0016) ────────────────────────────
+-- Beheer-RPC's eisen een geregistreerde sessie in modus `beheer`
+-- (require_beheer_session, 0028). Zet de JWT-claims voor `p_auth_user` en
+-- registreert, als er een lid bij hoort, een bar-sessie in `p_mode`. Bewust
+-- rechtstreeks geïnsert, ook voor een bardienst of een gearchiveerd lid: zo
+-- bewijzen deze tests de guard zelf en niet register_bar_session. Een account
+-- zonder lid krijgt geen bar-sessie (no_bar_session).
+create function pg_temp.act_as_user(p_auth_user uuid, p_mode text default 'beheer')
+returns void
+language plpgsql
+as $fn$
+declare
+  v_member uuid;
+begin
+  select id into v_member from members where auth_user_id = p_auth_user;
+  if v_member is not null then
+    insert into bar_sessions (auth_session_id, member_id, mode)
+    values (p_auth_user, v_member, p_mode)
+    on conflict (auth_session_id) do nothing;
+  end if;
+  perform set_config('request.jwt.claim.sub', p_auth_user::text, true);
+  -- Een beheersessie is altijd aal2: register_bar_session('beheer') en
+  -- require_beheer_session eisen dat (ADR 0017, 0034).
+  perform set_config(
+    'request.jwt.claims',
+    json_build_object(
+      'sub', p_auth_user::text, 'session_id', p_auth_user::text,
+      'aal', case when p_mode = 'beheer' then 'aal2' else 'aal1' end
+    )::text,
+    true
+  );
+end;
+$fn$;
+
+
 -- ── Fixtures ──────────────────────────────────────────────────────────
 
 insert into auth.users (
@@ -65,22 +100,22 @@ insert into activity_types (id, name, archived) values
 -- ── create_activity_type ─────────────────────────────────────────────────
 
 -- 1) actor_not_found
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000c2', true);
+select pg_temp.act_as_user('00000000-0000-0000-0000-0000000000c2');
 select throws_ok(
   $$ select create_activity_type('Nieuw Type') $$,
-  'P0001', 'actor_not_found',
+  'P0001', 'no_bar_session',
   'create_activity_type rejects a caller whose auth.uid() matches no members row'
 );
 
 -- 2) no_admin_role
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000c1', true);
+select pg_temp.act_as_user('00000000-0000-0000-0000-0000000000c1');
 select throws_ok(
   $$ select create_activity_type('Nieuw Type') $$,
   'P0001', 'no_admin_role',
   'create_activity_type rejects a caller whose role is bardienst, not beheerder'
 );
 
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000c0', true);
+select pg_temp.act_as_user('00000000-0000-0000-0000-0000000000c0');
 
 -- 3) invalid_name
 select throws_ok(
@@ -105,22 +140,22 @@ select is(
 -- ── update_activity_type_name ────────────────────────────────────────────
 
 -- 6) actor_not_found
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000c2', true);
+select pg_temp.act_as_user('00000000-0000-0000-0000-0000000000c2');
 select throws_ok(
   $$ select update_activity_type_name('00000000-0000-0000-0000-0000000000e0', 'Nieuwe Naam') $$,
-  'P0001', 'actor_not_found',
+  'P0001', 'no_bar_session',
   'update_activity_type_name rejects a caller whose auth.uid() matches no members row'
 );
 
 -- 7) no_admin_role
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000c1', true);
+select pg_temp.act_as_user('00000000-0000-0000-0000-0000000000c1');
 select throws_ok(
   $$ select update_activity_type_name('00000000-0000-0000-0000-0000000000e0', 'Nieuwe Naam') $$,
   'P0001', 'no_admin_role',
   'update_activity_type_name rejects a caller whose role is bardienst, not beheerder'
 );
 
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000c0', true);
+select pg_temp.act_as_user('00000000-0000-0000-0000-0000000000c0');
 
 -- 8) activity_type_not_found
 select throws_ok(
@@ -144,22 +179,22 @@ select is(
 -- ── set_activity_type_archived ───────────────────────────────────────────
 
 -- 11) actor_not_found
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000c2', true);
+select pg_temp.act_as_user('00000000-0000-0000-0000-0000000000c2');
 select throws_ok(
   $$ select set_activity_type_archived('00000000-0000-0000-0000-0000000000e0', true) $$,
-  'P0001', 'actor_not_found',
+  'P0001', 'no_bar_session',
   'set_activity_type_archived rejects a caller whose auth.uid() matches no members row'
 );
 
 -- 12) no_admin_role
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000c1', true);
+select pg_temp.act_as_user('00000000-0000-0000-0000-0000000000c1');
 select throws_ok(
   $$ select set_activity_type_archived('00000000-0000-0000-0000-0000000000e0', true) $$,
   'P0001', 'no_admin_role',
   'set_activity_type_archived rejects a caller whose role is bardienst, not beheerder'
 );
 
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000000c0', true);
+select pg_temp.act_as_user('00000000-0000-0000-0000-0000000000c0');
 
 -- 13) activity_type_not_found
 select throws_ok(

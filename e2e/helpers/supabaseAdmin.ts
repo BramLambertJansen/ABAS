@@ -38,10 +38,9 @@ function adminHeaders(serviceRoleKey: string) {
  *  teardown voor tests die het wachtwoord van een eigen fixture wijzigen,
  *  zodat een tweede run op dezelfde lokale stack (zonder `db reset`) weer
  *  met het seed-wachtwoord kan inloggen. */
-export async function adminSetPassword(email: string, password: string): Promise<void> {
+async function zoekUserId(email: string): Promise<string> {
   const { apiUrl, serviceRoleKey } = supabaseStatus();
   const headers = adminHeaders(serviceRoleKey);
-
   let userId: string | null = null;
   for (let pageNo = 1; pageNo <= 10 && !userId; pageNo++) {
     const res = await fetch(`${apiUrl}/auth/v1/admin/users?page=${pageNo}&per_page=100`, { headers });
@@ -51,6 +50,13 @@ export async function adminSetPassword(email: string, password: string): Promise
     if (body.users.length < 100) break;
   }
   if (!userId) throw new Error(`geen auth-account gevonden voor ${email}`);
+  return userId;
+}
+
+export async function adminSetPassword(email: string, password: string): Promise<void> {
+  const { apiUrl, serviceRoleKey } = supabaseStatus();
+  const headers = adminHeaders(serviceRoleKey);
+  const userId = await zoekUserId(email);
 
   const res = await fetch(`${apiUrl}/auth/v1/admin/users/${userId}`, {
     method: "PUT",
@@ -58,4 +64,25 @@ export async function adminSetPassword(email: string, password: string): Promise
     body: JSON.stringify({ password }),
   });
   if (!res.ok) throw new Error(`wachtwoord terugzetten mislukt (${res.status}): ${await res.text()}`);
+}
+
+/** Verwijdert alle MFA-factoren van een account via de Admin API — opzet en
+ *  teardown voor de test die in de portal tweestapsverificatie instelt
+ *  (docs/features/beheer-tweede-factor.md), zodat een herhaling (retry of
+ *  tweede run op dezelfde stack) weer met "Uit" begint. Zelfde weg als Bram
+ *  bij een verloren telefoon neemt (het dashboard). */
+export async function adminVerwijderFactoren(email: string): Promise<void> {
+  const { apiUrl, serviceRoleKey } = supabaseStatus();
+  const headers = adminHeaders(serviceRoleKey);
+  const userId = await zoekUserId(email);
+  const res = await fetch(`${apiUrl}/auth/v1/admin/users/${userId}/factors`, { headers });
+  if (!res.ok) throw new Error(`factoren lezen mislukt (${res.status}): ${await res.text()}`);
+  const factoren = (await res.json()) as Array<{ id: string }>;
+  for (const factor of factoren ?? []) {
+    const del = await fetch(`${apiUrl}/auth/v1/admin/users/${userId}/factors/${factor.id}`, {
+      method: "DELETE",
+      headers,
+    });
+    if (!del.ok) throw new Error(`factor verwijderen mislukt (${del.status}): ${await del.text()}`);
+  }
 }

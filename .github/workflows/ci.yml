@@ -58,30 +58,20 @@ jobs:
       # → `-o`), read with `jq` (preinstalled on the ubuntu-latest runner
       # image) rather than scraped from the human-readable pretty table.
       #
-      # SUPABASE_DEVICE_EMAIL/PASSWORD (src/middleware.ts) match the
-      # local-only device account supabase/seed.sql now provisions —
-      # without a matching sign-in, every RLS-protected read middleware
-      # gates comes back empty and e2e/a11y.spec.ts's interactive flows
-      # (staff picker onward) can never render far enough to scan. Root
-      # cause of run 32998590441's bezetting-overlay timeout, not an a11y
-      # regression — see supabase/seed.sql's comment on the device insert.
-      #
-      # BAR_DEVICE_SECRET (docs/features/tablet-koppelen.md, ADR 0011): since
-      # then the middleware only signs the device account in on a browser
-      # gekoppeld via /koppel. A fixed, local-only test secret of exactly the
-      # minimum format (26 characters base32, written in groups so the e2e
-      # flow also exercises the normalisation) — literal here for the same
-      # reason as local-device-dev-only. e2e/helpers/tabletKoppelen.ts
-      # reads it to go through the real /koppel flow.
+      # SUPABASE_SECRET_KEY (de `service_role`-key van de lokale stack, `supabase
+      # status -o json` → SERVICE_ROLE_KEY) is nodig voor de server-side login
+      # van de bar (src/lib/barLogin.ts, docs/features/dienst-per-sessie.md, ADR
+      # 0016): de namenlijst, het opzoeken van het e-mailadres en de
+      # service_role-only databasefuncties. Er is geen device-account of
+      # koppelcode meer (ADR 0011 is vervangen): elke e2e-test logt in vanaf de
+      # namenlijst als een seed-bardienst (e2e/helpers/barLogin.ts).
       - name: Export local Supabase env vars
         run: |
           status=$(supabase status -o json)
           {
             echo "NEXT_PUBLIC_SUPABASE_URL=$(echo "$status" | jq -r '.API_URL')"
             echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$(echo "$status" | jq -r '.PUBLISHABLE_KEY')"
-            echo "SUPABASE_DEVICE_EMAIL=device@aurora.local"
-            echo "SUPABASE_DEVICE_PASSWORD=local-device-dev-only"
-            echo "BAR_DEVICE_SECRET=ABASC-ITEST-SECRE-TONLY-LOKAA-L"
+            echo "SUPABASE_SECRET_KEY=$(echo "$status" | jq -r '.SERVICE_ROLE_KEY')"
           } >> "$GITHUB_ENV"
 
       - run: npm run build
