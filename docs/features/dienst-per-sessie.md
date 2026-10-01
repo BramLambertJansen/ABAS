@@ -903,7 +903,8 @@ vervallen van de device-route gaan daarom samen (#117).
   (12d).
 - **Accountwissel of nieuwe login in dezelfde browser**: schermstatus hoort
   bij de combinatie van gebruikers-ID en Auth-session-ID. Een nieuwe login
-  krijgt een nieuwe modus-keuze en schermboom; een oude MFA-stap, mandje of
+  krijgt een nieuwe schermboom; een e-maillogin zonder geregistreerde
+  bar-sessie toont opnieuw de modus-keuze. Een oude MFA-stap, mandje of
   vertraagd sessieantwoord gaat niet mee. Tokenverversing en MFA binnen
   dezelfde sessie behouden de schermstatus. De server blijft de rol en modus
   bij elke actie controleren (T01, PR #134).
