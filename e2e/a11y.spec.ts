@@ -875,7 +875,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
 
     const verkoopTab = page.getByRole("tab", { name: "Verkoop" });
     const activitySelect = page.getByRole("combobox", { name: "Activiteit" });
-    const overnemen = page.getByRole("button", { name: "Overnemen", exact: true });
+    const overnemen = page.getByRole("region", { name: "Er loopt al een dienst" }).getByRole("button", { name: "Overnemen", exact: true });
     await Promise.race([
       verkoopTab.waitFor({ state: "visible", timeout: 15_000 }),
       activitySelect.waitFor({ state: "visible", timeout: 15_000 }),
@@ -910,7 +910,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
 
     const verkoopTab = page.getByRole("tab", { name: "Verkoop" });
     const activitySelect = page.getByRole("combobox", { name: "Activiteit" });
-    const afsluitenElders = page.getByRole("button", { name: "Afsluiten", exact: true });
+    const afsluitenElders = page.getByRole("region", { name: "Er loopt al een dienst" }).getByRole("button", { name: "Afsluiten", exact: true });
     await Promise.race([
       verkoopTab.waitFor({ state: "visible", timeout: 15_000 }),
       activitySelect.waitFor({ state: "visible", timeout: 15_000 }),
@@ -938,6 +938,96 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
 
     await activitySelect.waitFor({ state: "visible", timeout: 15_000 });
   }
+
+  test("T01: e-maillogin zonder PIN start onder eigen naam; refresh, modusguard en uitloggen met open dienst", async ({ page }) => {
+    test.setTimeout(60_000);
+    // Binnen hetzelfde serial block: fase 1 heeft één globale open dienst.
+    await ensureNoOpenShift(page);
+    await page.getByRole("button", { name: "Uitloggen", exact: true }).click();
+    await expect(page.getByRole("button", { name: TOM })).toBeVisible();
+
+    // Sanne heeft een wachtwoord en geen PIN (de echte lokale seed).
+    await loginMetWachtwoord(page, "sanne.bakker@aurora.local", "local-bardienst-dev-only");
+    await page.getByRole("button", { name: /^Bar/ }).click();
+    await expect(page.getByText("Ingelogd als Sanne Bakker")).toBeVisible();
+    await page.reload();
+    await expect(page.getByText("Ingelogd als Sanne Bakker")).toBeVisible();
+    await page.goto("/beheer");
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByText("Ingelogd als Sanne Bakker")).toBeVisible();
+    await expect(page.locator('input[type="password"]')).toHaveCount(0);
+
+    const start = page.waitForResponse(/\/rpc\/start_shift/);
+    const eigenDienst = page.waitForResponse(async (r) =>
+      r.url().includes("/rpc/my_bar_state") && r.ok() && (await r.json()).shift?.started_by_name === "Sanne Bakker"
+    );
+    await page.getByRole("combobox", { name: "Activiteit" }).click();
+    await page.getByRole("option", { name: "Training" }).click();
+    const antwoord = await start;
+    expect(antwoord.ok()).toBe(true);
+    expect(Object.keys(antwoord.request().postDataJSON())).toEqual(["p_activity_type_id"]);
+    await eigenDienst;
+    await expect(page.getByRole("tab", { name: "Verkoop" })).toBeVisible();
+
+    await page.getByRole("button", { name: "Uitloggen", exact: true }).click();
+    const keuze = page.getByRole("dialog", { name: "Je dienst loopt nog" });
+    await expect(keuze.getByRole("button", { name: "Dienst afsluiten" })).toBeVisible();
+    await keuze.getByRole("button", { name: "Open laten en uitloggen" }).click();
+    await expect(page.getByRole("button", { name: TOM })).toBeVisible();
+
+    // Een ander account krijgt de modus-keuze opnieuw en ziet de echte
+    // servermelding. Open laten sluit de dienst dus niet stilzwijgend.
+    await loginMetWachtwoord(page, "femke.bos@aurora.local", WACHTWOORD_FEMKE);
+    await page.getByRole("button", { name: /^Bar/ }).click();
+    await expect(page.getByText("Ingelogd als Femke Bos")).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Dienst zonder apparaat" })).toBeVisible();
+    const elders = page.getByRole("region", { name: "Er loopt al een dienst" });
+    await expect(elders).toContainText("Sanne Bakker");
+    await elders.getByRole("button", { name: "Afsluiten", exact: true }).click();
+    await page.getByRole("dialog", { name: "Dienst afsluiten" }).getByRole("button", { name: "dienst afsluiten" }).click();
+    await expect(page.getByRole("combobox", { name: "Activiteit" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Dienst zonder apparaat" })).toHaveCount(0);
+  });
+
+  test("T01: twee persoonlijke sessies starten gelijktijdig hooguit één dienst", async ({ page, browser, baseURL }) => {
+    test.setTimeout(60_000);
+    await ensureNoOpenShift(page);
+    const contexts = [await browser.newContext({ baseURL }), await browser.newContext({ baseURL })];
+    try {
+      const paginas = [await contexts[0].newPage(), await contexts[1].newPage()];
+      let aantal = 0;
+      let vrijgeven!: () => void;
+      const beideOnderweg = new Promise<void>((resolve) => { vrijgeven = resolve; });
+      for (const [i, p] of paginas.entries()) {
+        await loginMetWachtwoord(p, i === 0 ? "sanne.bakker@aurora.local" : "tom.willems@aurora.local",
+          i === 0 ? "local-bardienst-dev-only" : WACHTWOORD_TOM);
+        await p.getByRole("button", { name: /^Bar/ }).click();
+        await p.getByRole("combobox", { name: "Activiteit" }).click();
+        // Houd alleen de verzending tegen; Auth, RPC en database zijn echt.
+        await p.route(/\/rpc\/start_shift/, async (route) => {
+          if (++aantal === 2) vrijgeven();
+          await beideOnderweg;
+          await route.continue();
+        });
+      }
+      const antwoorden = paginas.map((p) => p.waitForResponse(/\/rpc\/start_shift/));
+      await Promise.all(paginas.map((p) => p.getByRole("option", { name: "Training" }).click()));
+      const resultaten = await Promise.all(antwoorden);
+      expect(resultaten.filter((r) => r.ok())).toHaveLength(1);
+      const geweigerd = resultaten.find((r) => !r.ok());
+      expect(geweigerd).toBeDefined();
+      expect((await geweigerd!.json()).message).toBe("shift_already_open");
+      const winnaar = paginas[resultaten.findIndex((r) => r.ok())];
+      const verliezer = paginas[resultaten.findIndex((r) => !r.ok())];
+      await expect(winnaar.getByRole("tab", { name: "Verkoop" })).toBeVisible();
+      await expect(verliezer.getByRole("region", { name: "Er loopt al een dienst" })).toBeVisible();
+    } finally {
+      await Promise.all(contexts.map((c) => c.close()));
+      // Ook een mislukte/retried test laat geen dienst voor andere tests staan.
+      await page.context().clearCookies();
+      await ensureNoOpenShift(page);
+    }
+  });
 
   /**
    * docs/features/dienst-per-sessie.md → Schermflow punt 2: het inlogscherm

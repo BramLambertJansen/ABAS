@@ -59,7 +59,7 @@ export const SESSION_ID = "00000000-0000-4000-8000-0000000000e1";
  * e2e/beheer-tweede-factor.spec.ts met `aal: "aal1"`.
  */
 export function fakeSession(
-  opties: { aal?: "aal1" | "aal2"; user?: typeof USER | typeof USER_ZONDER_FACTOR } = {}
+  opties: { aal?: "aal1" | "aal2"; user?: typeof USER | typeof USER_ZONDER_FACTOR; sessionId?: string } = {}
 ) {
   const exp = Math.floor(Date.now() / 1000) + 3600;
   const user = opties.user ?? USER;
@@ -71,7 +71,7 @@ export function fakeSession(
       role: "authenticated",
       exp,
       email: user.email,
-      session_id: SESSION_ID,
+      session_id: opties.sessionId ?? SESSION_ID,
       aal: opties.aal ?? "aal2",
       amr: [{ method: "password", timestamp: exp - 3600 }],
     }),

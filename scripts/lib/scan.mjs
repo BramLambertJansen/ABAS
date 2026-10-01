@@ -17,7 +17,9 @@ export function walk(dir, root = dir) {
     if (st.isDirectory()) {
       out.push(...walk(full, root));
     } else if (SRC_EXT.has(entry.slice(entry.lastIndexOf(".")))) {
-      out.push(relative(root, full));
+      // De regels matchen POSIX-paden; normaliseer ook op Windows. Anders
+      // missen shell-/cookiegrenzen en worden toegestane imports afgekeurd.
+      out.push(relative(root, full).replaceAll("\\", "/"));
     }
   }
   return out;
