@@ -20,7 +20,8 @@ export type BarSessionInfo = {
   mode: BarMode;
   status: BarSessionStatus;
   /** Sluitreden van een beëindigde sessie (`uitgelogd`, `inactief`,
-   *  `afgemeld`, `geen_bar_rol`, `niet_hervat`), anders `null`. */
+   *  `afgemeld`, `geen_bar_rol`, `niet_hervat`, `beheerder_geworden`),
+   *  anders `null`. */
   endReason: string | null;
   startedAt: string;
   lastActivityAt: string;
@@ -65,7 +66,7 @@ export type LastLeft = {
   leftAt: string;
 };
 
-export type AdminMeldingReden = "inactief" | "uitgelogd" | "afgemeld" | "geen_bar_rol";
+export type AdminMeldingReden = "inactief" | "uitgelogd" | "afgemeld" | "geen_bar_rol" | "beheerder_geworden";
 
 /** Een openstaande beheerdermelding "dienst zonder apparaat". */
 export type AdminMelding = {
@@ -160,7 +161,8 @@ function toMelding(raw: Json): AdminMelding {
     reason !== "inactief" &&
     reason !== "uitgelogd" &&
     reason !== "afgemeld" &&
-    reason !== "geen_bar_rol"
+    reason !== "geen_bar_rol" &&
+    reason !== "beheerder_geworden"
   ) {
     throw new Error("my_bar_state: onbekende meldingreden");
   }

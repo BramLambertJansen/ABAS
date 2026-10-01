@@ -3,8 +3,8 @@
 Status: **goedgekeurd door Bram (2026-09-30)**, inclusief de teksten.
 Gebouwd (2026-09-30, nog niet gemerged; zie "Zoals gebouwd"). **Aangevuld
 na de tweede review (Bram, 2026-10-01):** besloten 10–13 hieronder; 12 en
-13 gebouwd 2026-10-01 (zie "Zoals gebouwd"), 11 nog niet. De teksten in die aanvulling zijn een **voorstel** tot Bram ze
-goedkeurt (zie Teksten). Hoort bij
+13 en 11 gebouwd 2026-10-01 (zie "Zoals gebouwd"). De teksten in die aanvulling zijn
+goedgekeurd door Bram (2026-10-01, zie Teksten). Hoort bij
 [ADR 0017](../adr/0017-beheer-eist-tweede-factor-en-eigen-loginlimiet.md).
 Vult [`dienst-per-sessie.md`](dienst-per-sessie.md) aan; de verwijzingen
 daar zijn bijgewerkt (zie "Doorgevoerd in bestaande documenten").
@@ -204,7 +204,7 @@ moment van promotie sluit niemand het.
   `rol_gewijzigd`: die tekst zegt "mag niet meer op de bar werken", en dat
   klopt hier niet). `AdminMeldingReden` en `toMelding`
   (`src/lib/barState.ts`) krijgen de waarde erbij, met een eigen tekst in
-  `adminMeldingReden`. Teksten: zie Teksten (voorstel).
+  `adminMeldingReden`. Teksten: zie Teksten (goedgekeurd 2026-10-01).
 
 **Waarom niet `rol_gewijzigd` als sluitreden?** Die naam bestaat al als
 melding-reden aan de client-kant (de vertaling van `geen_bar_rol`). Dezelfde
@@ -479,7 +479,7 @@ Komt bovenop de uitrol van `dienst-per-sessie.md`.
 | Wachtwoord wijzigen/herstellen, code-stap | Voer eerst de code uit je authenticator-app in. |
 | Bar, PIN: beheerder zonder tweede factor | Als beheerder kun je pas met je pincode inloggen als je tweestapsverificatie hebt ingesteld in de portal. |
 
-### Voorstel (aanvulling 2026-10-01, nog niet goedgekeurd)
+### Aanvulling 2026-10-01 (goedgekeurd door Bram, 2026-10-01)
 
 | Plek | Tekst |
 |---|---|
@@ -595,3 +595,17 @@ Wat er afwijkt van of bijkomt op de spec hierboven, en waarom.
   geen registratie en geen uitlog, de foutregel als verify ook niet kan
   lezen, en een geslaagde beheersessie als verify wel kan lezen. In
   `e2e/portal-profiel.spec.ts` de focus in beide sheets.
+- **Promotie naar beheerder (besloten 11, gebouwd 2026-10-01).** Migratie
+  `0037_promotie_beheerder_sluit_bar_sessies.sql`: `end_member_bar_sessions`
+  krijgt de sluitreden als parameter (`geen_bar_rol` of `beheerder_geworden`,
+  anders `invalid_reason`; de versie met één parameter vervalt);
+  `set_member_role` naar `beheerder` sluit de bar-sessies met
+  `beheerder_geworden`, met hun koppelingen, Auth-sessies, PIN-vertrouwen en
+  een melding bij een wees-dienst; `beheerder_geworden` staat in de checks
+  van `end_reason`, `left_reason` en `admin_notifications.reason` en telt in
+  `left_shift_open`. Client: eigen melding-reden in `sessieMeldingReden`,
+  `AdminMeldingReden` en `toMelding`, met de goedgekeurde teksten. Tests:
+  `promotie_beheerder.test.sql` (nieuw), de promotie-asserties in
+  `beheer_rpcs_modus.test.sql` (de oude "beëindigt niets"-asserties zijn
+  omgedraaid), `rpc_execute_grants.test.sql` (nieuwe signatuur) en
+  `test/beheerderGeworden.test.ts`.

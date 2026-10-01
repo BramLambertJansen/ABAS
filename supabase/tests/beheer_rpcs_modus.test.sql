@@ -324,21 +324,23 @@ select isnt(
   'archiveren trekt het PIN-vertrouwen van dat lid in'
 );
 
--- ── Een rolwijziging die de bar-rol houdt, beëindigt niets ────────────────
+-- ── Promotie naar beheerder beëindigt de bar-sessie (ADR 0017, 2026-10-01) ──
+-- Een lopende aal1-sessie van een bardienst mag geen sessie van een beheerder
+-- zonder factor worden; zie ook promotie_beheerder.test.sql.
 
 select lives_ok(
   $$ select set_member_role('00000000-0000-0000-0000-00000000c024', 'beheerder') $$,
   'een beheerder promoveert een bardienst met een actieve sessie tot beheerder'
 );
 select is(
-  (select ended_at from bar_sessions where auth_session_id = '00000000-0000-0000-0000-00000000c024'),
-  null,
-  'bardienst → beheerder beëindigt de bar-sessie niet'
+  (select end_reason from bar_sessions where auth_session_id = '00000000-0000-0000-0000-00000000c024'),
+  'beheerder_geworden',
+  'bardienst → beheerder beëindigt de bar-sessie (beheerder_geworden)'
 );
-select is(
+select isnt(
   (select revoked_at from bar_device_members where member_id = '00000000-0000-0000-0000-00000000c024'),
   null,
-  'bardienst → beheerder laat het PIN-vertrouwen staan'
+  'bardienst → beheerder trekt het PIN-vertrouwen in'
 );
 select is(
   (select revoked_at from bar_devices where id = '00000000-0000-0000-0000-00000000c0d0'),

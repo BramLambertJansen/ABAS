@@ -223,3 +223,24 @@ test("resumable (0034, ADR 0017): alleen true als de RPC het zegt", () => {
   assert.equal(parseBarState({ session: zonderVeld }).session?.resumable, false);
   assert.equal(parseBarState({ session: { ...SESSIE, resumable: "true" } }).session?.resumable, false);
 });
+
+test("beheerder_geworden (ADR 0017, besloten 11): als sluitreden en als meldingreden", () => {
+  const state = parseBarState({
+    session: { ...SESSIE, member_role: "beheerder", status: "ended", end_reason: "beheerder_geworden" },
+    notifications: [
+      {
+        id: "n2",
+        reason: "beheerder_geworden",
+        shift_id: "d1",
+        created_at: "2026-09-29T11:00:00Z",
+        member_name: "Tom Willems",
+        started_by_name: "Tom Willems",
+        started_at: "2026-09-29T10:00:00Z",
+        activity_type_name: null,
+      },
+    ],
+  });
+  assert.ok(state.session);
+  assert.equal(state.session.endReason, "beheerder_geworden");
+  assert.equal(state.notifications[0].reason, "beheerder_geworden");
+});

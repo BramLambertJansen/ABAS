@@ -224,6 +224,7 @@ export type SessieMeldingReden =
   | "afgesloten_door_beheerder"
   | "afgemeld"
   | "rol_gewijzigd"
+  | "beheerder_geworden"
   | "geen_sessie";
 
 /**
@@ -248,6 +249,10 @@ export function sessieMeldingReden(input: {
       return "afgemeld";
     case "geen_bar_rol":
       return "rol_gewijzigd";
+    // ADR 0017, besloten 11: een eigen reden, niet `rol_gewijzigd` (die tekst
+    // zegt "mag niet meer op de bar werken", en dat klopt hier niet).
+    case "beheerder_geworden":
+      return "beheerder_geworden";
     case "uitgelogd":
     case "niet_hervat":
       return null;

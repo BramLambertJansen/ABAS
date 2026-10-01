@@ -188,6 +188,11 @@ export const SESSIE_MELDINGEN: Record<SessieMeldingReden, { titel: string; uitle
     uitleg:
       "Je account mag niet meer op de bar werken. Klopt dat niet, vraag dan een beheerder.",
   },
+  // ADR 0017, besloten 11 (teksten goedgekeurd door Bram, 2026-10-01).
+  beheerder_geworden: {
+    titel: "Je bent uitgelogd",
+    uitleg: "Je bent nu beheerder. Log opnieuw in om verder te gaan.",
+  },
   geen_sessie: {
     titel: "Je bent uitgelogd",
     uitleg: "Log opnieuw in om verder te gaan.",
@@ -222,6 +227,8 @@ export function adminMeldingReden(reden: AdminMeldingReden, naam: string | null)
       return "Het apparaat is afgemeld.";
     case "geen_bar_rol":
       return `${wie} mag niet meer op de bar werken.`;
+    case "beheerder_geworden":
+      return `${wie} is beheerder geworden en daarom uitgelogd.`;
   }
 }
 

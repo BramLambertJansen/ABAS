@@ -268,3 +268,14 @@ test("een onbekende sluitreden krijgt de neutrale melding", () => {
     "geen_sessie"
   );
 });
+
+test("sessieMeldingReden: beheerder_geworden krijgt een eigen melding, niet rol_gewijzigd (ADR 0017, besloten 11)", () => {
+  assert.equal(
+    sessieMeldingReden({ status: "ended", endReason: "beheerder_geworden", leftShiftOpen: false }),
+    "beheerder_geworden"
+  );
+  assert.equal(
+    sessieMeldingReden({ status: "ended", endReason: "beheerder_geworden", leftShiftOpen: true }),
+    "beheerder_geworden"
+  );
+});

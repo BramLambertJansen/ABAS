@@ -213,7 +213,7 @@ select ok(
         'public.end_shift_internal(uuid,text,uuid)',
         'public.notify_orphan_shift(uuid,uuid,text)',
         'public.close_bar_session_internal(uuid,text,uuid)',
-        'public.end_member_bar_sessions(uuid)',
+        'public.end_member_bar_sessions(uuid,text)',
         'public.bar_pin_state(text,uuid)',
         'public.close_inactive_bar_sessions()',
         -- 0034/0035 (ADR 0017)
