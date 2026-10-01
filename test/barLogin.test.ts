@@ -526,14 +526,12 @@ test("wachtwoordlogin: een lege limietsleutel wordt niet gebruikt (het IP komt a
   }
 });
 
-// BUG (gemeld, niet opgelost): isUuid accepteert hoofdletters, en de
-// per-lid-sleutels (`wachtwoord_lid`, `vergeten_lid`) zijn het ruwe memberId.
-// Dezelfde uuid in andere hoofdletters is voor de database hetzelfde lid,
-// maar een andere limietsleutel: zo omzeil je de rem per lid. `todo`: deze
-// test draait en toont de fout, maar maakt de suite niet rood.
+// isUuid accepteert hoofdletters, en dezelfde uuid in andere hoofdletters is
+// voor de database hetzelfde lid. De per-lid-sleutels (`wachtwoord_lid`,
+// `vergeten_lid`) zijn daarom het memberId in kleine letters; anders zou je de
+// rem per lid per hoofdlettervariant opnieuw kunnen starten.
 test(
   "de sleutel per lid is dezelfde voor een memberId in hoofdletters (wachtwoord_lid, vergeten_lid)",
-  { todo: "BUG: sleutel per lid is hoofdlettergevoelig, limiet per lid te omzeilen" },
   async () => {
     const klein = "abcdef12-3456-4789-8abc-def012345678";
     const hoofdletters = klein.toUpperCase();

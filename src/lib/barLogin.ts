@@ -221,10 +221,13 @@ function isRateLimit(error: { status?: number; code?: string; message?: string }
  * wachtwoord (`invalid_credentials`) telt, in beide buckets.
  */
 export async function loginMetWachtwoord(
-  memberId: string,
+  memberIdRuw: string,
   wachtwoord: string,
   ip: string
 ): Promise<WachtwoordLoginResultaat> {
+  // Kleine letters: dezelfde uuid in andere hoofdletters is voor de database
+  // hetzelfde lid, en mag dus geen nieuwe limietsleutel (wachtwoord_lid) zijn.
+  const memberId = memberIdRuw.toLowerCase();
   const admin = createAdminClient();
   if (!(await magPoging(admin, "wachtwoord_ip", ip)) || !(await magPoging(admin, "wachtwoord_lid", memberId))) {
     return { ok: false, code: "rate_limited" };
@@ -374,10 +377,12 @@ export async function loginMetPin(memberId: string, pin: string, ip: string): Pr
  * aanvragen, niet over accounts.
  */
 export async function stuurHerstellink(
-  memberId: string,
+  memberIdRuw: string,
   origin: string,
   ip: string
 ): Promise<VergetenResultaat> {
+  // Zie loginMetWachtwoord: één limietsleutel (vergeten_lid) per lid.
+  const memberId = memberIdRuw.toLowerCase();
   try {
     const admin = createAdminClient();
     if (
