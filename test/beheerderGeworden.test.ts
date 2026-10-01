@@ -27,3 +27,10 @@ test("de beheerdermelding 'Dienst zonder apparaat' met reden beheerder_geworden"
     "Tom Willems is beheerder geworden en daarom uitgelogd."
   );
 });
+
+test("de beheerdermelding met reden beheerder_geworden zonder bekende naam", () => {
+  assert.equal(
+    adminMeldingReden("beheerder_geworden", null),
+    "Iemand is beheerder geworden en daarom uitgelogd."
+  );
+});

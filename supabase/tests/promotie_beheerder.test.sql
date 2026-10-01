@@ -20,7 +20,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(24);
+select plan(32);
 
 -- ── Opzet ─────────────────────────────────────────────────────────────────
 --
@@ -56,7 +56,8 @@ insert into auth.sessions (id, user_id, aal) values
   ('b0000000-0000-4000-8000-0000000000b9', 'b0000000-0000-4000-8000-0000000000b1', 'aal1'),
   ('d0000000-0000-4000-8000-0000000000d2', 'd0000000-0000-4000-8000-0000000000d1', 'aal1'),
   ('e0000000-0000-4000-8000-0000000000e2', 'e0000000-0000-4000-8000-0000000000e1', 'aal1'),
-  ('c0000000-0000-4000-8000-0000000000c9', 'c0000000-0000-4000-8000-0000000000c1', 'aal1');
+  ('c0000000-0000-4000-8000-0000000000c9', 'c0000000-0000-4000-8000-0000000000c1', 'aal1'),
+  ('f0000000-0000-4000-8000-0000000000f9', 'f0000000-0000-4000-8000-0000000000f1', 'aal1');
 
 insert into bar_devices (id, token_hash) values
   ('00000000-0000-4000-8000-00000000de01', 'promo-apparaat-1'),
@@ -80,6 +81,13 @@ insert into bar_sessions (id, auth_session_id, member_id, mode, device_id) value
    'd0000000-0000-4000-8000-0000000000d0', 'bar', '00000000-0000-4000-8000-00000000de01'),
   ('e0000000-0000-4000-8000-0000000000e3', 'e0000000-0000-4000-8000-0000000000e2',
    'e0000000-0000-4000-8000-0000000000e0', 'bar', '00000000-0000-4000-8000-00000000de01');
+
+-- Een eerder (zelf) beëindigde bar-sessie van b: die moet zijn sluitreden
+-- houden.
+insert into bar_sessions (id, auth_session_id, member_id, mode, device_id, ended_at, end_reason) values
+  ('b0000000-0000-4000-8000-0000000000b7', 'b0000000-0000-4000-8000-0000000000b8',
+   'b0000000-0000-4000-8000-0000000000b0', 'bar', '00000000-0000-4000-8000-00000000de01',
+   now() - interval '1 day', 'uitgelogd');
 
 -- De dienst van b, met alleen b's eerste sessie erin: na de promotie is hij
 -- wees.
@@ -108,7 +116,8 @@ reset role;
 
 select is(
   (select array_agg(end_reason order by id) from bar_sessions
-    where member_id = 'b0000000-0000-4000-8000-0000000000b0'),
+    where member_id = 'b0000000-0000-4000-8000-0000000000b0'
+      and id <> 'b0000000-0000-4000-8000-0000000000b7'),
   array['beheerder_geworden', 'beheerder_geworden'],
   'bardienst → beheerder sluit elke actieve bar-sessie met beheerder_geworden'
 );
@@ -122,6 +131,17 @@ select is(
     where shift_id = 'b0000000-0000-4000-8000-0000000000b6' and resolved_at is null),
   'beheerder_geworden',
   'de wees-dienst geeft een melding met reden beheerder_geworden'
+);
+select is(
+  (select count(*)::integer from admin_notifications
+    where bar_session_id in ('b0000000-0000-4000-8000-0000000000b4', 'b0000000-0000-4000-8000-0000000000b5')),
+  1,
+  'alleen de sessie in de dienst geeft een melding, de sessie zonder dienst niet'
+);
+select is(
+  (select end_reason from bar_sessions where id = 'b0000000-0000-4000-8000-0000000000b7'),
+  'uitgelogd',
+  'een al beëindigde bar-sessie houdt zijn eigen sluitreden'
 );
 select ok(
   (select ended_at is null from shifts where id = 'b0000000-0000-4000-8000-0000000000b6'),
@@ -167,6 +187,17 @@ select is(
   true,
   'my_bar_state: left_shift_open ook bij beheerder_geworden'
 );
+select pg_temp.als('b0000000-0000-4000-8000-0000000000b1', 'b0000000-0000-4000-8000-0000000000b3', 'aal1');
+select is(
+  (select my_bar_state() -> 'session' ->> 'left_shift_open'),
+  'false',
+  'my_bar_state: de sessie zonder dienst heeft left_shift_open false'
+);
+select is(
+  (select my_bar_state() -> 'session' ->> 'status'),
+  'ended',
+  'my_bar_state: de tweede sessie is ook beëindigd'
+);
 reset role;
 
 -- ── beheerder → beheerder: niets ──────────────────────────────────────────
@@ -201,6 +232,20 @@ select ok(
   'lid → bardienst laat Auth-sessie en PIN-vertrouwen staan'
 );
 
+-- bardienst → bardienst (idempotent): ook niets.
+set local role authenticated;
+select lives_ok(
+  $$ select set_member_role('c0000000-0000-4000-8000-0000000000c0', 'bardienst') $$,
+  'stap: bardienst → bardienst'
+);
+reset role;
+select ok(
+  exists (select 1 from auth.sessions where id = 'c0000000-0000-4000-8000-0000000000c9')
+  and exists (select 1 from bar_device_members
+               where member_id = 'c0000000-0000-4000-8000-0000000000c0' and revoked_at is null),
+  'bardienst → bardienst laat Auth-sessie en PIN-vertrouwen staan'
+);
+
 -- ── lid → beheerder: alleen het PIN-vertrouwen ────────────────────────────
 
 set local role authenticated;
@@ -214,6 +259,10 @@ select is(
     where member_id = 'f0000000-0000-4000-8000-0000000000f0' and revoked_at is null),
   0,
   'lid → beheerder: het PIN-vertrouwen vervalt (geen bar-sessie om te sluiten)'
+);
+select ok(
+  exists (select 1 from auth.sessions where id = 'f0000000-0000-4000-8000-0000000000f9'),
+  'lid → beheerder: de portal-sessie (zonder bar-sessie) blijft staan'
 );
 
 -- ── Archiveren: nog steeds geen_bar_rol ───────────────────────────────────
@@ -237,9 +286,16 @@ select throws_ok(
   'P0001', 'invalid_reason',
   'end_member_bar_sessions weigert een andere reden dan geen_bar_rol of beheerder_geworden'
 );
+select throws_ok(
+  $$ select end_member_bar_sessions('d0000000-0000-4000-8000-0000000000d0', null) $$,
+  'P0001', 'invalid_reason',
+  'end_member_bar_sessions weigert een reden null'
+);
 select ok(
-  (select ended_at is null from bar_sessions where id = 'd0000000-0000-4000-8000-0000000000d3'),
-  'een geweigerde reden sluit niets'
+  (select ended_at is null from bar_sessions where id = 'd0000000-0000-4000-8000-0000000000d3')
+  and exists (select 1 from bar_device_members
+               where member_id = 'd0000000-0000-4000-8000-0000000000d0' and revoked_at is null),
+  'een geweigerde reden sluit niets en laat het PIN-vertrouwen staan'
 );
 select ok(
   to_regprocedure('public.end_member_bar_sessions(uuid)') is null,

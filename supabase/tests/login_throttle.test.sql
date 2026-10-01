@@ -28,7 +28,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(65);
+select plan(68);
 
 create function pg_temp.h(p_key text) returns text
 language sql immutable as $fn$ select encode(extensions.digest(p_key, 'sha256'), 'hex') $fn$;
@@ -169,6 +169,21 @@ select lives_ok($$ select login_throttle_release(array[-1, -2]::bigint[]) $$, 'r
 select lives_ok($$ select login_throttle_release((select reservation_ids from res_r)) $$,
   'release van een al vrijgegeven reservering is geen fout');
 select lives_ok($$ select login_throttle_release('{}'::bigint[]) $$, 'release met een lege array doet niets');
+select lives_ok($$ select login_throttle_release(null) $$, 'release met null is geen fout');
+
+-- Andermans reservering: twee gelijktijdige pogingen op hetzelfde IP en een
+-- op een ander IP. Release van de ene laat de rijen van de andere staan.
+create temp table res_a as select * from login_throttle_reserve(array['wachtwoord_ip'], array['lt-ip-and']);
+create temp table res_b as select * from login_throttle_reserve(array['wachtwoord_ip'], array['lt-ip-and']);
+create temp table res_c as select * from login_throttle_reserve(array['wachtwoord_ip'], array['lt-ip-and2']);
+select lives_ok($$ select login_throttle_release((select reservation_ids from res_a)) $$,
+  'stap: één van twee reserveringen op dezelfde sleutel wordt vrijgegeven');
+select ok(
+  (select count(*) = 2 from login_throttle
+    where id in (select unnest(reservation_ids) from res_b union all select unnest(reservation_ids) from res_c))
+  and not exists (select 1 from login_throttle where id in (select unnest(reservation_ids) from res_a)),
+  'release raakt de reservering van een andere poging niet, ook niet op dezelfde sleutel'
+);
 
 -- ── Ongeldige invoer ──────────────────────────────────────────────────────
 
