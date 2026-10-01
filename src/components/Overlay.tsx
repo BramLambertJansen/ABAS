@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useLayoutEffect, useRef, type ReactNode } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, type ReactNode, type RefObject } from "react";
 import { useShell } from "@/lib/shell/ShellProvider";
 import { useRegisterOverlay } from "./OverlayPresence";
 
@@ -33,6 +33,11 @@ const FOCUSABLE_SELECTOR =
  * was focused before on unmount, a focus trap while open, and Escape /
  * backdrop-click both call `onClose`.
  *
+ * Met `titleRef` kan de aanroeper de focus naar de titel zetten bij een
+ * nieuwe stap binnen dezelfde overlay (`useFocusNaWissel`, besloten 12 in
+ * docs/features/beheer-tweede-factor.md); de titel krijgt dan
+ * `tabIndex={-1}`.
+ *
  * Meldt zich bij mount aan bij `OverlayPresenceProvider` en bij unmount weer
  * af (ADR 0014) — zonder provider doet dat niets.
  */
@@ -40,11 +45,13 @@ export function Overlay({
   title,
   description,
   onClose,
+  titleRef,
   children,
 }: {
   title: string;
   description?: string;
   onClose: () => void;
+  titleRef?: RefObject<HTMLHeadingElement | null>;
   children: ReactNode;
 }) {
   const shell = useShell();
@@ -141,7 +148,12 @@ export function Overlay({
       }
     >
       <div className="flex flex-col gap-1">
-        <h2 id={titleId} className="text-[19px] font-extrabold tracking-tight text-ink">
+        <h2
+          id={titleId}
+          ref={titleRef}
+          tabIndex={titleRef ? -1 : undefined}
+          className="text-[19px] font-extrabold tracking-tight text-ink outline-none"
+        >
           {title}
         </h2>
         {description && (

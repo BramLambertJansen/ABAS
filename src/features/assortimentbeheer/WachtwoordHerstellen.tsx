@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { AuroraMerk } from "@/components/AuroraMerk";
+import { useFocusNaWissel } from "@/hooks/useFocusNaWissel";
 import { CodeInvoer } from "@/components/CodeInvoer";
 import { TWEESTAP_TEKSTEN, type CodeFout } from "@/lib/mfa";
 import { NieuwWachtwoordVelden, isPasswordReady } from "@/components/NieuwWachtwoordVelden";
@@ -20,6 +21,11 @@ export function WachtwoordHerstellen({ tokenHash }: { tokenHash: string | null }
   const herstel = useNieuwWachtwoordInstellen(tokenHash);
   const [password, setPassword] = useState("");
   const [repeat, setRepeat] = useState("");
+  // Focus naar de kop van de code-stap na "Wachtwoord opslaan" (besloten 12
+  // in docs/features/beheer-tweede-factor.md).
+  const codeKopRef = useRef<HTMLHeadingElement>(null);
+  const codeStap = herstel.status === "code";
+  const markeerWissel = useFocusNaWissel(codeStap, (code) => (code ? codeKopRef.current : null));
 
   useEffect(() => {
     if (herstel.status === "done") {
@@ -32,6 +38,7 @@ export function WachtwoordHerstellen({ tokenHash }: { tokenHash: string | null }
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
     if (!isPasswordReady(password, repeat)) return;
+    markeerWissel();
     await herstel.setNewPassword(password);
   }
 
@@ -51,9 +58,11 @@ export function WachtwoordHerstellen({ tokenHash }: { tokenHash: string | null }
         <h1 className="text-xl font-extrabold tracking-tight">Nieuw wachtwoord instellen</h1>
       </AuroraMerk>
 
-      {herstel.status === "code" ? (
+      {codeStap ? (
         <div className="flex w-full max-w-sm flex-col gap-4 rounded-2xl border border-border bg-white p-6">
-          <p className="text-sm font-medium leading-relaxed text-muted">{TWEESTAP_TEKSTEN.wachtwoordCodeStap}</p>
+          <h2 ref={codeKopRef} tabIndex={-1} className="text-sm font-medium leading-relaxed text-muted outline-none">
+            {TWEESTAP_TEKSTEN.wachtwoordCodeStap}
+          </h2>
           <CodeInvoer tone="light" onVerifieer={verifieerCode} />
         </div>
       ) : linkInvalid ? (

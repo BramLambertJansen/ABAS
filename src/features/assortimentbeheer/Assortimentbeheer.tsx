@@ -35,6 +35,8 @@ function BeheerSchermen() {
   const inModusKeuze =
     sessie.fase === "geen_bar_sessie" && beheerSessie.status === "signed-in" && beheerSessie.role === "beheerder";
   const mfa = useBarMfa(inModusKeuze);
+  // Een leesfout van de factorstatus laat de tegel aan; een tik toont dan de
+  // code-stap (besloten 13, hieronder in `kiesBeheer`).
   const beheerTegel: BeheerTegel =
     mfa.status === "ready" ? (mfa.factorId ? "beschikbaar" : "geen_factor") : mfa.status === "error" ? "beschikbaar" : "laden";
 
@@ -65,10 +67,17 @@ function BeheerSchermen() {
     }
   }
 
-  /** "Beheer": met aal2 meteen registreren, anders eerst de code. */
+  /**
+   * "Beheer": met aal2 meteen registreren, anders eerst de code. Kon de
+   * factorstatus niet gelezen worden, dan ook eerst de code (besloten 13):
+   * zonder die stap volgt bij een aal1-sessie `aal2_required` en een stille
+   * uitlog. Verify zoekt de factor zelf op; lukt dat niet, dan toont de
+   * code-invoer de bestaande foutregel en kan de gebruiker met "Annuleren"
+   * terug naar "Bar".
+   */
   function kiesBeheer() {
     setRegistreerFout(null);
-    if (mfa.status === "ready" && !mfa.aal2) {
+    if (mfa.status === "error" || (mfa.status === "ready" && !mfa.aal2)) {
       setCodeStap(true);
       return;
     }

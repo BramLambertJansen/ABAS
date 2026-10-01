@@ -235,9 +235,9 @@ select ok(
         'public.record_bar_password_login(text,uuid)',
         'public.bar_login_options(text,uuid)',
         'public.register_bar_session_server(uuid,uuid,uuid)',
-        -- 0035 (ADR 0017): de eigen loginlimiet
-        'public.login_throttle_allowed(text,text)',
-        'public.login_throttle_record(text,text)'
+        -- 0035/0036 (ADR 0017): de eigen loginlimiet, atomair
+        'public.login_throttle_reserve(text[],text[])',
+        'public.login_throttle_release(bigint[])'
       ]) as f(sig)
      where has_function_privilege('anon', f.sig, 'EXECUTE')
         or has_function_privilege('authenticated', f.sig, 'EXECUTE')
@@ -351,13 +351,18 @@ select ok(
   'bar_login_options (0034): alleen service_role, niet PUBLIC, anon of authenticated'
 );
 
--- 0035 (ADR 0017): de throttle-functies alleen voor de server.
+-- 0036 (ADR 0017, besloten 5): de atomaire throttle-functies alleen voor de
+-- server; de oude, niet-atomaire van 0035 bestaan niet meer.
 select ok(
-  not has_function_privilege('public', 'public.login_throttle_allowed(text,text)', 'EXECUTE')
-  and not has_function_privilege('public', 'public.login_throttle_record(text,text)', 'EXECUTE')
-  and not has_function_privilege('authenticated', 'public.login_throttle_allowed(text,text)', 'EXECUTE')
-  and not has_function_privilege('authenticated', 'public.login_throttle_record(text,text)', 'EXECUTE'),
-  'login_throttle_allowed/record (0035): niet voor PUBLIC of authenticated'
+  not has_function_privilege('public', 'public.login_throttle_reserve(text[],text[])', 'EXECUTE')
+  and not has_function_privilege('public', 'public.login_throttle_release(bigint[])', 'EXECUTE')
+  and not has_function_privilege('anon', 'public.login_throttle_reserve(text[],text[])', 'EXECUTE')
+  and not has_function_privilege('anon', 'public.login_throttle_release(bigint[])', 'EXECUTE')
+  and not has_function_privilege('authenticated', 'public.login_throttle_reserve(text[],text[])', 'EXECUTE')
+  and not has_function_privilege('authenticated', 'public.login_throttle_release(bigint[])', 'EXECUTE')
+  and to_regprocedure('public.login_throttle_allowed(text,text)') is null
+  and to_regprocedure('public.login_throttle_record(text,text)') is null,
+  'login_throttle_reserve/release (0036): niet voor PUBLIC, anon of authenticated; allowed/record weg'
 );
 
 select ok(

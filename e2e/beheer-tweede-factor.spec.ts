@@ -24,7 +24,9 @@ import { vulCodeIn } from "./helpers/totp";
  * Wat dit toetst: de code-stap in `ModusKeuze` (goed, fout, te vaak), de
  * uitgeschakelde tegel zonder factor, twee tabbladen in één browser, en een
  * nieuwe browser (nieuwe context: geen sessiecookie) met hervatten of
- * `niet_hervat`. Plus de code-stap op /beheer/wachtwoord-herstellen.
+ * `niet_hervat`. Plus de code-stap op /beheer/wachtwoord-herstellen en
+ * /portal/wachtwoord-herstellen. Aanvulling 2026-10-01: de focus na elke
+ * stapwissel (besloten 12) en een leesfout van de factorstatus (besloten 13).
  */
 
 const CODE = "123456";
@@ -75,6 +77,8 @@ test("aal1 met factor: 'Beheer' vraagt eerst de code, een foute code geeft de me
 
   await beheerTegel(page).click();
   await expect(codeKop(page)).toBeVisible({ timeout: 15_000 });
+  // Besloten 12: de focus staat op de kop van de nieuwe stap.
+  await expect(codeKop(page)).toBeFocused();
   // Nog niets geregistreerd: eerst de code.
   expect(sessie.registraties).toEqual([]);
   await scan(page);
@@ -107,8 +111,11 @@ test("'Annuleren' in de code-stap brengt de tegels terug; 'Bar' werkt zonder cod
 
   await beheerTegel(page).click();
   await expect(codeKop(page)).toBeVisible({ timeout: 15_000 });
+  await expect(codeKop(page)).toBeFocused();
   await page.getByRole("button", { name: "Annuleren", exact: true }).click();
   await expect(page.getByRole("button", { name: /^Bar/ })).toBeVisible();
+  // Besloten 12: terug op de tegel "Beheer".
+  await expect(beheerTegel(page)).toBeFocused();
 
   await page.getByRole("button", { name: /^Bar/ }).click();
   await expect.poll(() => sessie.registraties).toEqual(["bar"]);
@@ -138,6 +145,77 @@ test("zonder factor staat de tegel Beheer uit, met de uitleg; een tik doet niets
   await expect(codeKop(page)).toHaveCount(0);
   expect(sessie.registraties).toEqual([]);
   await scan(page);
+});
+
+test("zonder tik op 'Beheer' staat de focus niet op de code-stap of de tegel (alleen bij een wissel)", async ({
+  page,
+}) => {
+  await mockBeheer(page, { aal: "aal1" });
+  await loginMetWachtwoord(page, USER.email, "Aurora#2026");
+  await expect(beheerTegel(page)).toBeVisible({ timeout: 15_000 });
+  await expect(beheerTegel(page)).not.toBeFocused();
+});
+
+// ── Leesfout van de factorstatus (besloten 13) ───────────────────────────
+
+/** `GET /auth/v1/user` (waaruit `mfa.listFactors()` leest) faalt de eerste
+ *  `keer` keer; daarna weer de gebruiker met factor. */
+async function factorstatusLeesfout(page: Page, keer = Infinity) {
+  let n = 0;
+  await page.route(/\/auth\/v1\/user(\?|$)/, (route) => {
+    if (route.request().method() !== "GET") return route.fallback();
+    if (n++ < keer) return json(route, 500, { code: "unexpected_failure", msg: "kapot" });
+    return json(route, 200, USER);
+  });
+}
+
+test("leesfout van de factorstatus: 'Beheer' toont de code-stap en logt niet uit; lukt verify niet, dan de foutregel en terug naar 'Bar'", async ({
+  page,
+}) => {
+  const sessie = await mockBeheer(page, { aal: "aal1" });
+  const factor = await mockTweedeFactor(page);
+  await factorstatusLeesfout(page);
+  await loginMetWachtwoord(page, USER.email, "Aurora#2026");
+
+  // De tegel blijft aan: de server weet het beter dan een mislukte lezing.
+  await expect(beheerTegel(page)).not.toHaveAttribute("aria-disabled", "true", { timeout: 15_000 });
+  await beheerTegel(page).click();
+  await expect(codeKop(page)).toBeVisible({ timeout: 15_000 });
+  await expect(codeKop(page)).toBeFocused();
+  // Geen register_bar_session('beheer') op een aal1-sessie, dus geen
+  // aal2_required en geen stille uitlog.
+  expect(sessie.registraties).toEqual([]);
+  expect(sessie.beeindigingen).toEqual([]);
+
+  // Verify zoekt de factor zelf op; dat lukt ook nu niet: de bestaande
+  // foutregel, geen code naar Supabase Auth, nog steeds ingelogd.
+  await vulCodeIn(page, CODE);
+  await expect(page.getByText("er ging iets mis, probeer het opnieuw")).toBeVisible();
+  expect(factor.codes).toEqual([]);
+  expect(sessie.registraties).toEqual([]);
+  expect(sessie.beeindigingen).toEqual([]);
+  await expect(page.locator('input[type="email"]')).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Annuleren", exact: true }).click();
+  await expect(beheerTegel(page)).toBeFocused();
+  await page.getByRole("button", { name: /^Bar/ }).click();
+  await expect.poll(() => sessie.registraties).toEqual(["bar"]);
+});
+
+test("leesfout van de factorstatus, verify lukt wel: na de code de beheersessie", async ({ page }) => {
+  const sessie = await mockBeheer(page, { aal: "aal1" });
+  const factor = await mockTweedeFactor(page);
+  // Alleen de eerste lezing (useBarMfa) faalt; verify leest opnieuw.
+  await factorstatusLeesfout(page, 1);
+  await loginMetWachtwoord(page, USER.email, "Aurora#2026");
+
+  await beheerTegel(page).click();
+  await expect(codeKop(page)).toBeVisible({ timeout: 15_000 });
+  await vulCodeIn(page, CODE);
+  await expect(beheerTabs(page)).toBeVisible({ timeout: 15_000 });
+  expect(factor.codes).toEqual([CODE]);
+  expect(sessie.registraties).toEqual(["beheer"]);
+  expect(sessie.beeindigingen).toEqual([]);
 });
 
 // ── Hervatten per browser (sectie B) ─────────────────────────────────────
@@ -211,9 +289,10 @@ test("wachtwoord herstellen met een factor: eerst de code, dan het nieuwe wachtw
   await page.getByLabel("Herhaal wachtwoord").fill("Aurora#2026");
   await page.getByRole("button", { name: "Wachtwoord opslaan" }).click();
 
-  await expect(page.getByText("Voer eerst de code uit je authenticator-app in.")).toBeVisible({
-    timeout: 15_000,
-  });
+  const codeStapKop = page.getByRole("heading", { name: "Voer eerst de code uit je authenticator-app in." });
+  await expect(codeStapKop).toBeVisible({ timeout: 15_000 });
+  // Besloten 12: de focus naar de kop van de code-stap.
+  await expect(codeStapKop).toBeFocused();
   expect(updates).toEqual([]);
   await scan(page);
 
@@ -221,5 +300,36 @@ test("wachtwoord herstellen met een factor: eerst de code, dan het nieuwe wachtw
   await expect(page).toHaveURL(/\/beheer$/, { timeout: 15_000 });
   await expect.poll(() => updates.length).toBe(1);
   expect(updates[0]).toEqual(expect.objectContaining({ password: "Aurora#2026" }));
+  expect(factor.codes).toEqual([CODE]);
+});
+
+// ── /portal/wachtwoord-herstellen: eerst de code, focus op de kop ────────
+
+test("portal: wachtwoord herstellen met een factor: focus naar de kop van de code-stap, dan het nieuwe wachtwoord", async ({
+  page,
+}) => {
+  const updates: unknown[] = [];
+  await page.route(/\/auth\/v1\/user(\?|$)/, (route) => {
+    if (route.request().method() === "PUT") updates.push(route.request().postDataJSON());
+    return json(route, 200, USER);
+  });
+  await page.route(/\/auth\/v1\/verify(\?|$)/, (route) => json(route, 200, fakeSession({ aal: "aal1" })));
+  await page.route(/\/auth\/v1\/logout(\?|$)/, (route) => route.fulfill({ status: 204, body: "" }));
+  const factor = await mockTweedeFactor(page);
+
+  await page.goto("/portal/wachtwoord-herstellen?token_hash=hash-uit-mail&type=recovery");
+  await page.getByLabel("Nieuw wachtwoord").fill("Aurora#2026");
+  await page.getByLabel("Herhaal wachtwoord").fill("Aurora#2026");
+  await page.getByRole("button", { name: "Wachtwoord opslaan" }).click();
+
+  const codeStapKop = page.getByRole("heading", { name: "Voer eerst de code uit je authenticator-app in." });
+  await expect(codeStapKop).toBeVisible({ timeout: 15_000 });
+  await expect(codeStapKop).toBeFocused();
+  expect(updates).toEqual([]);
+  await scan(page);
+
+  await vulCodeIn(page, CODE);
+  await expect(page).toHaveURL(/\/portal$/, { timeout: 15_000 });
+  await expect.poll(() => updates.length).toBe(1);
   expect(factor.codes).toEqual([CODE]);
 });

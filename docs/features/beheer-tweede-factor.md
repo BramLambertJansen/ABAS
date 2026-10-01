@@ -2,8 +2,8 @@
 
 Status: **goedgekeurd door Bram (2026-09-30)**, inclusief de teksten.
 Gebouwd (2026-09-30, nog niet gemerged; zie "Zoals gebouwd"). **Aangevuld
-na de tweede review (Bram, 2026-10-01):** besloten 10–13 hieronder; nog niet
-gebouwd. De teksten in die aanvulling zijn een **voorstel** tot Bram ze
+na de tweede review (Bram, 2026-10-01):** besloten 10–13 hieronder; 12 en
+13 gebouwd 2026-10-01 (zie "Zoals gebouwd"), 11 nog niet. De teksten in die aanvulling zijn een **voorstel** tot Bram ze
 goedkeurt (zie Teksten). Hoort bij
 [ADR 0017](../adr/0017-beheer-eist-tweede-factor-en-eigen-loginlimiet.md).
 Vult [`dienst-per-sessie.md`](dienst-per-sessie.md) aan; de verwijzingen
@@ -546,8 +546,30 @@ Wat er afwijkt van of bijkomt op de spec hierboven, en waarom.
   `disabled`), zodat hij met de uitleg focusbaar en voorleesbaar blijft. De
   code-stap heeft een knop "Annuleren" (bestaande tekst) terug naar de
   tegels. Kan de factorstatus niet gelezen worden, dan blijft de tegel aan
-  en beslist de server. *Vervangen door besloten 13 (2026-10-01): bij een
-  leesfout eerst de code-stap, geen stille uitlog.*
+  en toont een tik eerst de code-stap (besloten 13, gebouwd 2026-10-01, zie
+  hieronder).
+- **Leesfout van de factorstatus (besloten 13, 2026-10-01).** `kiesBeheer`
+  in `Assortimentbeheer.tsx` toont de code-stap bij `mfa.status === "error"`
+  net als bij een factor met aal1; er gaat dan geen
+  `register_bar_session('beheer')` meer op een aal1-sessie uit. Lukt verify
+  niet (de factor opnieuw niet te lezen), dan geeft `verifieerCode`
+  (`src/lib/mfa.ts`) `unknown` en toont `CodeInvoer` de bestaande regel "er
+  ging iets mis, probeer het opnieuw".
+- **Focus bij een nieuwe stap (besloten 12, 2026-10-01).** Het patroon uit
+  `BarInloggen` is een gedeelde hook geworden: `src/hooks/useFocusNaWissel.ts`
+  (`markeer()` in de handler van de gebruikersactie, daarna focus naar het
+  doel van de nieuwe stap). `BarInloggen` gebruikt hem zelf ook. Doelen:
+  `ModusKeuze` de kop "Code uit je authenticator-app" (`h2`,
+  `tabIndex={-1}`) na "Beheer", en de tegel "Beheer" na "Annuleren";
+  `TweestapSheet` de titel van de sheet ("Code invoeren") na "Volgende";
+  `WachtwoordWijzigenSheet` de titel van de sheet ("Wachtwoord wijzigen")
+  na een geldige code. `Overlay` kreeg daarvoor een optionele `titleRef`
+  (de titel krijgt dan `tabIndex={-1}`). Op `/beheer/wachtwoord-herstellen`
+  en `/portal/wachtwoord-herstellen` had de code-stap geen kop: de bestaande
+  regel "Voer eerst de code uit je authenticator-app in." is daar nu een
+  `h2` (zelfde opmaak, zelfde tekst), en die krijgt de focus na
+  "Wachtwoord opslaan". In de portal-sheet "Wachtwoord wijzigen" heeft de
+  stap met de velden geen eigen kop; de titel van de sheet is die kop.
 - **Hervatten.** `useBarAuth` levert het `session_id` uit het access token;
   `BarSessieProvider` leest het cookie bij elke render en sluit een niet te
   hervatten sessie hooguit één keer per sessie met `niet_hervat`.
@@ -566,4 +588,10 @@ Wat er afwijkt van of bijkomt op de spec hierboven, en waarom.
   zetten nu `aal2`. Unit: `test/mfa.test.ts`, de cookielogica in
   `test/barSessie.test.ts`. e2e: `e2e/beheer-tweede-factor.spec.ts`
   (gemockt), de portal-tests in `e2e/portal-profiel.spec.ts` en de echte
-  code-stap in `e2e/a11y.spec.ts`.
+  code-stap in `e2e/a11y.spec.ts`. Aanvulling 2026-10-01: in
+  `e2e/beheer-tweede-factor.spec.ts` de focus na "Beheer", "Annuleren" en
+  "Wachtwoord opslaan" (beheer en portal), geen focus zonder wissel, en twee
+  tests met een gemockte leesfout (`GET /auth/v1/user` 500): de code-stap,
+  geen registratie en geen uitlog, de foutregel als verify ook niet kan
+  lezen, en een geslaagde beheersessie als verify wel kan lezen. In
+  `e2e/portal-profiel.spec.ts` de focus in beide sheets.

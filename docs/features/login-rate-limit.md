@@ -2,8 +2,8 @@
 
 Status: **goedgekeurd door Bram (2026-09-30)**, inclusief waarden en teksten.
 Gebouwd (2026-09-30, nog niet gemerged; zie "Zoals gebouwd"). **Aangevuld
-na de tweede review (Bram, 2026-10-01):** atomair tellen (besloten 5); nog
-niet gebouwd. Hoort bij
+na de tweede review (Bram, 2026-10-01):** atomair tellen (besloten 5);
+gebouwd 2026-10-01 (`0036`, zie "Zoals gebouwd"). Hoort bij
 [ADR 0017](../adr/0017-beheer-eist-tweede-factor-en-eigen-loginlimiet.md) →
 Beslissing 3. Vult [`dienst-per-sessie.md`](dienst-per-sessie.md) →
 Veiligheid aan ("de rate limit (...) per gebruiker blijft gelden", vraag 25).
@@ -302,28 +302,45 @@ De openbare namenlijst verklapt niet meer wie beheerder is.
 
 ## Zoals gebouwd (2026-09-30)
 
-*De punten hieronder gaan over de bouw van 2026-09-30. Besloten 5
-(2026-10-01) vervangt `login_throttle_allowed`/`login_throttle_record` door
-`reserve`/`release`; de Developer werkt dit bij na de bouw.*
-
-- **Migratie `0035_login_throttle.sql`**: de tabel, `login_throttle_allowed`,
-  `login_throttle_record` (alleen `service_role`) en `purge_login_throttle`
+- **Migratie `0035_login_throttle.sql`**: de tabel en `purge_login_throttle`
   (voor geen API-rol, `pg_cron` elk uur op minuut 23). De sha256 van de
-  sleutel rekent de database uit (`pgcrypto`); een lege sleutel of een
-  onbekende bucket geeft `invalid_key`/`invalid_bucket`.
-- **Volgorde in `src/lib/barLogin.ts`.** De limiet komt vóór elke andere
+  sleutel rekent de database uit (`pgcrypto`).
+- **Migratie `0036_login_throttle_atomair.sql` (besloten 5, 2026-10-01).**
+  Verwijdert `login_throttle_allowed`/`login_throttle_record` (0035) en voegt
+  `login_throttle_reserve` en `login_throttle_release` toe, alleen voor
+  `service_role` (ingetrokken voor `PUBLIC`, `anon`, `authenticated`). De
+  locks gaan in de volgorde (bucket, `key_hash`); tellen en schrijven
+  gebeuren daarna in dezelfde functie. Foutcodes van de invoer: een onbekende
+  of lege bucket `invalid_bucket`, een lege sleutel `invalid_key`, en
+  ongelijke arrays, minder dan 1 of meer dan 3 paren of een dubbele bucket
+  `invalid_input` (de spec noemde voor die drie geen code; de aanroeper is
+  alleen de eigen server, de gebruiker ziet deze codes nooit).
+- **Volgorde in `src/lib/barLogin.ts`.** De reservering komt vóór elke andere
   aanroep: bij het wachtwoord vóór het opzoeken van het lid, bij de PIN na
   het apparaatcookie en het formaat en vóór `verify_bar_pin`, bij "vergeten"
-  vóór alles. Kan de limiet niet gelezen worden, dan gooit de login (de route
-  geeft `unknown`); mislukt alleen het registreren, dan wordt dat gelogd en
-  krijgt de gebruiker de uitkomst van zijn poging.
+  vóór alles. De poging zelf staat in een eigen functie
+  (`wachtwoordPoging`, `pinPoging`); de aanroeper geeft in een `finally` de
+  reservering vrij, tenzij de uitkomst `invalid_credentials` of (uit
+  `verify_bar_pin`) `invalid_pin` is. Een PIN van het verkeerde formaat en
+  een ontbrekend apparaatcookie reserveren niets. "Vergeten" geeft nooit
+  vrij. Kan er niet gereserveerd worden, dan gooit de login (de route geeft
+  `unknown`); mislukt alleen de `release`, dan wordt dat gelogd en krijgt de
+  gebruiker de uitkomst van zijn poging. De sleutel per lid blijft het
+  `memberId` in kleine letters.
+- **Gelijktijdigheid.** `supabase/tests/login_throttle.test.sql` toont het
+  advisory lock in `pg_locks` na `reserve`. Lokaal nagegaan met 50
+  gelijktijdige verbindingen (`wachtwoord_ip` + `wachtwoord_lid`, zelfde
+  sleutels): precies 5 toegestaan, 5 rijen per bucket. Die test met
+  meerdere verbindingen staat niet in de repo (`npm run test` draait zonder
+  database).
 - **`clientIp`** staat in `src/lib/clientIp.ts` en gebruikt `node:net` om een
   IP-adres te herkennen.
 - **e2e.** De UI-tests (`e2e/login-rate-limit.spec.ts`) mocken de routes
   onder `/inloggen/`: in CI delen alle verzoeken de sleutel `'onbekend'`, en
   echte foute pogingen zouden de rest van de run blokkeren. Er is dus geen
   tabel om leeg te maken. De telling zelf bewijzen
-  `supabase/tests/login_throttle.test.sql` en `test/barLogin.test.ts`. Eén
+  `supabase/tests/login_throttle.test.sql` en `test/barLogin.test.ts` (per
+  uitkomst wel of geen `release`). Eén
   live test leest `GET /inloggen/namen` en controleert dat er geen `role` in
   staat.
 - **`RoleBadge` en `ROLE_LABELS`** blijven: `BezettingOverlay` en

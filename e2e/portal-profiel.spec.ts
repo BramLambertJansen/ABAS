@@ -327,6 +327,8 @@ test.describe("gemockt — tweestapsverificatie (ADR 0017)", () => {
 
     const stap2 = page.getByRole("dialog", { name: "Code invoeren" });
     await expect(stap2.getByText("Voer de 6 cijfers in die je app nu toont.")).toBeVisible();
+    // Besloten 12 (docs/features/beheer-tweede-factor.md): focus naar de kop.
+    await expect(stap2.getByRole("heading", { name: "Code invoeren" })).toBeFocused();
     const bevestigen = stap2.getByRole("button", { name: "Bevestigen" });
     await expect(bevestigen).toHaveAttribute("aria-disabled", "true");
     await scan(page);
@@ -359,6 +361,9 @@ test.describe("gemockt — tweestapsverificatie (ADR 0017)", () => {
     await scan(page);
 
     await vulCodeIn(page, "123456");
+    await expect(dialog.getByLabel("Nieuw wachtwoord")).toBeVisible();
+    // Besloten 12: na de code de focus naar de kop van de stap met de velden.
+    await expect(dialog.getByRole("heading", { name: "Wachtwoord wijzigen" })).toBeFocused();
     await dialog.getByLabel("Nieuw wachtwoord").fill("Aurora#2026");
     await dialog.getByLabel("Herhaal wachtwoord").fill("Aurora#2026");
     await dialog.getByRole("button", { name: "Wijzigen" }).click();

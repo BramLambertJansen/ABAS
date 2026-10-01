@@ -54,22 +54,40 @@ beforeEach(() => {
   state.rpc.verify_bar_pin = () => ({
     data: [{ result_code: "ok", member_auth_user_id: "u1", trusted_device_id: DEVICE, attempts_left: null }],
   });
-  // De eigen limiet (0035): standaard is er nog ruimte.
-  state.rpc.login_throttle_allowed = () => ({ data: true });
+  // De eigen limiet (0036): standaard is er nog ruimte.
+  state.rpc.login_throttle_reserve = ruimte;
+  state.rpc.login_throttle_release = () => ({ data: null });
 });
 
 const isThrottle = (fn: string) => fn.startsWith("login_throttle_");
 /** De databaseaanroepen van de loginflow zelf, zonder de limiet. */
 const eigen = () => fakeBarLogin().rpcCalls.filter((c) => !isThrottle(c.fn));
 const aanroepen = () => eigen().map((c) => c.fn);
-/** Alleen de aanroepen van de limiet: `functie:bucket:sleutel`. */
+/**
+ * Alleen de aanroepen van de limiet: `reserve:bucket=sleutel,...` en
+ * `release:id,...`.
+ */
 const limiet = () =>
   fakeBarLogin()
     .rpcCalls.filter((c) => isThrottle(c.fn))
-    .map((c) => `${c.fn.replace("login_throttle_", "")}:${c.args.p_bucket}:${c.args.p_key}`);
-/** Laat `login_throttle_allowed` voor één bucket "vol" antwoorden. */
+    .map((c) => {
+      if (c.fn === "login_throttle_release") {
+        return `release:${(c.args.p_reservation_ids as number[]).join(",")}`;
+      }
+      const buckets = c.args.p_buckets as string[];
+      const keys = c.args.p_keys as string[];
+      return `reserve:${buckets.map((b, i) => `${b}=${keys[i]}`).join(",")}`;
+    });
+const vrijgegeven = () => limiet().filter((c) => c.startsWith("release:"));
+/** Nog ruimte: per bucket een reservering, met ids vanaf 101. */
+function ruimte(args: Record<string, unknown>) {
+  const n = (args.p_buckets as string[]).length;
+  return { data: [{ allowed: true, reservation_ids: Array.from({ length: n }, (_, i) => 101 + i) }] };
+}
+/** Laat `login_throttle_reserve` "vol" antwoorden als `bucket` erin zit. */
 function vol(bucket: string) {
-  fakeBarLogin().rpc.login_throttle_allowed = (args) => ({ data: args.p_bucket !== bucket });
+  fakeBarLogin().rpc.login_throttle_reserve = (args) =>
+    (args.p_buckets as string[]).includes(bucket) ? { data: [{ allowed: false, reservation_ids: [] }] } : ruimte(args);
 }
 
 // ── Namenlijst ───────────────────────────────────────────────────────────
@@ -331,7 +349,7 @@ test("PIN-login: mislukt sessie aanmaken of registreren sluit de nieuwe sessie l
   const state = fakeBarLogin();
   state.cookies.set(APPARAAT_COOKIE_NAAM, OUD_TOKEN);
   state.otp.accessToken = jwt({ session_id: SESSIE_ID });
-  state.rpc.login_throttle_allowed = () => ({ data: true });
+  state.rpc.login_throttle_reserve = ruimte;
   state.rpc.verify_bar_pin = () => ({
     data: [{ result_code: "ok", member_auth_user_id: "u1", trusted_device_id: DEVICE }],
   });
@@ -372,88 +390,145 @@ test("wachtwoord vergeten is neutraal: geen mail voor een lid zonder account, ee
 });
 
 // ── Eigen limiet (docs/features/login-rate-limit.md, ADR 0017) ───────────
+//
+// Besloten 5 (2026-10-01): één atomaire reservering vóór de poging, en
+// `release` bij elke uitkomst die niet telt. Alleen `invalid_credentials` en
+// `invalid_pin` houden de reservering; "vergeten" geeft nooit vrij.
 
-test("wachtwoordlogin: eerst wachtwoord_ip en wachtwoord_lid, met het IP en het lid als sleutel", async () => {
+test("wachtwoordlogin: eerst één reservering in wachtwoord_ip en wachtwoord_lid, met het IP en het lid als sleutel", async () => {
   assert.deepEqual(await loginMetWachtwoord(MEMBER, "geheim", IP), { ok: true });
-  assert.deepEqual(limiet(), [`allowed:wachtwoord_ip:${IP}`, `allowed:wachtwoord_lid:${MEMBER}`]);
+  assert.equal(limiet()[0], `reserve:wachtwoord_ip=${IP},wachtwoord_lid=${MEMBER}`);
+  assert.equal(fakeBarLogin().rpcCalls[0].fn, "login_throttle_reserve", "de reservering komt vóór alles");
 });
 
 for (const bucket of ["wachtwoord_ip", "wachtwoord_lid"]) {
-  test(`wachtwoordlogin: ${bucket} vol → rate_limited, zonder Supabase Auth of database`, async () => {
+  test(`wachtwoordlogin: ${bucket} vol → rate_limited, zonder Supabase Auth, database of release`, async () => {
     vol(bucket);
     assert.deepEqual(await loginMetWachtwoord(MEMBER, "geheim", IP), { ok: false, code: "rate_limited" });
     assert.deepEqual(fakeBarLogin().signInCalls, []);
     assert.deepEqual(aanroepen(), []);
-    assert.equal(limiet().some((c) => c.startsWith("record:")), false);
+    assert.deepEqual(vrijgegeven(), []);
   });
 }
 
-test("wachtwoordlogin: een fout wachtwoord telt in wachtwoord_ip en wachtwoord_lid", async () => {
+test("wachtwoordlogin: een fout wachtwoord houdt de reservering (geen release)", async () => {
   fakeBarLogin().signIn.error = { message: "Invalid login credentials", code: "invalid_credentials", status: 400 };
-  await loginMetWachtwoord(MEMBER, "fout", IP);
-  assert.deepEqual(limiet().filter((c) => c.startsWith("record:")), [
-    `record:wachtwoord_ip:${IP}`,
-    `record:wachtwoord_lid:${MEMBER}`,
-  ]);
+  assert.deepEqual(await loginMetWachtwoord(MEMBER, "fout", IP), { ok: false, code: "invalid_credentials" });
+  assert.deepEqual(limiet(), [`reserve:wachtwoord_ip=${IP},wachtwoord_lid=${MEMBER}`]);
 });
 
-test("wachtwoordlogin: een geslaagde login of een andere fout telt niet", async () => {
-  await loginMetWachtwoord(MEMBER, "geheim", IP);
-  fakeBarLogin().signIn.error = { message: "Request rate limit reached", status: 429 };
-  await stubConsole(() => loginMetWachtwoord(MEMBER, "x", IP));
-  fakeBarLogin().signIn.error = { message: "kapot", status: 500 };
-  await stubConsole(() => loginMetWachtwoord(MEMBER, "x", IP));
-  assert.equal(limiet().some((c) => c.startsWith("record:")), false);
+// Elke andere uitkomst geeft de reservering vrij (beide ids).
+const wachtwoordNietTellend: [string, () => void, string][] = [
+  ["geslaagd", () => {}, "ok"],
+  ["rate_limited bij Supabase Auth", () => {
+    fakeBarLogin().signIn.error = { message: "Request rate limit reached", status: 429 };
+  }, "rate_limited"],
+  ["een andere Auth-fout", () => {
+    fakeBarLogin().signIn.error = { message: "kapot", status: 500 };
+  }, "unknown"],
+  ["not_allowed", () => {
+    fakeBarLogin().member = { id: MEMBER, role: "lid", archived: false, auth_user_id: "u1" };
+  }, "not_allowed"],
+  ["no_account", () => {
+    fakeBarLogin().member = { id: MEMBER, role: "bardienst", archived: false, auth_user_id: null };
+  }, "no_account"],
+  ["registreren mislukt", () => {
+    fakeBarLogin().rpc.register_bar_session_server = () => ({ error: { message: "kapot" } });
+  }, "unknown"],
+];
+for (const [naam, opzet, code] of wachtwoordNietTellend) {
+  test(`wachtwoordlogin: ${naam} telt niet → release van de reservering`, async () => {
+    opzet();
+    const result = await stubConsole(() => loginMetWachtwoord(MEMBER, "geheim", IP));
+    assert.equal(result.ok ? "ok" : result.code, code);
+    assert.deepEqual(vrijgegeven(), ["release:101,102"]);
+  });
+}
+
+test("wachtwoordlogin: een uitzondering na de reservering geeft haar ook vrij (finally)", async () => {
+  fakeBarLogin().rpc.register_bar_session_server = () => {
+    throw new Error("netwerk weg");
+  };
+  await assert.rejects(() => loginMetWachtwoord(MEMBER, "geheim", IP));
+  assert.deepEqual(vrijgegeven(), ["release:101,102"]);
 });
 
-test("wachtwoordlogin: kan de limiet niet gelezen worden, dan geen login (gooit)", async () => {
-  fakeBarLogin().rpc.login_throttle_allowed = () => ({ error: { message: "kapot" } });
+test("wachtwoordlogin: mislukt de release, dan krijgt de gebruiker toch zijn uitkomst", async () => {
+  fakeBarLogin().rpc.login_throttle_release = () => ({ error: { message: "kapot" } });
+  assert.deepEqual(await stubConsole(() => loginMetWachtwoord(MEMBER, "geheim", IP)), { ok: true });
+  assert.deepEqual(vrijgegeven(), ["release:101,102"]);
+});
+
+test("wachtwoordlogin: kan de limiet niet gereserveerd worden, dan geen login (gooit)", async () => {
+  fakeBarLogin().rpc.login_throttle_reserve = () => ({ error: { message: "kapot" } });
   await assert.rejects(() => loginMetWachtwoord(MEMBER, "geheim", IP));
   assert.deepEqual(fakeBarLogin().signInCalls, []);
+  assert.deepEqual(vrijgegeven(), []);
 });
 
-test("PIN-login: pin_ip vol → rate_limited, zonder verify_bar_pin", async () => {
+test("PIN-login: pin_ip vol → rate_limited, zonder verify_bar_pin of release", async () => {
   fakeBarLogin().cookies.set(APPARAAT_COOKIE_NAAM, OUD_TOKEN);
   vol("pin_ip");
   assert.deepEqual(await loginMetPin(MEMBER, "1234", IP), { ok: false, code: "rate_limited" });
   assert.deepEqual(aanroepen(), []);
-  assert.deepEqual(limiet(), [`allowed:pin_ip:${IP}`]);
+  assert.deepEqual(limiet(), [`reserve:pin_ip=${IP}`]);
 });
 
-test("PIN-login: alleen invalid_pin telt in pin_ip", async () => {
+test("PIN-login: alleen invalid_pin houdt de reservering in pin_ip", async () => {
   fakeBarLogin().cookies.set(APPARAAT_COOKIE_NAAM, OUD_TOKEN);
   fakeBarLogin().rpc.verify_bar_pin = () => ({ data: [{ result_code: "invalid_pin", attempts_left: 3 }] });
   await loginMetPin(MEMBER, "0000", IP);
-  assert.deepEqual(limiet(), [`allowed:pin_ip:${IP}`, `record:pin_ip:${IP}`]);
+  assert.deepEqual(limiet(), [`reserve:pin_ip=${IP}`]);
 
-  for (const code of ["pin_locked", "pin_not_available", "pin_needs_mfa"]) {
+  for (const code of ["pin_locked", "pin_not_available", "pin_needs_mfa", "not_allowed", "no_account", "iets_nieuws"]) {
     resetFakeBarLogin();
     fakeBarLogin().cookies.set(APPARAAT_COOKIE_NAAM, OUD_TOKEN);
-    fakeBarLogin().rpc.login_throttle_allowed = () => ({ data: true });
+    fakeBarLogin().rpc.login_throttle_reserve = ruimte;
+    fakeBarLogin().rpc.login_throttle_release = () => ({ data: null });
     fakeBarLogin().rpc.verify_bar_pin = () => ({ data: [{ result_code: code }] });
     await loginMetPin(MEMBER, "0000", IP);
-    assert.deepEqual(limiet(), [`allowed:pin_ip:${IP}`], code);
+    assert.deepEqual(limiet(), [`reserve:pin_ip=${IP}`, "release:101"], code);
   }
 });
 
-test("PIN-login: een geslaagde login telt niet, en zonder apparaatcookie wordt de limiet niet gevraagd", async () => {
-  await loginMetPin(MEMBER, "1234", IP);
-  assert.deepEqual(limiet(), []);
+test("PIN-login: een geslaagde login, een databasefout en een mislukte sessie geven de reservering vrij", async () => {
   fakeBarLogin().cookies.set(APPARAAT_COOKIE_NAAM, OUD_TOKEN);
   assert.deepEqual(await loginMetPin(MEMBER, "1234", IP), { ok: true });
-  assert.deepEqual(limiet(), [`allowed:pin_ip:${IP}`]);
+  assert.deepEqual(limiet(), [`reserve:pin_ip=${IP}`, "release:101"]);
+
+  fakeBarLogin().rpcCalls.length = 0;
+  fakeBarLogin().rpc.verify_bar_pin = () => ({ error: { message: "kapot" } });
+  assert.deepEqual(await stubConsole(() => loginMetPin(MEMBER, "1234", IP)), { ok: false, code: "unknown" });
+  assert.deepEqual(vrijgegeven(), ["release:101"]);
+
+  fakeBarLogin().rpcCalls.length = 0;
+  fakeBarLogin().rpc.verify_bar_pin = () => ({
+    data: [{ result_code: "ok", member_auth_user_id: "u1", trusted_device_id: DEVICE }],
+  });
+  fakeBarLogin().otp.error = { message: "kapot" };
+  assert.deepEqual(await stubConsole(() => loginMetPin(MEMBER, "1234", IP)), { ok: false, code: "unknown" });
+  assert.deepEqual(vrijgegeven(), ["release:101"]);
 });
 
-test("wachtwoord vergeten: drie buckets gecontroleerd en geteld, dan de mail", async () => {
+test("PIN-login: een uitzondering in verify_bar_pin geeft de reservering ook vrij (finally)", async () => {
+  fakeBarLogin().cookies.set(APPARAAT_COOKIE_NAAM, OUD_TOKEN);
+  fakeBarLogin().rpc.verify_bar_pin = () => {
+    throw new Error("netwerk weg");
+  };
+  await assert.rejects(() => loginMetPin(MEMBER, "1234", IP));
+  assert.deepEqual(vrijgegeven(), ["release:101"]);
+});
+
+test("PIN-login: zonder apparaatcookie of met een PIN van het verkeerde formaat wordt er niets gereserveerd", async () => {
+  await loginMetPin(MEMBER, "1234", IP);
+  fakeBarLogin().cookies.set(APPARAAT_COOKIE_NAAM, OUD_TOKEN);
+  await loginMetPin(MEMBER, "12", IP);
+  assert.deepEqual(limiet(), []);
+});
+
+test("wachtwoord vergeten: één reservering in de drie buckets, dan de mail, nooit een release", async () => {
   assert.deepEqual(await stuurHerstellink(MEMBER, "https://bar.example.nl", IP), { ok: true, limited: false });
-  assert.deepEqual(limiet(), [
-    `allowed:vergeten_lid:${MEMBER}`,
-    `allowed:vergeten_ip:${IP}`,
-    "allowed:vergeten_totaal:*",
-    `record:vergeten_lid:${MEMBER}`,
-    `record:vergeten_ip:${IP}`,
-    "record:vergeten_totaal:*",
-  ]);
+  assert.deepEqual(limiet(), [`reserve:vergeten_lid=${MEMBER},vergeten_ip=${IP},vergeten_totaal=*`]);
   assert.equal(fakeBarLogin().resets.length, 1);
 });
 
@@ -462,14 +537,14 @@ for (const bucket of ["vergeten_lid", "vergeten_ip", "vergeten_totaal"]) {
     vol(bucket);
     assert.deepEqual(await stuurHerstellink(MEMBER, "https://bar.example.nl", IP), { ok: true, limited: true });
     assert.deepEqual(fakeBarLogin().resets, []);
-    assert.equal(limiet().some((c) => c.startsWith("record:")), false);
+    assert.deepEqual(vrijgegeven(), []);
   });
 }
 
-test("wachtwoord vergeten: ook een lid zonder account telt als aanvraag (de teller gaat over aanvragen)", async () => {
+test("wachtwoord vergeten: ook een lid zonder account telt als aanvraag (geen release)", async () => {
   fakeBarLogin().member = { id: MEMBER, role: "bardienst", archived: false, auth_user_id: null };
   assert.deepEqual(await stuurHerstellink(MEMBER, "https://bar.example.nl", IP), { ok: true, limited: false });
-  assert.equal(limiet().filter((c) => c.startsWith("record:")).length, 3);
+  assert.deepEqual(limiet(), [`reserve:vergeten_lid=${MEMBER},vergeten_ip=${IP},vergeten_totaal=*`]);
   assert.deepEqual(fakeBarLogin().resets, []);
 });
 
@@ -486,21 +561,22 @@ test("wachtwoord vergeten: het antwoord is voor elk lid hetzelfde, ook als de ma
     null,
   ]) {
     resetFakeBarLogin();
-    fakeBarLogin().rpc.login_throttle_allowed = () => ({ data: true });
+    fakeBarLogin().rpc.login_throttle_reserve = ruimte;
     fakeBarLogin().member = member;
     uitkomsten.push(await stuurHerstellink(MEMBER, "https://bar.example.nl", IP));
   }
-  // De limiet kan niet gelezen worden: geen mail, geen throw, zelfde antwoord.
+  // De limiet kan niet gereserveerd worden: geen mail, geen throw, zelfde
+  // antwoord.
   resetFakeBarLogin();
-  fakeBarLogin().rpc.login_throttle_allowed = () => ({ error: { message: "kapot" } });
+  fakeBarLogin().rpc.login_throttle_reserve = () => ({ error: { message: "kapot" } });
   uitkomsten.push(await stubConsole(() => stuurHerstellink(MEMBER, "https://bar.example.nl", IP)));
   assert.deepEqual(fakeBarLogin().resets, []);
   for (const uitkomst of uitkomsten) assert.deepEqual(uitkomst, neutraal);
 });
 
-test("PIN-login: kan pin_ip niet gelezen worden, dan geen poging op de PIN (gooit)", async () => {
+test("PIN-login: kan pin_ip niet gereserveerd worden, dan geen poging op de PIN (gooit)", async () => {
   fakeBarLogin().cookies.set(APPARAAT_COOKIE_NAAM, OUD_TOKEN);
-  fakeBarLogin().rpc.login_throttle_allowed = () => ({ error: { message: "kapot" } });
+  fakeBarLogin().rpc.login_throttle_reserve = () => ({ error: { message: "kapot" } });
   await assert.rejects(() => loginMetPin(MEMBER, "1234", IP));
   assert.deepEqual(aanroepen(), []);
   assert.deepEqual(fakeBarLogin().cookieSets, []);
@@ -514,15 +590,17 @@ test("wachtwoordlogin: not_allowed en no_account tellen niet mee in de limiet", 
     fakeBarLogin().member = member;
     await loginMetWachtwoord(MEMBER, "x", IP);
   }
-  assert.equal(limiet().some((c) => c.startsWith("record:")), false);
+  assert.deepEqual(vrijgegeven(), ["release:101,102", "release:101,102"]);
 });
 
 test("wachtwoordlogin: een lege limietsleutel wordt niet gebruikt (het IP komt altijd mee)", async () => {
   fakeBarLogin().signIn.error = { code: "invalid_credentials", message: "Invalid login credentials", status: 400 };
   await loginMetWachtwoord(MEMBER, "fout", IP);
-  for (const c of fakeBarLogin().rpcCalls.filter((c) => isThrottle(c.fn))) {
-    assert.equal(typeof c.args.p_key, "string");
-    assert.notEqual(c.args.p_key, "");
+  const reserves = fakeBarLogin().rpcCalls.filter((c) => c.fn === "login_throttle_reserve");
+  assert.equal(reserves.length, 1);
+  for (const sleutel of reserves[0].args.p_keys as unknown[]) {
+    assert.equal(typeof sleutel, "string");
+    assert.notEqual(sleutel, "");
   }
 });
 
@@ -538,10 +616,14 @@ test(
     assert.ok(isUuid(hoofdletters), "stap: de route laat een uuid in hoofdletters door");
     await loginMetWachtwoord(hoofdletters, "geheim", IP);
     await stuurHerstellink(hoofdletters, "https://bar.example.nl", IP);
-    const sleutels = limiet()
-      .filter((c) => c.includes("_lid:"))
-      .map((c) => c.split(":").slice(2).join(":"));
-    assert.equal(sleutels.length, 3);
+    const sleutels = fakeBarLogin()
+      .rpcCalls.filter((c) => c.fn === "login_throttle_reserve")
+      .flatMap((c) => {
+        const buckets = c.args.p_buckets as string[];
+        const keys = c.args.p_keys as string[];
+        return buckets.flatMap((b, i) => (b.endsWith("_lid") ? [keys[i]] : []));
+      });
+    assert.equal(sleutels.length, 2);
     for (const sleutel of sleutels) assert.equal(sleutel, klein);
   }
 );

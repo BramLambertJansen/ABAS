@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { Overlay } from "@/components/Overlay";
 import { CodeInvoer } from "@/components/CodeInvoer";
 import { FOUT_OVERIG, TWEESTAP_TEKSTEN, type CodeFout } from "@/lib/mfa";
+import { useFocusNaWissel } from "@/hooks/useFocusNaWissel";
 import type { TweestapStart } from "@/hooks/queries/usePortalTweestap";
 
 type Stap =
@@ -39,6 +40,9 @@ export function TweestapSheet({
 }) {
   const [stap, setStap] = useState<Stap>({ soort: "laden" });
   const gestart = useRef(false);
+  // Stap 1 → stap 2: de focus naar de kop "Code invoeren" (besloten 12).
+  const kopRef = useRef<HTMLHeadingElement>(null);
+  const markeerWissel = useFocusNaWissel(stap.soort, (soort) => (soort === "code" ? kopRef.current : null));
 
   async function begin() {
     setStap({ soort: "laden" });
@@ -79,6 +83,7 @@ export function TweestapSheet({
     <Overlay
       title={stap.soort === "code" ? TWEESTAP_TEKSTEN.stap2Titel : TWEESTAP_TEKSTEN.stap1Titel}
       onClose={onClose}
+      titleRef={kopRef}
     >
       <div className="flex flex-col gap-[14px]">
         {stap.soort === "laden" && (
@@ -122,7 +127,10 @@ export function TweestapSheet({
               </button>
               <button
                 type="button"
-                onClick={() => setStap({ soort: "code", factorId: stap.factorId })}
+                onClick={() => {
+                  markeerWissel();
+                  setStap({ soort: "code", factorId: stap.factorId });
+                }}
                 className="flex h-[52px] flex-1 items-center justify-center rounded-2xl bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover"
               >
                 {TWEESTAP_TEKSTEN.stap1Knop}

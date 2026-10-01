@@ -1,9 +1,11 @@
 "use client";
 
+import { useRef } from "react";
 import { AuroraMerk } from "@/components/AuroraMerk";
 import { CodeInvoer } from "@/components/CodeInvoer";
 import { BEHEERDER_INGREEP } from "@/features/bar-sessie/teksten";
 import { TWEESTAP_TEKSTEN, type CodeFout } from "@/lib/mfa";
+import { useFocusNaWissel } from "@/hooks/useFocusNaWissel";
 
 /** Kan deze beheerder nu "Beheer" kiezen? Sinds ADR 0017 eist beheer een
  *  tweede factor: zonder geverifieerde factor staat de tegel uit. */
@@ -29,6 +31,9 @@ export type BeheerTegel = "laden" | "geen_factor" | "beschikbaar";
  * de portal tweestapsverificatie in te stellen ("Bar" werkt gewoon). Met een
  * factor en een aal1-sessie toont een tik op "Beheer" eerst de code-invoer
  * (`codeStap`); na de code registreert de aanroeper de beheersessie.
+ *
+ * Focus (besloten 12): een tik op "Beheer" zet de focus op de kop van de
+ * code-stap, "Annuleren" zet hem terug op de tegel "Beheer".
  */
 export function ModusKeuze({
   name,
@@ -57,6 +62,11 @@ export function ModusKeuze({
   onAnnuleerCode?: () => void;
 }) {
   const beheerUit = pending || beheerTegel !== "beschikbaar";
+  const codeKopRef = useRef<HTMLHeadingElement>(null);
+  const beheerTegelRef = useRef<HTMLButtonElement>(null);
+  const markeerWissel = useFocusNaWissel(codeStap, (code) =>
+    code ? codeKopRef.current : beheerTegelRef.current
+  );
   return (
     <main className="relative isolate flex min-h-screen w-full flex-col items-center justify-center gap-6 overflow-auto bg-rail px-6 py-8 font-sans text-white">
       <div
@@ -69,13 +79,20 @@ export function ModusKeuze({
 
       {codeStap && onVerifieerCode ? (
         <div className="flex w-full max-w-[260px] flex-col items-center gap-[18px]">
-          <h2 className="text-center text-base font-extrabold text-white">
+          <h2
+            ref={codeKopRef}
+            tabIndex={-1}
+            className="text-center text-base font-extrabold text-white outline-none"
+          >
             {TWEESTAP_TEKSTEN.modusKeuzeTitel}
           </h2>
           <CodeInvoer tone="rail" onVerifieer={onVerifieerCode} />
           <button
             type="button"
-            onClick={onAnnuleerCode}
+            onClick={() => {
+              markeerWissel();
+              onAnnuleerCode?.();
+            }}
             className="text-xs font-semibold text-rail-muted hover:text-rail-light"
           >
             {BEHEERDER_INGREEP.annuleren}
@@ -107,10 +124,13 @@ export function ModusKeuze({
             // aria-disabled, niet disabled: de tegel zonder factor moet
             // focusbaar en voorleesbaar blijven, met de uitleg erin.
             <button
+              ref={beheerTegelRef}
               type="button"
               aria-disabled={beheerUit}
               onClick={() => {
-                if (!beheerUit) onChooseBeheer();
+                if (beheerUit) return;
+                markeerWissel();
+                onChooseBeheer();
               }}
               className={`flex flex-1 flex-col items-center gap-2.5 rounded-[18px] border border-rail-border bg-rail-card px-[18px] py-6 text-center transition-colors ${
                 beheerUit ? "cursor-not-allowed" : "hover:border-accent hover:bg-[#23262d]"

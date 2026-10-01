@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { Overlay } from "@/components/Overlay";
 import { CodeInvoer } from "@/components/CodeInvoer";
-import { TWEESTAP_TEKSTEN } from "@/lib/mfa";
+import { TWEESTAP_TEKSTEN, type CodeFout } from "@/lib/mfa";
+import { useFocusNaWissel } from "@/hooks/useFocusNaWissel";
 import { NieuwWachtwoordVelden, isPasswordReady } from "@/components/NieuwWachtwoordVelden";
 import { usePortalWachtwoordWijzigen } from "@/hooks/queries/usePortalWachtwoordWijzigen";
 import { passwordUpdateErrorMessage } from "@/lib/authErrors";
@@ -35,6 +36,15 @@ export function WachtwoordWijzigenSheet({
   const [password, setPassword] = useState("");
   const [repeat, setRepeat] = useState("");
   const mutation = usePortalWachtwoordWijzigen();
+  // Na de code: de focus naar de kop van de stap met de wachtwoordvelden, de
+  // titel van de sheet (besloten 12).
+  const kopRef = useRef<HTMLHeadingElement>(null);
+  const markeerWissel = useFocusNaWissel(mutation.codeStap, (stap) => (stap === "klaar" ? kopRef.current : null));
+
+  async function verifieer(code: string): Promise<CodeFout | null> {
+    markeerWissel();
+    return mutation.verifieer(code);
+  }
 
   const disabled = !isPasswordReady(password, repeat) || mutation.status === "pending";
 
@@ -50,6 +60,7 @@ export function WachtwoordWijzigenSheet({
       title="Wachtwoord wijzigen"
       description={isBarRole ? "Dit is ook je wachtwoord voor beheer op de bar-tablet." : undefined}
       onClose={onClose}
+      titleRef={kopRef}
     >
       {mutation.codeStap === "controleren" && (
         <p className="py-6 text-center text-sm font-bold text-muted" role="status">
@@ -59,7 +70,7 @@ export function WachtwoordWijzigenSheet({
       {mutation.codeStap === "nodig" && (
         <div className="flex flex-col gap-[14px]">
           <p className="text-sm font-medium leading-relaxed text-muted">{TWEESTAP_TEKSTEN.wachtwoordCodeStap}</p>
-          <CodeInvoer tone="light" onVerifieer={mutation.verifieer} />
+          <CodeInvoer tone="light" onVerifieer={verifieer} />
           <button
             type="button"
             onClick={onClose}

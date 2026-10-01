@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useRef, useState, type FormEvent } from "react";
 import { AuroraMerk } from "@/components/AuroraMerk";
 import { TekstVeld } from "@/components/TekstVeld";
+import { useFocusNaWissel } from "@/hooks/useFocusNaWissel";
 import { useBarNamen, type BarNaam } from "@/hooks/queries/useBarNamen";
 import {
   useBarLogin,
@@ -98,17 +99,12 @@ export function BarInloggen() {
 
   const wachtwoordRef = useRef<HTMLInputElement>(null);
   const kopRef = useRef<HTMLHeadingElement>(null);
-  const focusNaWissel = useRef(false);
-
-  useEffect(() => {
-    if (!focusNaWissel.current) return;
-    focusNaWissel.current = false;
-    if (weergave === "wachtwoord") wachtwoordRef.current?.focus();
-    else if (weergave === "vergeten") kopRef.current?.focus();
-  }, [weergave]);
+  const markeerWissel = useFocusNaWissel(weergave, (w) =>
+    w === "wachtwoord" ? wachtwoordRef.current : w === "vergeten" ? kopRef.current : null
+  );
 
   function wissel(naar: Weergave) {
-    focusNaWissel.current = true;
+    markeerWissel();
     setFout(null);
     setPin("");
     setWeergave(naar);
