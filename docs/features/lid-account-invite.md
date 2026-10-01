@@ -1,5 +1,13 @@
 # Lid-account aanmaken: magic-link invite via een handmatige knop
 
+> **Bijgewerkt door [`dienst-per-sessie.md`](dienst-per-sessie.md) en
+> [`beheer-tweede-factor.md`](beheer-tweede-factor.md) (gemerged in [PR #120](https://github.com/BramLambertJansen/ABAS/pull/120),
+> 2026-10-01):** `src/lib/inviteMember.ts` roept vóór `inviteUserByEmail`
+> `check_beheer_session()` aan (`0031`, aal2 sinds `0034`): alleen een sessie
+> in modus beheer met tweede factor verstuurt een uitnodiging.
+> `src/lib/supabase/admin.ts` heeft sindsdien een tweede gebruiker, de
+> bar-login (`src/lib/barLogin.ts`).
+
 Spec voor [issue #24](https://github.com/BramLambertJansen/ABAS/issues/24).
 
 **Status: gebouwd (2026-09-21), 1-op-1 conform deze spec — geen afwijking.**

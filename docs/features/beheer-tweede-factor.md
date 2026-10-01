@@ -1,10 +1,12 @@
 # Beheer met tweede factor, Auth-sessie intrekken, en hervatten per browser
 
-Status: **goedgekeurd door Bram (2026-09-30)**, inclusief de teksten.
-Gebouwd (2026-09-30, nog niet gemerged; zie "Zoals gebouwd"). **Aangevuld
-na de tweede review (Bram, 2026-10-01):** besloten 10–13 hieronder; 12 en
-13 en 11 gebouwd 2026-10-01 (zie "Zoals gebouwd"). De teksten in die aanvulling zijn
-goedgekeurd door Bram (2026-10-01, zie Teksten). Hoort bij
+Status: **gebouwd en gemerged
+([PR #120](https://github.com/BramLambertJansen/ABAS/pull/120), 2026-10-01,
+merge-commit `ae89bd9`; migraties `0034` en `0037`).** Goedgekeurd door Bram
+(2026-09-30), inclusief de teksten; aangevuld na de tweede review (Bram,
+2026-10-01) met besloten 10–13 en de teksten daarvan, ook gebouwd. Wat bij de
+bouw afweek of erbij kwam, staat in "Zoals gebouwd" en gaat voor. De
+uitrolstappen (zie Uitrol) staan niet als gedaan in de repo. Hoort bij
 [ADR 0017](../adr/0017-beheer-eist-tweede-factor-en-eigen-loginlimiet.md).
 Vult [`dienst-per-sessie.md`](dienst-per-sessie.md) aan; de verwijzingen
 daar zijn bijgewerkt (zie "Doorgevoerd in bestaande documenten").
@@ -238,8 +240,8 @@ bar-tablet". Status: "Aan" of "Uit".
 
   Een niet-afgemaakte factor (`unverified`) wordt bij een nieuwe poging
   eerst verwijderd, zodat het instellen altijd opnieuw kan.
-- **Aan.** Geen knop om de factor uit te zetten (zie Buiten scope en Open
-  vragen, 1).
+- **Aan.** Geen knop om de factor uit te zetten (zie Buiten scope; besloten,
+  4).
 
 ### Portal: wachtwoord wijzigen en herstellen
 
@@ -506,10 +508,7 @@ Komt bovenop de uitrol van `dienst-per-sessie.md`.
 - **ADR 0002, 0003, 0005 en 0016:** een amendementregel met een verwijzing
   naar ADR 0017.
 
-Bij de bouw vult de Developer "Zoals gebouwd" in deze spec en in
-`login-rate-limit.md` aan, zoals bij `dienst-per-sessie.md`.
-
-## Zoals gebouwd (2026-09-30)
+## Zoals gebouwd (2026-09-30 en 2026-10-01, gemerged in PR #120)
 
 Wat er afwijkt van of bijkomt op de spec hierboven, en waarom.
 

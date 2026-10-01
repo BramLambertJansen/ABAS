@@ -1,8 +1,9 @@
 # Dienst starten (bardienst-login)
 
-> **Bijgewerkt door [`dienst-per-sessie.md`](dienst-per-sessie.md) (2026-09-29,
-> ADR 0016):** de PIN bij het starten van een dienst vervalt, en de namenlijst
-> toont iedereen (`useBarNamen`, ook wie geen PIN heeft). Je logt eerst
+> **Bijgewerkt door [`dienst-per-sessie.md`](dienst-per-sessie.md) (ADR 0016,
+> gemerged in [PR #120](https://github.com/BramLambertJansen/ABAS/pull/120), 2026-10-01):** de PIN bij het starten van een dienst vervalt, en de namenlijst
+> toont iedereen (`useBarNamen`, ook wie geen PIN heeft, zonder rolbadge sinds
+> ADR 0017). Je logt eerst
 > persoonlijk in vanaf de namenlijst (PIN op een vertrouwd apparaat, of
 > wachtwoord); de starter is het lid van die sessie, en `start_shift` krijgt
 > alleen het activiteittype. De activiteitkeuze komt na de login, niet ertussen.

@@ -16,6 +16,15 @@ voor een nieuw actor-identificatie-sub-patroon (`link_invited_member_
 account`, geen admin-call); het kernpatroon van dit ADR (service-role-call
 via een eigen server-only entrypoint, database-schrijvingen terug via een
 gewone RPC met de sessie-gebonden client) blijft ongewijzigd.
+**Aangevuld door
+[ADR 0016](0016-dienst-hoort-bij-geregistreerde-app-sessies.md) (Beslissing 6,
+gemerged in PR #120, 2026-10-01):** de login vanaf de namenlijst
+(`src/lib/barLogin.ts`) is een tweede server-only gebruiker van de
+service-role-client, voor een aanroeper die nog géén sessie heeft. De
+databasekant loopt daar via functies die alleen `service_role` mag uitvoeren
+(`verify_bar_pin`, `bar_login_options`, `record_bar_password_login`,
+`register_bar_session_server`, `login_throttle_reserve`/`_release`). Het
+kernpatroon van dit ADR verandert niet.
 
 ## Context
 

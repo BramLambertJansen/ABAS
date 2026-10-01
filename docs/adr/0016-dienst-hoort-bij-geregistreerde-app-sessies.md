@@ -1,8 +1,10 @@
 # 0016 — Een dienst hoort bij een of meer geregistreerde, persoonlijke app-sessies, niet bij een gedeeld device-account
 
-Status: **geaccepteerd door Bram (2026-09-29); fase 1 gebouwd** (migraties
-`0027`–`0029`, de login vanaf de namenlijst en de schermen; fase 2, de
-instelling (a)/(b)/(c), is niet gebouwd). Hoort
+Status: **geaccepteerd door Bram (2026-09-29); fase 1 geïmplementeerd en
+gemerged** ([PR #120](https://github.com/BramLambertJansen/ABAS/pull/120),
+2026-10-01, merge-commit `ae89bd9`; migraties `0027`–`0033`, de login vanaf de
+namenlijst en de schermen). Fase 2, de instelling (a)/(b)/(c) uit Beslissing
+3, is niet gebouwd. Hoort
 bij [`docs/features/dienst-per-sessie.md`](../features/dienst-per-sessie.md).
 De teksten en de vragen 24–27 zijn beantwoord; de waarden staan in die spec
 (lockout na 5 foute PIN's, kostenfactor 12, vertrouwen 30 dagen, inactiviteit
@@ -249,7 +251,7 @@ voor elke functie.
 - **Geen nieuwe gate.** Dat elke bar- en beheer-RPC de guard aanroept, is met
   een pgTAP-test over alle RPC's te bewaken (patroon van
   `rpc_execute_grants.test.sql`). Daar is geen scanner voor nodig.
-- **Documentatie**: de concrete zinnen in CLAUDE.md, ADR 0002/0003/0005/0011,
-  `docs/ARCHITECTURE.md`, `0021`/`0023` en `bar-rpc-autorisatie.md` staan in de
-  spec → "Wijzigingen in bestaande documenten". Ze worden met de bouw van fase
-  1 doorgevoerd.
+- **Documentatie**: CLAUDE.md, ADR 0002/0003/0005/0006/0011,
+  `docs/ARCHITECTURE.md` en `bar-rpc-autorisatie.md` zijn met de bouw van fase
+  1 bijgewerkt (spec → "Doorgevoerd in bestaande documenten"). `0021`/`0023`
+  blijven ongewijzigd als historie; `0029` vervangt de functies.

@@ -1,5 +1,12 @@
 # Bezetting beheren tijdens dienst
 
+> **Bijgewerkt door [`dienst-per-sessie.md`](dienst-per-sessie.md) (ADR 0016, gemerged in [PR #120](https://github.com/BramLambertJansen/ABAS/pull/120), 2026-10-01):**
+> `add_shift_member` en `remove_shift_member` eisen een bar-sessie die aan de
+> dienst gekoppeld is (`require_shift_session`). "Iedereen op de gedeelde
+> bar-tablet-sessie" hieronder is historie: het is nu iedereen die in een
+> persoonlijke sessie op het apparaat van de dienst werkt. De bezetting zelf
+> (wie meewerkt, `served_by`) is ongewijzigd.
+
 Spec voor [issue #7](https://github.com/BramLambertJansen/ABAS/issues/7).
 Volgt op [#6](https://github.com/BramLambertJansen/ABAS/issues/6) (`docs/features/dienst-starten.md`)
 en vervangt/breidt uit wat daar bewust als plaatsvervanger is neergezet:

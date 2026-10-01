@@ -1,5 +1,11 @@
 # Dienst te lang open (melding na 6 uur)
 
+> **Bijgewerkt door [`dienst-per-sessie.md`](dienst-per-sessie.md) (ADR 0016, gemerged in [PR #120](https://github.com/BramLambertJansen/ABAS/pull/120), 2026-10-01):**
+> `useOpenShift` is vervangen door `useMijnDienst` (de dienst van deze
+> sessie, via `my_bar_state`). Los van deze melding na 6 uur bestaat nu een
+> inactiviteitsgrens van 60 minuten per sessie. Wat hieronder over "de
+> gedeelde sessie" staat, is historie.
+
 Verzoek van Bram (2026-09-28, nog geen issue-nummer): als een dienst te lang
 openstaat, verschijnt er in het scherm een melding die vraagt of de gebruiker
 zich daarvan bewust is. Volgt op #12 (`docs/features/dienst-afsluiten.md`,

@@ -3,11 +3,13 @@
 Status: **geaccepteerd door Bram (2026-09-30)**, samen met de specs
 [`docs/features/beheer-tweede-factor.md`](../features/beheer-tweede-factor.md)
 en [`docs/features/login-rate-limit.md`](../features/login-rate-limit.md).
-Gebouwd (2026-09-30, migraties `0034` en `0035`, nog niet gemerged).
 Aangevuld na de tweede review (Bram, 2026-10-01): restrisico K1 geaccepteerd,
 promotie naar beheerder beëindigt de bar-sessies, en de loginlimiet telt
-atomair. Die aanvullingen zijn gebouwd 2026-10-01 (migraties `0036` en
-`0037`, nog niet gemerged).
+atomair. **Geïmplementeerd en gemerged**
+([PR #120](https://github.com/BramLambertJansen/ABAS/pull/120), 2026-10-01,
+merge-commit `ae89bd9`; migraties `0034`–`0037`). De punten onder Gevolgen →
+"Te controleren op het gehoste project" zijn uitrolstappen en staan niet als
+gedaan in de repo.
 Aanleiding: de review van PR #120 (dienst per sessie, fase 1).
 
 **Amendeert:**
@@ -216,5 +218,5 @@ een latere aanvulling, geen vervanging.
 - **Geen nieuwe gate.** Wat hier afgedwongen wordt, bewaken pgTAP-tests en
   `check:rls`. Dat `require_beheer_session` aal2 eist, is een negatieve test
   per beheer-RPC, zoals ADR 0016 dat al voor de modus doet.
-- **Documentatie** die met de bouw mee moet, staat in de spec →
-  "Later door te voeren".
+- **Documentatie**: doorgevoerd met de bouw, zie
+  `beheer-tweede-factor.md` → "Doorgevoerd in bestaande documenten".

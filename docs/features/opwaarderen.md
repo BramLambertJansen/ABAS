@@ -1,5 +1,13 @@
 # Saldo opwaarderen (contant)
 
+> **Bijgewerkt door [`dienst-per-sessie.md`](dienst-per-sessie.md) (ADR 0016, gemerged in [PR #120](https://github.com/BramLambertJansen/ABAS/pull/120), 2026-10-01):**
+> `top_up` eist een bar-sessie die aan de dienst gekoppeld is
+> (`require_shift_session`), schrijft `bar_session_id` mee, en weigert een
+> opwaardering naar het lid van de ingelogde sessie (A4,
+> `self_top_up_forbidden`); `OpwaarderenOverlay` toont dat al inline bij het
+> kiezen van jezelf. Wat hieronder over "de gedeelde bar-tablet-sessie" staat,
+> is historie. Bedrag, €500-grens en bevestiging boven €100 zijn ongewijzigd.
+
 Spec voor [issue #10](https://github.com/BramLambertJansen/ABAS/issues/10).
 Volgt op [#7](https://github.com/BramLambertJansen/ABAS/issues/7) (bezetting
 beheren, gemerged) en werkt samen met

@@ -1,10 +1,13 @@
 # Wachtwoord vergeten (`/beheer`)
 
-> **Aangevuld door [`dienst-per-sessie.md`](dienst-per-sessie.md) (2026-09-29,
-> ADR 0016):** er is een tweede ingang vanaf de namenlijst van de bar. "Wachtwoord
+> **Aangevuld door [`dienst-per-sessie.md`](dienst-per-sessie.md) (ADR 0016,
+> gemerged in [PR #120](https://github.com/BramLambertJansen/ABAS/pull/120), 2026-10-01):** er is een tweede ingang vanaf de namenlijst van de bar. "Wachtwoord
 > vergeten?" op het inlogscherm van een naam start dezelfde herstelflow (server-
 > side: het e-mailadres wordt opgezocht, het antwoord is altijd neutraal, ADR
-> 0013) naar het adres van dat lid.
+> 0013) naar het adres van dat lid. Die ingang heeft een eigen limiet op
+> aanvragen ([`login-rate-limit.md`](login-rate-limit.md)). Sinds ADR 0017
+> vraagt `/beheer/wachtwoord-herstellen` na "Wachtwoord opslaan" eerst de code
+> uit de authenticator-app als het account een tweede factor heeft.
 
 **Status: gebouwd en gemerged (2026-09-23) —
 [PR #69](https://github.com/BramLambertJansen/ABAS/pull/69).** Zie
