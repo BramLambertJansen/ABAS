@@ -4,6 +4,12 @@ import { loginMetWachtwoord, portalLoginMetWachtwoord } from "./helpers/supabase
 import { FEMKE, TOM, WACHTWOORD_FEMKE, WACHTWOORD_TOM, logInOpBar } from "./helpers/barLogin";
 import { FEMKE_TOTP_SECRET, versTotpCode, vulCodeIn } from "./helpers/totp";
 
+// Deze live tests delen het seed-account Femke, de TOTP-factor en één globale
+// dienst. Afzonderlijke browsercookies isoleren die backendtoestand niet:
+// overlappende Auth-acties gaven session_not_found tijdens een andere login.
+// Houd dit bestand in één worker; de gemockte specs blijven parallel draaien.
+test.describe.configure({ mode: "default" });
+
 /**
  * The WCAG-AA gate CLAUDE.md calls for: axe-core against every shell's
  * scaffold entry point. Add a route here the moment a real screen lands —

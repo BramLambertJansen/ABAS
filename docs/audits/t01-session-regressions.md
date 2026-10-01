@@ -1,8 +1,8 @@
 # Frontend T01 — persoonlijke sessiegrens
 
 Ticket: [#122](https://github.com/BramLambertJansen/ABAS/issues/122).
-Gebouwd bovenop [PR #120](https://github.com/BramLambertJansen/ABAS/pull/120),
-basis `fb13014fc9321c718990c6f1b92d3b2c0ab2ca7e`.
+Vervolg op de gemergede [PR #120](https://github.com/BramLambertJansen/ABAS/pull/120),
+basis `ae89bd91a477ba778925632a246734e973e09760`.
 Contract: `docs/features/dienst-per-sessie.md`, ADR 0016 en ADR 0017.
 
 ## Bevinding en oplossing
@@ -25,6 +25,13 @@ antwoord en worden bij unmount ongeldig. Oude scopes schrijven geen
 bevestigingscookie meer. De expliciete namenlijstlogin bevestigt de nieuwe
 sessie buiten de oude scope; de afmeldmelding blijft ook buiten de scope
 staan zodat de uitleg na uitloggen zichtbaar blijft.
+
+De live toegankelijkheidstests delen het seed-account Femke en één globale
+dienst. Een trace van een parallelle run liet `session_not_found` zien
+tijdens de login van een andere test. Dit bestand draait daarom in de
+standaardvolgorde in één worker, met een eigen browsercontext per test.
+De overige specs blijven parallel. De expliciete T01-test voor twee starts
+verstuurt zijn twee echte requests nog steeds gelijktijdig.
 
 Er zijn geen nieuwe RPC's, policies, migraties of productteksten. Het
 architectuurscan-hulpmiddel normaliseert Windows-paden zodat dezelfde
