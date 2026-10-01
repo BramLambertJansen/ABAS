@@ -22,7 +22,15 @@ beforeEach(() => {
   fakeInviteMember().rpc.mark_member_invite_sent = { data: { invited_at: "2026-09-30T20:00:00Z" } };
 });
 
-for (const code of ["wrong_mode", "no_bar_session", "session_ended", "session_inactive", "no_bar_role"]) {
+for (const code of [
+  "wrong_mode",
+  "no_bar_session",
+  "session_ended",
+  "session_inactive",
+  "no_bar_role",
+  // 0034 (ADR 0017): een beheersessie zonder tweede factor verstuurt ook niets.
+  "aal2_required",
+]) {
   test(`een sessie die de beheercontrole niet haalt (${code}) verstuurt geen invite`, async () => {
     fakeInviteMember().rpc.check_beheer_session = { error: { message: code } };
     const result = await sendMemberInvite("m-doel");

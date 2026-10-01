@@ -472,3 +472,78 @@ test("wachtwoord vergeten: ook een lid zonder account telt als aanvraag (de tell
   assert.equal(limiet().filter((c) => c.startsWith("record:")).length, 3);
   assert.deepEqual(fakeBarLogin().resets, []);
 });
+
+// ── Aanvullend (Tester, ADR 0017): neutraal, telling en fouten van de limiet ─
+
+test("wachtwoord vergeten: het antwoord is voor elk lid hetzelfde, ook als de mail of de limiet faalt", async () => {
+  const neutraal = { ok: true, limited: false };
+  const uitkomsten: unknown[] = [];
+  for (const member of [
+    { id: MEMBER, role: "bardienst", archived: false, auth_user_id: "u1" },
+    { id: MEMBER, role: "bardienst", archived: false, auth_user_id: null },
+    { id: MEMBER, role: "bardienst", archived: true, auth_user_id: "u1" },
+    { id: MEMBER, role: "lid", archived: false, auth_user_id: "u1" },
+    null,
+  ]) {
+    resetFakeBarLogin();
+    fakeBarLogin().rpc.login_throttle_allowed = () => ({ data: true });
+    fakeBarLogin().member = member;
+    uitkomsten.push(await stuurHerstellink(MEMBER, "https://bar.example.nl", IP));
+  }
+  // De limiet kan niet gelezen worden: geen mail, geen throw, zelfde antwoord.
+  resetFakeBarLogin();
+  fakeBarLogin().rpc.login_throttle_allowed = () => ({ error: { message: "kapot" } });
+  uitkomsten.push(await stubConsole(() => stuurHerstellink(MEMBER, "https://bar.example.nl", IP)));
+  assert.deepEqual(fakeBarLogin().resets, []);
+  for (const uitkomst of uitkomsten) assert.deepEqual(uitkomst, neutraal);
+});
+
+test("PIN-login: kan pin_ip niet gelezen worden, dan geen poging op de PIN (gooit)", async () => {
+  fakeBarLogin().cookies.set(APPARAAT_COOKIE_NAAM, OUD_TOKEN);
+  fakeBarLogin().rpc.login_throttle_allowed = () => ({ error: { message: "kapot" } });
+  await assert.rejects(() => loginMetPin(MEMBER, "1234", IP));
+  assert.deepEqual(aanroepen(), []);
+  assert.deepEqual(fakeBarLogin().cookieSets, []);
+});
+
+test("wachtwoordlogin: not_allowed en no_account tellen niet mee in de limiet", async () => {
+  for (const member of [
+    { id: MEMBER, role: "lid", archived: false, auth_user_id: "u1" },
+    { id: MEMBER, role: "bardienst", archived: false, auth_user_id: null },
+  ]) {
+    fakeBarLogin().member = member;
+    await loginMetWachtwoord(MEMBER, "x", IP);
+  }
+  assert.equal(limiet().some((c) => c.startsWith("record:")), false);
+});
+
+test("wachtwoordlogin: een lege limietsleutel wordt niet gebruikt (het IP komt altijd mee)", async () => {
+  fakeBarLogin().signIn.error = { code: "invalid_credentials", message: "Invalid login credentials", status: 400 };
+  await loginMetWachtwoord(MEMBER, "fout", IP);
+  for (const c of fakeBarLogin().rpcCalls.filter((c) => isThrottle(c.fn))) {
+    assert.equal(typeof c.args.p_key, "string");
+    assert.notEqual(c.args.p_key, "");
+  }
+});
+
+// BUG (gemeld, niet opgelost): isUuid accepteert hoofdletters, en de
+// per-lid-sleutels (`wachtwoord_lid`, `vergeten_lid`) zijn het ruwe memberId.
+// Dezelfde uuid in andere hoofdletters is voor de database hetzelfde lid,
+// maar een andere limietsleutel: zo omzeil je de rem per lid. `todo`: deze
+// test draait en toont de fout, maar maakt de suite niet rood.
+test(
+  "de sleutel per lid is dezelfde voor een memberId in hoofdletters (wachtwoord_lid, vergeten_lid)",
+  { todo: "BUG: sleutel per lid is hoofdlettergevoelig, limiet per lid te omzeilen" },
+  async () => {
+    const klein = "abcdef12-3456-4789-8abc-def012345678";
+    const hoofdletters = klein.toUpperCase();
+    assert.ok(isUuid(hoofdletters), "stap: de route laat een uuid in hoofdletters door");
+    await loginMetWachtwoord(hoofdletters, "geheim", IP);
+    await stuurHerstellink(hoofdletters, "https://bar.example.nl", IP);
+    const sleutels = limiet()
+      .filter((c) => c.includes("_lid:"))
+      .map((c) => c.split(":").slice(2).join(":"));
+    assert.equal(sleutels.length, 3);
+    for (const sleutel of sleutels) assert.equal(sleutel, klein);
+  }
+);
