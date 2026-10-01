@@ -882,6 +882,18 @@ die bij de sessie hoort waarin hij gestart is (fase 2, de instelling
   sessie en lokaal uitloggen. Hooks kennen de zes sessiecodes als bekende
   uitkomst (`notifySessionCode`); `reportClientError` logt ze ook niet voor
   hooks die ze niet zelf kennen.
+- *Levensduur van frontendstatus* (T01, [PR #134](https://github.com/BramLambertJansen/ABAS/pull/134),
+  gemerged 2026-10-01): `BarSessieProvider` houdt Auth en de afmeldmelding
+  buiten een `BarSessieScope` met als sleutel gebruikers-ID plus
+  Auth-session-ID. Accountwissels en nieuwe logins maken een nieuwe
+  schermboom; tokenverversing en MFA van dezelfde sessie behouden hem.
+  Auth-/leden-/sessiereads verwerken alleen een actueel antwoord en worden
+  bij unmount ongeldig. Een oude scope kan het hervat-cookie niet meer
+  veranderen. De expliciete namenlijstlogin bevestigt de nieuwe sessie
+  buiten die scope. Dit is de clientkant van ADR 0016/0017; autorisatie en
+  modus blijven door de bestaande RPC's afgedwongen. Het
+  [verificatieoverzicht](audits/t01-session-regressions.md) bevat de live
+  scenario's en de afzonderlijke UI-racetests.
 - *Bekende beperking*: de rate limit van Supabase Auth op wachtwoordpogingen
   draait nu op het IP-adres van de server (Next.js), niet van de gebruiker; op
   het gehoste project nog te controleren dat die niet voor iedereen samen geldt.

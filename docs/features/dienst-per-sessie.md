@@ -901,6 +901,12 @@ vervallen van de device-route gaan daarom samen (#117).
 - **Dezelfde persoon op twee apparaten**: twee sessies. In (a) kan de tweede
   niet in de dienst werken, en de starter kan de dienst niet zelf verhuizen
   (12d).
+- **Accountwissel of nieuwe login in dezelfde browser**: schermstatus hoort
+  bij de combinatie van gebruikers-ID en Auth-session-ID. Een nieuwe login
+  krijgt een nieuwe modus-keuze en schermboom; een oude MFA-stap, mandje of
+  vertraagd sessieantwoord gaat niet mee. Tokenverversing en MFA binnen
+  dezelfde sessie behouden de schermstatus. De server blijft de rol en modus
+  bij elke actie controleren (T01, PR #134).
 - **Browser langer dicht dan 60 minuten**: geen hervatscherm, maar de melding
   en het startscherm.
 - **Supabase-sessie verlopen** (refresh token ongeldig): het startscherm. De
@@ -1398,6 +1404,16 @@ anders of extra is geworden, en waarom.
   `client_errors`. De toestand ververst elke 30 seconden stil (geen hartslag),
   zodat "Je dienst is overgenomen" en nieuwe meldingen ook zonder aanraking
   verschijnen.
+- **Persoonlijke frontend-sessiegrens (T01, 2026-10-01)**:
+  [`PR #134`](https://github.com/BramLambertJansen/ABAS/pull/134) is gemerged.
+  `BarSessieProvider` maakt een `BarSessieScope` per gebruikers-ID en
+  Auth-session-ID. `useBarAuth`, `useBeheerSession` en `useMijnDienst`
+  negeren verouderde antwoorden; een ontkoppelde scope schrijft geen
+  bevestigingscookie meer na een late modusregistratie. Een namenlijstlogin
+  bevestigt de nieuwe sessie buiten de oude scope. De afmeldmelding blijft
+  daar ook staan, zodat ze na lokaal uitloggen zichtbaar blijft.
+  Het contract, de RPC's en de vaste modus blijven het goedgekeurde model.
+  Bewijs: [`../audits/t01-session-regressions.md`](../audits/t01-session-regressions.md).
 - **Bar-schermen**: `BarApp` (`/`), `BarInloggen`, `HervatScherm`,
   `DienstStarten` (zonder PIN-stap, met `ActiviteitKeuze` zonder terugknop),
   `DienstElders`, `UitloggenKnop` (met de keuze uit vraag 17), `AdminMeldingen`,

@@ -1,6 +1,9 @@
 # Frontend T01 — persoonlijke sessiegrens
 
 Ticket: [#122](https://github.com/BramLambertJansen/ABAS/issues/122).
+**Afgerond:** [PR #134](https://github.com/BramLambertJansen/ABAS/pull/134)
+gemerged op 2026-10-01; mergecommit `97f7d633a17c361abc307c8ea77dc0d337800277`.
+Ticket #122 is door de merge gesloten.
 Vervolg op de gemergede [PR #120](https://github.com/BramLambertJansen/ABAS/pull/120),
 basis `ae89bd91a477ba778925632a246734e973e09760`.
 Contract: `docs/features/dienst-per-sessie.md`, ADR 0016 en ADR 0017.
@@ -67,5 +70,18 @@ npx playwright test --workers=2
 supabase test db
 ```
 
-De uiteindelijke browser- en CI-uitkomsten staan in de vervolg-PR. De
-productie-uitrolvoorwaarden van PR #120 blijven daar onderdeel van de uitrol.
+## Definitieve verificatie
+
+[`check-all`](https://github.com/BramLambertJansen/ABAS/actions/runs/36859433827)
+is geslaagd op de gemergede PR-head `8baba8ccb573e1c9e9c051df779d64dc654a2d60`:
+492 unit-tests, 194 browser-/toegankelijkheidstests en 1.258 pgTAP-tests,
+naast lint, typecheck, productiebuild en de architectuur-/policy-/RLS-/
+migratie-/ADR-checks. De laatste lokale browsersuite slaagde ook zonder
+retries (`--workers=2 --retries=0`). Visuele controle met agent-browser
+dekte de namenlijst, e-maillogin zonder PIN, modus-keuze en het barscherm;
+er waren geen browserfouten.
+
+Dit bewijst de geteste lokale/CI-flows. De productie-uitrolvoorwaarden van
+PR #120 en fysiek tablet-/iPadOS-gebruik vragen hun eigen uitrolcontrole.
+De previewcheck van PR #134 was geblokkeerd door Vercel-projecttoegang voor
+de ingestelde Git-auteur `Jan-Bramsen`; de volledige applicatie-CI slaagde.
