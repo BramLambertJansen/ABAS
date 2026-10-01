@@ -319,6 +319,7 @@ export function VerkoopScherm({ shift }: { shift: OpenShift }) {
         <BezettingOverlay
           shiftId={shift.id}
           members={crewList}
+          membersStatus={crew.status}
           onMembersChanged={crew.refetch}
           onClose={() => setBezettingOpen(false)}
         />

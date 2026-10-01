@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { reportClientError } from "@/lib/clientErrors";
 import { loadErrorMessage } from "@/lib/loadErrors";
@@ -47,45 +47,49 @@ export function useMijnDienst(enabled: boolean = true): State & {
   const [state, setState] = useState<State>({ status: enabled ? "loading" : "idle" });
   const [tick, setTick] = useState(0);
   const [pollTick, setPollTick] = useState(0);
+  const request = useRef(0);
 
   const load = useCallback(async (silent: boolean): Promise<void> => {
+    const huidigeRequest = ++request.current;
     if (!silent) setState({ status: "loading" });
     try {
       const supabase = createClient();
       const { data, error } = await supabase.rpc("my_bar_state");
+      if (huidigeRequest !== request.current) return;
       if (error) throw error;
       setState({ status: "ready", state: parseBarState(data) });
     } catch (err) {
+      if (huidigeRequest !== request.current) return;
       // Never surface the raw error (package name, URLs, stack) on a bar
       // tablet mid-service — log it for whoever's debugging, show a fixed
       // Dutch message to whoever's standing at the bar.
       reportClientError(createClient, "useMijnDienst", err);
-      if (!silent) {
-        setState({
+      setState((vorige) =>
+        silent && vorige.status === "ready" ? vorige : {
           status: "error",
           message: loadErrorMessage("Kan de toestand van deze sessie niet laden.", err),
-        });
-      }
+        }
+      );
     }
   }, []);
 
   useEffect(() => {
+    const requests = request;
     if (!enabled) {
+      request.current++;
       setState({ status: "idle" });
       return;
     }
-    let cancelled = false;
-    load(false).catch(() => {
-      if (!cancelled) setState({ status: "error", message: "Onbekende fout." });
-    });
+    void load(false);
     return () => {
-      cancelled = true;
+      // Negeer ook een antwoord na uitloggen, accountwissel of unmount.
+      requests.current++;
     };
   }, [enabled, tick, load]);
 
   useEffect(() => {
     if (!enabled || pollTick === 0) return;
-    load(true).catch(() => {});
+    void load(true);
   }, [enabled, pollTick, load]);
 
   return {

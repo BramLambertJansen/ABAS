@@ -17,8 +17,8 @@ type State =
  * (docs/features/dienst-per-sessie.md → Inloggen op de bar, punt 1; besloten,
  * vraag 5). Er is nog geen sessie, dus geen RLS-lezing: de lijst komt uit een
  * server-only entrypoint (`GET /inloggen/namen`). Vervangt `useBarStaff` op
- * het startscherm; `BezettingOverlay` blijft `useBarStaff` met de sessie
- * gebruiken.
+ * het startscherm; `BezettingOverlay` leest via `useShiftCandidates` met de
+ * persoonlijke sessie, zonder PIN-filter.
  */
 export function useBarNamen(): State & { refetch: () => void } {
   const [state, setState] = useState<State>({ status: "loading" });

@@ -50,6 +50,8 @@ export function useBeheerSession(): BeheerSessionState & {
 
   useEffect(() => {
     let cancelled = false;
+    let request = 0;
+    let authGewijzigd = false;
     // createClient() itself throws synchronously if Supabase isn't
     // configured (missing NEXT_PUBLIC_SUPABASE_URL/KEY — the same failure
     // src/middleware.ts guards against). Every other hook in this
@@ -64,6 +66,8 @@ export function useBeheerSession(): BeheerSessionState & {
       const supabase = createClient();
 
       async function resolve(userId: string, email: string) {
+        const huidigeRequest = ++request;
+        setState({ status: "loading" });
         try {
           const { data, error } = await supabase
             .from("members")
@@ -71,7 +75,7 @@ export function useBeheerSession(): BeheerSessionState & {
             .eq("auth_user_id", userId)
             .eq("archived", false)
             .maybeSingle();
-          if (cancelled) return;
+          if (cancelled || huidigeRequest !== request) return;
           if (error) throw error;
           if (!data) {
             // Same case as the RPC's own `actor_not_found` — no active
@@ -103,6 +107,7 @@ export function useBeheerSession(): BeheerSessionState & {
             role: data.role,
           });
         } catch (err) {
+          if (cancelled || huidigeRequest !== request) return;
           // Can't confirm a bardienst/beheerder-koppeling — fail closed
           // (never "signed-in" without a confirmed match), log for
           // debugging.
@@ -118,21 +123,27 @@ export function useBeheerSession(): BeheerSessionState & {
       }
 
       supabase.auth.getSession().then(({ data: { session } }) => {
-        if (cancelled) return;
+        if (cancelled || authGewijzigd) return;
         if (session?.user) {
           resolve(session.user.id, session.user.email ?? "");
         } else {
           setState({ status: "signed-out" });
         }
+      }).catch((err) => {
+        if (cancelled || authGewijzigd) return;
+        logLocalError("useBeheerSession", err);
+        setState({ status: "signed-out" });
       });
 
       const {
         data: { subscription },
       } = supabase.auth.onAuthStateChange((_event, session) => {
         if (cancelled) return;
+        authGewijzigd = true;
         if (session?.user) {
           resolve(session.user.id, session.user.email ?? "");
         } else {
+          request++;
           setState({ status: "signed-out" });
         }
       });

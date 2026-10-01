@@ -10,7 +10,7 @@ import { loadErrorMessage } from "@/lib/loadErrors";
  *  archief-status changes after being added stays visible here, same as
  *  historical order data isn't rewritten retroactively (see
  *  docs/features/bezetting-beheren.md → Randgevallen). That filtering only
- *  applies to the *candidate pool* for adding someone new — useBarStaff(). */
+ *  applies to the *candidate pool* for adding someone new — useShiftCandidates(). */
 export type ShiftMember = {
   id: string;
   name: string;

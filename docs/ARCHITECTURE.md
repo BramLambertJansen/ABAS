@@ -944,6 +944,18 @@ is niet gebouwd).
   `aal2_required`) als bekende uitkomst (`notifySessionCode`);
   `reportClientError` logt ze ook niet voor hooks die ze niet zelf kennen. De
   code-invoer voor TOTP is één gedeeld component, `src/components/CodeInvoer.tsx`.
+- *Levensduur van frontendstatus* (T01, [PR #134](https://github.com/BramLambertJansen/ABAS/pull/134),
+  gemerged 2026-10-01): `BarSessieProvider` houdt Auth en de afmeldmelding
+  buiten een `BarSessieScope` met als sleutel gebruikers-ID plus
+  Auth-session-ID. Accountwissels en nieuwe logins maken een nieuwe
+  schermboom; tokenverversing en MFA van dezelfde sessie behouden hem.
+  Auth-/leden-/sessiereads verwerken alleen een actueel antwoord en worden
+  bij unmount ongeldig. Een oude scope kan het hervat-cookie niet meer
+  veranderen. De expliciete namenlijstlogin bevestigt de nieuwe sessie
+  buiten die scope. Dit is de clientkant van ADR 0016/0017; autorisatie en
+  modus blijven door de bestaande RPC's afgedwongen. Het
+  [verificatieoverzicht](audits/t01-session-regressions.md) bevat de live
+  scenario's en de afzonderlijke UI-racetests.
 - *Verwijderd*: tablet koppelen (`/koppel`, `src/lib/tabletKoppeling.ts`,
   `BAR_DEVICE_SECRET`), de device sign-in in de middleware, het
   device-account (`SUPABASE_DEVICE_EMAIL`/`SUPABASE_DEVICE_PASSWORD`,
