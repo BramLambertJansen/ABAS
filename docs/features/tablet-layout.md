@@ -3,9 +3,9 @@
 Spec voor [issue #124](https://github.com/BramLambertJansen/ABAS/issues/124)
 (Frontend T04 · P1, epic #121, finding F04, besluit D1).
 
-**Status: concept, wacht op akkoord van Bram.** De Developer begint niet
-voordat Bram de open vragen onderaan heeft beantwoord en de spec heeft
-goedgekeurd.
+**Status: concept; besluiten genomen, wacht op de meldingstekst en akkoord
+van Bram.** De Developer begint niet voordat de tekst (open vraag A) is
+vastgesteld, de spec is goedgekeurd en #137 en T05 gemerged zijn.
 
 Bronnen: het issue, de bestaande code op `main` (`9f8e05b`:
 `DienstTabs.tsx`, `Mandje.tsx`, `DienstActief.tsx`, `Assortiment.tsx`,
@@ -358,23 +358,20 @@ gecontroleerd, tenzij anders vermeld.
 - Een herontwerp van het beheer-tabblad-inhoud (zie Gedrag 5).
 - Het portal-shell.
 
+## Besluiten van Bram
+
+1. **Onder 1024 effectief: variant B.** Een niet-blokkerende melding, alleen
+   met CSS getoond (geen `matchMedia`/`userAgent`). **De tekst van de melding
+   is nog niet door Bram vastgesteld** (open vraag A hieronder); de tekst
+   uit het eerdere voorstel is niet goedgekeurd.
+2. **Ondergrens: 1024 CSS-px effectief**, bevestigd.
+3. **Merge-volgorde: #137 (T03) → T05 (#125) → T04.** De Developer begint pas
+   na merge van beide en bouwt op main.
+4. **Geen ADR.** De regel over containerbreedte staat alleen in deze spec; de
+   `useShell()`-alinea in ARCHITECTURE.md blijft ongewijzigd tot het Docs-
+   werk na de merge.
+
 ## Open vragen voor Bram
 
-1. **Wat gebeurt er onder 1024 effectieve breedte?** Bestaande docs zeggen
-   alleen "nooit telefoon, supportuitspraak, niet afgedwongen". Opties:
-   (A) niets, de indeling kan daar kapot gaan, wat bij een supportuitspraak
-   past; (B) een niet-blokkerende melding op bar en beheer ("Dit scherm is
-   te smal voor de bar. Gebruik een tablet in landschap"), alleen met CSS
-   getoond; (C) een blokkerend scherm. Voorstel van de Architect: **B**, omdat
-   het D1 voor de medewerker zichtbaar maakt zonder een grens af te dwingen
-   die ADR 0016 bewust niet kent. De tekst van de melding is dan ook aan Bram.
-2. **Is 1024 CSS-pixels de juiste ondergrens?** Dit is een voorstel. Hij valt
-   samen met de krapste ondersteunde maat (1024×768). Bevestig 1024, of noem
-   het smalste toestel (in landschap) dat de vereniging werkelijk gebruikt.
-3. **Merge-volgorde met T03/T05.** Voorstel #137 → T05 → T04. Akkoord, of
-   wil je T04 eerder omdat het P1 is en #137 al klaarstaat?
-4. **ADR.** De regel "een feature-component beslist zijn kolommen op zijn
-   eigen containerbreedte, niet op `shell.columns` of viewport" kan een
-   volgende feature tegenspreken. Voorstel: een korte ADR (0018) en een
-   aanpassing van de `useShell()`-alinea in `docs/ARCHITECTURE.md` bij
-   akkoord op deze spec. Geen ADR schrijven zolang jij dat niet wilt.
+A. **Tekst van de melding** onder 1024 effectief (bar en beheer). Tot dit
+   beantwoord is, bouwt de Developer geen melding.
