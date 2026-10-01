@@ -4,6 +4,9 @@ Status: **geaccepteerd door Bram (2026-09-30)**, samen met de specs
 [`docs/features/beheer-tweede-factor.md`](../features/beheer-tweede-factor.md)
 en [`docs/features/login-rate-limit.md`](../features/login-rate-limit.md).
 Gebouwd (2026-09-30, migraties `0034` en `0035`, nog niet gemerged).
+Aangevuld na de tweede review (Bram, 2026-10-01): restrisico K1 geaccepteerd,
+promotie naar beheerder beëindigt de bar-sessies, en de loginlimiet telt
+atomair. Die aanvullingen zijn nog niet gebouwd.
 Aanleiding: de review van PR #120 (dienst per sessie, fase 1).
 
 **Amendeert:**
@@ -49,8 +52,10 @@ Wie de PIN van een beheerder kent, kan op een vertrouwd apparaat dus het
 wachtwoord van dat account wijzigen. Daarna logt hij op `/beheer` in met
 e-mail en het nieuwe wachtwoord, en krijgt hij beheer. Hetzelfde geldt voor
 een hervatte bar-sessie die uit een magic link komt ("iedereen mag
-bevestigen", ADR 0016 → Beslissing 8). Dat botst met CLAUDE.md → Auth: "een
-PIN-login geeft nooit beheer".
+bevestigen", ADR 0016 → Beslissing 8). Dat botste met CLAUDE.md → Auth,
+dat toen zei: "een PIN-login geeft nooit beheer". Na deze ADR luidt die
+regel: "een PIN-login geeft zonder tweede factor nooit beheer" (zie
+Restrisico's, K1).
 
 Wat GoTrue wél afdwingt (`user.go`, `mfa.go`): heeft een gebruiker een
 geverifieerde tweede factor, dan weigert GoTrue een aal1-sessie bij:
@@ -92,10 +97,21 @@ beheerders.**
   registreren.
 - De factor stel je in de portal in (Bram, 2026-09-30).
 - Zo komt beheer niet meer uit "wie het wachtwoord kent". Het komt uit
-  "wie het wachtwoord kent én de factor heeft". Een aal1-sessie kan
-  wachtwoord, e-mail en factoren niet meer wijzigen, en dat dwingt GoTrue
-  zelf af, ongeacht of de sessie uit een PIN, een hervatting, een gestolen
-  tablet of een gephisht wachtwoord komt.
+  "wie het wachtwoord (of de PIN op een vertrouwd apparaat) kent én de
+  factor heeft". Een aal1-sessie kan wachtwoord, e-mail en factoren niet
+  meer wijzigen, en dat dwingt GoTrue zelf af, ongeacht of de sessie uit een
+  PIN, een hervatting, een gestolen tablet of een gephisht wachtwoord komt.
+- Een PIN-sessie die met de code naar aal2 gaat, kan dat wél: GoTrue vraagt
+  bij amr `otp` geen huidig wachtwoord. PIN + vertrouwd apparaat + factor
+  geeft dus via een wachtwoordwijziging beheer. Dat is vergelijkbaar met
+  wachtwoord + factor en is een geaccepteerd restrisico (K1, zie Gevolgen).
+  De regel is daarom niet "een PIN-login geeft nooit beheer", maar "een
+  PIN-login geeft zonder tweede factor nooit beheer".
+- Wordt een lid beheerder (`set_member_role` naar `beheerder`), dan eindigen
+  diens actieve bar-sessies en de bijbehorende Auth-sessies meteen
+  (sluitreden `beheerder_geworden`). Zo wordt een lopende aal1-sessie van een
+  bardienst nooit de sessie van een beheerder zonder factor
+  (`beheer-tweede-factor.md` → Promotie naar beheerder).
 
 Er blijft één gat: zolang een beheerder nog geen geverifieerde factor heeft,
 kan een aal1-sessie van dat account zelf een factor toevoegen. Twee regels
@@ -110,8 +126,8 @@ sluiten dat gat zover het de bar betreft:
 **2. Het einde van een bar-sessie trekt ook de Auth-sessie in.**
 `close_bar_session_internal` verwijdert de rij in `auth.sessions` met
 `id = bar_sessions.auth_session_id`. Dat geldt voor elke reden: uitgelogd,
-`niet_hervat`, afgemeld, inactief en geen bar-rol. Een gekopieerd token kan
-daarna geen `/auth/v1/user` meer aanroepen en niet meer verversen. De
+`niet_hervat`, afgemeld, inactief, geen bar-rol en beheerder geworden. Een
+gekopieerd token kan daarna geen `/auth/v1/user` meer aanroepen en niet meer verversen. De
 database blijft de waarheid (ADR 0016 → Beslissing 4); dit maakt die waarheid
 ook voor GoTrue geldig.
 
@@ -122,7 +138,10 @@ Dat gebeurt:
 - per IP-adres van de gebruiker, uit de proxy-header van Vercel;
 - per lid.
 
-De tellers lopen via functies die alleen `service_role` mag uitvoeren.
+De tellers lopen via functies die alleen `service_role` mag uitvoeren. Een
+poging wordt atomair gereserveerd (lock per bucket en sleutel, tellen,
+voorlopige rij) en weer vrijgegeven als de uitkomst niet telt, zodat ook
+gelijktijdige verzoeken correct tellen (Bram, 2026-10-01).
 Wachtwoord en PIN tellen alleen foute pogingen, "wachtwoord vergeten" telt
 aanvragen (Bram, 2026-09-30). De namenlijst verliest de rol, zodat
 beheerders van buitenaf niet als doelwit te herkennen zijn. De limiet van
@@ -169,7 +188,14 @@ een latere aanvulling, geen vervanging.
     geen tweede factor;
   - een onbeheerde, actieve bar-sessie van een beheerder die nog geen factor
     heeft. Dat is hetzelfde restrisico als een gestolen apparaat, en het
-    verdwijnt zodra de beheerder een factor instelt.
+    verdwijnt zodra de beheerder een factor instelt;
+  - **K1: PIN + vertrouwd apparaat + factor.** Wie de PIN van een beheerder
+    kent, bij een voor die beheerder vertrouwd apparaat kan én diens
+    authenticator heeft, kan in de PIN-sessie de code invoeren (aal2), dan
+    zonder huidig wachtwoord een nieuw wachtwoord zetten (GoTrue vraagt dat
+    niet bij amr `otp`) en daarmee op `/beheer` beheer krijgen. Dat is
+    vergelijkbaar met wachtwoord + factor. **Geaccepteerd door Bram
+    (2026-10-01).**
 - **Wachtwoord wijzigen of herstellen vraagt de code**, voor een account met
   een factor. Dat geldt in de portal en op `/beheer/wachtwoord-herstellen`:
   een herstelsessie is aal1.

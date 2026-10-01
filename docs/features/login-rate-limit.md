@@ -1,7 +1,9 @@
 # Eigen limiet op de server-side bar-login
 
 Status: **goedgekeurd door Bram (2026-09-30)**, inclusief waarden en teksten.
-Gebouwd (2026-09-30, nog niet gemerged; zie "Zoals gebouwd"). Hoort bij
+Gebouwd (2026-09-30, nog niet gemerged; zie "Zoals gebouwd"). **Aangevuld
+na de tweede review (Bram, 2026-10-01):** atomair tellen (besloten 5); nog
+niet gebouwd. Hoort bij
 [ADR 0017](../adr/0017-beheer-eist-tweede-factor-en-eigen-loginlimiet.md) →
 Beslissing 3. Vult [`dienst-per-sessie.md`](dienst-per-sessie.md) →
 Veiligheid aan ("de rate limit (...) per gebruiker blijft gelden", vraag 25).
@@ -17,6 +19,12 @@ Veiligheid aan ("de rate limit (...) per gebruiker blijft gelden", vraag 25).
    limiet.
 4. **De rolbadge gaat van de openbare namenlijst af** (zie Namenlijst zonder
    rol).
+5. **Gelijktijdige verzoeken tellen correct** (2026-10-01). Lezen en daarna
+   pas schrijven (`allowed` → poging → `record`) laat parallelle verzoeken
+   allemaal door zolang er nog niets geschreven is: met 50 gelijktijdige
+   foute wachtwoorden telt de limiet van 5 niet. Een poging wordt daarom in
+   één functie atomair gereserveerd en weer vrijgegeven als de uitkomst niet
+   telt (zie Functies). "Alleen foute pogingen tellen" blijft gelden.
 
 ## Aanleiding (geverifieerd in de code)
 
@@ -81,10 +89,43 @@ Opschonen gebeurt met een `pg_cron`-job (patroon uit `0025`): rijen ouder dan
 
 ## Functies (alleen `service_role`)
 
-- `login_throttle_allowed(p_bucket text, p_key text) returns boolean` leest
-  alleen, en schrijft niet.
-- `login_throttle_record(p_bucket text, p_key text) returns void` voegt een
-  rij toe.
+Vervangt `login_throttle_allowed` en `login_throttle_record` (besloten, 5).
+Die twee vervallen in de nieuwe migratie (`drop function`), zodat er geen
+niet-atomaire weg overblijft.
+
+```sql
+login_throttle_reserve(p_buckets text[], p_keys text[])
+  returns table (allowed boolean, reservation_ids bigint[])
+
+login_throttle_release(p_reservation_ids bigint[])
+  returns void
+```
+
+**`login_throttle_reserve`** controleert en reserveert in één transactie
+alle buckets van één poging (bij het wachtwoord `wachtwoord_ip` en
+`wachtwoord_lid` samen, bij "vergeten" alle drie). `p_buckets[i]` hoort bij
+`p_keys[i]`.
+
+1. **Invoer.** Beide arrays even lang, 1 tot 3 elementen, geen bucket
+   dubbel, elke bucket bekend (`invalid_bucket`), elke sleutel niet leeg
+   (`invalid_key`). Bereken per paar `key_hash` (sha256, zoals nu).
+2. **Lock.** Per paar `pg_advisory_xact_lock(hashtextextended('login_throttle:'
+   || bucket || ':' || key_hash, 0))`, in een vaste volgorde (gesorteerd op
+   bucket, dan `key_hash`), zodat twee aanroepen met dezelfde paren elkaar
+   niet deadlocken. Het lock geldt tot het einde van de transactie, dus tot
+   de RPC klaar is. Een botsing van de hash betekent alleen dat twee
+   sleutels even op elkaar wachten.
+3. **Tellen.** Per paar de regel uit de tabel Buckets, over de rijen die er
+   al staan, ook de voorlopige rijen van andere pogingen die nog lopen. De
+   functie is `volatile` (de standaard) en telt ná het lock, in een eigen
+   statement: onder `read committed` ziet die telling dan de rijen van de
+   vorige houder van het lock.
+4. **Uitkomst.** Is een van de buckets vol: `allowed = false`,
+   `reservation_ids = '{}'`, en er wordt niets geschreven. Anders: per paar
+   één rij (`at = now()`), `allowed = true` en de ids van die rijen.
+
+**`login_throttle_release`** verwijdert de rijen met die ids. Onbekende of al
+verwijderde ids zijn geen fout. Een lege array doet niets.
 
 De limieten staan vast in de functie per bucket. Een aanroeper kiest dus
 geen eigen waarde. `EXECUTE` gaat naar `service_role`, en wordt ingetrokken
@@ -123,30 +164,34 @@ Alle databasetoegang blijft in `src/lib/` (`check:policy`).
 
 ### `POST /inloggen/wachtwoord`
 
-1. Controleer `wachtwoord_ip` en `wachtwoord_lid`. Een van beide vol:
-   `{ ok: false, code: 'rate_limited' }`, zonder aanroep naar Supabase.
+1. Reserveer `wachtwoord_ip` en `wachtwoord_lid`
+   (`login_throttle_reserve`). Geweigerd: `{ ok: false, code:
+   'rate_limited' }`, zonder aanroep naar Supabase.
 2. Zoals nu: `signInWithPassword`.
-3. Bij `invalid_credentials`: registreer in beide buckets. Een geslaagde
-   login of een andere fout telt niet.
+3. Bij `invalid_credentials` blijft de reservering staan: die telt als foute
+   poging. Bij elke andere uitkomst (geslaagd, `not_allowed`, `no_account`,
+   `unknown`, een uitzondering) volgt `login_throttle_release` met de ids,
+   ook in een `finally`-pad.
 
 ### `POST /inloggen/vergeten`
 
-1. Controleer `vergeten_lid`, `vergeten_ip` en `vergeten_totaal`. Een van de
-   drie vol: geen mail, en het antwoord `{ ok: true, limited: true }`. Het
-   scherm toont dan de eigen tekst uit Teksten.
-2. Anders registreer in alle drie en verstuur zoals nu. Het antwoord blijft
+1. Reserveer `vergeten_lid`, `vergeten_ip` en `vergeten_totaal`. Geweigerd:
+   geen mail, en het antwoord `{ ok: true, limited: true }`. Het scherm
+   toont dan de eigen tekst uit Teksten.
+2. Anders verstuur zoals nu. De reservering blijft staan: hier telt elke
+   aanvraag, er is geen `release`. Het antwoord blijft
    neutraal (ADR 0013), ook voor een lid zonder account: de teller gaat over
    aanvragen, niet over accounts.
 
 ### `POST /inloggen/pin`
 
 1. Zoals nu: eerst het apparaatcookie en het formaat van de PIN.
-2. Controleer `pin_ip`. Is die vol, dan `{ ok: false, code: 'rate_limited' }`,
+2. Reserveer `pin_ip`. Geweigerd: `{ ok: false, code: 'rate_limited' }`,
    zonder `verify_bar_pin`. Er is dus geen poging op de lockout per lid.
 3. Zoals nu: `verify_bar_pin`.
-4. Bij `result_code = 'invalid_pin'` wordt geregistreerd in `pin_ip`.
-   `pin_locked`, `pin_not_available`, `pin_needs_mfa` en een geslaagde login
-   tellen niet.
+4. Bij `result_code = 'invalid_pin'` blijft de reservering staan.
+   `pin_locked`, `pin_not_available`, `pin_needs_mfa`, een geslaagde login,
+   een fout en een uitzondering geven `login_throttle_release`.
 
 De lockout per lid (5 foute PIN's) en "alleen op een vertrouwd apparaat"
 blijven bestaan (vraag 25). `pin_ip` remt daarbovenop iemand die op één
@@ -166,17 +211,44 @@ vertrouwd apparaat de PIN's van meerdere leden probeert.
   blijft `rate_limited` de code, zoals nu.
 - **`pg_cron` draait niet:** de tabel groeit, maar de limiet werkt nog
   (telling per venster).
+- **Gelijktijdige pogingen (besloten, 5):** het lock zet ze achter elkaar.
+  Bij een limiet van 5 komen er hooguit 5 door, ook bij 50 tegelijk.
+- **Een poging die nog loopt, telt voor de andere mee.** Een tweede,
+  terechte poging kan dus `rate_limited` krijgen terwijl de eerste nog
+  wacht op Supabase, als de bucket op één na vol is. Dat venster duurt zo
+  lang als één login; voorzichtig, en acceptabel.
+- **`release` mislukt** (netwerk, database): de rij blijft staan en telt
+  als foute poging tot ze uit het venster valt. Dat wordt gelogd, en de
+  gebruiker krijgt gewoon de uitkomst van zijn poging. Mislukt `reserve`,
+  dan gooit de login (de route geeft `unknown`), zoals nu bij het lezen.
 
 ## Tests
 
 - **pgTAP:**
   - elke bucket weigert bij de grens en laat eronder door;
+  - een geweigerde `reserve` schrijft geen rij, ook niet in de buckets die
+    nog ruimte hadden;
+  - `release` verwijdert alleen de opgegeven rijen, en een vrijgegeven
+    reservering telt niet meer;
+  - `reserve` weigert ongelijke arrays, een dubbele of onbekende bucket en
+    een lege sleutel;
+  - de oude `login_throttle_allowed`/`login_throttle_record` bestaan niet
+    meer;
   - `wachtwoord_lid` laat na een minuut weer één poging door;
   - de functies zijn niet uitvoerbaar voor `anon`/`authenticated`;
   - de tabel is niet leesbaar of schrijfbaar voor `anon`/`authenticated`
     (negatieve test, `check:rls`).
 - **Unit:** `clientIp` (header-volgorde, lijst in `x-forwarded-for`,
-  ongeldige waarde).
+  ongeldige waarde). In `test/barLogin.test.ts`: per uitkomst van
+  wachtwoord en PIN wel of geen `release` (alleen `invalid_credentials` en
+  `invalid_pin` houden de reservering), en "vergeten" nooit.
+- **Gelijktijdigheid:** pgTAP kan geen twee sessies tegelijk draaien. Het
+  bewijs is daarom: een test die het lock zichtbaar maakt (na `reserve` in
+  een open transactie staat er een advisory lock op de verwachte sleutel in
+  `pg_locks`), plus de Reviewer die nagaat dat tellen en schrijven na het
+  lock in dezelfde functie gebeuren. Kan de Developer een test met twee
+  verbindingen toevoegen (bijv. in `test/` tegen de lokale database), dan
+  graag, maar geen eis.
 - **e2e (gemockt of met een lege tabel):**
   - na 5 foute wachtwoorden de tekst bij `rate_limited`;
   - na 5 foute PIN's (verdeeld over twee leden, zodat de lockout per lid niet
@@ -229,6 +301,10 @@ De openbare namenlijst verklapt niet meer wie beheerder is.
   Een test controleert dat de API geen `role` teruggeeft.
 
 ## Zoals gebouwd (2026-09-30)
+
+*De punten hieronder gaan over de bouw van 2026-09-30. Besloten 5
+(2026-10-01) vervangt `login_throttle_allowed`/`login_throttle_record` door
+`reserve`/`release`; de Developer werkt dit bij na de bouw.*
 
 - **Migratie `0035_login_throttle.sql`**: de tabel, `login_throttle_allowed`,
   `login_throttle_record` (alleen `service_role`) en `purge_login_throttle`

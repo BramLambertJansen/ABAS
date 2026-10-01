@@ -1,7 +1,10 @@
 # Beheer met tweede factor, Auth-sessie intrekken, en hervatten per browser
 
 Status: **goedgekeurd door Bram (2026-09-30)**, inclusief de teksten.
-Gebouwd (2026-09-30, nog niet gemerged; zie "Zoals gebouwd"). Hoort bij
+Gebouwd (2026-09-30, nog niet gemerged; zie "Zoals gebouwd"). **Aangevuld
+na de tweede review (Bram, 2026-10-01):** besloten 10–13 hieronder; nog niet
+gebouwd. De teksten in die aanvulling zijn een **voorstel** tot Bram ze
+goedkeurt (zie Teksten). Hoort bij
 [ADR 0017](../adr/0017-beheer-eist-tweede-factor-en-eigen-loginlimiet.md).
 Vult [`dienst-per-sessie.md`](dienst-per-sessie.md) aan; de verwijzingen
 daar zijn bijgewerkt (zie "Doorgevoerd in bestaande documenten").
@@ -31,6 +34,18 @@ De eigen loginlimiet staat in [`login-rate-limit.md`](login-rate-limit.md).
    verlopen is. De Auth-sessie wordt bij elke reden ingetrokken.
 8. **De beheerdersingrepen vanuit bar-modus vragen geen aal2.**
 9. **De teksten zijn goedgekeurd.**
+
+Aanvulling na de tweede review (Bram, 2026-10-01):
+
+10. **Restrisico K1 is geaccepteerd:** PIN + vertrouwd apparaat + factor
+    geeft via een wachtwoordwijziging beheer (zie Randgevallen). De regel is
+    "een PIN-login geeft zonder tweede factor nooit beheer".
+11. **Promotie naar beheerder beëindigt de bar-sessies** van dat lid, en
+    daarmee de bijbehorende Auth-sessies (zie RPC's → `set_member_role`).
+12. **Focus bij een nieuwe stap** gaat naar de kop van die stap (zie
+    Schermflow → Toegankelijkheid).
+13. **Geen stille uitlog** als de factorstatus in `ModusKeuze` niet gelezen
+    kan worden (zie Schermflow → `/beheer`).
 
 ## Doel
 
@@ -146,6 +161,55 @@ en `close_inactive_bar_sessions`. Ontbreekt de rij, dan is dat geen fout.
 Zo niet, dan terug naar de Architect. De Developer kiest dan geen eigen
 omweg.
 
+### `set_member_role`: promotie naar beheerder (besloten, 11)
+
+**Probleem.** Een bardienst heeft geen factor. Een lopende PIN-sessie (aal1,
+amr `otp`) van een bardienst die beheerder wordt, is daarna de sessie van een
+beheerder zonder factor. Die sessie kan zonder huidig wachtwoord het
+wachtwoord wijzigen, of zelf een factor toevoegen, en zo beheer krijgen. Dat
+is precies het gat dat Beslissing 1 van ADR 0017 sluit voor nieuwe sessies
+(`pin_needs_mfa`, `resumable = false`); voor een sessie die al loopt op het
+moment van promotie sluit niemand het.
+
+**Wijziging:**
+
+- Wijzigt `set_member_role` de rol van een lid van iets anders naar
+  `beheerder`, dan eindigen diens actieve bar-sessies meteen, met de
+  sluitreden **`beheerder_geworden`**. Is de rol al `beheerder`, dan
+  gebeurt er niets.
+- Mechanisme: hetzelfde als bij archiveren of rol `lid`.
+  `end_member_bar_sessions` krijgt de sluitreden als parameter:
+  `end_member_bar_sessions(p_member_id uuid, p_reason text)`, met
+  `p_reason in ('geen_bar_rol', 'beheerder_geworden')`, anders een fout. De
+  oude signatuur met één parameter vervalt (geen overload laten staan).
+  Rechten zoals nu: voor geen enkele API-rol uitvoerbaar.
+- Via `close_bar_session_internal` verdwijnen daarmee ook de koppelingen
+  (`left_reason = 'beheerder_geworden'`, met een melding bij een wees-dienst)
+  en de Auth-sessie van elke bar-sessie (Beslissing 2).
+- Het PIN-vertrouwen op alle apparaten vervalt ook (`bar_device_members`),
+  zoals bij archiveren: hetzelfde mechanisme. De nieuwe beheerder logt na
+  het instellen van de factor één keer per apparaat met het wachtwoord in
+  via de namenlijst; daarna werkt de PIN weer.
+- Alleen de Auth-sessies die bij een bar-sessie horen, worden ingetrokken.
+  Een portal-sessie van het lid blijft staan: die komt uit een login met
+  wachtwoord of uit een magic link naar het eigen adres, en wie dat heeft,
+  kan het wachtwoord sowieso herstellen. Een beheersessie bestaat voor een
+  bardienst niet.
+- `beheerder_geworden` komt bij de toegestane waarden van
+  `bar_sessions.end_reason`, `shift_sessions.left_reason` en
+  `admin_notifications.reason`, en overal waar `geen_bar_rol` nu in een
+  lijst van sluitredenen staat (o.a. `left_shift_open` in `my_bar_state`).
+- Client: `sessieMeldingReden` (`src/lib/barSessie.ts`) geeft bij
+  `beheerder_geworden` een eigen reden `beheerder_geworden` (niet
+  `rol_gewijzigd`: die tekst zegt "mag niet meer op de bar werken", en dat
+  klopt hier niet). `AdminMeldingReden` en `toMelding`
+  (`src/lib/barState.ts`) krijgen de waarde erbij, met een eigen tekst in
+  `adminMeldingReden`. Teksten: zie Teksten (voorstel).
+
+**Waarom niet `rol_gewijzigd` als sluitreden?** Die naam bestaat al als
+melding-reden aan de client-kant (de vertaling van `geen_bar_rol`). Dezelfde
+naam voor een andere sluitreden maakt de mapping dubbelzinnig.
+
 ### Rechten
 
 Elke nieuwe of gewijzigde functie trekt `EXECUTE` in voor `PUBLIC`/`anon`,
@@ -198,6 +262,35 @@ De login zelf (wachtwoord of magic link) blijft zoals hij is. In
 - **Code fout:** foutmelding, opnieuw proberen. De limiet op pogingen is
   die van GoTrue (`FactorVerify`, per IP). Die draait hier in de browser,
   dus per gebruiker.
+- **Factorstatus niet te lezen (besloten, 13).** Nu blijft de tegel dan aan
+  en gaat een tik direct naar `register_bar_session('beheer')`. Is de sessie
+  aal1, dan volgt `aal2_required` en de centrale afhandeling logt stil uit.
+  Dat vervalt. Wordt: bij een leesfout toont een tik op "Beheer" de
+  code-stap, net als bij een factor met aal1. Verify zoekt de factor zelf op;
+  lukt dat niet (geen factor, of opnieuw een leesfout), dan volgt de
+  bestaande foutregel "er ging iets mis, probeer het opnieuw", en kan de
+  gebruiker met "Annuleren" terug naar de tegels en "Bar" kiezen. Een sessie
+  die al aal2 was, voert de code dan één keer te veel in; dat is
+  onschuldig. Geen nieuwe tekst nodig.
+
+### Toegankelijkheid: focus bij een nieuwe stap (besloten, 12)
+
+Verschijnt er binnen hetzelfde scherm een nieuwe stap, dan gaat de focus naar
+de kop van die stap (een `h1`/`h2` met `tabIndex={-1}`), zoals
+`BarInloggen` dat met `focusNaWissel` doet. Alleen bij een wissel door de
+gebruiker, niet bij de eerste weergave. Dat geldt voor:
+
+- `ModusKeuze`: tik op "Beheer" → de kop van de code-stap ("Code uit je
+  authenticator-app"); "Annuleren" → terug op de tegel "Beheer";
+- `/beheer/wachtwoord-herstellen` en `/portal/wachtwoord-herstellen`:
+  "Wachtwoord opslaan" → de kop van de code-stap;
+- de portal-sheet "Wachtwoord wijzigen": na de code → de kop van de stap met
+  de wachtwoordvelden;
+- de portal-sheet Tweestapsverificatie: stap 1 → stap 2 (de kop "Code
+  invoeren").
+
+Een foutregel na een verkeerde code blijft een `role="alert"`; de focus
+blijft dan in de code-invoer.
 
 ### `/beheer/wachtwoord-herstellen`
 
@@ -285,6 +378,24 @@ tabbladen delen. Het eerste tabblad krijgt daarna `session_ended`.
   foutmelding.
 - **Magic-link-login op `/beheer`:** daarna volgt de code-stap, net als na
   een wachtwoord.
+- **K1: PIN + vertrouwd apparaat + factor (besloten, 10).** Wie de PIN van
+  een beheerder kent, bij een voor die beheerder vertrouwd apparaat kan én
+  diens authenticator heeft, kan in de PIN-sessie de code invoeren (aal2),
+  dan zonder huidig wachtwoord een nieuw wachtwoord zetten (GoTrue vraagt
+  dat niet bij amr `otp`) en daarmee op `/beheer` beheer krijgen. Dat is
+  PIN + apparaat + factor, vergelijkbaar met wachtwoord + factor.
+  Geaccepteerd restrisico (Bram, 2026-10-01). Een PIN-login geeft dus
+  zonder tweede factor nooit beheer, maar mét factor wel.
+- **Bardienst wordt beheerder terwijl diens bar-sessie loopt (besloten,
+  11):** de sessie eindigt meteen (`beheerder_geworden`), met de
+  Auth-sessie en het PIN-vertrouwen. Het apparaat toont de melding uit
+  Teksten. Loopt er een dienst die daardoor zonder apparaat komt, dan
+  krijgen de beheerders de gewone melding, met de reden uit Teksten. Daarna
+  geldt wat voor elke beheerder zonder factor geldt: geen PIN, wel bar-werk
+  met het wachtwoord.
+- **Beheerder promoveert een lid zonder bar-sessie** (rol `lid` →
+  `beheerder`): er is niets te beëindigen; alleen het PIN-vertrouwen (als
+  dat er is) vervalt.
 
 ## Tests
 
@@ -307,9 +418,15 @@ tabbladen delen. Het eerste tabblad krijgt daarna `session_ended`.
 - `close_bar_session_internal` verwijdert de `auth.sessions`-rij, voor elke
   reden.
 - `member_has_verified_factor` is niet uitvoerbaar voor API-rollen.
+- `set_member_role` naar `beheerder` (aanvulling 2026-10-01): sluit de
+  actieve bar-sessies met `beheerder_geworden`, verwijdert hun
+  `auth.sessions`-rijen, trekt het PIN-vertrouwen in, en maakt bij een
+  wees-dienst een melding met die reden; `beheerder` → `beheerder` doet
+  niets; `end_member_bar_sessions` weigert een andere reden.
 
 **Unit (`test`):** de cookielogica in `barSessie.ts` (bevestigd alleen bij
-een gelijk `session_id`, en wissen).
+een gelijk `session_id`, en wissen); `sessieMeldingReden` en `toMelding` met
+`beheerder_geworden`.
 
 **e2e:**
 
@@ -317,7 +434,10 @@ een gelijk `session_id`, en wissen).
 - een nieuwe browsercontext toont hervatten of `niet_hervat`;
 - de code-stap in `ModusKeuze`, gemockt of met een TOTP-bibliotheek in de
   test (keuze Developer);
-- de portal-sheet Tweestapsverificatie.
+- de portal-sheet Tweestapsverificatie;
+- de focus na elke stapwissel uit Toegankelijkheid;
+- een leesfout van de factorstatus (gemockt) toont na "Beheer" de code-stap
+  en logt niet uit.
 
 ## Uitrol
 
@@ -359,6 +479,14 @@ Komt bovenop de uitrol van `dienst-per-sessie.md`.
 | Wachtwoord wijzigen/herstellen, code-stap | Voer eerst de code uit je authenticator-app in. |
 | Bar, PIN: beheerder zonder tweede factor | Als beheerder kun je pas met je pincode inloggen als je tweestapsverificatie hebt ingesteld in de portal. |
 
+### Voorstel (aanvulling 2026-10-01, nog niet goedgekeurd)
+
+| Plek | Tekst |
+|---|---|
+| Bar, melding na `beheerder_geworden` (`SESSIE_MELDINGEN`), titel | Je bent uitgelogd *(bestaande titel)* |
+| Bar, melding na `beheerder_geworden`, uitleg | Je bent nu beheerder. Log opnieuw in om verder te gaan. |
+| Beheerdermelding "Dienst zonder apparaat", reden `beheerder_geworden` (`adminMeldingReden`) | {naam} is beheerder geworden en daarom uitgelogd. |
+
 ## Doorgevoerd in bestaande documenten (2026-09-30)
 
 - **`docs/features/dienst-per-sessie.md`:**
@@ -373,8 +501,8 @@ Komt bovenop de uitrol van `dienst-per-sessie.md`.
   - Zoals gebouwd (codes van `register_bar_session`, de rate limit) en de
     uitrolstap op het echte tablet.
 - **CLAUDE.md → Auth:** beheer vraagt modus beheer met een tweede factor
-  (aal2), en een PIN-login geeft ook via een wachtwoordwijziging geen beheer
-  (ADR 0017).
+  (aal2), en een PIN-login geeft zonder tweede factor nooit beheer (ADR
+  0017; bijgesteld 2026-10-01 na K1).
 - **ADR 0002, 0003, 0005 en 0016:** een amendementregel met een verwijzing
   naar ADR 0017.
 
@@ -418,7 +546,8 @@ Wat er afwijkt van of bijkomt op de spec hierboven, en waarom.
   `disabled`), zodat hij met de uitleg focusbaar en voorleesbaar blijft. De
   code-stap heeft een knop "Annuleren" (bestaande tekst) terug naar de
   tegels. Kan de factorstatus niet gelezen worden, dan blijft de tegel aan
-  en beslist de server.
+  en beslist de server. *Vervangen door besloten 13 (2026-10-01): bij een
+  leesfout eerst de code-stap, geen stille uitlog.*
 - **Hervatten.** `useBarAuth` levert het `session_id` uit het access token;
   `BarSessieProvider` leest het cookie bij elke render en sluit een niet te
   hervatten sessie hooguit één keer per sessie met `niet_hervat`.

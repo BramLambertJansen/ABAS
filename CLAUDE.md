@@ -136,7 +136,7 @@ bar-modus is daarna identiek (bezetting/attributie: zie
 Architectuurbeslissingen). Beheeracties (assortiment, leden, instellingen)
 vragen een sessie in modus beheer met een tweede factor (TOTP, aal2; in te
 stellen in de portal, alleen voor beheerders), server-side afgedwongen; een
-PIN-login geeft nooit beheer, ook niet via een wachtwoordwijziging — zie ADR
+PIN-login geeft zonder tweede factor nooit beheer — zie ADR
 0002/0003/0016/0017 (`docs/adr/`).
 
 ## Designbestanden

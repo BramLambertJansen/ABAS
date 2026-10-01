@@ -287,7 +287,7 @@ elke policy een negatieve test (`check:rls`).
 | `started_at` | timestamptz not null default now() | |
 | `last_activity_at` | timestamptz not null default now() | zie Inactiviteit |
 | `ended_at` | timestamptz null | |
-| `end_reason` | text null: `uitgelogd` \| `inactief` \| `afgemeld` \| `geen_bar_rol` \| `niet_hervat` | |
+| `end_reason` | text null: `uitgelogd` \| `inactief` \| `afgemeld` \| `geen_bar_rol` \| `niet_hervat` \| `beheerder_geworden` (ADR 0017, 2026-10-01) | |
 | `ended_by` | uuid null → `members` | alleen bij `afgemeld` |
 
 Lezen: bardienst en beheerder (`not caller_is_lid()`). Een lid ziet niets.
@@ -300,7 +300,7 @@ Lezen: bardienst en beheerder (`not caller_is_lid()`). Een lid ziet niets.
 | `bar_session_id` | uuid → `bar_sessions` | |
 | `joined_at` | timestamptz not null default now() | |
 | `left_at` | timestamptz null | |
-| `left_reason` | text null: `dienst_afgesloten` \| `afgesloten_door_beheerder` \| `uitgelogd` \| `inactief` \| `overgenomen` \| `afgemeld` \| `geen_bar_rol` | |
+| `left_reason` | text null: `dienst_afgesloten` \| `afgesloten_door_beheerder` \| `uitgelogd` \| `inactief` \| `overgenomen` \| `afgemeld` \| `geen_bar_rol` \| `beheerder_geworden` (ADR 0017) | |
 
 - pk `(shift_id, bar_session_id)`
 - partiële unique index op `bar_session_id where left_at is null`: een sessie
@@ -358,7 +358,7 @@ sessie. Bij `reverse_order_as_admin` blijft hij null.
 |---|---|---|
 | `id` | uuid pk | |
 | `kind` | text: `dienst_zonder_sessie` | |
-| `reason` | text: `inactief` \| `uitgelogd` \| `afgemeld` \| `geen_bar_rol` | waarom de laatste koppeling wegviel, voor de tekst |
+| `reason` | text: `inactief` \| `uitgelogd` \| `afgemeld` \| `geen_bar_rol` \| `beheerder_geworden` (ADR 0017) | waarom de laatste koppeling wegviel, voor de tekst |
 | `shift_id` | uuid → `shifts` | |
 | `bar_session_id` | uuid null → `bar_sessions` | de sessie die wegviel |
 | `created_at` | timestamptz not null default now() | |
@@ -436,7 +436,9 @@ PIN-login registreert de sessie in modus `bar`, en een sessie wisselt nooit
 van modus (`mode_locked`, ADR 0003 Beslissing 2). Beheer blijft via `/beheer`
 met e-mail (wachtwoord of magic link, zoals nu), en eist sinds ADR 0017 ook
 een tweede factor (aal2). Dat laatste is nodig, want een PIN-sessie kan het
-wachtwoord van het account wijzigen (`beheer-tweede-factor.md`).
+wachtwoord van het account wijzigen (`beheer-tweede-factor.md`). Precies:
+een PIN-login geeft **zonder tweede factor** nooit beheer; met PIN,
+vertrouwd apparaat én factor kan het wel (K1, geaccepteerd 2026-10-01).
 
 **`/beheer` blijft zoals het is, op twee punten na:**
 
@@ -543,7 +545,7 @@ inhoudelijk gedekt. De functie zelf blijft bestaan: de RLS-leespolicies uit
 | `end_shift` | `caller_is_lid()`, stille no-op bij een onbekende dienst | `require_shift_session(p_shift_id)`. Sluit ook alle koppelingen (`dienst_afgesloten`). Zonder koppeling is het een fout, geen stille no-op. |
 | `reverse_order_as_admin` | ADR 0002-actorcheck | `require_beheer_session()` plus de actorcheck. `bar_session_id` blijft null. |
 | `set_own_pin` | ADR 0002-actorcheck | Alleen nog vanuit de portal: weigert vanuit een geregistreerde bar-sessie (`wrong_mode`, 0032). Hasht met de nieuwe kostenfactor (B1). |
-| `set_member_role`, `set_member_archived` | actorcheck | `require_beheer_session()`. Maakt het lid `lid` of gearchiveerd, dan eindigen diens actieve bar-sessies meteen (`geen_bar_rol`), met hun koppelingen, en bij een wees-dienst een melding. De guard weigert ook zonder deze stap al (21); dit zorgt dat de melding er meteen is. |
+| `set_member_role`, `set_member_archived` | actorcheck | `require_beheer_session()`. Maakt het lid `lid` of gearchiveerd, dan eindigen diens actieve bar-sessies meteen (`geen_bar_rol`), met hun koppelingen, en bij een wees-dienst een melding. De guard weigert ook zonder deze stap al (21); dit zorgt dat de melding er meteen is. Maakt `set_member_role` het lid `beheerder` (en was het dat nog niet), dan eindigen diens actieve bar-sessies ook meteen, met `beheerder_geworden`, inclusief de Auth-sessies en het PIN-vertrouwen: zo wordt een lopende aal1-sessie geen beheerder-zonder-factor-sessie (ADR 0017, `beheer-tweede-factor.md` → `set_member_role`, besloten 2026-10-01). |
 
 ### Nieuwe RPC's en functies
 
@@ -805,9 +807,12 @@ apparaat (12a).
 - **Een PIN-sessie komt niet in beheer.** De sessie wordt bij aanmaken als
   `bar` geregistreerd, en `register_bar_session('beheer')` geeft dan
   `mode_locked`. Beheer-RPC's eisen modus `beheer` (11). Het **account**
-  komt ook niet in beheer via een wachtwoordwijziging vanuit een PIN-sessie:
-  beheer eist een tweede factor (aal2), en met een factor weigert Supabase
-  Auth een wachtwoordwijziging vanuit een aal1-sessie (ADR 0017).
+  komt zonder tweede factor niet in beheer via een wachtwoordwijziging
+  vanuit een PIN-sessie: beheer eist aal2, en met een factor weigert
+  Supabase Auth een wachtwoordwijziging vanuit een aal1-sessie (ADR 0017).
+  Wie naast PIN en vertrouwd apparaat ook de factor heeft, kan in de
+  PIN-sessie aal2 halen en dan het wachtwoord wijzigen: restrisico K1,
+  geaccepteerd door Bram (2026-10-01).
 - **De anon-key is publiek.** Elke nieuwe functie trekt `EXECUTE` in voor
   `PUBLIC`/`anon`. De guards, `verify_bar_pin`,
   `register_bar_session_server` en `close_inactive_bar_sessions` krijgen geen
@@ -920,6 +925,12 @@ vervallen van de device-route gaan daarom samen (#117).
   de tweede krijgt `shift_already_open`. In (c): de unique index per sessie.
 - **Lid gearchiveerd of rol naar `lid` tijdens de dienst**: de sessie eindigt
   meteen (21), en bij een wees-dienst komt er een melding.
+- **Bardienst wordt beheerder tijdens de dienst** (ADR 0017, besloten
+  2026-10-01): de sessie eindigt ook meteen, met `beheerder_geworden`, met de
+  Auth-sessie en het PIN-vertrouwen, en bij een wees-dienst een melding.
+  Zonder dit zou een lopende aal1-sessie (bijv. uit een PIN) de sessie van
+  een beheerder zonder factor worden. Teksten: `beheer-tweede-factor.md` →
+  Teksten (voorstel).
 - **De ingelogde persoon verwijdert zichzelf uit de bezetting**: mag, zoals
   nu. De bezetting gaat over attributie, niet over sessies. De sessie werkt
   door.
