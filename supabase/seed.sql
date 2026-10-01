@@ -76,11 +76,13 @@ where name = 'Femke Bos';
 -- vast, bekend secret, zodat e2e/a11y.spec.ts (en elke lokale ontwikkelaar)
 -- de code kan uitrekenen (e2e/helpers/totp.ts). Het secret staat onversleuteld:
 -- Supabase Auth leest een secret zonder versleutelingsprefix als platte tekst.
--- Alleen lokaal, nooit in een echte omgeving.
+-- Alleen lokaal, nooit in een echte omgeving. `friendly_name` mag niet null
+-- zijn: Supabase Auth leest die kolom in een gewone string en geeft anders bij
+-- elke login van dit account "Database error loading user".
 insert into auth.mfa_factors (
   id, user_id, friendly_name, factor_type, status, created_at, updated_at, secret
 )
-select gen_random_uuid(), id, null, 'totp', 'verified', now(), now(),
+select gen_random_uuid(), id, 'Authenticator', 'totp', 'verified', now(), now(),
   'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP'
 from auth.users where email = 'femke.bos@aurora.local';
 
