@@ -224,14 +224,17 @@ entirely once a shift is open, rather than branching inside its own dark
 PIN-entry layout. Each tab's content is mounted/unmounted as the active tab
 changes (not hidden via CSS) — same lifecycle-based approach as
 `Overlay.tsx` — so returning to a tab always re-fetches fresh data instead of
-showing a stale snapshot. Accepted trade-off of that choice: the Verkoop
-tab's in-progress cart/selected-member state is lost on switching away and
-back, since it lives in `VerkoopScherm`'s local state, not lifted above
-`DienstTabs`. Flagged during PR #41 review and deliberately not fixed there
-(would mean lifting checkout state above the tab boundary, a real design
-choice, not a quick fix) — tracked as
-[issue #43](https://github.com/BramLambertJansen/ABAS/issues/43) for a
-future decision on whether/how to persist it.
+showing a stale snapshot. Frontend T03 / #43 lifts only the sale draft into
+`DienstTabs` via `useVerkoopDraft`: member selection and its comparison id,
+cart quantities, last-known display information and search/view state survive
+tab switches. Queries and dialogs stay in the active screen. `BarApp` keys
+`DienstTabs` by session and shift; closing the shift, changing session or a
+successful checkout clears the relevant draft. No browser persistence is used.
+Checkout waits for current products, member balance, settings and crew; missing
+members/products block confirmation with a message, while cached product
+names keep archived lines removable. Open overlays disable tab navigation,
+so a pending financial mutation cannot be unmounted by a rail click.
+
 
 ## Money & attribution (settled, from CLAUDE.md)
 
