@@ -66,7 +66,9 @@ normal evolution, not a defect.
 
 One app, two shells:
 
-- `shells/bar` — tablet/desktop only, no phone fallback.
+- `shells/bar` — tablet/desktop only, no phone fallback. That is a support
+  statement, not a boundary the app enforces: since ADR 0016 any bardienst
+  can log in on any device (`dienst-per-sessie.md` → vraag 20).
 - `shells/portal` — phone-first, usable on desktop too.
 
 `features/` components are shell-agnostic: they read `useShell()` →
@@ -263,6 +265,10 @@ future decision on whether/how to persist it.
   bevestigingsstap". Deliberately a guard on the cash-desk RPC and not a
   check-constraint on `top_ups.amount_cents` — #23's payment-provider path
   has an actual payment as proof and shouldn't inherit this limit.
+- Since ADR 0016 (A4), `top_up` refuses a top-up to the member of the calling
+  bar session (`self_top_up_forbidden`), and every bar money RPC requires a
+  registered bar session linked to the shift; `bar_session_id` on the booking
+  is filled by the RPC itself, never by the client.
 
 **RPC-grens gold niet voor sessieloze aanroepers (opgelost, 2026-09-22)**:
 gevonden bij het bijwerken van de gehoste omgeving. Postgres geeft bij
@@ -290,15 +296,17 @@ sessieloze aanroeper mag.
 **Leestoegang per rol (settled, 2026-09-21)**: ADR
 [0007](adr/0007-rol-lid-leest-alleen-eigen-rijen.md) — the blanket
 `for select to authenticated using (true)` from `0001_init.sql` now only
-applies to bar/beheer sessions and the shared device session. A session that
+applies to bar/beheer sessions (and, until ADR 0016, the shared device
+session). A session that
 resolves to a `members` row with role `lid` sees only its own rows in
 `members`/`orders`/`order_lines`/`top_ups`
 (`0015_lid_leest_alleen_eigen_rijen.sql`); `shifts`/`shift_members`/
 `products`/`app_settings` stay readable for everyone, deliberately. Strictly
 narrowing: no existing session type changed behaviour, which
 `supabase/tests/rls_lid_eigen_rijen.test.sql` asserts explicitly rather than
-assumes. This is *not* the device-session hardening — that still belongs to
-#15, together with the cookie-scoping item below.
+assumes. Read access is not tied to an active bar session: ADR 0016 left
+these RLS policies unchanged (`dienst-per-sessie.md` → Expliciet buiten
+scope).
 
 **Settled (2026-08-24)**:
 - **Single organization.** ABAS is for Aurora only — no `org_id`, no
@@ -314,11 +322,13 @@ assumes. This is *not* the device-session hardening — that still belongs to
   `last_activity_at`). Een dienst hoort bij die sessie via `shift_sessions`;
   elke bar-RPC met een `p_shift_id` eist een actieve, niet-inactieve sessie in
   modus `bar` mét een actieve koppeling aan die dienst (`require_shift_session`,
-  `0028`), elke beheer-RPC een sessie in modus `beheer`
-  (`require_beheer_session`). Het einde van een sessie (uitloggen, 60 minuten
-  inactiviteit, afmelden door een beheerder, rolwijziging) is een
-  database-feit: de RPC's weigeren meteen, ook als het access token nog
-  geldig is. Individuele attributie komt nog steeds uit de bezetting
+  `0028`), elke beheer-RPC een sessie in modus `beheer` met aal2
+  (`require_beheer_session`, ADR 0017). Het einde van een sessie (uitloggen,
+  60 minuten inactiviteit, afmelden door een beheerder, rolwijziging,
+  promotie naar beheerder) is een database-feit: de RPC's weigeren meteen,
+  ook als het access token nog geldig is, en de bijbehorende rij in
+  `auth.sessions` wordt verwijderd, zodat het token ook niet meer kan
+  verversen (ADR 0017). Individuele attributie komt nog steeds uit de bezetting
   (`served_by`), niet uit de sessie: `bar_sessions.member_id` betekent
   "ingelogd als", nooit "deed dit". Spec: `docs/features/dienst-per-sessie.md`.
   Het device-account, `/koppel`, `BAR_DEVICE_SECRET` en de device sign-in in
@@ -338,7 +348,12 @@ the session in that browser until an explicit sign-out — not a second,
 concurrently-active session. Since ADR 0016, beheer is a session in modus
 `beheer`: the choice "Beheer" in `ModusKeuze` calls `register_bar_session`, a
 session never changes modus, and every beheer RPC checks the mode server-side
-(`require_beheer_session`) before the actor check below. Beheerder-only RPCs (`create_product`, `update_product_price`,
+(`require_beheer_session`) before the actor check below. Since ADR
+[0017](adr/0017-beheer-eist-tweede-factor-en-eigen-loginlimiet.md) a beheer
+session also needs a second factor: TOTP, set up in the portal (beheerders
+only), and `register_bar_session('beheer')`/`require_beheer_session` demand
+`aal = 'aal2'` (`mfa_not_enrolled`, `aal2_required`). A lost factor is reset
+by Bram in the Supabase dashboard; the app has no function for it. Beheerder-only RPCs (`create_product`, `update_product_price`,
 `set_product_archived`, …) verify the caller via `auth.uid()` →
 `members.auth_user_id` → role `beheerder`, replacing the
 `p_actor_member_id`/`p_actor_pin`-per-call pattern ADR 0001 introduced (ADR
@@ -375,7 +390,8 @@ Whether #14 builds a minimal slice of that itself or waits for #15/#24 to
 land first was an open sequencing question — **decided: #14 builds it
 itself, minimally** (just the `/beheer` login form + the `auth_user_id`
 column + manual provisioning of beheerder Supabase Auth accounts, same
-manual pattern as the device account below), not the full portal login flow
+manual pattern as the device account of that time, removed since ADR 0016),
+not the full portal login flow
 (#15) or the self-service invite flow (#24 → "Lid-accounts" below). See ADR
 [0003](adr/0003-auth-methode-per-lid-en-vaste-modus-bar-beheer.md) and
 `docs/features/assortimentbeheer.md`.
@@ -414,7 +430,11 @@ instead of an assumption.
   public, anyone could otherwise lock out anyone). The PIN only works on a
   device where the member logged in with the password before
   (`bar_devices`/`bar_device_members`, the `abas_apparaat` cookie, 30 days,
-  every login extends it).
+  per member per device: only a login of that member on that device extends
+  it, `0033`; "afmelden" revokes the device, archiving/role `lid`/promotion to
+  beheerder revokes the member on all devices). A beheerder without a verified
+  second factor can't log in with the PIN (`pin_needs_mfa`, ADR 0017).
+  Wrong PINs are also limited per IP (`pin_ip`, see `login_throttle` below).
 - Negative-test coverage: `supabase/tests/verify_bar_pin.test.sql`.
 
 **Local/CI seed accounts (settled, 2026-08-26; herzien 2026-09-29)**:
@@ -484,8 +504,10 @@ the start screen (PIN on a trusted device, or wachtwoord; the list shows every
 bardienst member, PIN or not, and you never type an e-mail address), and
 e-mail/wachtwoord on `/beheer` → "Bar" in the mode chooser
 (`register_bar_session('bar')`). The start screen links to `/beheer`
-("Inloggen met e-mail"). A PIN login always registers mode `bar`, so it never
-gives beheer. Spec: `docs/features/auth-methode-per-lid.md`,
+("Inloggen met e-mail"). A PIN login always registers mode `bar`, so that
+session never gives beheer; since ADR 0017 the rule for the *account* is: a
+PIN login never gives beheer **without a second factor** (restrisico K1,
+accepted 2026-10-01). Spec: `docs/features/auth-methode-per-lid.md`,
 `docs/features/dienst-per-sessie.md`.
 
 This also revises `docs/features/dienst-starten.md` → "Expliciet buiten
@@ -613,7 +635,7 @@ van de portal.
 self-service-uitnodigingsflow (die hierboven beschreven `inviteUserByEmail`-stap
 hoort bij ledenbeheer, niet gebouwd) en geen portal-inlogflow (#15). Een
 beheerder-account voor `/beheer` wordt daarom, net als het
-device-account hierboven, **handmatig geprovisioned** (Supabase
+toenmalige device-account (sinds ADR 0016 verwijderd), **handmatig geprovisioned** (Supabase
 Studio/CLI: een Auth-account aanmaken, `members.auth_user_id` handmatig
 koppelen) tot #15/#24 landen. Zelfde soort "prima handmatig voor nu,
 single-tenant, single-club"-afweging als bij het device-account.
@@ -692,10 +714,11 @@ al gehandhaafd, alleen het schrijfpad ontbrak.
 **Bestelling terugdraaien (2026-09-24)**: `0020_bestelling_terugdraaien.sql`
 voegt de geldtabel `order_reversals` toe (alleen toevoegen, primary key
 `order_id` = hooguit één keer) en twee RPC's die `orders.total_cents`
-terugboeken: `reverse_order_at_bar` (gedeelde bar-sessie, open dienst, wie
-het deed uit de bezetting — het `served_by`-patroon) en
-`reverse_order_as_admin` (beheerder via `auth.uid()`, ADR 0002, elke
-bestelling). Geen nieuwe ADR: beide wegen volgen een bestaand patroon.
+terugboeken: `reverse_order_at_bar` (destijds de gedeelde bar-sessie; sinds
+ADR 0016 een bar-sessie die aan de dienst gekoppeld is, open dienst, wie het
+deed uit de bezetting — het `served_by`-patroon) en `reverse_order_as_admin`
+(beheerder via `auth.uid()`, ADR 0002, sinds ADR 0016/0017 in een
+beheersessie met aal2, elke bestelling). Geen nieuwe ADR: beide wegen volgen een bestaand patroon.
 Teruggedraaide bestellingen tellen niet mee als omzet (`useShiftSummary`,
 `ledger.ts`). Zie `docs/features/bestelling-terugdraaien.md`.
 
@@ -714,7 +737,8 @@ niet meer `null` is) voor het eerst daadwerkelijk bereikbaar. Geen
 actorcheck op `end_shift` zelf, bewust consistent met
 `add_shift_member`/`remove_shift_member`: iedereen op de gedeelde
 bar-tablet-sessie tijdens een open dienst mag afsluiten, geen restrictie tot
-de dienst-starter. De overlay is gebouwd tegen de gedeelde `StatCard`
+de dienst-starter. *(Sinds ADR 0016: elke sessie die aan de dienst gekoppeld
+is; een beheerder op een ander apparaat sluit af met `admin_end_shift`.)* De overlay is gebouwd tegen de gedeelde `StatCard`
 (`variant="metric"`)/`MemberPill`-componenten uit #53
 ("Extract shared UI components", `src/components/`), die vóór #12's merge
 al specifiek met deze overlay als consument in gedachten waren gevormd.
@@ -779,8 +803,7 @@ dekt `mark_member_invited`'s actorcheck/guards (13 nieuwe assertions,
 `supabase/tests/ledenbeheer.test.sql`), niet de `inviteUserByEmail()`-call
 zelf — dat blijft een pgTAP-gat, zoals ADR 0006 → Gevolgen al voorzag.
 
-**Activiteittypes per dienst (gebouwd, #18, 2026-09-22, [PR #65](https://github.com/BramLambertJansen/ABAS/pull/65) —
-CI groen, nog niet gemerged)**: een door de beheerder beheerbare
+**Activiteittypes per dienst (gebouwd en gemerged, #18, 2026-09-22, [PR #65](https://github.com/BramLambertJansen/ABAS/pull/65))**: een door de beheerder beheerbare
 `activity_types`-tabel (`docs/features/activiteittypes.md`,
 `supabase/migrations/0019_activiteittypes.sql`), 1-op-1 het
 `products`-patroon (archiveren, nooit verwijderen) zonder
@@ -841,20 +864,23 @@ alleen uitvoerbaar voor `authenticated`. Wachtwoord wijzigen is
 `PinToetsenbord.tsx` (puntjes plus toetsenraster, `tone` `rail`/`light`,
 getild uit `PinPad.tsx`, dat nu een dunne schil is) en een `tone`-prop
 (`rail`, de standaard, of `light`) op `TekstVeld.tsx`. Nieuw gedeeld in
-`src/lib/`: `ownPinErrors.ts` (PIN-foutcodes, -teksten en `PIN_PATTERN`,
-gebruikt door `/beheer` → "Mijn account" en de portal) en, in
+`src/lib/`: `ownPinErrors.ts` (PIN-foutcodes, -teksten en `PIN_PATTERN`;
+sinds ADR 0016 alleen nog door de portal gebruikt, "Mijn account" op `/beheer`
+is weg) en, in
 `authErrors.ts`, de mapping en teksten van `updateUser`-fouten
 (`toPasswordUpdateErrorCode`/`passwordUpdateErrorMessage`, inclusief
 `reauth_required`), gedeeld met de twee herstelflows. Eerste echte
 consument van `Overlay.tsx`'s `"sheet"`-tak, zie "`useShell().overlay`"
 hierboven.
 
-**Dienst per sessie (fase 1 gebouwd, 2026-09-29, ADR
-[0016](adr/0016-dienst-hoort-bij-geregistreerde-app-sessies.md), spec
-`docs/features/dienst-per-sessie.md`)**: fase 1 is stand (a): één open dienst,
-die bij de sessie hoort waarin hij gestart is (fase 2, de instelling
-(a)/(b)/(c) en `join_shift`, is niet gebouwd).
-- *Database* (`0027`–`0030`): `bar_sessions`, `shift_sessions`, `bar_devices`,
+**Dienst per sessie, fase 1 (gebouwd en gemerged, [PR #120](https://github.com/BramLambertJansen/ABAS/pull/120), 2026-10-01, ADR
+[0016](adr/0016-dienst-hoort-bij-geregistreerde-app-sessies.md) en
+[0017](adr/0017-beheer-eist-tweede-factor-en-eigen-loginlimiet.md))**: specs
+`docs/features/dienst-per-sessie.md`, `beheer-tweede-factor.md` en
+`login-rate-limit.md`. Fase 1 is stand (a): één open dienst, die bij de sessie
+hoort waarin hij gestart is (fase 2, de instelling (a)/(b)/(c) en `join_shift`,
+is niet gebouwd).
+- *Database* (`0027`–`0033`): `bar_sessions`, `shift_sessions`, `bar_devices`,
   `bar_device_members`, `pin_failures`, `admin_notifications`,
   `bar_session_id` op `orders`/`top_ups`/`order_reversals`,
   `shifts.started_session_id`. Guards `require_session` (kern),
@@ -863,28 +889,66 @@ die bij de sessie hoort waarin hij gestart is (fase 2, de instelling
   `touch_bar_session`, `end_bar_session(p_close_shift, p_reason)`,
   `my_bar_state`, `admin_end_shift`, `admin_take_over_shift`,
   `admin_end_bar_session`, `resume_orphan_shift` (`0030`: een bardienst uit de
-  bezetting hervat een wees-dienst, alleen als er geen actieve koppeling is); `start_shift(p_activity_type_id)` zonder PIN; A4 in
-  `top_up` (`self_top_up_forbidden`); `close_inactive_bar_sessions` (pg_cron,
-  elke minuut). Alleen `service_role`: `verify_bar_pin`,
-  `record_bar_password_login`, `register_bar_session_server`,
-  `bar_login_options`. `verify_bar_pin` **geeft een rij terug in plaats van te
-  raisen**: een `raise` draait de teller van de foute poging in dezelfde
-  transactie terug en dan is de lockout waardeloos.
+  bezetting hervat een wees-dienst, alleen als er geen actieve koppeling is),
+  `check_beheer_session` (`0031`, voor de invite-route);
+  `start_shift(p_activity_type_id)` zonder PIN; A4 in `top_up`
+  (`self_top_up_forbidden`); `set_own_pin` weigert vanuit een bar-sessie
+  (`0032`); `close_inactive_bar_sessions` (pg_cron, elke minuut). Alleen
+  `service_role`: `verify_bar_pin`, `record_bar_password_login`,
+  `register_bar_session_server`, `bar_login_options`. `verify_bar_pin` **geeft
+  een rij terug in plaats van te raisen**: een `raise` draait de teller van de
+  foute poging in dezelfde transactie terug en dan is de lockout waardeloos.
+- *Tweede factor en Auth-sessie* (`0034`, `0037`, ADR 0017): beheer eist aal2
+  (zie "Beheer-sessie" hierboven); `member_has_verified_factor` (voor geen
+  API-rol); `close_bar_session_internal` verwijdert bij elke sluitreden ook de
+  rij in `auth.sessions`; `my_bar_state().session.resumable` is `false` voor
+  een beheersessie en voor de bar-sessie van een beheerder zonder factor;
+  `set_member_role` naar `beheerder` sluit de bar-sessies van dat lid
+  (`beheerder_geworden`), met Auth-sessies en PIN-vertrouwen.
+- *Loginlimiet* (`0035`, `0036`, ADR 0017): tabel `login_throttle` (RLS aan,
+  geen policies, alles ingetrokken; alleen een sha256 van de sleutel, geen
+  ruwe IP's), `login_throttle_reserve`/`login_throttle_release` (alleen
+  `service_role`; atomair met een advisory lock per bucket en sleutel) en
+  `purge_login_throttle` (pg_cron, elk uur, rijen ouder dan 24 uur). Buckets
+  per IP en per lid voor wachtwoord, PIN en "vergeten"; de waarden staan in
+  `login-rate-limit.md`. Het IP komt uit `x-real-ip`/`x-forwarded-for`
+  (`src/lib/clientIp.ts`).
 - *Server* (`src/lib/barLogin.ts`, Route Handlers onder
-  `src/app/(bar)/inloggen/`): namenlijst, inlogopties, wachtwoordlogin,
-  PIN-login (`generateLink` + `verifyOtp`), wachtwoord vergeten. De sessie wordt
-  server-side aangemaakt en geregistreerd vóór de browser de tokens krijgt; een
-  mislukte registratie sluit de nieuwe sessie (`scope: "local"`).
+  `src/app/(bar)/inloggen/`: `namen`, `opties`, `wachtwoord`, `pin`,
+  `vergeten`): namenlijst (alleen `id` en `name`, geen rol), inlogopties,
+  wachtwoordlogin, PIN-login (`generateLink` + `verifyOtp`), wachtwoord
+  vergeten. De sessie wordt server-side aangemaakt en geregistreerd vóór de
+  browser de tokens krijgt; een mislukte registratie sluit de nieuwe sessie
+  (`scope: "local"`). De service-role-client (`src/lib/supabase/admin.ts`)
+  wordt alleen server-side gebruikt, door `barLogin.ts` en `inviteMember.ts`
+  (ADR 0006, `check:arch`); `SUPABASE_SECRET_KEY` is daarmee nodig voor elke
+  login op de bar, ook lokaal en in CI.
+- *Cookies*: `abas_apparaat` (`HttpOnly`, 30 dagen, alleen de hash in
+  `bar_devices`) bindt de PIN aan een apparaat; `abas_bar_bevestigd` (een
+  sessiecookie, niet `HttpOnly`, waarde het `session_id`) is de
+  hervat-bevestiging per browser, zodat een tweede tabblad de sessie niet
+  sluit en "browser dicht en weer open" eerst om bevestiging vraagt. Het oude
+  `abas_tablet` wordt door de middleware weggehaald.
 - *Client*: `BarSessieProvider` (`src/features/bar-sessie/`) is de centrale
   afhandeling voor `/` én `/beheer`: fase (uitgelogd / geen bar-sessie /
   hervatten / actief), hartslag (elke tik of toets, hooguit één per minuut), een
   stille poll van `my_bar_state` elke 30 seconden, de melding bij een gesloten
-  sessie en lokaal uitloggen. Hooks kennen de zes sessiecodes als bekende
-  uitkomst (`notifySessionCode`); `reportClientError` logt ze ook niet voor
-  hooks die ze niet zelf kennen.
-- *Bekende beperking*: de rate limit van Supabase Auth op wachtwoordpogingen
-  draait nu op het IP-adres van de server (Next.js), niet van de gebruiker; op
-  het gehoste project nog te controleren dat die niet voor iedereen samen geldt.
+  sessie en lokaal uitloggen. Hooks kennen de sessiecodes
+  (`SESSION_ERROR_CODES` in `src/lib/barSessie.ts`: de zes uit ADR 0016 plus
+  `aal2_required`) als bekende uitkomst (`notifySessionCode`);
+  `reportClientError` logt ze ook niet voor hooks die ze niet zelf kennen. De
+  code-invoer voor TOTP is één gedeeld component, `src/components/CodeInvoer.tsx`.
+- *Verwijderd*: tablet koppelen (`/koppel`, `src/lib/tabletKoppeling.ts`,
+  `BAR_DEVICE_SECRET`), de device sign-in in de middleware, het
+  device-account (`SUPABASE_DEVICE_EMAIL`/`SUPABASE_DEVICE_PASSWORD`,
+  `device@aurora.local` in de seed), "Mijn account" op `/beheer`
+  (`MijnAccountOverlay`, `useSetOwnPin`) en `useOpenShift` (vervangen door
+  `useMijnDienst`).
+- *Uitrol*: de stappen op het gehoste project (wachtwoord voor elke
+  bardienst/beheerder, device-account verwijderen, TOTP aan, rechten van
+  `postgres` op `auth.sessions`/`auth.mfa_factors`, de IP-header op Vercel,
+  test op het echte tablet) staan in `dienst-per-sessie.md` → Zoals gebouwd →
+  Uitrol. Of ze gedaan zijn, staat niet in de repo.
 
 ## Wat het prototype deed maar hier nog niet is besloten
 

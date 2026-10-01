@@ -1,9 +1,12 @@
 # Eigen limiet op de server-side bar-login
 
-Status: **goedgekeurd door Bram (2026-09-30)**, inclusief waarden en teksten.
-Gebouwd (2026-09-30, nog niet gemerged; zie "Zoals gebouwd"). **Aangevuld
-na de tweede review (Bram, 2026-10-01):** atomair tellen (besloten 5);
-gebouwd 2026-10-01 (`0036`, zie "Zoals gebouwd"). Hoort bij
+Status: **gebouwd en gemerged
+([PR #120](https://github.com/BramLambertJansen/ABAS/pull/120), 2026-10-01,
+merge-commit `ae89bd9`; migraties `0035` en `0036`).** Goedgekeurd door Bram
+(2026-09-30), inclusief waarden en teksten; aangevuld na de tweede review
+(Bram, 2026-10-01) met atomair tellen (besloten 5), ook gebouwd. Wat bij de
+bouw afweek, staat in "Zoals gebouwd" en gaat voor. De sectie "Aanleiding"
+beschrijft de stand vóór deze spec. Hoort bij
 [ADR 0017](../adr/0017-beheer-eist-tweede-factor-en-eigen-loginlimiet.md) →
 Beslissing 3. Vult [`dienst-per-sessie.md`](dienst-per-sessie.md) →
 Veiligheid aan ("de rate limit (...) per gebruiker blijft gelden", vraag 25).
@@ -300,7 +303,7 @@ De openbare namenlijst verklapt niet meer wie beheerder is.
 - **Tests:** e2e en unit die op de rolbadge in de namenlijst leunen, gaan mee.
   Een test controleert dat de API geen `role` teruggeeft.
 
-## Zoals gebouwd (2026-09-30)
+## Zoals gebouwd (2026-09-30 en 2026-10-01, gemerged in PR #120)
 
 - **Migratie `0035_login_throttle.sql`**: de tabel en `purge_login_throttle`
   (voor geen API-rol, `pg_cron` elk uur op minuut 23). De sha256 van de

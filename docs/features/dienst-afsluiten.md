@@ -1,5 +1,14 @@
 # Dienst afsluiten (overzicht + omzet)
 
+> **Bijgewerkt door [`dienst-per-sessie.md`](dienst-per-sessie.md) (ADR 0016, gemerged in [PR #120](https://github.com/BramLambertJansen/ABAS/pull/120), 2026-10-01):**
+> `end_shift` eist een bar-sessie die aan de dienst gekoppeld is
+> (`require_shift_session`), sluit ook de koppelingen, en is zonder koppeling
+> een fout in plaats van een stille no-op. Een beheerder kan een dienst op een
+> ander apparaat afsluiten met `admin_end_shift` (variant `beheerder` van
+> `DienstAfsluitenOverlay`). Na afsluiten blijft de sessie ingelogd. Wat
+> hieronder over de gedeelde tablet-sessie en `useOpenShift` staat, is
+> historie (`useOpenShift` is vervangen door `useMijnDienst`).
+
 Spec voor [issue #12](https://github.com/BramLambertJansen/ABAS/issues/12).
 Volgt op #6–#10 (dienst starten, bezetting beheren, verkoopscherm,
 laag-saldo-signalering, opwaarderen) — het genoemde "logische sluitstuk van

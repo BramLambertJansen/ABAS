@@ -1,10 +1,14 @@
 # Portal-profiel: naam, wachtwoord en eigen bar-PIN
 
-> **Bijgewerkt door [`dienst-per-sessie.md`](dienst-per-sessie.md) (2026-09-29,
-> ADR 0016):** de portal is de enige plek waar de bar-PIN wordt gezet ("Mijn
-> account" op de bar is vervallen). `set_own_pin` hasht met kostenfactor 12. Een
+> **Bijgewerkt door [`dienst-per-sessie.md`](dienst-per-sessie.md) en
+> [`beheer-tweede-factor.md`](beheer-tweede-factor.md) (ADR 0016/0017, gemerged
+> in [PR #120](https://github.com/BramLambertJansen/ABAS/pull/120), 2026-10-01):** de portal is de enige plek waar de bar-PIN wordt
+> gezet ("Mijn account" op de bar is vervallen); `set_own_pin` weigert vanuit
+> een bar-sessie (`wrong_mode`, `0032`) en hasht met kostenfactor 12. Een
 > nieuwe PIN werkt op de bar pas op een apparaat waar het lid eerder met het
-> wachtwoord inlogde.
+> wachtwoord inlogde. Het tabblad Account heeft voor een beheerder een rij
+> **Tweestapsverificatie** (TOTP instellen, `TweestapSheet`), en "Wachtwoord
+> wijzigen" vraagt eerst de code als het account een factor heeft.
 
 **Status: gebouwd en gemerged (2026-09-28, [PR #110](https://github.com/BramLambertJansen/ABAS/pull/110), merge-commit `3df726d`).**
 Geaccordeerd door Bram (2026-09-28): besluiten 1–7, alle teksten en ADR 0012.

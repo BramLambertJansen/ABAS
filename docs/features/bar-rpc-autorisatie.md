@@ -1,8 +1,9 @@
 # Autorisatie op de bar-RPC's: wie mag geld verplaatsen, en wat bewijst een PIN?
 
-**Status (2026-09-29): A3, A4, B1, B2 en B3 gerealiseerd door
+**Status (2026-10-01): A3, A4, B1, B2 en B3 gerealiseerd door
 [ADR 0016](../adr/0016-dienst-hoort-bij-geregistreerde-app-sessies.md) en
-[`dienst-per-sessie.md`](dienst-per-sessie.md) (fase 1 gebouwd).** A2 is vervangen
+[`dienst-per-sessie.md`](dienst-per-sessie.md) (fase 1 gebouwd en gemerged in
+[PR #120](https://github.com/BramLambertJansen/ABAS/pull/120)).** A2 is vervangen
 door de allowlist `require_bar_session` / `require_shift_session` (`0028`,
 `0029`); A3 is gerealiseerd als "de aanroeper heeft een geregistreerde
 bar-sessie", zonder `device_accounts`-tabel; A4 (`self_top_up_forbidden`) geldt
@@ -10,7 +11,7 @@ in alle standen en vergelijkt met het lid van de sessie, niet alleen met
 `caller_member_id()` (in de praktijk hetzelfde); B1 (kostenfactor 12) en B2
 (lockout na 5 foute PIN's, per lid over alle apparaten, opgeheven door een
 geslaagde wachtwoordlogin) zitten in de PIN-login (`verify_bar_pin`), niet in
-`start_shift`; B3: `start_shift` eist een bar-sessie. "Raakt de bar-flow niet
+`start_shift`, met daarbovenop een limiet per IP (`login-rate-limit.md`); B3: `start_shift` eist een bar-sessie. "Raakt de bar-flow niet
 (de device-sessie heeft geen `caller_member_id()`)" (A4) en "bij A3 moet de
 device-sessie expliciet in de allowlist" (Randgevallen) vervallen: het
 device-account bestaat niet meer. Vraag 1 en 2 waren beantwoord, vraag 3 (A4:

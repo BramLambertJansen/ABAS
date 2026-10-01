@@ -1,6 +1,6 @@
 # Tablet koppelen: de gedeelde device-sessie alleen voor een gekoppelde tablet
 
-**Status: vervallen (2026-09-29) — vervangen door
+**Status: vervallen en verwijderd (gemerged in [PR #120](https://github.com/BramLambertJansen/ABAS/pull/120), 2026-10-01) — vervangen door
 [`dienst-per-sessie.md`](dienst-per-sessie.md) en
 [ADR 0016](../adr/0016-dienst-hoort-bij-geregistreerde-app-sessies.md).**
 `/koppel`, `src/lib/tabletKoppeling.ts`, het `abas_tablet`-cookie,

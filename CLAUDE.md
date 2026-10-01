@@ -18,7 +18,7 @@ te schrijven.
 CI is de gate: `npm run check:all` draait op elke PR en moet groen zijn vóór
 merge. Werkwijze: committen, pushen, PR, en fixen wat CI rood maakt. De
 pre-commit hook draait alleen `check:fast` (alles zonder database: lint,
-typecheck, `test`, `check:arch`/`policy`/`rls`) — `build`, `check:a11y` en
+typecheck, `test` en de `check:*`-scripts behalve `check:a11y`) — `build`, `check:a11y` en
 `db:test` hebben een draaiende Supabase nodig en laten we aan CI over. CI
 draait alleen op PR's: bij de eerste push van een branch meteen een PR openen,
 bestaat die al dan alleen committen en pushen.
@@ -84,16 +84,11 @@ hoe attributie daaruit werkt.
 controleren saldo (inclusief de ingestelde negatieflimiet) en schrijven de
 transactie in één statement; `reverse_order_at_bar`/`reverse_order_as_admin`
 boeken `orders.total_cents` terug. De client stuurt alleen ids, aantallen of
-een opwaardeerbedrag mee — nooit een berekend totaal (het `REVOKE` op geldtabellen dat
-dit ook technisch afdwingt staat onder Verificatie → `check:rls`). Die RPC's
+een opwaardeerbedrag mee — nooit een berekend totaal. Die RPC's
 zijn uitsluitend uitvoerbaar voor `authenticated`, en eisen daarbovenop een
 geregistreerde bar-sessie die aan de dienst gekoppeld is; interne functies
 (`verify_bar_pin`, de guards, de cron-job) zijn voor geen enkele API-rol
-uitvoerbaar, of alleen voor `service_role`. Een nieuwe functie krijgt van
-Postgres standaard `EXECUTE` voor `PUBLIC`, en dat moet elke migratie die er
-een toevoegt expliciet intrekken (zie `0018` en
-`supabase/tests/rpc_execute_grants.test.sql`, dat het voor élke functie
-bewaakt).
+uitvoerbaar, of alleen voor `service_role`.
 
 **`served_by` komt uit de bezetting, niet uit een PIN.** Eén persoonlijke sessie per
 apparaat, wisselende medewerkers via de bezetting. De client stuurt welk lid uit de
@@ -115,8 +110,7 @@ stijlkeuze.
 `shells/bar` (tablet/desktop — nooit telefoon, geen fallback, geen
 ondersteuning; dat is een supportuitspraak, geen grens die de app afdwingt) en `shells/portal` (telefoon-first, ook bruikbaar op desktop).
 Schermen in `features/` weten niet in welke shell ze draaien; ze lezen
-capabilities via `useShell()` — `density`, `overlay`, `columns` (device-
-sniffing als alternatief is een `check:policy`-fout, zie Verificatie).
+capabilities via `useShell()` — `density`, `overlay`, `columns`.
 
 `shells/bar` is installable als PWA (manifest + icons). Geen offline-eisen,
 geen service-worker caching — dat is bewust uitgesteld, geen vergeten scope.

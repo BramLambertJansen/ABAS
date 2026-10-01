@@ -1,5 +1,13 @@
 # Bestelling terugdraaien
 
+> **Bijgewerkt door [`dienst-per-sessie.md`](dienst-per-sessie.md) (ADR 0016/0017, gemerged in [PR #120](https://github.com/BramLambertJansen/ABAS/pull/120), 2026-10-01):**
+> `reverse_order_at_bar` eist een bar-sessie die aan de dienst gekoppeld is
+> (`require_shift_session`) in plaats van de lid-denylist uit `0023`, en
+> schrijft `bar_session_id` mee. `reverse_order_as_admin` eist een sessie in
+> modus beheer met tweede factor (`require_beheer_session`, aal2);
+> `bar_session_id` blijft daar null. "Gedeelde tablet/bar-sessie" hieronder is
+> historie.
+
 Beslissingen door Bram, 2026-09-24. Dit vult in wat bij het Dienst-scherm
 (`docs/features/dienst-overzicht.md`) bewust buiten scope bleef.
 

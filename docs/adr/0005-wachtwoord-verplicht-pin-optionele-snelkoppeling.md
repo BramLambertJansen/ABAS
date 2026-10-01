@@ -9,8 +9,10 @@ uit issue #57/PR #59). Inhoudelijk is dit ADR ongewijzigd t.o.v. de versie
 die Bram hierboven goedkeurde.
 **Geamendeerd door [ADR 0017](0017-beheer-eist-tweede-factor-en-eigen-loginlimiet.md)
 (2026-09-30):** een beheerder kan pas met de PIN inloggen
-als hij een geverifieerde tweede factor (TOTP) heeft. Beslissing 1 en 3
-blijven.
+als hij een geverifieerde tweede factor (TOTP) heeft. "Hij geeft nooit beheer"
+in het amendement hieronder wordt daarmee: een PIN-login geeft **zonder
+tweede factor** nooit beheer (restrisico K1, geaccepteerd 2026-10-01).
+Beslissing 1 en 3 blijven.
 
 **Geamendeerd door [ADR 0016](0016-dienst-hoort-bij-geregistreerde-app-sessies.md)
 (Beslissing 2, 2026-09-29):** de PIN is een optionele login voor bar-modus,

@@ -1,11 +1,13 @@
 # Wachtwoord verplicht + PIN als optionele snelkoppeling; dual-mode login (bar via e-mail)
 
-> **Bijgewerkt door [`dienst-per-sessie.md`](dienst-per-sessie.md) (2026-09-29,
-> ADR 0016):** "Mijn account" bestaat niet meer op de bar (de PIN zet je alleen
+> **Bijgewerkt door [`dienst-per-sessie.md`](dienst-per-sessie.md) (ADR 0016,
+> gemerged in [PR #120](https://github.com/BramLambertJansen/ABAS/pull/120), 2026-10-01):** "Mijn account" bestaat niet meer op de bar (de PIN zet je alleen
 > in de portal), de keuze "Bar"/"Beheer" registreert de sessie server-side
 > (`register_bar_session`), "Beheer" is er alleen voor een beheerder, en de PIN
 > is een login voor bar-modus op een apparaat waar het lid eerder met het
 > wachtwoord inlogde. De PIN-stafkeuze via de gedeelde sessie bestaat niet meer.
+> Sinds ADR 0017 vraagt "Beheer" daarnaast een tweede factor (aal2,
+> [`beheer-tweede-factor.md`](beheer-tweede-factor.md)).
 
 Spec voor [issue #42](https://github.com/BramLambertJansen/ABAS/issues/42).
 

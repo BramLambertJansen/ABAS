@@ -1,5 +1,10 @@
 # Portal-login (magic link + wachtwoord)
 
+> **Aangevuld door [`beheer-tweede-factor.md`](beheer-tweede-factor.md)
+> (ADR 0017, gemerged in [PR #120](https://github.com/BramLambertJansen/ABAS/pull/120), 2026-10-01):** heeft het account een tweede
+> factor, dan vraagt `/portal/wachtwoord-herstellen` na "Wachtwoord opslaan"
+> eerst de code uit de authenticator-app, vóór `updateUser`.
+
 Spec voor [issue #15](https://github.com/BramLambertJansen/ABAS/issues/15).
 
 **Status: geaccordeerd door Bram (2026-09-25).** Introduceert een nieuwe
