@@ -1,0 +1,80 @@
+{
+  "repo": "BramLambertJansen/ABAS",
+  "epic": 121,
+  "tickets": {
+    "T03": {
+      "issue_number": 43,
+      "url": "https://github.com/BramLambertJansen/ABAS/issues/43",
+      "title": "[Frontend T03 · P1] Bewaar verkoopdraft binnen de open dienst",
+      "verified": true
+    },
+    "T01": {
+      "issue_number": 122,
+      "url": "https://github.com/BramLambertJansen/ABAS/issues/122",
+      "title": "[Frontend T01 · P1] Borg e-mailstart en sessiemodus bij dienst-per-sessie",
+      "verified": true
+    },
+    "T02": {
+      "issue_number": 123,
+      "url": "https://github.com/BramLambertJansen/ABAS/issues/123",
+      "title": "[Frontend T02 · P1] Scheid PIN-stafkeuze van bezettingsgeschiktheid",
+      "verified": true
+    },
+    "T04": {
+      "issue_number": 124,
+      "url": "https://github.com/BramLambertJansen/ABAS/issues/124",
+      "title": "[Frontend T04 · P1] Maak bar en beheer bruikbaar op ondersteunde tablets",
+      "verified": true
+    },
+    "T05": {
+      "issue_number": 125,
+      "url": "https://github.com/BramLambertJansen/ABAS/issues/125",
+      "title": "[Frontend T05 · P1] Herstel dialogen, tabs en landmarks",
+      "verified": true
+    },
+    "T06": {
+      "issue_number": 126,
+      "url": "https://github.com/BramLambertJansen/ABAS/issues/126",
+      "title": "[Frontend T06 · P2] Maak opslaan, sluiten en gelijktijdige acties voorspelbaar",
+      "verified": true
+    },
+    "T07": {
+      "issue_number": 127,
+      "url": "https://github.com/BramLambertJansen/ABAS/issues/127",
+      "title": "[Frontend T07 · P2] Verbeter invoerfeedback, ledenzoeker en productfilters",
+      "verified": true
+    },
+    "T08": {
+      "issue_number": 128,
+      "url": "https://github.com/BramLambertJansen/ABAS/issues/128",
+      "title": "[Frontend T08 · P2] Geef herstelbare leesfouten en actuele portaldata",
+      "verified": true
+    },
+    "T09": {
+      "issue_number": 129,
+      "url": "https://github.com/BramLambertJansen/ABAS/issues/129",
+      "title": "[Frontend T09 · P1/P2] Maak portaltransacties inhoudelijk consistent",
+      "verified": true
+    },
+    "T10": {
+      "issue_number": 130,
+      "url": "https://github.com/BramLambertJansen/ABAS/issues/130",
+      "title": "[Frontend T10 · P2] Maak logboek chronologisch en eerlijk over de reikwijdte",
+      "verified": true
+    },
+    "T11": {
+      "issue_number": 131,
+      "url": "https://github.com/BramLambertJansen/ABAS/issues/131",
+      "title": "[Frontend T11 · P2/P3] Maak beheerformulieren en catalogus duidelijker",
+      "verified": true
+    },
+    "T12": {
+      "issue_number": 132,
+      "url": "https://github.com/BramLambertJansen/ABAS/issues/132",
+      "title": "[Frontend T12 · P1/P3] Harmoniseer contrast, controls, taal en portalbreedte",
+      "verified": true
+    }
+  },
+  "native_subissues_verified": true,
+  "verified_at": "2026-10-01T11:16:34.522642+00:00"
+}
