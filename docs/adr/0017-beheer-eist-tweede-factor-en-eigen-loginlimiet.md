@@ -6,7 +6,8 @@ en [`docs/features/login-rate-limit.md`](../features/login-rate-limit.md).
 Gebouwd (2026-09-30, migraties `0034` en `0035`, nog niet gemerged).
 Aangevuld na de tweede review (Bram, 2026-10-01): restrisico K1 geaccepteerd,
 promotie naar beheerder beëindigt de bar-sessies, en de loginlimiet telt
-atomair. Die aanvullingen zijn nog niet gebouwd.
+atomair. Die aanvullingen zijn gebouwd 2026-10-01 (migraties `0036` en
+`0037`, nog niet gemerged).
 Aanleiding: de review van PR #120 (dienst per sessie, fase 1).
 
 **Amendeert:**
