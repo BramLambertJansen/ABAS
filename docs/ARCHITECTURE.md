@@ -827,9 +827,9 @@ zie `docs/features/activiteittypes.md`'s "(bouw)"-aantekeningen voor de
 volledige uitleg, inclusief een gecorrigeerde `search_path` (moest
 `extensions` bevatten voor `crypt()`, zelfde bugklasse als
 `0002_fix_start_shift_pgcrypto_search_path.sql`). Rapportage/filtering per
-activiteittype en elke koppeling met het toekomstige Logboek-scherm blijven
-losse, nog niet gespecificeerde tickets (#19) — dit ticket levert alleen de
-datalaag.
+activiteittype bleef een los, nog niet gespecificeerd ticket — dit ticket
+levert alleen de datalaag. (Het Logboek-scherm, #19, is inmiddels gebouwd
+zonder activiteittype-koppeling; zie "Wat het prototype deed…".)
 
 **Foutlogging (gebouwd en gemerged, #94, PR #98, 2026-09-28)**: ADR
 [0015](adr/0015-client-fouten-via-rpc-zonder-actor.md),
@@ -970,14 +970,25 @@ is niet gebouwd).
 
 ## Wat het prototype deed maar hier nog niet is besloten
 
-Listed for reference only — none of this is scoped in or out yet. Don't build
-any of it without a `docs/features/<naam>.md` spec:
+Alleen ter referentie — niets hiervan is in of uit scope besloten. Niet bouwen
+zonder een spec in `docs/features/<naam>.md`:
 
-- A dedicated audit-log screen (`Logboek`) — the ledger/transaction table
-  itself will exist regardless (it's the money trail), just not a filterable
-  UI for it yet.
-- Balance corrections and order-reversal flows.
-- A report builder / CSV-Excel-PDF export (`Rapportages`, `boekhouder` role).
+- **Saldocorrectie** — er is geen correctiepad in de app; een onterechte
+  opwaardering is alleen met directe databasetoegang terug te draaien (#13,
+  zie ook `bar-rpc-autorisatie.md` → Buiten scope).
+- **Een wijzigingslogboek voor assortiment, activiteittypes en leden** — een
+  audit-tabel plus schrijf-instrumentatie in de elf beheer-RPC's die vandaag
+  niets loggen. Eigen architectuurbeslissing (vermoedelijk een ADR); tot dan
+  tonen de Logboek-filters Assortiment en Leden een lege staat. Zie
+  `logboek.md` → Openstaande vragen (optie 2).
+- **Rapportages en export** (CSV/Excel/PDF, periodekeuze, rapportage per
+  activiteittype) en de bijbehorende `boekhouder`-/`barmanager`-rollen uit het
+  ontwerp. Er bestaan alleen de rollen `lid`, `bardienst` en `beheerder`.
+
+Inmiddels gebouwd en dus niet meer in deze lijst: het Logboek-scherm (#19,
+PR #85, `docs/features/logboek.md` — alleen beheerder, org-breed, geld en
+aandacht, maximaal 200 rijen) en bestelling terugdraaien (zie Money &
+attribution → Bestelling terugdraaien, `docs/features/bestelling-terugdraaien.md`).
 
 ## Design reference
 
