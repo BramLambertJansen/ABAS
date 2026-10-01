@@ -47,8 +47,43 @@ const TOAST_DURATION_MS = 4000;
  */
 export function BarSessieProvider({ children }: { children: ReactNode }) {
   const auth = useBarAuth();
+  // Een andere login krijgt een nieuwe schermboom, ook als beide accounts
+  // signed-in zijn. Mandje, modus-keuze, MFA-stap en lopende reads horen nooit
+  // bij de volgende gebruiker. De afsluitmelding blijft buiten deze grens:
+  // die moet juist na het lokaal uitloggen nog zichtbaar zijn.
+  const sleutel = auth.status === "signed-in" ? `${auth.userId}:${auth.sessionId}` : auth.status;
+  const [melding, setMelding] = useState<SessieMelding | null>(null);
+  const [, setLoginVersie] = useState(0);
+  const { refresh } = auth;
+  // Een namenlijstlogin verandert juist de identiteit en ontkoppelt de oude
+  // scope. Alleen deze expliciete login-bevestiging leeft buiten die scope.
+  const bevestigLogin = useCallback(async () => {
+    const id = await refresh();
+    if (id) confirmResume(browserCookies(), id);
+    setLoginVersie((v) => v + 1);
+  }, [refresh]);
+  return (
+    <BarSessieScope key={sleutel} auth={auth} melding={melding} setMelding={setMelding} bevestigLogin={bevestigLogin}>
+      {children}
+    </BarSessieScope>
+  );
+}
+
+function BarSessieScope({ children, auth, melding, setMelding, bevestigLogin }: {
+  children: ReactNode;
+  auth: ReturnType<typeof useBarAuth>;
+  melding: SessieMelding | null;
+  setMelding: (melding: SessieMelding | null) => void;
+  bevestigLogin: () => Promise<void>;
+}) {
   const dienst = useMijnDienst(auth.status === "signed-in");
   const eindeSessie = useEndBarSession();
+  const leeft = useRef(true);
+  useEffect(() => {
+    const scope = leeft;
+    scope.current = true;
+    return () => { scope.current = false; };
+  }, []);
 
   // Bevestigd: het hervat-cookie bestaat en hoort bij deze sessie. Elke render
   // leest het cookie opnieuw (goedkoop); `cookieVersie` dwingt een render af
@@ -58,12 +93,12 @@ export function BarSessieProvider({ children }: { children: ReactNode }) {
   const [, setCookieVersie] = useState(0);
   const bevestigd = isResumeConfirmed(browserCookies(), sessionId);
   const zetBevestigd = useCallback((id: string | null) => {
+    if (!leeft.current) return;
     if (id) confirmResume(browserCookies(), id);
     else clearResume(browserCookies());
     setCookieVersie((v) => v + 1);
   }, []);
 
-  const [melding, setMelding] = useState<SessieMelding | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   useEffect(() => {
     if (!toast) return;
@@ -82,7 +117,7 @@ export function BarSessieProvider({ children }: { children: ReactNode }) {
 
   const toonMelding = useCallback((reden: SessieMeldingReden) => {
     setMelding({ reden, mandjeVerloren: mandjeGevuld.current });
-  }, []);
+  }, [setMelding]);
 
   // ── Afgeleide toestand ─────────────────────────────────────────────────
 
@@ -243,10 +278,9 @@ export function BarSessieProvider({ children }: { children: ReactNode }) {
 
   const { refresh } = auth;
   const naLogin = useCallback(async () => {
-    const id = await refresh();
-    zetBevestigd(id);
-    refetch();
-  }, [refresh, refetch, zetBevestigd]);
+    await bevestigLogin();
+    if (leeft.current) refetch();
+  }, [bevestigLogin, refetch]);
 
   const naRegistratie = useCallback(() => {
     zetBevestigd(sessionId);
@@ -310,6 +344,7 @@ export function BarSessieProvider({ children }: { children: ReactNode }) {
       zetMandjeGevuld,
       toonToast,
       melding,
+      setMelding,
     ]
   );
 

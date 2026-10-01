@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { logLocalError } from "@/lib/clientErrors";
 import { sessionIdUitAccessToken } from "@/lib/apparaat";
@@ -41,26 +41,41 @@ export function useBarAuth(): BarAuthState & {
   signOutLocal: () => Promise<void>;
 } {
   const [state, setState] = useState<BarAuthState>({ status: "loading" });
+  const revision = useRef(0);
+  const nieuwste = useRef<BarAuthState>(state);
+  const wijzig = useCallback((volgende: BarAuthState) => {
+    nieuwste.current = volgende;
+    setState(volgende);
+  }, []);
 
   const refresh = useCallback(async () => {
+    const huidigeRevision = ++revision.current;
     try {
       const supabase = createClient();
       const {
         data: { session },
       } = await supabase.auth.getSession();
+      // Een auth-event (ook uit een ander tabblad) is nieuwer dan deze read.
+      if (huidigeRevision !== revision.current) {
+        const id = sessionIdUitAccessToken(session?.access_token);
+        return nieuwste.current.status === "signed-in" && nieuwste.current.userId === session?.user.id &&
+          nieuwste.current.sessionId === id ? id : null;
+      }
       const volgende = naarState(session);
-      setState(volgende);
+      wijzig(volgende);
       return volgende.status === "signed-in" ? volgende.sessionId : null;
     } catch (err) {
+      if (huidigeRevision !== revision.current) return null;
       // createClient() gooit als Supabase niet geconfigureerd is; zonder
       // client is er geen sessie om te tonen.
       logLocalError("useBarAuth", err);
-      setState({ status: "signed-out" });
+      wijzig({ status: "signed-out" });
       return null;
     }
-  }, []);
+  }, [wijzig]);
 
   useEffect(() => {
+    const revisions = revision;
     let cancelled = false;
     let unsubscribe: (() => void) | undefined;
     try {
@@ -69,21 +84,24 @@ export function useBarAuth(): BarAuthState & {
         data: { subscription },
       } = supabase.auth.onAuthStateChange((_event, session) => {
         if (cancelled) return;
-        setState(naarState(session));
+        revision.current++;
+        wijzig(naarState(session));
       });
       unsubscribe = () => subscription.unsubscribe();
     } catch (err) {
       logLocalError("useBarAuth", err);
-      setState({ status: "signed-out" });
+      wijzig({ status: "signed-out" });
     }
     refresh().catch(() => {});
     return () => {
       cancelled = true;
+      revisions.current++;
       unsubscribe?.();
     };
-  }, [refresh]);
+  }, [refresh, wijzig]);
 
   const signOutLocal = useCallback(async () => {
+    const huidigeRevision = ++revision.current;
     try {
       const supabase = createClient();
       const { error } = await supabase.auth.signOut({ scope: "local" });
@@ -91,8 +109,8 @@ export function useBarAuth(): BarAuthState & {
     } catch (err) {
       logLocalError("useBarAuth (signOut)", err);
     }
-    setState({ status: "signed-out" });
-  }, []);
+    if (huidigeRevision === revision.current) wijzig({ status: "signed-out" });
+  }, [wijzig]);
 
   return { ...state, refresh, signOutLocal };
 }
