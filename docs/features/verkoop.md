@@ -119,7 +119,7 @@ Een ontbrekend lid/product blokkeert afrekenen met uitleg; de draft blijft
 beschikbaar om te corrigeren. Een niet meer aanwezige uitvoerder kan niet
 bevestigen. De RPC blijft bedrag, beschikbaarheid, saldo en attributie controleren.
 Lidwissel behoudt de bestaande regel: hetzelfde lid bewaart het mandje, een
-ander lid wist de regels. Geen nieuwe geld- of databasecontracten.
+ander lid wist de regels (na aankondiging en inline bevestiging, T07). Geen nieuwe geld- of databasecontracten.
 
 ## Schermflow
 
@@ -132,9 +132,13 @@ ander lid wist de regels. Geen nieuwe geld- of databasecontracten.
   chip als standaard. Geen hardcoded categorielijst en geen "Favorieten"-
   chip — het ontwerp se `CATEGORIES`/`QUICK_IDS` (regel 1472, 1499) zijn
   prototype-only constanten zonder tegenhanger in ons schema (`category` is
-  vrije tekst per product, geen "favoriet"/"quick"-concept bestaat). Zolang
-  er een zoekopdracht actief is, overschrijft die de categoriefilter (zelfde
-  gedrag als het ontwerp); leeg zoekveld → categoriefilter geldt weer.
+  vrije tekst per product, geen "favoriet"/"quick"-concept bestaat). Een
+  klik op een categoriechip (ook "Alle") wist de zoekterm en toont die
+  categorie (besluit D3, `docs/features/invoerfeedback-zoeken-filters.md`).
+  Zolang er een zoekterm is, zoekt die in alle categorieën, staat geen chip
+  aan en toont een resultaatregel ("{n} producten voor "{term}" in alle
+  categorieën", of "Geen producten voor "{term}"") met een knop "Wis
+  zoekterm".
 - Elk product: naam, prijs, en een tik-doel dat de hoeveelheid in het mandje
   met 1 verhoogt (zelfde interactie als het ontwerp — `changeQty(id, +1)`
   op elke tik, geen apart "toevoegen"-scherm). Producten al in het mandje
@@ -153,11 +157,14 @@ ander lid wist de regels. Geen nieuwe geld- of databasecontracten.
   passieve kleurcode in de bestaande zoeker; een proactieve
   waarschuwingsflow/"aandacht"-lijst is #9, niet dit ticket.
 - Na kiezen: ledenkaart (naam, saldo) i.p.v. het zoekveld, met een
-  "wissel"-knop die teruggaat naar de zoeker (en het mandje leegt — zelfde
-  gedrag als het ontwerp se `clearMember`, om te voorkomen dat een mandje
-  per ongeluk op het verkeerde lid wordt afgerekend). Wisselen naar
-  **hetzelfde** lid opnieuw laat het mandje intact (zelfde `keep`-logica als
-  het ontwerp).
+  "wissel"-knop die teruggaat naar de zoeker. "Wissel" zelf leegt het mandje
+  niet: het mandje wordt pas geleegd bij het kiezen van een **ander** lid, om
+  te voorkomen dat een mandje per ongeluk op het verkeerde lid wordt
+  afgerekend. Bij een gevuld mandje kondigt het paneel dat na "wissel" aan, en
+  vraagt het bij het kiezen van een ander lid inline om bevestiging
+  ("Wissen en kiezen" / "Terug"; zie
+  `docs/features/invoerfeedback-zoeken-filters.md` §4). Opnieuw **hetzelfde**
+  lid kiezen laat het mandje intact (`keep`-logica als het ontwerp).
 - **Mandje**: regel per product (naam, stukprijs, +/− stepper, regeltotaal,
   verwijderen). Leeg mandje: neutrale lege staat, geen crash.
 - **Totaal**: server-onafhankelijk client-subtotaal (som van
