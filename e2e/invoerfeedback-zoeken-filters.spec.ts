@@ -617,3 +617,82 @@ test("Negatieve limiet: eigen bedrag toont ongeldig, teveel decimalen en negatie
   await veld.fill("0");
   await expect(page.locator("p.text-danger:not([role=alert])")).toHaveCount(0);
 });
+
+// ── Aanvullingen Tester (T07): gaten in de dekking ──────────────────────
+
+const focusOpBody = (page: Page) => page.evaluate(() => document.activeElement === document.body || document.activeElement === null);
+
+test("Opwaarderen: een tik met een te hoog bedrag boekt niet", async ({ page }) => {
+  const state = await verkoop(page);
+  const dialog = await openOpwaarderen(page);
+  await dialog.getByLabel("Ander bedrag").fill("600");
+  await dialog.getByRole("button", { name: "boeken", exact: true }).click();
+  expect(state.topUps).toBe(0);
+  await expect(dialog.getByRole("button", { name: /^ja, / })).toHaveCount(0);
+});
+
+test("Opwaarderen: nul, negatief en te veel decimalen boeken niet bij een tik", async ({ page }) => {
+  const state = await verkoop(page);
+  const dialog = await openOpwaarderen(page);
+  const veld = dialog.getByLabel("Ander bedrag");
+  for (const invoer of ["0", "-5", "1,234", "1.000,50"]) {
+    await veld.fill(invoer);
+    await dialog.getByRole("button", { name: "boeken", exact: true }).click();
+    await expect(veld).toBeFocused();
+  }
+  expect(state.topUps).toBe(0);
+});
+
+test("Zoeken en categorie: het zoekveld leegmaken met backspace zet de categorie terug op Alle", async ({ page }) => {
+  await verkoop(page);
+  await chip(page, "Fris").click();
+  await zoekProduct(page).fill("Pils");
+  await expect(kaarten(page)).toHaveCount(2);
+  await zoekProduct(page).press("Backspace");
+  await zoekProduct(page).press("Backspace");
+  await zoekProduct(page).press("Backspace");
+  await zoekProduct(page).press("Backspace");
+  await expect(zoekProduct(page)).toHaveValue("");
+  await expect(chip(page, "Alle")).toHaveAttribute("aria-pressed", "true");
+  await expect(chip(page, "Fris")).toHaveAttribute("aria-pressed", "false");
+  await expect(kaarten(page)).toHaveCount(4);
+});
+
+test("Zoeken en categorie: 'Wis zoekterm' laat de focus niet op body vallen", async ({ page }) => {
+  await verkoop(page);
+  await zoekProduct(page).fill("Pils");
+  await page.getByRole("button", { name: "Wis zoekterm" }).click();
+  await expect(page.getByRole("button", { name: "Wis zoekterm" })).toHaveCount(0);
+  expect(await focusOpBody(page), "focus viel op body na 'Wis zoekterm'").toBe(false);
+});
+
+test("Zoeken en categorie: 'Alle' klikken met zoekterm wist de term en zet Alle aan", async ({ page }) => {
+  await verkoop(page);
+  await zoekProduct(page).fill("Water");
+  await chip(page, "Alle").click();
+  await expect(zoekProduct(page)).toHaveValue("");
+  await expect(chip(page, "Alle")).toHaveAttribute("aria-pressed", "true");
+  await expect(kaarten(page)).toHaveCount(4);
+});
+
+test("Lidwissel: 'Wissen en kiezen' laat de focus niet op body vallen", async ({ page }) => {
+  await verkoop(page);
+  await kiesLid(page, "Betalend", /Betalend lid/);
+  await vulMandje(page);
+  await page.getByRole("button", { name: "wissel", exact: true }).click();
+  await kiesLid(page, "Ander", /Ander lid/);
+  await page.getByRole("button", { name: "Wissen en kiezen" }).click();
+  await expect(page.getByText("nog niets getikt", { exact: true })).toBeVisible();
+  expect(await focusOpBody(page), "focus viel op body na 'Wissen en kiezen'").toBe(false);
+});
+
+test("Lidwissel: geen aankondiging bij een leeg mandje of voordat er een lid was", async ({ page }) => {
+  await verkoop(page);
+  const aankondiging = page.getByRole("status").filter({ hasText: "staat nog klaar" });
+  await vulMandje(page);
+  await expect(aankondiging).toHaveCount(0); // nog nooit een lid gekozen
+  await kiesLid(page, "Betalend", /Betalend lid/);
+  await page.getByRole("button", { name: "Verwijder Pils uit het mandje" }).click();
+  await page.getByRole("button", { name: "wissel", exact: true }).click();
+  await expect(aankondiging).toHaveCount(0); // leeg mandje
+});
