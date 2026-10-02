@@ -294,3 +294,121 @@ test("verkoop: galerij en lijst met en zonder afbeelding, decoratief, a11y-scan"
   resultaat = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
   expect(resultaat.violations).toEqual([]);
 });
+
+// ── Negatieve aanvulling (Tester, PR #146) ───────────────────────────────
+// Een mislukte actie in Product beheren mag de afbeelding niet laten
+// verdwijnen: de overlay neemt na een fout niets over, en na succes alleen
+// wat die actie wijzigde.
+
+const OUD_SRC = /11111111-1111-4111-8111-111111111111\.webp$/;
+const NIEUW_SRC = /22222222-2222-4222-8222-222222222222\.webp$/;
+
+async function verwachtAfbeelding(dialog: ReturnType<Page["getByRole"]>, src: RegExp) {
+  const img = dialog.getByRole("img", { name: "Afbeelding van Pils" });
+  await expect(img).toBeVisible();
+  await expect(img).toHaveAttribute("src", src);
+  await expect(dialog.getByRole("button", { name: "Vervangen" })).toBeEnabled();
+  await expect(dialog.getByRole("button", { name: "Verwijderen" })).toBeEnabled();
+}
+
+test("een mislukte prijswijziging (fout van de RPC) laat de afbeelding staan", async ({ page }) => {
+  await mockBeheerder(page, { ...PRODUCT, image_path: PAD });
+  await page.route(/\/rest\/v1\/rpc\/update_product_price(\?|$)/, (route) =>
+    json(route, 400, { message: "invalid_price" })
+  );
+  const dialog = await openProduct(page);
+  await verwachtAfbeelding(dialog, OUD_SRC);
+
+  await dialog.getByLabel("Nieuwe prijs").fill("2,75");
+  await dialog.getByRole("button", { name: "Opslaan", exact: true }).click();
+  await expect(dialog.getByRole("alert").filter({ hasText: "vul een geldige prijs in" })).toBeVisible();
+
+  await verwachtAfbeelding(dialog, OUD_SRC);
+  // De huidige prijs is ook niet veranderd.
+  await expect(dialog.getByText(/^€\s2,50$/)).toBeVisible();
+});
+
+test("een mislukte prijswijziging (netwerkfout) laat de afbeelding staan", async ({ page }) => {
+  await mockBeheerder(page, { ...PRODUCT, image_path: PAD });
+  await page.route(/\/rest\/v1\/rpc\/update_product_price(\?|$)/, (route) => route.abort("failed"));
+  const dialog = await openProduct(page);
+
+  await dialog.getByLabel("Nieuwe prijs").fill("2,75");
+  await dialog.getByRole("button", { name: "Opslaan", exact: true }).click();
+  await expect(dialog.getByRole("alert").filter({ hasText: "er ging iets mis" })).toBeVisible();
+
+  await verwachtAfbeelding(dialog, OUD_SRC);
+});
+
+test("een mislukt archiveren laat de afbeelding staan", async ({ page }) => {
+  await mockBeheerder(page, { ...PRODUCT, image_path: PAD });
+  await page.route(/\/rest\/v1\/rpc\/set_product_archived(\?|$)/, (route) =>
+    json(route, 400, { message: "product_not_found" })
+  );
+  const dialog = await openProduct(page);
+
+  await dialog.getByRole("button", { name: /Uit assortiment halen/ }).click();
+  await expect(dialog.getByRole("alert").filter({ hasText: "dit product bestaat niet meer" })).toBeVisible();
+
+  await verwachtAfbeelding(dialog, OUD_SRC);
+});
+
+test("een mislukte vervanging laat de oude afbeelding staan", async ({ page }) => {
+  await mockBeheerder(page, { ...PRODUCT, image_path: PAD });
+  await page.route(ROUTE, (route) => antwoord(route, { ok: false, errorCode: "upload_failed" }));
+  const dialog = await openProduct(page);
+
+  await kiesBestand(dialog);
+  await expect(dialog.getByRole("alert").filter({ hasText: "kon niet worden opgeslagen" })).toBeVisible();
+
+  await verwachtAfbeelding(dialog, OUD_SRC);
+  await focusNietOpBody(page);
+});
+
+test("een mislukte vervanging zonder JSON (500 van het platform) laat de oude afbeelding staan", async ({ page }) => {
+  await mockBeheerder(page, { ...PRODUCT, image_path: PAD });
+  await page.route(ROUTE, (route) =>
+    route.fulfill({ status: 500, contentType: "text/html", body: "<h1>Internal Server Error</h1>" })
+  );
+  const dialog = await openProduct(page);
+
+  await kiesBestand(dialog);
+  await expect(dialog.getByRole("alert").filter({ hasText: "er ging iets mis" })).toBeVisible();
+
+  await verwachtAfbeelding(dialog, OUD_SRC);
+});
+
+test("een mislukt weghalen laat de afbeelding staan", async ({ page }) => {
+  await mockBeheerder(page, { ...PRODUCT, image_path: PAD });
+  await page.route(ROUTE, (route) => {
+    expect(route.request().method()).toBe("DELETE");
+    return antwoord(route, { ok: false, errorCode: "product_not_found" });
+  });
+  const dialog = await openProduct(page);
+
+  await dialog.getByRole("button", { name: "Verwijderen" }).click();
+  await expect(dialog.getByRole("alert").filter({ hasText: "dit product bestaat niet meer" })).toBeVisible();
+
+  await verwachtAfbeelding(dialog, OUD_SRC);
+  await focusNietOpBody(page);
+});
+
+test("een geslaagde prijswijziging na een upload houdt de nieuwe afbeelding", async ({ page }) => {
+  await mockBeheerder(page, { ...PRODUCT, image_path: PAD });
+  await page.route(ROUTE, (route) => antwoord(route, { ok: true, imagePath: NIEUW_PAD }));
+  // De RPC geeft (hier bewust) nog het oude pad terug: de overlay neemt van
+  // een prijswijziging alleen de prijs over.
+  await page.route(/\/rest\/v1\/rpc\/update_product_price(\?|$)/, (route) =>
+    json(route, 200, { ...PRODUCT, image_path: PAD, price_cents: 275 })
+  );
+  const dialog = await openProduct(page);
+
+  await kiesBestand(dialog);
+  await verwachtAfbeelding(dialog, NIEUW_SRC);
+
+  await dialog.getByLabel("Nieuwe prijs").fill("2,75");
+  await dialog.getByRole("button", { name: "Opslaan", exact: true }).click();
+  await expect(dialog.getByLabel("Nieuwe prijs")).toHaveValue("");
+
+  await verwachtAfbeelding(dialog, NIEUW_SRC);
+});
