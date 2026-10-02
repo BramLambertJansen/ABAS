@@ -3,13 +3,17 @@
 Featureverzoek van Bram (2026-10-02): *"maak het mogelijk om afbeeldingen toe
 te voegen aan producten"*. Nog geen issuenummer.
 
-**Status: goedgekeurd door Bram (2026-10-02), nog niet gebouwd.** Het
-akkoord is via de coördinator doorgegeven. Bram volgde bij alle dertien
-vragen de aanbeveling van de Architect en koos nergens het alternatief. De
-vragen en antwoorden staan onder "Besluiten van Bram". Verwijzingen als
-"(Besluit 4)" in de tekst wijzen daarnaar. De Developer kan beginnen. Wijkt
-de bouw af van een besluit, dan gaat dat terug naar de Architect en wordt
-het niet zelf ingevuld.
+**Status: gebouwd en gemerged** (PR
+[#146](https://github.com/BramLambertJansen/ABAS/pull/146), 2026-10-02,
+merge-commit `7efc6ad`). Twee punten staan nog open, zie "Zoals gebouwd" →
+Open. Goedgekeurd door Bram (2026-10-02). Het akkoord is via de coördinator
+doorgegeven. Bram volgde bij alle dertien vragen de aanbeveling van de
+Architect en koos nergens het alternatief. De vragen en antwoorden staan
+onder "Besluiten van Bram". Verwijzingen als "(Besluit 4)" in de tekst
+wijzen daarnaar. "Zoals gebouwd" hieronder beschrijft wat er staat en waar
+de bouw invulde wat de spec openliet. Het deel daarna is de goedgekeurde
+spec en blijft als besluithistorie staan. Bij tegenspraak geldt "Zoals
+gebouwd".
 
 **Changelog.** 2026-10-02, bijgewerkt na rebase op `origin/main` `6816dbc`
 (was geschreven tegen `faa32bd`). Alleen mechanische updates, geen besluit
@@ -40,6 +44,134 @@ Er komt een nieuwe architectuurbeslissing bij, de eerste bestandsopslag in
 het project. Die staat in
 [ADR 0018](../adr/0018-bestandsopslag-alleen-server-side-schrijven.md)
 (zie Besluit 10).
+
+## Zoals gebouwd (PR #146, 2026-10-02)
+
+Gebouwd zoals gespecificeerd, inclusief de gate-uitbreiding (Besluit 12) en
+de lijst "Nog te doen bij de bouw". Geen besluit is gewijzigd. Hieronder
+staan de bestanden en de punten waar de bouw invulde wat de spec aan de
+Developer liet.
+
+**Bestanden.**
+- `supabase/migrations/0038_productafbeeldingen.sql`:
+  - de kolom `products.image_path` met de check-constraint
+    `products_image_path_check` (`^products/<eigen id>/<uuid>\.webp$`, kleine
+    letters);
+  - de bucket `product-images` (`public`, 1 MB, `{image/webp}`);
+  - `set_product_image(uuid, text) returns text`, met grants zoals `0018`.
+
+  Geen enkele policy op `storage.objects`.
+- `src/app/(bar)/beheer/productafbeelding/route.ts`: `POST` (multipart) en
+  `DELETE` (JSON), `runtime = "nodejs"`. De route leest alleen de request en
+  geeft het antwoord terug. Een onverwachte fout wordt een 500 met
+  `unknown`, een DELETE-body die geen JSON is een 400 met `unknown`.
+- `src/lib/productImage.ts`: de server-actie, stap 1 t/m 6 uit
+  "Server-actie". Dit is het enige bestand van deze feature dat
+  `src/lib/supabase/admin.ts` importeert.
+- `src/lib/productImageProcessing.ts`: de beeldverwerking met `sharp`
+  (stap 3), los te testen op echte bytes.
+- `src/lib/productImageRules.ts`: pure regels die client en server delen:
+  - de bucketnaam;
+  - de uploadgrens van 4 MB;
+  - 512px;
+  - de toegestane types en de `accept`-string;
+  - de voorcontrole in de browser.
+- `src/hooks/queries/productRows.ts`: `productImageUrl()` (pad → publieke
+  URL) en `toAssortimentProduct()`, de gedeelde mapper van een
+  `products`-rij. Dit is de enige plek die de URL bouwt. `useProducts`,
+  `useAlleProducten`, de drie product-RPC-hooks en `useProductAfbeelding`
+  gebruiken hem.
+- `src/hooks/queries/useProductAfbeelding.ts`: `upload` en `remove` via
+  `fetch`. Een 413 wordt `file_too_large` vóór `response.json()`.
+- `src/components/ProductAfbeelding.tsx`: het gedeelde beeldvlak (`tile`,
+  `row`, `beheerRow` of `detail`).
+
+**Ingevuld bij de bouw.** De spec liet deze punten open, of de bouw vulde ze
+anders in dan de tekst eronder:
+- **Een `productId` dat geen uuid is, geeft `product_not_found`**, bij
+  `POST` en bij `DELETE`. Dat gebeurt in `productImage.ts`, vóór de RPC. De
+  lijst met foutcodes heeft geen eigen code daarvoor, en zo'n id bestaat
+  niet als product. Een uuid in hoofdletters wordt geaccepteerd en naar
+  kleine letters omgezet, zowel voor het pad als voor het RPC-argument. De
+  check-constraint eist kleine letters.
+- **De controle op `Content-Length` laat 16 KiB marge**
+  (`MULTIPART_OVERHEAD_BYTES`) boven de 4 MB, voor de multipart-omhulling
+  (boundary, kopregels, `productId`). Ze weigert alleen wat zeker te groot
+  is, zonder de body te lezen. De echte grens is `File.size` (precies 4 MB
+  mag). Een request zonder of met een onleesbare `Content-Length` gaat door
+  naar de controle op `File.size`.
+- **`remotePatterns` is niet nodig en niet toegevoegd.** `next.config.mjs`
+  is ongewijzigd. Met `unoptimized` roept `next/image` geen loader aan en
+  geeft het `src` ongewijzigd door, dus er is geen hostcontrole. `next
+  build` slaagt, en e2e laadt een afbeelding van de Supabase-host.
+- **De knoppen staan in een groep "Afbeelding".** De rij met "Afbeelding
+  kiezen"/"Vervangen" en "Verwijderen" heeft `role="group"`, met
+  `aria-labelledby` naar de titel "Afbeelding" en `aria-describedby` naar de
+  toelichting "JPG, PNG of WebP, maximaal 4 MB". Zonder die groep hoorde een
+  schermlezer alleen "Vervangen" en "Verwijderen". Het bestandsinput is
+  verborgen (`hidden`, `tabIndex={-1}`) en draagt geen aria-attributen,
+  omdat het niet in de toegankelijkheidsboom zit. De knop stuurt het input
+  aan. e2e toetst de groep en haar knoppen.
+- **"Afbeelding kiezen" en "Vervangen" zijn dezelfde knop** met een ander
+  label. Na een upload of een verwijdering gaat de focus
+  (`useHerstelFocus`) naar die knop, die in beide staten bestaat.
+- **`ProductAfbeelding` heeft een extra prop `dimmed`.** Daarmee is een
+  gearchiveerd product in de beheerlijst gedempt, zoals de rest van de rij.
+  De spec noemde dat gedrag wel, maar niet de prop.
+- **`sharp` staat vast op `0.34.5`**, een exacte versie in `package.json`.
+  Dat is de versie die `next` al meebrengt, dus er komt geen tweede kopie.
+  De spec zei "0.34.x".
+- **De bestaanscheck in `set_product_image` (RPC stap 4) zit erin.**
+  Lokaal is de functie-eigenaar `postgres`, met `SELECT` op
+  `storage.objects` en `rolbypassrls`. Op het gehoste project is dat nog
+  niet gecontroleerd, zie Open.
+- **Een bestaande e2e is aangepast.** De uitleg "wacht tot de lopende
+  wijziging klaar is" staat tijdens een prijswijziging nu in twee secties
+  (archief en afbeelding). Daarom gebruikt `e2e/opslaan-sluiten-pending.spec.ts`
+  daar `.first()`, zoals al elders in dat bestand.
+- **Waar de axe-scans staan.** De scans van Product beheren (met en zonder
+  afbeelding, en in pending) en van de verkoop-galerij en -lijst staan in
+  `e2e/productafbeeldingen.spec.ts` en draaien mee in `check:a11y`.
+  `e2e/a11y.spec.ts` is niet gewijzigd.
+
+**Tests.**
+- pgTAP:
+  - `supabase/tests/productafbeeldingen.test.sql` (Developer, 31 tests);
+  - `productafbeeldingen_negatief.test.sql` (Tester, 40 tests). Die test
+    onder meer dat er ook geen policy op `storage.buckets` bestaat, dat geen
+    functie in `public` naar Storage schrijft, en dat de delete-weigering
+    ook zonder de trigger `storage.protect_delete` standhoudt;
+  - `set_product_image` staat ook in `beheer_rpcs_modus.test.sql` en in de
+    catalogus van `rpc_catalogus.test.sql`.
+- `test`:
+  - `test/productImage.test.ts`: de volgorde van de server-actie;
+  - `test/productImageProcessing.test.ts`: `sharp` op echte bytes;
+  - `test/productImageRoute.test.ts` (Tester): de Route Handler zelf,
+    inclusief multipart en `Content-Length`, met de echte server-actie en
+    beeldverwerking erachter. Alleen de Supabase-clients zijn nep. Daarmee
+    is het punt "Handmatig of e2e: de Route Handler zelf" uit Tests
+    hieronder grotendeels geautomatiseerd. De echte Storage-API en de 413
+    van Vercel zijn het niet.
+- e2e: `e2e/productafbeeldingen.spec.ts`, met gemockte routes.
+
+**Open.** Deze punten zijn nog niet opgelost, en staan hier zodat ze niet
+vergeten worden:
+1. **Leesrecht van de functie-eigenaar op het gehoste project.** Vóór
+   `supabase db push` op het gehoste project moet worden gecontroleerd dat
+   de eigenaar van `set_product_image` `storage.objects` mag lezen. Daar
+   hangt de bestaanscheck van af. Dat kan bijvoorbeeld met `select
+   rolbypassrls from pg_roles where rolname = 'postgres'` en `select
+   has_table_privilege('postgres', 'storage.objects', 'SELECT')`. Lokaal is
+   dit geverifieerd, gehost niet. Faalt de check daar, dan geeft elke upload
+   `unknown` (een gelogde `image_not_found`). Dan gaat het volgens RPC stap
+   4 terug naar de Architect.
+2. **Handmatig testen op een preview**, met een beheersessie op `aal2`:
+   - de upload tegen de echte Storage-API (de bucketlimieten en
+     `storage.remove` bij vervangen en verwijderen);
+   - de 413 van Vercel boven 4,5 MB;
+   - HEIC vanaf een iPad: zet iOS Safari het om naar JPEG?
+
+   Of dit gedaan is, staat niet in de repo.
 
 ## Onderzocht
 
@@ -257,7 +389,8 @@ text`.** `security definer`, `set search_path = public`. De volgorde volgt
    product of naar niets zetten. **Te verifiëren door de Developer:** dat de
    functie-eigenaar op het gehoste project `storage.objects` mag lezen.
    Lukt dat niet, dan vervalt de bestaanscheck (de padcheck blijft) en meldt
-   de Developer dat in de PR. Dat is geen stille aanpassing.
+   de Developer dat in de PR. Dat is geen stille aanpassing. *(Lokaal
+   geverifieerd, gehost nog open: zie Zoals gebouwd → Open, punt 1.)*
 5. `update products set image_path = p_image_path`. De functie geeft de
    **vorige** `image_path` terug (`null` als er geen was). Dezelfde waarde
    opnieuw zetten is een no-op en geeft die waarde terug. De aanroeper
@@ -700,7 +833,7 @@ Overig:
   "Bestandsopslag (Storage)". ADR 0006 → "Reikwijdte" verwijst naar ADR
   0018.
 
-Nog te doen bij de bouw, door de Developer:
+Nog te doen bij de bouw, door de Developer (alle vijf gedaan in PR #146):
 - Het commentaar in `Assortiment.tsx` ("Geen productfoto's …") vervalt.
 - Het kopcommentaar van `src/lib/supabase/admin.ts` (nu: alleen
   `auth.admin.*`) krijgt Storage-schrijfacties erbij, met een verwijzing

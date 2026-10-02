@@ -1,7 +1,9 @@
 # 0018 — Bestandsopslag: schrijven alleen server-side na sessieverificatie, geen schrijfpolicies op `storage.objects`
 
-Status: **geaccordeerd (2026-10-02), nog niet geïmplementeerd.** Bram gaf
-akkoord samen met de spec
+Status: **geaccordeerd (2026-10-02), geïmplementeerd (2026-10-02, PR
+[#146](https://github.com/BramLambertJansen/ABAS/pull/146), merge-commit
+`7efc6ad`).** Zie "Implementatie" onderaan. Bram gaf akkoord samen met de
+spec
 [`docs/features/productafbeeldingen.md`](../features/productafbeeldingen.md)
 (spec → Besluit 10; het akkoord is via de coördinator doorgegeven). Breidt
 de reikwijdte van
@@ -134,3 +136,38 @@ tegenspreken").
   kan. Een feature die grotere bestanden nodig heeft, moet dit ADR
   heroverwegen (zie signed upload URL's hierboven) en mag er niet omheen
   werken.
+
+## Implementatie (PR #146, 2026-10-02)
+
+Gebouwd zoals besloten. De eerste toepassing is
+[`docs/features/productafbeeldingen.md`](../features/productafbeeldingen.md)
+→ "Zoals gebouwd". Per punt:
+
+1. Er is geen policy op `storage.objects`. Schrijven gebeurt alleen via
+   `src/app/(bar)/beheer/productafbeelding/route.ts` →
+   `src/lib/productImage.ts`, met de service-role-client en pas na
+   `getUser`, de actorcheck en `check_beheer_session` met de
+   sessie-gebonden client.
+2. De verwijzing `products.image_path` wordt gezet via `set_product_image`
+   (migratie `0038`). Die RPC doet de sessiecheck, de actorcheck, de padcheck
+   en de bestaanscheck. In `rpc_catalogus` staat hij als client-functie met
+   guard.
+3. De bucket `product-images` wordt aangemaakt in `0038`, met
+   `file_size_limit` (1 MB) en `allowed_mime_types` (`{image/webp}`). De
+   server codeert elke upload opnieuw met `sharp`
+   (`src/lib/productImageProcessing.ts`).
+4. De bucket is publiek. Hij bevat alleen productfoto's.
+5. Elk pad is nieuw (`products/<id>/<uuid>.webp`, `upsert: false`). Bij
+   vervangen wordt het oude object na de RPC opgeruimd.
+6. De gates bestaan:
+   - `check:rls` controleert de bucketlimieten, of de bucket in de tests
+     voorkomt, en of storage-policies op naam in de tests staan;
+   - `check:policy` verbiedt `.storage.from(` buiten de datalaag;
+   - de pgTAP-invariant "geen schrijfpolicy op `storage.objects`" staat in
+     `supabase/tests/productafbeeldingen.test.sql`.
+
+Wat volgens "Gevolgen" niet automatisch te toetsen is, blijft handmatig: de
+echte Storage-API en de bodylimiet van Vercel. Dat staat met de stand van
+zaken in de spec → Zoals gebouwd → Open. Op het gehoste project is ook nog
+niet gecontroleerd dat de functie-eigenaar `storage.objects` mag lezen, wat
+de bestaanscheck van punt 2 nodig heeft. Dat moet vóór `supabase db push`.
