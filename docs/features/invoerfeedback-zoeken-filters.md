@@ -1,10 +1,7 @@
 # Invoerfeedback, ledenzoeker en productfilters
 
-**Status: goedgekeurd door Bram op 2026-10-02**, met twee kleine open
-punten (vraag 9 en 10 onderaan) die alleen de details van D3 en de
-ledenzoeker na een tabwissel raken. De Developer kan beginnen; de onderdelen
-waar die twee vragen over gaan wacht op Bram. Besluiten staan onder "Besluiten
-Bram".
+**Status: goedgekeurd door Bram op 2026-10-02**, inclusief vraag 9 en 10
+(zie "Besluiten Bram"). De Developer kan alles bouwen.
 
 Spec voor [issue #127](https://github.com/BramLambertJansen/ABAS/issues/127)
 (frontend T07 · P2, epic #121, findings F12, F15, F16; besluit D3). Bouwt voort
@@ -153,10 +150,9 @@ Besluit Bram (2026-10-02): een categorieklik wist de zoekterm. Uitwerking:
   (die blijft alleen voor een categorie zonder producten). Zo komen de
   zichtbare filters overeen met de werkelijke resultaten.
 - Typen in het zoekveld laat `category` ongemoeid maar de zoekterm
-  overschrijft hem. Wat "Wis zoekterm" met `category` doet (terug naar de
-  eerder gekozen categorie of naar "Alle") is **nog niet besloten**: zie
-  vraag 9. Tot dat besluit bouwt de Developer geen van beide; de
-  resultaatregel en de knop zelf zijn wel goedgekeurd.
+  overschrijft hem. "Wis zoekterm" (en het wissen met Escape of het kruisje
+  van `type="search"`) zet `category` terug op "Alle" (besluit vraag 9), zodat
+  wat je ziet nooit een verborgen eerdere keuze is.
 - De filterlogica verhuist naar een pure functie
   `filterProducten(producten, zoekterm, categorie)` (nieuw, naast
   `src/features/verkoop/cart.ts`; dat bestand bevat nu alleen `applyDelta` en
@@ -212,7 +208,8 @@ bij duplicatie). Gedrag:
   dat de lijst niet wordt afgekapt door het scrollende paneel; zo wel, dan is
   dat een layoutfix binnen deze taak, geen nieuwe beslissing.
 - Na een tabwissel blijft `memberQuery` bewaard (draft), maar open/dicht en
-  actieve optie zijn lokaal en verdwijnen bij unmount: zie vraag 10.
+  actieve optie zijn lokaal en verdwijnen bij unmount. Na terugkeer staat de
+  lijst dus gesloten tot de eerste toets of ArrowDown (besluit vraag 10).
 - Gedeeld met bestaande zoekvelden (`LedenLijst`, `LogboekLijst`) is
   **niet** nodig: dat zijn filters op een lijst, geen kies-een-lid-patronen.
 
@@ -306,8 +303,8 @@ Voor Bram ter kennis; geen eigen besluit nodig behalve waar een vraag staat.
    T07-PR gecorrigeerd. Het lidwisselbesluit staat onder "Besluiten Bram".
 2. Eerdere tekst in deze spec verwees voor "terug naar Alle" naar "vraag 2", wat
    de lidwissel was. Het besluit over wat "Wis zoekterm" met de categorie doet,
-   ontbreekt daardoor: vraag 9.
-3. `memberQuery` zit in de draft, maar open/dicht van de lijst niet: vraag 10.
+   ontbreekt daardoor: besloten in vraag 9.
+3. `memberQuery` zit in de draft, maar open/dicht van de lijst niet: besloten in vraag 10.
 
 ## Raakt dit de kernbeslissingen uit CLAUDE.md?
 
@@ -446,6 +443,10 @@ Genomen op 2026-10-02 (aanbevelingen goedgekeurd):
 7. **Volgorde met T03:** vervallen; PR #137 is gemerged.
 8. **PIN-mismatch:** ongewijzigd (`PincodeSheet` toont al "Codes komen niet
    overeen").
+9. **"Wis zoekterm":** zet `category` terug op "Alle" (optie B), niet op de
+   eerder gekozen categorie.
+10. **Ledenlijst na tabwissel:** blijft gesloten tot de eerste toets of
+    ArrowDown (optie B), ook als `memberQuery` nog tekst bevat.
 
 Goedgekeurde teksten (Nederlands, in de stijl van `messages.ts`):
 
@@ -466,22 +467,5 @@ Goedgekeurde teksten (Nederlands, in de stijl van `messages.ts`):
 
 ## Open vragen voor Bram
 
-Gevonden bij de validatie op `c1dd5bb`; geen aanbeveling geldt als besluit.
-
-### Vraag 9: wat doet "Wis zoekterm" met de categorie?
-
-Na het wissen van een zoekterm staat `category` nog op de waarde van vóór het
-zoeken (de draft bewaart hem). Optie A (aanbeveling, geen besluit): terug naar
-de eerder gekozen categorie. Optie B: terug naar "Alle", zodat wat je ziet nooit
-een verborgen eerdere keuze is. De eerdere versie van deze spec noemde beide
-tegelijk. Raakt alleen het gedrag van de knop "Wis zoekterm" (en het wissen van
-het zoekveld met Escape of het kruisje van `type="search"`); de categorieklik zelf
-is besloten.
-
-### Vraag 10: ledenlijst na een tabwissel met tekst in `memberQuery`
-
-`memberQuery` blijft na Verkoop, Dienst, Verkoop in het veld staan (draft), maar
-de open/dicht-state van de lijst is lokaal. Op main toont de lijst bij terugkeer
-meteen de resultaten voor die tekst. Optie A (aanbeveling, geen besluit): bij
-terugkeer met tekst opent de lijst direct, zoals nu. Optie B: gesloten tot de
-eerste toets of ArrowDown, zodat de lijst het mandje niet bedekt.
+Geen. Vraag 9 en 10 zijn op 2026-10-02 beantwoord (zie "Besluiten Bram", punt 9
+en 10).
