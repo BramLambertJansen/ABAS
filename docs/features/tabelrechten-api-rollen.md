@@ -1,8 +1,9 @@
 # Tabelrechten van API-rollen: geen rechten die RLS omzeilen
 
-**Status: goedgekeurd door Bram (2026-10-02), nog niet gebouwd.** Het
-akkoord is via de coördinator doorgegeven. Bram volgde bij alle vijf vragen
-de aanbeveling van de Architect en koos nergens het alternatief. De vragen
+**Status: goedgekeurd door Bram (2026-10-02), gebouwd in PR #150, nog niet
+gemerged.** Het akkoord is via de coördinator doorgegeven. Bram volgde bij
+alle zes vragen de aanbeveling van de Architect en koos nergens het
+alternatief. De vragen
 en antwoorden staan onder "Besluiten van Bram". Verwijzingen als
 "(Besluit 2)" in de tekst wijzen daarnaar. De Developer kan beginnen. Eén
 voorwaarde ligt bij Bram zelf: de controle op het gehoste project vóór
@@ -16,6 +17,17 @@ Gevonden bij de review van PR #146 (productafbeeldingen, gemerged als
 Er komt een nieuwe architectuurbeslissing bij:
 [ADR 0019](../adr/0019-api-rollen-geen-rls-omzeilende-tabelrechten.md)
 (Besluit 5).
+
+**Changelog.** 2026-10-02, na de bouw (PR #150) en een interpretatievraag
+van de Developer:
+- Besluit 6 toegevoegd: het tussengeval van query 4 (gedeeltelijke guard).
+- De guardlijst wordt bij het draaien van `0039` uit de catalogus bepaald,
+  niet bij het bouwen (Migratie `0039` → punt 4). Dat was de bedoeling van
+  "uit de catalogus", maar het stond er dubbelzinnig.
+- Query 4 toegevoegd aan de voorwaarde vóór `supabase db push`.
+- Twee kanttekeningen (later bijkomende storage-tabellen, een fout
+  halverwege de push) en drie opmerkingen van de Tester opgenomen onder
+  Randgevallen en Expliciet buiten scope.
 
 ## Aanleiding (lokaal geverifieerd)
 
@@ -229,12 +241,18 @@ die niets doet en toch "revoke" heet, is erger dan geen regel.
 - Een `BEFORE TRUNCATE ... FOR EACH STATEMENT`-trigger met die functie op
   elke tabel in `storage` waar `anon` of `authenticated` TRUNCATE heeft.
   Lokaal zijn dat `storage.objects`, `storage.buckets` en
-  `storage.buckets_analytics`. De Developer bepaalt de lijst uit de
-  catalogus van de database waartegen hij bouwt, niet uit deze spec.
+  `storage.buckets_analytics`.
+- **De guardlijst wordt bij het draaien bepaald, niet bij het bouwen.** De
+  migratie leest de lijst uit de catalogus van de database waartegen ze
+  draait, met een `do`-lus zoals in `0018`. Er staan geen vaste
+  tabelnamen in. Reden: de storage-versie verschilt per omgeving (lokaal CLI
+  2.109, CI 2.118, gehost onbekend). Heeft `postgres` op een tabel uit die
+  lijst geen TRIGGER, dan faalt de migratie en wordt de tabel niet stil
+  overgeslagen. Wat er dan gebeurt, is Besluit 6.
 
 **Voorwaarde vóór `supabase db push`: de controle op het gehoste project.**
 Wij (Architect, Developer, Reviewer, Tester) hebben geen toegang tot het
-gehoste project. **Bram draait de drie queries hieronder zelf**, read-only,
+gehoste project. **Bram draait de vier queries hieronder zelf**, read-only,
 in de SQL-editor van het dashboard (die draait als `postgres`). De Developer
 bouwt en test de guard lokaal en in CI zoals beschreven. Maar migratie
 `0039` gaat pas naar productie nadat Bram het resultaat heeft bekeken.
@@ -249,11 +267,36 @@ select pg_get_userbyid(defaclrole), defaclacl from pg_default_acl
  where defaclnamespace = 'public'::regnamespace and defaclobjtype = 'r';
 ```
 
+Query 4 gebruikt dezelfde selectie als de `do`-lus in `0039`. Het
+resultaat is dus precies de lijst die de guard krijgt, met per tabel of dat
+gaat lukken. Query 2 toetst alleen `storage.objects`; query 4 toetst ze
+allemaal.
+
+```sql
+select c.relname,
+       has_table_privilege('anon', c.oid, 'TRUNCATE')          as anon_truncate,
+       has_table_privilege('authenticated', c.oid, 'TRUNCATE') as authenticated_truncate,
+       has_table_privilege('postgres', c.oid, 'TRIGGER')       as postgres_trigger
+  from pg_class c
+ where c.relnamespace = 'storage'::regnamespace
+   and c.relkind in ('r', 'p')
+   and (has_table_privilege('anon', c.oid, 'TRUNCATE')
+        or has_table_privilege('authenticated', c.oid, 'TRUNCATE'))
+ order by c.relname;
+```
+
 Verwacht:
 1. dezelfde ACL's als lokaal: `supabase_storage_admin` als grantor, en
    `postgres=a*r*w*d*D*x*t*` (met grant option);
 2. `true`;
-3. een regel voor `postgres` met `arwdDxt` voor `anon` en `authenticated`.
+3. een regel voor `postgres` met `arwdDxt` voor `anon` en `authenticated`;
+4. in **elke** rij `postgres_trigger = t`. Lokaal (CLI 2.109, vóór `0039`)
+   geeft dit drie rijen, `buckets`, `buckets_analytics` en `objects`, alle
+   drie `t | t | t`. Op het gehoste project mogen er meer of andere rijen
+   staan (een andere storage-versie); dat is geen afwijking, zolang
+   `postgres_trigger` overal `t` is. Geen enkele rij betekent dat de
+   API-rollen daar al geen TRUNCATE hebben; de lus doet dan niets. Dat is
+   geen fout, maar Bram meldt het wel, want het wijkt af van lokaal.
 
 **Wijkt query 1 of 2 af, dan valt de guard terug op optie B** (Besluit 1:
 besloten restrisico, geen guard; de invariant legt de uitzondering vast, zie
@@ -262,7 +305,15 @@ terug naar de Architect, die de spec en ADR 0019 bijwerkt. De Developer
 vult dat niet zelf in. Wijkt alleen query 3 af, dan blijft de guard staan,
 maar gaat de migratie evenmin naar productie: de `alter default
 privileges`-regels gaan uit van die standaardrechten, en ook dat gaat terug
-naar de Architect.
+naar de Architect. Dat query 3 nodig is, bevestigt de Tester: een verse
+`supabase db start` met CLI 2.109 geeft andere standaardrechten dan de
+gedeelde database en CI (zie Randgevallen).
+
+**Toont query 4 een rij met `postgres_trigger = f`**, dan faalt `0039` bij
+de push. Niet pushen. Dan geldt Besluit 6, de gedeeltelijke guard: de
+Architect zet de tabellen waarop het niet kan met naam in de spec en in ADR
+0019, en de migratie en de invariant noemen ze als expliciete uitzondering.
+De Developer past de migratie daarop aan, niet eerder en niet zelf.
 
 ## `service_role`: niet aanraken
 
@@ -384,10 +435,39 @@ Twee wijzigingen, en één die bewust niet gebeurt (Besluit 4):
   `extensions` zetten.
 - **Een toekomstige tabel met een eigen `grant all ... to authenticated`**
   geeft TRUNCATE alsnog. De invariant wordt rood. Dat is de bedoeling.
-- **Een Supabase-CLI-upgrade die een nieuwe storage-tabel toevoegt** maakt
-  invariant 1 deel 2 rood (tabel zonder guard). De CLI-versie
-  in CI staat vast, dus dit gebeurt alleen bij een bewuste upgrade, en dan
-  hoort de guard erbij.
+- **Storage-tabellen die na `0039` bijkomen** krijgen geen guard: de lijst
+  wordt één keer bepaald, toen `0039` draaide. Twee gevallen:
+  - **In CI**, door een upgrade van de Supabase-CLI: invariant 1 deel 2 wordt
+    rood (tabel zonder guard). De CLI-versie in CI staat vast, dus dit
+    gebeurt alleen bij een bewuste upgrade, en dan hoort er een migratie bij
+    die de guard op de nieuwe tabel zet.
+  - **Op het gehoste project**, door een storage-upgrade van Supabase zelf:
+    dat merken we niet, want `db:test` draait alleen tegen de migraties.
+    Dat valt onder de drift uit Expliciet buiten scope. Bij een volgende
+    `supabase db push` toont query 4 het wel, als Bram hem opnieuw draait.
+- **Een fout halverwege de push.** Niet geverifieerd is of `supabase db push`
+  elk migratiebestand in één transactie draait. Zo niet, dan kan een fout in
+  de `do`-lus de revokes uit punt 1 en 2 laten staan, zonder dat `0039` als
+  toegepast geregistreerd is. Een tweede push faalt dan op `create
+  function`, omdat de functie al bestaat. Query 4 voorkomt dit geval vooraf.
+  Wil de Developer zekerheid, dan controleert hij hoe de CLI een
+  migratiebestand afhandelt en meldt dat in de PR. Gebeurt het toch, dan
+  gaat het herstel via de Architect en niet via een handmatige fix op
+  productie.
+- **De guard op `storage.buckets` gaat voor `authenticated` in de praktijk
+  nooit af** (vastgesteld door de Tester). Zonder `cascade` weigert de
+  foreign key van `storage.objects` de truncate al. Met `cascade` ontbreekt
+  TRUNCATE op `storage.s3_multipart_uploads` (alleen `r` voor API-rollen),
+  dat ook naar `buckets` verwijst. De guard staat er toch: de lijst volgt de
+  rechten, niet de vraag of een aanval vandaag lukt. Verandert Supabase de
+  rechten of de foreign keys, dan is `buckets` al afgedekt.
+- **Een verse `supabase db start` met CLI 2.109 geeft andere
+  standaardrechten** dan de gedeelde lokale database en CI (vastgesteld door
+  de Tester): daar heeft `authenticated` geen `SELECT` en `service_role`
+  geen DML. Dat ondersteunt query 3: de standaardrechten verschillen per
+  omgeving, en de `alter default privileges`-regels gaan uit van wat CI
+  laat zien. Het verandert de invariant niet. Die toetst de stand in CI, en
+  daar kloppen de standaardrechten met deze spec.
 - **Bestaande tests met `set local role anon`** (`bar_sessies_rls`,
   `client_errors`, `login_throttle`, `productafbeeldingen`,
   `productafbeeldingen_negatief`, `verify_bar_pin`): door de brede
@@ -406,6 +486,17 @@ Twee wijzigingen, en één die bewust niet gebeurt (Besluit 4):
   wie willekeurige SQL als `authenticated` kan draaien, kan een trigger aan
   `storage.objects` hangen en uploads blokkeren. Geen geld, geen API-pad.
   REFERENCES is zonder `CREATE` op een schema niet te gebruiken.
+- **Willekeurige SQL via de verbinding van PostgREST** (opgemerkt door de
+  Tester). PostgREST verbindt als `authenticator`, en die rol is lid van
+  `anon`, `authenticated` én `service_role` (lokaal geverifieerd in
+  `pg_auth_members`). Wie in die sessie willekeurige SQL kan draaien, kan
+  met `set role service_role` RLS, de tabelrechten en deze guard allemaal
+  omzeilen. Dat valt buiten het aanvalsmodel van ADR 0019. Die maatregelen
+  gelden voor SQL die als `anon` of `authenticated` draait zonder die
+  rolwissel. Een SQL-injectie in de PostgREST-sessie is daarom geen geval
+  dat deze spec dekt. De echte grens daar blijft dat elke RPC vaste SQL
+  uitvoert (Aanleiding punt 1). Dat geldt voor elke RLS-maatregel in ABAS,
+  niet alleen voor deze.
 - **Supabase vragen de storage-rechten in te trekken.** Kan naast deze spec,
   hoort er niet in.
 - **Drift op het gehoste project** (een bucket of recht dat via het dashboard
@@ -561,3 +652,35 @@ geen nieuwe beslissing: dan volstaat ARCHITECTURE.md en vervalt het concept.
 **Besluit 5 (Bram, 2026-10-02): optie 1, ADR 0019.** Geaccordeerd, nog
 niet geïmplementeerd. Valt Besluit 1 terug op optie B, dan herziet de
 Architect ADR 0019 → punt 3 voordat de migratie naar productie gaat.
+
+### Besluit 6: wat als query 4 een tabel toont waarop de guard niet kan?
+
+Na de bouw (PR #150) gevraagd. De guardlijst wordt bij het draaien bepaald
+(Migratie `0039` → punt 4). Heeft het gehoste project een storage-tabel
+waarop een API-rol TRUNCATE heeft en `postgres` geen TRIGGER, dan faalt
+`0039` bij de push. Besluit 1 dekte alleen "de controle slaagt" en "de
+controle faalt", niet dit tussengeval: de guard kan wel op `objects` en
+`buckets`, maar niet op een andere tabel.
+
+- **Optie A: gedeeltelijke guard.** De guard komt op elke tabel waar het
+  kan. De tabellen waar het niet kan, worden besloten restrisico. Dat gaat
+  niet stil: de Architect zet ze met naam in de spec en in ADR 0019, en de
+  migratie en de invariant noemen ze als expliciete uitzondering. De
+  migratie blijft falen op elke tabel die niet in die lijst staat.
+- **Optie B: volledige terugval**, zoals Besluit 1 bij een mislukte
+  controle. Geen guard op storage, en de invariant legt TRUNCATE op storage
+  als bekende uitzondering vast. Eén regel voor alle storage-tabellen, maar
+  `objects` (de productafbeeldingen) en `buckets` blijven dan ook te
+  legen.
+
+**Aanbeveling van de Architect: optie A.** De waarde van de guard zit in
+`storage.objects` en `storage.buckets`. Die opgeven omdat een andere,
+ongebruikte tabel niet te beschermen is, levert niets op. Het restrisico
+blijft klein (geen geld, geen API-pad), en elke uitzondering staat met
+naam vast.
+
+**Besluit 6 (Bram, 2026-10-02): optie A, de gedeeltelijke guard.** Speelt
+alleen als query 4 een rij met `postgres_trigger = f` toont. Dan past de
+Developer de migratie en de invariant aan, nadat de Architect de
+uitzonderingen met naam in de spec en in ADR 0019 heeft gezet. Wijken
+query 1 of 2 af, dan blijft Besluit 1 gelden (optie B).
