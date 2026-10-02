@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
+import type { KeyboardEvent } from "react";
+import { useListbox } from "@/hooks/useListbox";
 
 export type SelectOption = { value: string; label: string };
 
@@ -14,7 +15,8 @@ export type SelectOption = { value: string; label: string };
  * Toegankelijkheid volgt het WAI-ARIA "select-only combobox"-patroon: de
  * trigger is een `role="combobox"`-knop die de focus houdt, het menu een
  * `role="listbox"`; de actieve optie loopt via `aria-activedescendant`.
- * Toetsen: ↓/↑/Enter/Spatie openen, ↓/↑/Home/End bewegen, Enter/Spatie
+ * De lijstlogica (id's, open/actief, buitenklik, scroll) staat in
+ * `useListbox`, gedeeld met `LidZoeker`. Toetsen: ↓/↑/Enter/Spatie openen, ↓/↑/Home/End bewegen, Enter/Spatie
  * kiezen, Escape sluit, Tab kiest niets en sluit, letters springen naar de
  * eerste optie met die beginletter.
  */
@@ -36,35 +38,18 @@ export function Select({
   disabled?: boolean;
   invalid?: boolean;
 }) {
-  const baseId = useId();
-  const listboxId = `${baseId}-listbox`;
-  const optionId = (index: number) => `${baseId}-option-${index}`;
-  const rootRef = useRef<HTMLDivElement>(null);
-  const listRef = useRef<HTMLUListElement>(null);
-  const [open, setOpen] = useState(false);
   const selectedIndex = options.findIndex((o) => o.value === value);
-  const [activeIndex, setActiveIndex] = useState(Math.max(selectedIndex, 0));
+  const {
+    listboxId,
+    optionId,
+    rootRef,
+    listRef,
+    open,
+    setOpen,
+    activeIndex,
+    setActiveIndex,
+  } = useListbox(Math.max(selectedIndex, 0));
   const selected = selectedIndex >= 0 ? options[selectedIndex] : null;
-
-  // Klik buiten de component sluit het menu.
-  useEffect(() => {
-    if (!open) return;
-    function onPointerDown(event: PointerEvent) {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
-    }
-    document.addEventListener("pointerdown", onPointerDown);
-    return () => document.removeEventListener("pointerdown", onPointerDown);
-  }, [open]);
-
-  // Houd de actieve optie in beeld als het menu scrollt.
-  useEffect(() => {
-    if (!open) return;
-    const el = listRef.current?.querySelector<HTMLElement>(
-      `#${CSS.escape(optionId(activeIndex))}`,
-    );
-    el?.scrollIntoView?.({ block: "nearest" });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, activeIndex]);
 
   function openMenu() {
     setActiveIndex(Math.max(selectedIndex, 0));

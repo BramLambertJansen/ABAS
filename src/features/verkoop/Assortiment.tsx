@@ -6,6 +6,8 @@ import { ProductAfbeelding } from "@/components/ProductAfbeelding";
 import type { Product } from "@/hooks/queries/useProducts";
 import type { CartLine } from "./cart";
 import type { AssortimentView } from "./useVerkoopDraft";
+import { filterProducten } from "./productFilter";
+import { zoekResultaatTekst } from "./messages";
 
 const ALL_CATEGORIES = null;
 
@@ -18,8 +20,11 @@ const MIN_KAART_PX = 150;
  * productgrid. Zie docs/features/verkoop.md → Schermflow §1.
  *
  * - Zoekopdracht (case-insensitive substring op naam) overschrijft de
- *   categoriefilter zolang hij actief is; leeg zoekveld → categoriefilter
- *   geldt weer.
+ *   categoriefilter zolang hij actief is (`filterProducten`). Een klik op
+ *   een categorie (ook "Alle") wist de zoekterm (D3), en "Wis zoekterm" (of
+ *   het zoekveld leegmaken) zet de categorie terug op "Alle": er blijft geen
+ *   verborgen eerdere keuze over. Terwijl er een zoekterm is, staat geen chip
+ *   aan en staat er een resultaatregel (`role="status"`).
  * - Categorieën zijn dynamisch afgeleid van de distincte, niet-lege
  *   `category`-waarden onder de meegegeven producten (alfabetisch), plus
  *   een vaste "Alle"-chip — geen hardcoded lijst, geen "Favorieten".
@@ -55,15 +60,21 @@ export function Assortiment({
     [products]
   );
 
-  const trimmedQuery = query.trim().toLowerCase();
-  const visible = useMemo(() => {
-    if (trimmedQuery) {
-      return products.filter((p) => p.name.toLowerCase().includes(trimmedQuery));
-    }
-    return products.filter(
-      (p) => category === ALL_CATEGORIES || p.category === category
-    );
-  }, [products, trimmedQuery, category]);
+  const trimmedQuery = query.trim();
+  const visible = useMemo(
+    () => filterProducten(products, query, category),
+    [products, query, category]
+  );
+
+  function chooseCategory(next: string | null) {
+    setQuery("");
+    setCategory(next);
+  }
+
+  function clearQuery() {
+    setQuery("");
+    setCategory(ALL_CATEGORIES);
+  }
 
   const qtyByProduct = useMemo(() => {
     const map = new Map<string, number>();
@@ -113,7 +124,13 @@ export function Assortiment({
             type="search"
             placeholder="Zoek product"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              const next = e.target.value;
+              // Het zoekveld leegmaken (kruisje, Escape, wissen) is "Wis
+              // zoekterm": de categorie gaat terug naar "Alle".
+              if (trimmedQuery && next.trim() === "") clearQuery();
+              else setQuery(next);
+            }}
             className="h-[52px] w-full rounded-[14px] border border-border bg-white pl-[46px] pr-[18px] text-[14.5px] font-medium text-ink outline-none placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
           />
         </div>
@@ -135,7 +152,7 @@ export function Assortiment({
         <button
           type="button"
           aria-pressed={!trimmedQuery && category === ALL_CATEGORIES}
-          onClick={() => setCategory(ALL_CATEGORIES)}
+          onClick={() => chooseCategory(ALL_CATEGORIES)}
           className={chipClass(!trimmedQuery && category === ALL_CATEGORIES)}
         >
           Alle
@@ -145,7 +162,7 @@ export function Assortiment({
             key={cat}
             type="button"
             aria-pressed={!trimmedQuery && category === cat}
-            onClick={() => setCategory(cat)}
+            onClick={() => chooseCategory(cat)}
             className={chipClass(!trimmedQuery && category === cat)}
           >
             {cat}
@@ -153,8 +170,31 @@ export function Assortiment({
         ))}
       </div>
 
+      {/* Resultaatregel: een vaste live-regio, zodat een wijziging van het
+          aantal wordt voorgelezen; zichtbaar alleen bij een zoekterm. */}
+      <div
+        className={
+          trimmedQuery
+            ? "flex flex-none flex-wrap items-center gap-x-3 gap-y-1"
+            : "sr-only"
+        }
+      >
+        <p role="status" className="text-[13px] font-semibold text-muted-strong">
+          {trimmedQuery ? zoekResultaatTekst(visible.length, trimmedQuery) : ""}
+        </p>
+        {trimmedQuery && (
+          <button
+            type="button"
+            onClick={clearQuery}
+            className="flex h-11 items-center rounded-full border border-border bg-white px-4 text-[13px] font-bold text-ink transition-colors hover:border-ink"
+          >
+            Wis zoekterm
+          </button>
+        )}
+      </div>
+
       {visible.length === 0 ? (
-        <p className="flex flex-1 items-center justify-center text-sm font-semibold text-muted">
+        trimmedQuery ? null : <p className="flex flex-1 items-center justify-center text-sm font-semibold text-muted">
           Geen producten gevonden.
         </p>
       ) : view === "grid" ? (

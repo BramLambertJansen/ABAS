@@ -42,7 +42,23 @@ export function placeOrderErrorMessage(code: PlaceOrderErrorCode): string {
   }
 }
 
-export const NO_MEMBERS_FOUND_MESSAGE = "geen leden gevonden";
-
 export const EMPTY_ROSTER_MESSAGE =
   "Afrekenen bij een lege bezetting is nog niet zinvol — voeg jezelf of een collega toe aan de bezetting via de Dienst-tab.";
+
+/** Resultaatregel bij een zoekterm in het assortiment (D3, docs/features/
+ *  invoerfeedback-zoeken-filters.md): de zoekterm zoekt over alle categorieën.
+ *  Het enkelvoud ("1 product") is grammatica, geen andere formulering. */
+export function zoekResultaatTekst(aantal: number, zoekterm: string): string {
+  if (aantal === 0) return `Geen producten voor "${zoekterm}"`;
+  return `${aantal} ${aantal === 1 ? "product" : "producten"} voor "${zoekterm}" in alle categorieën`;
+}
+
+/** Na "wissel" met een gevuld mandje: wat er gebeurt als je een ander lid kiest. */
+export function lidwisselAankondiging(stuks: number): string {
+  return `De bestelling (${stuks} stuks) staat nog klaar. Kies je een ander lid, dan wordt de bestelling geleegd.`;
+}
+
+/** Inline bevestiging bij het kiezen van een ander lid met een gevuld mandje. */
+export function lidwisselBevestigVraag(naam: string): string {
+  return `Bestelling wissen en verder met ${naam}?`;
+}

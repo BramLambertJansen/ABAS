@@ -1,12 +1,19 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { formatCents } from "@/lib/money";
 import { InitialsAvatar } from "@/components/InitialsAvatar";
+import { LidZoeker } from "@/components/LidZoeker";
 import type { MemberOption } from "@/hooks/queries/useMembers";
 import type { CartDisplayLine } from "./types";
 import { ZijPaneel } from "@/components/ZijPaneel";
-import { insufficientBalanceMessage, NO_MEMBERS_FOUND_MESSAGE } from "./messages";
+import {
+  insufficientBalanceMessage,
+  lidwisselAankondiging,
+  lidwisselBevestigVraag,
+  placeOrderErrorMessage,
+} from "./messages";
+import { lidwisselWistMandje } from "./cart";
 
 /**
  * Rechterkant/mandje-paneel, permanent zichtbaar: ledenkeuze, mandje-
@@ -14,6 +21,7 @@ import { insufficientBalanceMessage, NO_MEMBERS_FOUND_MESSAGE } from "./messages
  * docs/features/verkoop.md → Schermflow §2.
  */
 export function Mandje({
+  lastMemberId,
   memberQuery,
   setMemberQuery,
   members,
@@ -39,6 +47,8 @@ export function Mandje({
   topupDisabled,
   onOpenTopup,
 }: {
+  /** Laatst gekozen lid; overleeft "wissel" (zie `lidwisselWistMandje`). */
+  lastMemberId: string | null;
   memberQuery: string;
   setMemberQuery: (query: string) => void;
   members: MemberOption[];
@@ -64,16 +74,45 @@ export function Mandje({
   topupDisabled: boolean;
   onOpenTopup: () => void;
 }) {
-  const trimmedQuery = memberQuery.trim().toLowerCase();
-  const matches = useMemo(
-    () =>
-      trimmedQuery
-        ? members.filter((m) => m.name.toLowerCase().includes(trimmedQuery))
-        : [],
-    [members, trimmedQuery]
-  );
+  const totalQty = cartLines.reduce((sum, l) => sum + l.qty, 0);
+  // Lidwissel met een gevuld mandje: eerst een inline bevestiging (geen
+  // gestapelde overlay, ADR 0014). Vluchtige state, hoort niet in de draft:
+  // bij een tabwissel verdwijnt hij en blijft het mandje onaangeroerd.
+  const [bevestig, setBevestig] = useState<{ id: string; name: string } | null>(null);
+  const [lidVerdwenen, setLidVerdwenen] = useState(false);
+  const terugRef = useRef<HTMLButtonElement>(null);
+  const vraagId = useId();
+
+  useEffect(() => {
+    if (bevestig) terugRef.current?.focus();
+  }, [bevestig]);
+
+  // Lid verdwijnt uit de verse ledenlijst (gearchiveerd) terwijl de
+  // bevestiging openstaat: de bevestiging vervalt met de bestaande melding.
+  useEffect(() => {
+    if (!bevestig || membersStatus !== "ready") return;
+    if (!members.some((m) => m.id === bevestig.id)) {
+      setBevestig(null);
+      setLidVerdwenen(true);
+    }
+  }, [bevestig, members, membersStatus]);
 
   function chooseMember(id: string) {
+    setLidVerdwenen(false);
+    if (lidwisselWistMandje(lastMemberId, id, cartLines.length)) {
+      const member = members.find((m) => m.id === id);
+      if (member) setBevestig({ id, name: member.name });
+      return;
+    }
+    onSelectMember(id);
+    setMemberQuery("");
+  }
+
+  function bevestigWissen() {
+    if (!bevestig) return;
+    const { id } = bevestig;
+    // De bevestiging sluit bij de eerste tik: een dubbele tik wisselt één keer.
+    setBevestig(null);
     onSelectMember(id);
     setMemberQuery("");
   }
@@ -94,7 +133,7 @@ export function Mandje({
               size="md"
               tone="light"
             />
-            <p className="min-w-0 flex-1 truncate text-base font-extrabold tracking-[-0.015em] text-ink">
+            <p className="min-w-0 flex-1 break-words text-base font-extrabold tracking-[-0.015em] text-ink">
               {selectedMember.name}
             </p>
             <div className="flex flex-none flex-col items-end gap-px">
@@ -134,81 +173,59 @@ export function Mandje({
           </div>
         </div>
       ) : (
-        <div className="relative flex-none">
-          <svg
-            width="17"
-            height="17"
-            viewBox="0 0 17 17"
-            fill="none"
-            aria-hidden="true"
-            className="pointer-events-none absolute left-[18px] top-[17px]"
-          >
-            <circle cx="7.2" cy="7.2" r="5" stroke="#aca69e" strokeWidth="1.7" />
-            <line x1="11" y1="11" x2="15" y2="15" stroke="#aca69e" strokeWidth="1.7" strokeLinecap="round" />
-          </svg>
-          <label htmlFor="verkoop-member-search" className="sr-only">
-            Zoek lid op naam
-          </label>
-          <input
-            id="verkoop-member-search"
-            type="search"
-            placeholder="Zoek lid op naam"
-            value={memberQuery}
-            onChange={(e) => setMemberQuery(e.target.value)}
-            className="h-[50px] w-full rounded-card border border-border bg-white pl-[46px] pr-[18px] text-[14.5px] font-medium text-ink shadow-[0_1px_2px_rgba(27,30,35,0.03)] outline-none placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
+        <>
+          {lastMemberId !== null && cartLines.length > 0 && !bevestig && (
+            <p className="flex-none text-xs font-bold text-ink" role="status">
+              {lidwisselAankondiging(totalQty)}
+            </p>
+          )}
+          <LidZoeker
+            query={memberQuery}
+            onQueryChange={setMemberQuery}
+            members={members}
+            status={membersStatus}
+            errorMessage={membersErrorMessage}
+            lowBalanceThresholdCents={lowBalanceThresholdCents}
+            onSelect={chooseMember}
           />
-
-          {membersStatus === "loading" && trimmedQuery && (
-            <p className="mt-1 text-xs font-semibold text-muted" role="status">
-              Leden laden…
+          {bevestig && (
+            <div
+              role="group"
+              aria-labelledby={vraagId}
+              className="flex flex-none flex-col gap-2 rounded-control bg-warning-bg px-[13px] py-[11px] text-warning-fg"
+            >
+              <p id={vraagId} className="text-[12.5px] font-bold">
+                {lidwisselBevestigVraag(bevestig.name)}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  ref={terugRef}
+                  onClick={() => {
+                    setBevestig(null);
+                    // Terug naar de zoeker, met de zoekterm intact.
+                    document.getElementById("verkoop-member-search")?.focus();
+                  }}
+                  className="flex h-11 flex-1 items-center justify-center rounded-[9px] border border-warning-fg text-xs font-extrabold"
+                >
+                  Terug
+                </button>
+                <button
+                  type="button"
+                  onClick={bevestigWissen}
+                  className="flex h-11 flex-1 items-center justify-center rounded-[9px] bg-warning-fg px-3 text-xs font-extrabold text-warning-bg transition-colors hover:opacity-90"
+                >
+                  Wissen en kiezen
+                </button>
+              </div>
+            </div>
+          )}
+          {lidVerdwenen && (
+            <p className="flex-none text-xs font-bold text-danger" role="alert">
+              {placeOrderErrorMessage("member_not_found")}
             </p>
           )}
-
-          {membersStatus === "error" && (
-            <p className="mt-1 text-xs font-semibold text-danger" role="alert">
-              {membersErrorMessage}
-            </p>
-          )}
-
-          {membersStatus === "ready" && trimmedQuery && (
-            <ul className="absolute inset-x-0 top-14 z-30 flex max-h-[300px] flex-col overflow-auto rounded-card border border-border bg-white p-[7px] shadow-[0_18px_40px_-12px_rgba(27,30,35,0.28)]">
-              {matches.length === 0 && (
-                <li className="px-3 py-2 text-center text-xs font-semibold text-muted">
-                  {NO_MEMBERS_FOUND_MESSAGE}
-                </li>
-              )}
-              {matches.map((member) => (
-                <li key={member.id}>
-                  <button
-                    type="button"
-                    onClick={() => chooseMember(member.id)}
-                    className="flex min-h-[44px] w-full items-center gap-3 rounded-xl p-2.5 text-left transition-colors hover:bg-canvas"
-                  >
-                    <InitialsAvatar name={member.name} size="sm" tone="light" />
-                    <span className="min-w-0 flex-1 truncate text-sm font-bold text-ink">
-                      {member.name}
-                    </span>
-                    <span
-                      className={`flex flex-none items-center gap-1 text-[13px] font-extrabold ${
-                        member.balanceCents < lowBalanceThresholdCents
-                          ? "text-danger"
-                          : "text-muted"
-                      }`}
-                    >
-                      {member.balanceCents < lowBalanceThresholdCents && (
-                        <>
-                          <span aria-hidden="true">⚠</span>
-                          <span className="sr-only">laag saldo,</span>
-                        </>
-                      )}
-                      {formatCents(member.balanceCents)}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+        </>
       )}
 
       {memberNotice && (
@@ -231,7 +248,7 @@ export function Mandje({
         </h2>
         {cartLines.length > 0 && (
           <span className="rounded-full bg-accent-soft px-2.5 py-[3px] text-[11.5px] font-extrabold text-danger">
-            {`${cartLines.reduce((sum, l) => sum + l.qty, 0)} stuks`}
+            {`${totalQty} stuks`}
           </span>
         )}
       </div>

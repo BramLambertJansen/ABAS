@@ -13,7 +13,7 @@ import { AfrekenenOverlay } from "./AfrekenenOverlay";
 import { OpwaarderenOverlay } from "@/features/opwaarderen/OpwaarderenOverlay";
 import { BezettingOverlay } from "@/features/bezetting-beheren/BezettingOverlay";
 import { BezettingPil } from "@/features/bezetting-beheren/BezettingPil";
-import { applyDelta, removeLine } from "./cart";
+import { applyDelta, lidwisselWistMandje, removeLine } from "./cart";
 import { EMPTY_ROSTER_MESSAGE, placeOrderErrorMessage } from "./messages";
 import type { VerkoopDraft } from "./useVerkoopDraft";
 
@@ -188,7 +188,7 @@ export function VerkoopScherm({ shift, draft }: { shift: OpenShift; draft: Verko
     // §2. Vergelijkt tegen lastMemberId, niet selectedMemberId — die laatste
     // is na "wissel" alweer null, lastMemberId overleeft dat bewust (zie
     // hierboven).
-    if (!(lastMemberId === null || lastMemberId === id)) {
+    if (lidwisselWistMandje(lastMemberId, id, cartLines.length)) {
       setCartLines([]);
     }
     setSelectedMemberId(id);
@@ -275,6 +275,7 @@ export function VerkoopScherm({ shift, draft }: { shift: OpenShift; draft: Verko
       </div>
 
       <Mandje
+        lastMemberId={lastMemberId}
         memberQuery={draft.memberQuery}
         setMemberQuery={draft.setMemberQuery}
         members={memberList}
