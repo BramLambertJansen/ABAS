@@ -197,7 +197,11 @@ test("een open of lopende afrekening kan niet via de rail worden onderbroken", a
   expect(await dienst.evaluate((b) => !!b.closest("[inert]"))).toBe(true);
   await dialog.getByRole("button", { name: "ja, afrekenen" }).click();
   await page.keyboard.press("Escape");
-  await dienst.evaluate((button: HTMLButtonElement) => button.click());
+  // Echte muisklik op de plek van de rail: de inert-achtergrond vangt hem niet
+  // op de knop, en de lopende afrekening blijft staan.
+  const box = await dienst.boundingBox();
+  expect(box).not.toBeNull();
+  await page.mouse.click(box!.x + box!.width / 2, box!.y + box!.height / 2);
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole("button", { name: "bezig…" })).toBeDisabled();
   release();
