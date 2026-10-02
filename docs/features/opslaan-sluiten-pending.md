@@ -1,8 +1,95 @@
 # Opslaan, sluiten en gelijktijdige acties voorspelbaar maken
 
-**Status: goedgekeurd door Bram (2026-10-02)**: aanbevelingen bij A, B, C, D
-en E, en een time-out van 30 seconden voor een hangend verzoek, alleen voor
-beheerdialogen zonder geld (besluit 1 hieronder).
+**Status: gebouwd** (PR [#142](https://github.com/BramLambertJansen/ABAS/pull/142),
+gemerged 2026-10-02, `cf93611`; issue #126, T06). Het document hieronder is de
+spec zoals goedgekeurd; "Zoals gebouwd" direct hieronder beschrijft wat er
+daadwerkelijk staat en waar het afwijkt of nog openligt. Bij tegenspraak geldt
+"Zoals gebouwd". De spec is goedgekeurd door Bram (2026-10-02): aanbevelingen
+bij A, B, C, D en E, en een time-out van 30 seconden voor een hangend verzoek,
+alleen voor beheerdialogen zonder geld (besluit 1).
+
+## Zoals gebouwd
+
+**Gedeelde onderdelen** (zie ook `docs/ARCHITECTURE.md`):
+
+- `src/lib/opslaan.ts`: pure regels en teksten (`PENDING_TIMEOUT_MS` = 30 s,
+  `isBezig`/`magActieStarten`, de onopgeslagen-definities voor tekst, keuze,
+  prijs en nieuw-formulier, de weggooi- en onbekende-uitkomstteksten). Unit-
+  getest in `test/opslaan.test.ts`.
+- `useOpslaanBlokkade(pending, { metTimeout = true })`: geeft `closeBlocked` en
+  `timedOut`. Met time-out valt de blokkade na 30 s en is `timedOut` waar; het
+  verzoek wordt niet afgebroken. Met `{ metTimeout: false }` blijft
+  `closeBlocked` staan tot het verzoek klaar is en is `timedOut` nooit waar.
+- `useHerstelFocus`: zet na pending de focus terug op de sectie met het
+  resultaat (nooit `body`).
+- `OpslaanSectie`: `aria-busy`, uitleg "wacht tot de lopende wijziging klaar
+  is" en de eigen `role="alert"`-foutregel per sectie.
+- `OnbekendeUitkomstMelding({ onGecontroleerd, hangend })`: controletekst plus
+  "Ik heb gecontroleerd". `hangend` (toegevoegd na de Reviewer-bevinding)
+  maakt de knop disabled zolang het verzoek nog loopt.
+- `Overlay` kreeg de additieve prop `onopgeslagen`: Escape en backdrop vragen
+  inline in dezelfde dialoog (ADR 0014: geen tweede overlay) "Niet-opgeslagen
+  wijziging weggooien?" met Weggooien en Terug (focus op Terug); nogmaals
+  Escape/backdrop is "terug". De eigen Sluiten/Annuleren-knoppen gooien direct
+  weg (vraag B, optie 3). `closeBlocked` wint altijd.
+
+**Toepassing:**
+
+- Geld zonder time-out (besluit 1): Afrekenen, Opwaarderen en Nieuw lid gebruiken
+  `useOpslaanBlokkade(pending, { metTimeout: false })`. Onbekende uitkomst
+  (netwerk-/onbekende fout, nooit een time-out) toont
+  `OnbekendeUitkomstMelding`, geen "probeer opnieuw", geen automatische
+  tweede poging. Bewust gevolg: een echt hangend geldverzoek houdt de dialoog
+  vast tot herladen. De UI claimt niet dat dubbel boeken is uitgesloten;
+  dat vraagt backend-idempotentie, apart ticket
+  [#143](https://github.com/BramLambertJansen/ABAS/issues/143) (`request_id` op
+  `place_order`, `top_up`, `create_member`). `test/sessieCodeMessages.test.ts` is
+  bewust aangepast: `unknown` bij `place_order`/`top_up` is nu de controletekst.
+- Beheerdialogen zonder geld (Product beheren, Nieuw product, Lid beheren,
+  Bezetting, portal-sheets Naam, Wachtwoord, Pincode): `closeBlocked` met
+  30 s-time-out en de generieke tekst uit besluit 3. Lopende actie: veld
+  `readOnly`, knop "Opslaan…"; Sluiten/Annuleren/Klaar disabled.
+- F11: serialisatie per object (één schrijfactie tegelijk), eigen foutregel
+  per sectie in plaats van één gedeelde `lastAction`, succes past alleen de
+  gewijzigde velden toe. "Bestelling terugdraaien" is in Lid beheren disabled
+  tijdens een lopende wijziging (besluit 4).
+- Onopgeslagen-vraag (`onopgeslagen`): Nieuw product, Nieuw lid, Product
+  beheren, Lid beheren en de sheets Naam, Wachtwoord en Pincode. Niet op
+  Bezetting (geen formulier).
+
+**Afwijkingen van de spec:**
+
+- De foutregel per sectie bestaat alleen zolang er een fout is (niet als lege
+  gemounte regio), omdat bestaande e2e-specs op één `role="alert"` rekenen.
+- `TweestapSheet` blokkeert sluiten alleen tijdens de code-bevestiging en heeft
+  geen onopgeslagen-vraag: een half ingevoerde code gaat bij Escape/backdrop
+  verloren (Codex-bevinding P2, bewust niet opgelost in T06).
+- De code-stap van `WachtwoordWijzigenSheet` blokkeert sluiten niet.
+- Timeout-tekst en weggooitekst zijn de goedgekeurde teksten uit besluit 2 en 3.
+
+**Bevindingen tijdens de bouw:**
+
+- Tester: (1) dubbele geldopdracht na een time-out en (2) focus op `body` na
+  pending. Beide gefixt; (1) is opgelost door geld geen time-out te geven
+  (besluit Bram, commit `2928cd0`). Dezelfde bevinding stond als Codex P1 in de
+  PR (een time-out maakte een nog lopende `place_order` opnieuw verstuurbaar,
+  en een late `onSuccess` kon de nieuwe winkelmand wissen).
+- Reviewer: "Ik heb gecontroleerd" was bruikbaar tijdens een hangend
+  verzoek; gefixt met de prop `hangend`.
+
+**Niet gedekt (open):**
+
+- Geen e2e voor het pending- en sluitgedrag van `TweestapSheet` (de volledige
+  inschrijvingsflow is wel gedekt in `e2e/portal-profiel.spec.ts`, gemockt en live).
+- Geen 30 s-test voor Pincode, Wachtwoord wijzigen en Nieuw product.
+- Geen test voor omgekeerde responsevolgorde in Lid beheren (de serialisatie
+  maakt het in de UI onbereikbaar, maar het is niet bewezen met een test).
+- Handmatige reeks (Safari, touch, schermlezer, trage tablet) nog niet
+  uitgevoerd: geen claim over werking daarop.
+- Backend-idempotentie: #143.
+
+**ADR:** er hoort geen ADR bij T06 (zie "ADR nodig?"); #143 krijgt een ADR bij
+zijn eigen spec.
 
 ## Besluiten Bram (2026-10-02)
 
@@ -196,10 +283,10 @@ Zie vraag B. Gemeenschappelijke eisen, ongeacht de keuze:
   als vraag A voor "taak buiten de dialoog" kiest. De time-out geldt alleen
   voor beheerdialogen zonder geld.
 
-## Open vragen voor Bram
+## Vragen voor Bram (beantwoord, zie "Zoals gebouwd")
 
-Geen van deze is beantwoord; er is niets aangenomen. De Developer begint pas
-na jouw antwoord.
+Historisch: de vragen zoals gesteld vóór de bouw. De antwoorden staan in
+"Besluiten Bram" bovenaan en zijn gebouwd zoals daar beschreven.
 
 ### Vraag A: sluiting blokkeren tijdens opslaan, of een zichtbare taak buiten de dialoog?
 
