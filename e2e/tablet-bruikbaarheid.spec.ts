@@ -101,6 +101,14 @@ for (const viewport of VIEWPORTS) {
         await expect(kaart).toHaveAccessibleName(new RegExp(`^${naam}, `));
       }
 
+      // Mandje: de naam krijgt genoeg breedte om herkenbaar te blijven, ook in
+      // het smalste zijpaneel (300px); stepper en totaal staan op eigen regel.
+      for (const naam of ["Rode wijn", "Spa rood", LANGE_NAAM]) {
+        const regelNaam = await page.locator("li p", { hasText: naam }).first().boundingBox();
+        expect(regelNaam).not.toBeNull();
+        expect(regelNaam!.width).toBeGreaterThanOrEqual(120);
+      }
+
       await binnenBeeld(page, page.getByRole("button", { name: "Uitloggen" }));
       await geenHorizontaleOverflow(page);
     });
@@ -127,32 +135,51 @@ for (const viewport of VIEWPORTS) {
   });
 }
 
+// Browserzoom verkleint de layoutviewport (150% op 1024×768 is ~683×512 CSS-px)
+// en laat zo andere responsive takken zien dan alleen een groter lettertype.
+// Beide varianten: de verkleinde viewport hier, de lettergrootte eronder.
+async function openVerkoop(page: Page) {
+  await mockBasis(page);
+  await page.route(/\/rest\/v1\/products(\?|$)/, (route) => json(route, 200, PRODUCTEN));
+  await mockBarSessie(page, {
+    naam: "Tom Willems",
+    rol: "bardienst",
+    voorgeregistreerd: "bar",
+    bevestigd: true,
+    shift: {
+      id: "00000000-0000-4000-8000-0000000000c1",
+      startedAt: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
+      startedByName: "Femke Bos",
+      activityTypeName: "Training",
+    },
+  });
+  await loginMetWachtwoord(page, USER.email, "Aurora#2026");
+  await expect(page.getByRole("tab", { name: "Verkoop" })).toBeVisible({ timeout: 15_000 });
+}
+
 test.describe("zoom", () => {
-  test.use({ viewport: { width: 1024, height: 768 } });
+  test.describe("verkleinde layoutviewport (150% browserzoom op 1024×768)", () => {
+    test.use({ viewport: { width: 683, height: 512 } });
 
-  test("verkoop op 150% lettergrootte: Uitloggen blijft bereikbaar, geen overflow", async ({
-    page,
-  }) => {
-    await mockBasis(page);
-    await page.route(/\/rest\/v1\/products(\?|$)/, (route) => json(route, 200, PRODUCTEN));
-    await mockBarSessie(page, {
-      naam: "Tom Willems",
-      rol: "bardienst",
-      voorgeregistreerd: "bar",
-      bevestigd: true,
-      shift: {
-        id: "00000000-0000-4000-8000-0000000000c1",
-        startedAt: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
-        startedByName: "Femke Bos",
-        activityTypeName: "Training",
-      },
+    test("Uitloggen bereikbaar, geen overflow", async ({ page }) => {
+      await openVerkoop(page);
+      await geenHorizontaleOverflow(page);
+      await binnenBeeld(page, page.getByRole("button", { name: "Uitloggen" }));
     });
-    await loginMetWachtwoord(page, USER.email, "Aurora#2026");
-    await expect(page.getByRole("tab", { name: "Verkoop" })).toBeVisible({ timeout: 15_000 });
-    await page.addStyleTag({ content: "html { font-size: 24px; }" });
+  });
 
-    await geenHorizontaleOverflow(page);
-    await page.getByRole("button", { name: "Uitloggen" }).scrollIntoViewIfNeeded();
-    await expect(page.getByRole("button", { name: "Uitloggen" })).toBeVisible();
+  test.describe("lettergrootte", () => {
+    test.use({ viewport: { width: 1024, height: 768 } });
+
+    test("verkoop op groter lettertype: Uitloggen blijft bereikbaar, geen overflow", async ({
+      page,
+    }) => {
+      await openVerkoop(page);
+      await page.addStyleTag({ content: "html { font-size: 24px; }" });
+
+      await geenHorizontaleOverflow(page);
+      await page.getByRole("button", { name: "Uitloggen" }).scrollIntoViewIfNeeded();
+      await expect(page.getByRole("button", { name: "Uitloggen" })).toBeVisible();
+    });
   });
 });

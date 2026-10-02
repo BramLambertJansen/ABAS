@@ -236,46 +236,55 @@ export function Mandje({
           {cartLines.map((line) => (
             <li
               key={line.productId}
-              className="flex flex-none items-center gap-2 border-b border-border-subtle px-0.5 py-[9px]"
+              className="flex flex-none flex-col gap-1.5 border-b border-border-subtle px-0.5 py-[9px]"
             >
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-bold text-ink">{line.name}</p>
-                <p className="text-[11.5px] font-semibold text-muted">
-                  {formatCents(line.unitPriceCents)} p/st
-                </p>
-              </div>
-              <div className="flex flex-none items-center gap-0.5 rounded-control bg-canvas p-[3px]">
+              {/* Twee regels: naam en verwijderen boven, stepper en regeltotaal
+                  eronder. In één rij liet het 300px-zijpaneel (768px portret)
+                  de naam ~26px over (tablet-bruikbaarheid.md). */}
+              <div className="flex items-start gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="line-clamp-2 break-words text-sm font-bold leading-tight text-ink">
+                    {line.name}
+                  </p>
+                  <p className="text-[11.5px] font-semibold text-muted">
+                    {formatCents(line.unitPriceCents)} p/st
+                  </p>
+                </div>
                 <button
                   type="button"
-                  onClick={() => onDec(line.productId)}
-                  aria-label={`Eén ${line.name} minder`}
-                  className="flex h-11 w-11 items-center justify-center rounded-[10px] border border-border bg-white pb-0.5 text-[19px] font-bold leading-none text-muted transition-colors hover:border-accent hover:text-accent-active"
+                  onClick={() => onRemove(line.productId)}
+                  aria-label={`Verwijder ${line.name} uit het mandje`}
+                  className="flex h-[30px] w-[30px] flex-none items-center justify-center rounded-[9px] text-[15px] font-bold text-muted hover:bg-canvas hover:text-danger"
                 >
-                  −
+                  ×
                 </button>
-                <span className="min-w-[28px] text-center text-[15px] font-extrabold">
-                  {line.qty}
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex flex-none items-center gap-0.5 rounded-control bg-canvas p-[3px]">
+                  <button
+                    type="button"
+                    onClick={() => onDec(line.productId)}
+                    aria-label={`Eén ${line.name} minder`}
+                    className="flex h-11 w-11 items-center justify-center rounded-[10px] border border-border bg-white pb-0.5 text-[19px] font-bold leading-none text-muted transition-colors hover:border-accent hover:text-accent-active"
+                  >
+                    −
+                  </button>
+                  <span className="min-w-[28px] text-center text-[15px] font-extrabold">
+                    {line.qty}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => onInc(line.productId)}
+                    aria-label={`Eén ${line.name} meer`}
+                    className="flex h-11 w-11 items-center justify-center rounded-[10px] border border-border bg-white pb-0.5 text-[19px] font-bold leading-none text-muted transition-colors hover:border-accent hover:text-accent-active"
+                  >
+                    +
+                  </button>
+                </div>
+                <span className="min-w-[58px] flex-none text-right text-sm font-extrabold text-ink">
+                  {formatCents(line.lineTotalCents)}
                 </span>
-                <button
-                  type="button"
-                  onClick={() => onInc(line.productId)}
-                  aria-label={`Eén ${line.name} meer`}
-                  className="flex h-11 w-11 items-center justify-center rounded-[10px] border border-border bg-white pb-0.5 text-[19px] font-bold leading-none text-muted transition-colors hover:border-accent hover:text-accent-active"
-                >
-                  +
-                </button>
               </div>
-              <span className="min-w-[58px] flex-none text-right text-sm font-extrabold text-ink">
-                {formatCents(line.lineTotalCents)}
-              </span>
-              <button
-                type="button"
-                onClick={() => onRemove(line.productId)}
-                aria-label={`Verwijder ${line.name} uit het mandje`}
-                className="flex h-[30px] w-[30px] flex-none items-center justify-center rounded-[9px] text-[15px] font-bold text-muted hover:bg-canvas hover:text-danger"
-              >
-                ×
-              </button>
             </li>
           ))}
         </ul>

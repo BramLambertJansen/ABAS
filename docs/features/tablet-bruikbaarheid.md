@@ -11,6 +11,8 @@ layout, geen state, en is dus nu gebouwd. Vraag 5 (fysiek tablet) staat open.
   gebruikt door `Mandje` en `DienstActief`.
 - Grid met `auto-fill`/`minmax(150px,1fr)`; kaart met naam op twee regels
   (`line-clamp-2`), badge naast de prijs, plus-knop rechts.
+- Mandjerij op twee regels (naam + verwijderen boven, stepper + regeltotaal
+  eronder): in één rij liet het 300px-paneel de naam ~26px over (review PR #145).
 - Rail 80px, 92px vanaf 1024px viewport. Beheerheader mag omslaan.
 - **Afwijking:** geen `@tailwindcss/container-queries`. `auto-fill` volgt de
   werkelijke inhoudsbreedte al vanzelf; zo is er geen nieuwe dependency nodig.
