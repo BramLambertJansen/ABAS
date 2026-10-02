@@ -76,11 +76,6 @@ export function DienstAfsluitenOverlay({
 
   // Zelfde reden als AfrekenenOverlay.tsx: niet unmounten terwijl end_shift
   // nog loopt.
-  function handleClose() {
-    if (pending) return;
-    onClose();
-  }
-
   async function handleConfirm() {
     if (pending) return;
     const ok = beheerder
@@ -98,7 +93,8 @@ export function DienstAfsluitenOverlay({
       description={`Gestart door ${shift.startedByName} om ${formatTime(
         shift.startedAt
       )} — een overzicht van deze dienst voordat je 'm afsluit.`}
-      onClose={handleClose}
+      onClose={onClose}
+      closeBlocked={pending}
     >
       {beheerder && (
         <p className="text-sm font-semibold text-muted">{BEHEERDER_INGREEP.afsluitenExtraRegel}</p>
@@ -160,7 +156,7 @@ export function DienstAfsluitenOverlay({
         <button
           type="button"
           disabled={pending}
-          onClick={handleClose}
+          onClick={onClose}
           className="flex h-[50px] flex-1 items-center justify-center rounded-2xl border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
         >
           annuleren

@@ -33,11 +33,6 @@ export function AfmeldenOverlay({
   const afmelden = useAdminEndBarSession();
   const pending = afmelden.status === "pending";
 
-  function sluit() {
-    if (pending) return;
-    onClose();
-  }
-
   async function bevestig() {
     if (pending) return;
     const ok = await afmelden.endBarSession(sessieId);
@@ -52,7 +47,8 @@ export function AfmeldenOverlay({
     <Overlay
       title={BEHEERDER_INGREEP.afmeldenTitel}
       description={afmeldenUitleg(naam)}
-      onClose={sluit}
+      onClose={onClose}
+      closeBlocked={pending}
     >
       <p className="text-sm font-bold text-danger empty:-mt-4" role="alert">
         {afmelden.errorCode ? foutTekst(afmelden.errorCode) : ""}
@@ -61,7 +57,7 @@ export function AfmeldenOverlay({
         <button
           type="button"
           disabled={pending}
-          onClick={sluit}
+          onClick={onClose}
           className="flex h-[50px] flex-1 items-center justify-center rounded-2xl border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
         >
           {BEHEERDER_INGREEP.annuleren}

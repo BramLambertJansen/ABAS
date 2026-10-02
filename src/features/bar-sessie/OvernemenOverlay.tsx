@@ -38,11 +38,6 @@ export function OvernemenOverlay({
   const overnemen = useAdminTakeOverShift();
   const pending = overnemen.status === "pending";
 
-  function sluit() {
-    if (pending) return;
-    onClose();
-  }
-
   async function bevestig() {
     if (pending) return;
     const ok = await overnemen.takeOverShift(shiftId);
@@ -61,7 +56,8 @@ export function OvernemenOverlay({
     <Overlay
       title={BEHEERDER_INGREEP.overnemenTitel}
       description={BEHEERDER_INGREEP.overnemenUitleg}
-      onClose={sluit}
+      onClose={onClose}
+      closeBlocked={pending}
     >
       <p className="text-sm font-bold text-danger empty:-mt-4" role="alert">
         {overnemen.errorCode ? foutTekst(overnemen.errorCode) : ""}
@@ -70,7 +66,7 @@ export function OvernemenOverlay({
         <button
           type="button"
           disabled={pending}
-          onClick={sluit}
+          onClick={onClose}
           className="flex h-[50px] flex-1 items-center justify-center rounded-2xl border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
         >
           {BEHEERDER_INGREEP.annuleren}

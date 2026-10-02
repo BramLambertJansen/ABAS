@@ -53,11 +53,6 @@ export function TerugdraaienOverlay({
   // anders kan dezelfde terugdraaiing opnieuw geopend en ingediend worden
   // vóór de eerste klaar is (de server weigert de tweede wel —
   // already_reversed — maar de operator ziet dan een verwarrende fout).
-  function handleClose() {
-    if (pending) return;
-    onClose();
-  }
-
   async function handleConfirm() {
     if (confirmDisabled || !effectiveReversedBy) return;
     const result = await mutation.reverse(entry.id, shiftId, reason, effectiveReversedBy);
@@ -84,7 +79,8 @@ export function TerugdraaienOverlay({
     <Overlay
       title="Bestelling terugdraaien"
       description="Het saldo gaat terug naar het lid. De bestelling blijft zichtbaar in de dienst, doorgestreept."
-      onClose={handleClose}
+      onClose={onClose}
+      closeBlocked={pending}
     >
       <p className="text-sm font-bold text-danger empty:-mt-4" role="alert">
         {errorCode ? reverseOrderErrorMessage(errorCode) : ""}
@@ -133,7 +129,7 @@ export function TerugdraaienOverlay({
         <button
           type="button"
           disabled={pending}
-          onClick={handleClose}
+          onClick={onClose}
           className="flex h-[50px] flex-1 items-center justify-center rounded-2xl border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
         >
           annuleren
