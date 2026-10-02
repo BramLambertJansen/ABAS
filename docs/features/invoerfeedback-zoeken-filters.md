@@ -1,7 +1,9 @@
 # Invoerfeedback, ledenzoeker en productfilters
 
-**Status: goedgekeurd door Bram op 2026-10-02**, inclusief vraag 9 en 10
-(zie "Besluiten Bram"). De Developer kan alles bouwen.
+**Status: goedgekeurd door Bram op 2026-10-02**, inclusief vraag 9 en 10 en
+besluit 11 t/m 14 (zie "Besluiten Bram"). De Developer kan alles bouwen, met
+één uitzondering: de knoppen die disabled blijven zonder veldverklaring staan
+als open vraag (zie "Open vragen voor Bram") en zijn nog niet specificeerbaar.
 
 Spec voor [issue #127](https://github.com/BramLambertJansen/ABAS/issues/127)
 (frontend T07 · P2, epic #121, findings F12, F15, F16; besluit D3). Bouwt voort
@@ -150,9 +152,11 @@ Besluit Bram (2026-10-02): een categorieklik wist de zoekterm. Uitwerking:
   (die blijft alleen voor een categorie zonder producten). Zo komen de
   zichtbare filters overeen met de werkelijke resultaten.
 - Typen in het zoekveld laat `category` ongemoeid maar de zoekterm
-  overschrijft hem. "Wis zoekterm" (en het wissen met Escape of het kruisje
-  van `type="search"`) zet `category` terug op "Alle" (besluit vraag 9), zodat
-  wat je ziet nooit een verborgen eerdere keuze is.
+  overschrijft hem. "Wis zoekterm" zet `category` terug op "Alle" (besluit 9), en
+  dat geldt ook als de zoekterm op een andere manier leeg raakt: met Escape, het
+  kruisje van `type="search"`, backspace of handmatig leeghalen (besluit 12).
+  Zo is wat je ziet nooit een verborgen eerdere keuze. Na "Wis zoekterm" gaat de
+  focus naar het zoekveld (besluit 14).
 - De filterlogica verhuist naar een pure functie
   `filterProducten(producten, zoekterm, categorie)` (nieuw, naast
   `src/features/verkoop/cart.ts`; dat bestand bevat nu alleen `applyDelta` en
@@ -191,12 +195,13 @@ bij duplicatie). Gedrag:
   "Leden laden…", de bestaande nulresultaatregel ("geen leden gevonden") en
   de fout (`role="alert"`, bestaand). Geen aankondiging bij elke toets
   voor hetzelfde aantal.
-- Namen: optie toont de volledige naam, wrapt over maximaal twee regels
-  (`break-words`), geen `truncate`; saldo blijft rechts met de bestaande
+- Namen: optie toont de volledige naam en wrapt over zoveel regels als nodig is
+  (`break-words`), geen `truncate`, geen regelklem (besluit 11, zodat "de Wit" en
+  "de Witt" onderscheidbaar blijven); saldo blijft rechts met de bestaande
   lage-saldo-markering. Voor twee gelijkende lange namen is er géén extra
   persoonsgegeven (geen e-mail, geen telefoon, geen geboortedatum): alleen
   naam en saldo, zoals nu. De gekozen-lid-kaart in `Mandje` (nu `truncate`) toont de naam
-  ook volledig (wrap, besloten: namen over twee regels); hover-only of
+  ook volledig (wrap over zoveel regels als nodig, geen regelklem, besluit 11); hover-only of
   `title`-only is niet toegestaan (zelfde regel als T04, waar de mandjeregels
   al `break-words` gebruiken).
 - Touch: elke optie minimaal 44px hoog (bestaand `min-h-[44px]`).
@@ -228,7 +233,8 @@ gevuld mandje.
   inline bevestiging in het mandjepaneel (geen modal; ADR 0014 verbiedt een
   gestapelde overlay en dit is geen dialoog): "Bestelling wissen en verder
   met {naam}?" met "Wissen en kiezen" en "Terug" (focus op "Terug", zodat
-  een dubbele tik niet per ongeluk wist). Pas daarna wordt het mandje geleegd
+  een dubbele tik niet per ongeluk wist; na "Wissen en kiezen" gaat de focus naar
+  de lidnaam in het lidkaartje, met `tabIndex={-1}`, besluit 14). Pas daarna wordt het mandje geleegd
   en het lid gekozen. Met een leeg mandje, zonder eerder lid of hetzelfde lid:
   direct kiezen, geen bevestiging.
 - Eén regel, één plek: de voorwaarde "wist deze keuze het mandje" staat nu
@@ -284,8 +290,8 @@ binnen zichzelf (`overflow-auto`) en wordt gebruikt door `Mandje` en
 `DienstActief`. De ledenlijst, de resultaatregel van de zoeker en de inline
 wissel-bevestiging moeten daarin passen op 768 portret (geen horizontale
 overflow, geen overlap met de afrekenknop). D1 is besloten (768 portret en 1024
-landschap). Naam-wrap is in lijn met T04, waar de mandjeregels al een
-twee-regel-grid met `break-words` hebben. T04 is gebouwd en geraakt alleen
+landschap). Naam-wrap is in lijn met T04, waar de mandjeregels al `break-words` hebben;
+namen in ledenlijst en lidkaartje krijgen geen regelklem (besluit 11). T04 is gebouwd en geraakt alleen
 classes/layout; T07 voegt gedrag toe in dezelfde bestanden (`Mandje.tsx`,
 `Assortiment.tsx`): geen conflict.
 
@@ -366,7 +372,8 @@ in plaats van een gestapelde overlay). D3 is een productbesluit en landt in
   behouden; geen sprong van de focus.
 - Lid verdwijnt uit de lijst (gearchiveerd) terwijl de bevestiging open
   staat: bevestiging vervalt met melding "dit lid bestaat niet meer"
-  (bestaande tekst `member_not_found`).
+  (bestaande tekst `member_not_found`). Vrijwel onbereikbaar; het
+  vangnet-effect in `Mandje` blijft staan (besluit 14).
 - Dubbele tik op "Wissen en kiezen": één wisseling (de bevestiging sluit bij
   de eerste).
 - Twee leden met bijna dezelfde naam: beide volledig leesbaar; onderscheid
@@ -435,7 +442,8 @@ Genomen op 2026-10-02 (aanbevelingen goedgekeurd):
    knop blijft actief; bestaande tests op "knop disabled bij ongeldig bedrag"
    bewust aanpassen.
 4. **Ledenzoeker:** eerste resultaat automatisch actief, geen lijst bij lege
-   invoer, Escape sluit eerst de lijst dan wist de tekst, namen over twee regels.
+   invoer, Escape sluit eerst de lijst dan wist de tekst, namen wrappen over zoveel
+   regels als nodig (aangepast door besluit 11; eerder "over twee regels").
 5. **Teksten:** de tabel hieronder is goedgekeurd (inclusief `1.000,50` als
    "ongeldig", zonder aparte hint).
 6. **Drempels:** geen maximum aantal leden (de lijst scrolt), resultaten vanaf 1
@@ -447,6 +455,20 @@ Genomen op 2026-10-02 (aanbevelingen goedgekeurd):
    eerder gekozen categorie.
 10. **Ledenlijst na tabwissel:** blijft gesloten tot de eerste toets of
     ArrowDown (optie B), ook als `memberQuery` nog tekst bevat.
+
+Genomen op 2026-10-02 ("Pak de aanbevelingen"):
+
+11. **Namen zonder regelklem:** namen in de ledenlijst en het lidkaartje wrappen
+    over zoveel regels als nodig, zodat "de Wit" en "de Witt" onderscheidbaar
+    blijven. Overruled "namen over twee regels" in §3 en besluit 4.
+12. **"Wis zoekterm" en leeg zoekveld:** `category` gaat terug op "Alle", ook als
+    de zoekterm met backspace of handmatig leeg wordt gemaakt.
+13. **Enkelvoud:** "1 product" en "1 lid gevonden" (grammaticaal enkelvoud van de
+    goedgekeurde sjablonen) is goedgekeurd.
+14. **Focusdoelen:** na "Wis zoekterm" naar het zoekveld; na "Wissen en kiezen"
+    naar de lidnaam in het lidkaartje (`tabIndex={-1}`); het vangnet-effect in
+    `Mandje` voor "lid verdwijnt tijdens bevestiging" blijft staan (vrijwel
+    onbereikbaar).
 
 Goedgekeurde teksten (Nederlands, in de stijl van `messages.ts`):
 
@@ -462,10 +484,32 @@ Goedgekeurde teksten (Nederlands, in de stijl van `messages.ts`):
 | ongeldig | e-mail | "Dit lijkt geen e-mailadres. Controleer het adres, bijvoorbeeld naam@voorbeeld.nl." |
 | lidwissel-aankondiging | mandje | "De bestelling ({n} stuks) staat nog klaar. Kies je een ander lid, dan wordt de bestelling geleegd." |
 | lidwissel-bevestiging | mandje | "Bestelling wissen en verder met {naam}?" (knoppen "Wissen en kiezen", "Terug") |
-| resultaat zoeken | assortiment | "{n} producten voor "{term}" in alle categorieën" / "Geen producten voor "{term}"" met "Wis zoekterm" |
-| resultaat leden | zoeker | "{n} leden gevonden" / bestaand "geen leden gevonden" |
+| resultaat zoeken | assortiment | "{n} producten voor "{term}" in alle categorieën" / "Geen producten voor "{term}"" met "Wis zoekterm"; enkelvoud "1 product voor "{term}" in alle categorieën" (besluit 13) |
+| resultaat leden | zoeker | "{n} leden gevonden" / bestaand "geen leden gevonden"; enkelvoud "1 lid gevonden" (besluit 13) |
 
 ## Open vragen voor Bram
 
-Geen. Vraag 9 en 10 zijn op 2026-10-02 beantwoord (zie "Besluiten Bram", punt 9
-en 10).
+Vraag 9 en 10 zijn op 2026-10-02 beantwoord (zie "Besluiten Bram", punt 9 en 10).
+
+**15. Knoppen die disabled blijven zonder veldverklaring.** De spec (§1, "Knop bij
+een veldfout") staat `disabled` alleen toe bij lopende actie, ontbrekende
+bezetting en A4. Op de gebouwde schermen blijft de knop daarnaast disabled in
+deze gevallen, zonder uitleg bij het veld:
+
+- Negatieve limiet: leeg eigen-bedragveld bij een tik.
+- Product beheren en Lid beheren: ongewijzigde prijs of e-mail.
+- Nieuw product en Nieuw lid: lege naam of niet gekozen categorie. Bij een lege
+  naam met ongeldige prijs ontbreekt bovendien de prijsmelding.
+
+Aanbeveling (geen besluit): ongewijzigde invoer en lege verplichte velden bewust
+disabled laten zonder tekst (gangbaar; geen foutmelding nodig voordat de
+gebruiker iets heeft aangeraakt), en voor een leeg limietveld bij een tik een
+tekst door Bram laten voorstellen. Tot Bram beslist bouwt de Developer hier niets
+nieuws; de tekst voor het lege limietveld wordt niet verzonnen.
+
+## Backlog (niet-blokkerende Reviewer-punten, geen besluit)
+
+- Zichtbare focusring of `aria-live` voor de lidnaam met `tabIndex={-1}` in het
+  lidkaartje (besluit 14).
+- `NegatieveLimietInstellingen` maakt het eigen-bedragveld tijdens opslaan niet
+  `readOnly` (pre-existing, strijdt met het pending-model uit T06).
