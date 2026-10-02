@@ -63,9 +63,7 @@ export function AfrekenenOverlay({
   const pending = placeOrderMutation.status === "pending";
   // Geld: geen time-out, de blokkade blijft tot het verzoek klaar is.
   const { closeBlocked } = useOpslaanBlokkade(pending, { metTimeout: false });
-  // Een hangend verzoek blijft in vlucht, ook na de 30 s-time-out: alleen de
-  // sluitblokkade valt dan (closeBlocked). Een tweede geldopdracht blijft
-  // geblokkeerd zolang de eerste kan slagen.
+  // Een tweede geldopdracht blijft geblokkeerd zolang de eerste kan slagen.
   const inVlucht = pending;
   // Onbekende uitkomst (netwerk, onbekende fout): pas weer afrekenen
   // nadat de gebruiker bewust "Ik heb gecontroleerd" koos (besluit C).
