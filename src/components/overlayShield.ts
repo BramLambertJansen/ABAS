@@ -23,7 +23,14 @@ const inerted = new Set<Element>();
 let savedOverflow: string | null = null;
 let savedPaddingRight: string | null = null;
 
+// Houdt de afscherming bij: nodes die tijdens het openstaan in de achtergrond
+// worden ingevoegd (bv. een poll-resultaat) worden ook inert.
+let observer: MutationObserver | null = null;
+let shieldRoot: HTMLElement | null = null;
+
 function restoreInert() {
+  observer?.disconnect();
+  observer = null;
   for (const el of inerted) el.removeAttribute("inert");
   inerted.clear();
 }
@@ -41,6 +48,19 @@ function applyInert(root: HTMLElement) {
       sibling.setAttribute("inert", "");
       inerted.add(sibling);
     }
+    node = parent;
+  }
+  shieldRoot = root;
+  observer = new MutationObserver((records) => {
+    if (!shieldRoot?.isConnected) return;
+    if (!records.some((r) => r.addedNodes.length > 0)) return;
+    applyInert(shieldRoot);
+  });
+  node = root;
+  while (node && node !== document.body) {
+    const parent: HTMLElement | null = node.parentElement;
+    if (!parent) break;
+    observer.observe(parent, { childList: true });
     node = parent;
   }
 }

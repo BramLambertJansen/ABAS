@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { nextTabIndex, type TabOrientation } from "@/lib/tabKeys";
 
 /**
@@ -128,6 +128,18 @@ export function TabList({
   );
 }
 
+const FOCUSABLE = [
+  "a[href]",
+  "button:not([disabled])",
+  "input:not([disabled]):not([type=hidden])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  "summary",
+  '[contenteditable=""]',
+  '[contenteditable="true"]',
+  '[tabindex]:not([tabindex="-1"])',
+].join(",");
+
 export function TabPanel({
   idBase,
   tabKey,
@@ -139,11 +151,32 @@ export function TabPanel({
   className?: string;
   children: ReactNode;
 }) {
+  const ref = useRef<HTMLDivElement>(null);
+  // W3C-tabspatroon: zonder focusbare inhoud wordt het panel zelf een tabstop,
+  // anders slaat Tab het over naar de volgende control buiten de tabs.
+  const [ownStop, setOwnStop] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const check = () => setOwnStop(!el.querySelector(FOCUSABLE));
+    check();
+    const mo = new MutationObserver(check);
+    mo.observe(el, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ["disabled", "tabindex", "href", "hidden", "type"],
+    });
+    return () => mo.disconnect();
+  }, []);
+
   return (
     <div
+      ref={ref}
       id={panelElementId(idBase, tabKey)}
       role="tabpanel"
       aria-labelledby={tabElementId(idBase, tabKey)}
+      tabIndex={ownStop ? 0 : undefined}
       className={className}
     >
       {children}

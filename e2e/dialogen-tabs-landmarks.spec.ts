@@ -239,6 +239,47 @@ test.describe("portal", () => {
       .poll(() => page.evaluate(() => document.activeElement?.getAttribute("role")))
       .toBe("tabpanel");
   });
+
+  test("tabpanel zonder focusbare inhoud is zelf een tabstop", async ({ page }) => {
+    await mockPortal(page);
+    await portalLoginMetWachtwoord(page, USER.email, "Aurora#2026");
+    const saldo = page.getByRole("tab", { name: "Saldo" });
+    await expect(saldo).toBeVisible({ timeout: 15_000 });
+    const panel = page.getByRole("tabpanel");
+    await expect(panel).toHaveAttribute("tabindex", "0");
+    await saldo.focus();
+    await page.keyboard.press("Tab");
+    await expect(panel).toBeFocused();
+    // Met focusbare inhoud (Account) is het panel zelf geen tabstop.
+    await page.getByRole("tab", { name: "Account" }).click();
+    await expect(page.getByRole("tabpanel")).not.toHaveAttribute("tabindex", /.*/);
+  });
+
+  test("sheet: later ingevoegde achtergrondnodes worden ook inert", async ({ page }) => {
+    await mockPortal(page);
+    await portalLoginMetWachtwoord(page, USER.email, "Aurora#2026");
+    await page.getByRole("tab", { name: "Account" }).click({ timeout: 15_000 });
+    await page.getByRole("button", { name: /^Wachtwoord wijzigen/ }).click();
+    const dialog = page.getByRole("dialog", { name: "Wachtwoord wijzigen" });
+    await expect(dialog).toBeVisible();
+
+    await page.evaluate(() => {
+      const late = document.createElement("div");
+      late.id = "laat-ingevoegd";
+      late.innerHTML = '<button type="button">Laat</button>';
+      document.body.appendChild(late);
+      const inMain = document.createElement("button");
+      inMain.id = "laat-in-main";
+      inMain.textContent = "Laat in main";
+      (document.querySelector("main") ?? document.body).appendChild(inMain);
+    });
+    await expect(page.locator("#laat-ingevoegd")).toHaveAttribute("inert", "");
+    expect(await page.locator("#laat-in-main").evaluate((el) => !!el.closest("[inert]"))).toBe(true);
+
+    await page.keyboard.press("Escape");
+    await expect(dialog).toHaveCount(0);
+    await expectNoInert(page);
+  });
 });
 
 // ── Beheer (bar-shell, /beheer) ───────────────────────────────────────────
