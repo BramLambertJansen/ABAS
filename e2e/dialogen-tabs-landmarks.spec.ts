@@ -433,8 +433,9 @@ test.describe("beheer", () => {
     await expect(dialog.locator('p[role="status"]')).toHaveText(CLOSE_BLOCKED);
     await page.mouse.click(5, 5);
     await expect(dialog).toBeVisible();
-    // De bezig-knop had de focus en is disabled geworden (de browser zet de
-    // focus dan stil op body): Tab en Shift+Tab brengen hem terug in de dialoog.
+    // De bezig-knop had de focus en is disabled geworden: de focus valt niet
+    // op body maar gaat naar de dialoogcontainer, ook zonder toetsaanslag.
+    await expect(dialog).toBeFocused();
     await page.keyboard.press("Tab");
     await expectFocusInDialog(page);
     await page.keyboard.press("Shift+Tab");
@@ -535,6 +536,14 @@ test.describe("bar", () => {
     await page.keyboard.press("Home");
     await expect(verkoop).toBeFocused();
     await expect(verkoop).toHaveAttribute("aria-selected", "true");
+
+    // Tab uit de tablist: eerst Uitloggen (DOM-volgorde nav, main), daarna main.
+    await page.keyboard.press("Tab");
+    await expect(page.getByRole("button", { name: "Uitloggen" })).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect
+      .poll(() => page.evaluate(() => !!document.activeElement?.closest("main")))
+      .toBe(true);
   });
 
   test("landmarks: precies één main en nav 'Bar', op Verkoop en Dienst, ook met open dialoog", async ({ page }) => {

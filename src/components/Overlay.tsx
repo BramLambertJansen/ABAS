@@ -134,6 +134,31 @@ export function Overlay({
     if (!closeBlocked) setBlockedAttempt(false);
   }, [closeBlocked]);
 
+  // Pending: een control die tijdens `closeBlocked` disabled wordt, laat de
+  // browser de focus stil naar body zetten. Dan terug naar de dialoogcontainer,
+  // zodat toetsenbord en schermlezer binnen de dialoog blijven. De browser doet
+  // die "focus fixup" pas bij de volgende rendering, dus ook na een frame
+  // nogmaals controleren.
+  useLayoutEffect(() => {
+    if (!closeBlocked) return;
+    function herstel() {
+      const container = dialogRef.current;
+      if (!container) return;
+      const active = document.activeElement as HTMLElement | null;
+      const verloren =
+        !active ||
+        active === document.body ||
+        active === document.documentElement ||
+        !container.contains(active) ||
+        active.matches(":disabled") ||
+        !!active.closest("[inert], [hidden], fieldset:disabled");
+      if (verloren) container.focus();
+    }
+    herstel();
+    const frame = requestAnimationFrame(herstel);
+    return () => cancelAnimationFrame(frame);
+  }, [closeBlocked]);
+
   // Achtergrond inert + scrolllock + trigger onthouden (zie overlayShield.ts),
   // en de focus naar binnen. Layout-effect: de achtergrond mag geen frame
   // bedienbaar zijn. Mount/unmount is de open/close-lifecycle (de ouder

@@ -343,6 +343,8 @@ test.describe("beheer (negatief)", () => {
     // De eigen sluitknop is disabled (consument volgt het contract).
     await expect(dialog.getByRole("button", { name: "Sluiten" })).toBeDisabled();
 
+    // De bezig-knop werd disabled: de focus staat op de dialoogcontainer.
+    await expect(dialog).toBeFocused();
     const voor = await page.evaluate(() => document.activeElement?.tagName);
     for (let i = 0; i < 3; i++) {
       await page.keyboard.press("Escape");

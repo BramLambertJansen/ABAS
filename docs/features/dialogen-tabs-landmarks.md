@@ -1,7 +1,6 @@
 # Dialogen, tabs en landmarks herstellen
 
-**Status: concept, wacht op akkoord van Bram.** Daarna pas bouwt de Developer.
-Open beslissingen staan onderaan; de spec kiest er geen in Brams plaats.
+**Status: goedgekeurd door Bram** (besluiten onderaan, "Besluiten van Bram").
 
 Spec voor [issue #125](https://github.com/BramLambertJansen/ABAS/issues/125)
 (frontend T05 · P1, epic #121, findings F05, F17, F28). Levert het gedeelde
@@ -237,7 +236,9 @@ spec vraagt het gedrag, niet de API), plus de pure toetslogica in
 
 - **Roving tabindex, één tabstop:** alleen de geselecteerde (of bij manuele
   activatie de gefocuste) tab heeft `tabIndex={0}`, de rest `-1`. Tab vanuit de
-  tablist gaat naar het panel (of het eerste focusbare element erin).
+  tablist gaat naar het volgende focusbare element: in de bar-rail is dat eerst
+  Uitloggen (DOM-volgorde nav, main), op portal en beheer het panel (of het
+  eerste focusbare element erin).
 - **Orientatie:** `orientation: "horizontal" | "vertical"`, gezet als
   `aria-orientation` op de `tablist`. Horizontaal: Links/Rechts; verticaal
   (de bar-rail): Omhoog/Omlaag. De andere as doet niets (scrolt niet de
@@ -441,7 +442,9 @@ Tabs (portal, beheer, bar-rail):
    verticaal: Omhoog/Omlaag), Home/End werken, wrap-around klopt, de andere
    as doet niets.
 9. Precies één tab heeft `tabindex="0"` (assert op alle tabs), de rest `-1`;
-   Tab uit de tablist komt in het panel terecht.
+   Tab vanuit de tablist gaat naar het volgende focusbare element; in de
+   bar-rail is dat eerst Uitloggen (DOM-volgorde nav, main), op portal en
+   beheer het panel.
 10. `aria-orientation` per tablist, `aria-selected` volgt, `aria-controls` wijst
     uitsluitend naar bestaande id's (assert dat het gerefereerde element in
     de DOM staat).
@@ -489,7 +492,30 @@ de gedeelde componenten loopt.
 - Offline/PWA-uitbreiding, geld-/auth-/schemawijzigingen.
 - Een verklaring van volledige WCAG-conformiteit.
 
-## Open beslissingen voor Bram
+## Besluiten van Bram
+
+Expliciet door Bram besloten:
+
+- Achtergrond afschermen: ancestor-`inert`, geen portal (vraag 1).
+- Scrolllock aan (vraag 2).
+- Eén standaardtekst voor `closeBlockedMessage`: "Even wachten, de actie wordt
+  nog verwerkt." (door Bram gekozen; vraag 3).
+- Tab-activatie: handmatig voor `BeheerTabs` en `PortalDashboard`, automatisch
+  voor `DienstTabs` (vraag 4).
+- Volgorde: T05 vóór T03 (vraag 7).
+- Gate-regel `check:policy` niet in dit ticket (vraag 9).
+- Tab vanuit de tablist in de bar-rail: eerst Uitloggen, dan main; de
+  DOM-structuur blijft (§6, Teststrategie 9).
+- Focusverlies bij pending: wordt een control disabled terwijl `closeBlocked`
+  waar is en valt de focus buiten de dialoog, dan gaat de focus naar de
+  dialoogcontainer.
+
+Nog niet expliciet door Bram bevestigd; dit is het voorstel uit de spec en
+geldt als uitgangspunt: wrap-around (vraag 5), backdrop-sluiting op touch
+(vraag 6), browserdoel voor `inert` (vraag 8), gedrag van meldingen onder een
+open dialoog (vraag 10).
+
+## Oorspronkelijke open beslissingen (historie)
 
 1. **Achtergrond afschermen: ancestor-`inert` of portal?** Voorstel van
    deze spec: `inert` op siblings van de ancestorketen, geen portal. Alternatief:
