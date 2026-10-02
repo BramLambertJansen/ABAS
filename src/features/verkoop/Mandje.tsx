@@ -213,7 +213,7 @@ export function Mandje({
                 <button
                   type="button"
                   onClick={bevestigWissen}
-                  className="flex h-11 flex-1 items-center justify-center rounded-[9px] bg-warning-fg px-3 text-xs font-extrabold text-warning-bg transition-colors hover:opacity-90"
+                  className="flex h-11 flex-1 items-center justify-center rounded-[9px] bg-accent-active px-3 text-xs font-extrabold text-white"
                 >
                   Wissen en kiezen
                 </button>

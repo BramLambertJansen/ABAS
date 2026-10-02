@@ -409,7 +409,7 @@ async function openKassa(page: Page, geld: { place_order?: Geld; top_up?: Geld }
 
 async function kiesLid(page: Page) {
   await page.getByLabel("Zoek lid op naam").fill("Anna");
-  await page.getByRole("button", { name: /Anna de Vries/ }).click();
+  await page.getByRole("option", { name: /Anna de Vries/ }).click();
 }
 
 async function openAfrekenen(page: Page) {

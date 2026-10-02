@@ -503,7 +503,7 @@ async function openBar(page: Page, placeOrderDelay?: Promise<void>) {
 async function openAfrekenen(page: Page) {
   await page.getByRole("button", { name: /^Pils,/ }).click();
   await page.getByLabel("Zoek lid op naam").fill("Anna");
-  await page.getByRole("button", { name: /Anna de Vries/ }).click();
+  await page.getByRole("option", { name: /Anna de Vries/ }).click();
   const trigger = page.getByRole("button", { name: "Tik afrekenen" });
   await trigger.click();
   const dialog = page.getByRole("dialog", { name: /^Afrekenen bij/ });

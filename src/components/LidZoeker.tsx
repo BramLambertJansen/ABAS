@@ -28,7 +28,8 @@ export function ledenGevondenTekst(aantal: number): string {
  * Enter kiest; Escape sluit eerst de lijst (tekst blijft) en wist daarna de
  * tekst; Tab, blur en een klik buiten sluiten zonder te kiezen. De lijst
  * opent bij typen of ↓, niet bij het terugkeren naar een bewaarde zoekterm.
- * Een naam wrapt over maximaal twee regels (nooit afgekapt), saldo staat
+ * Een naam wrapt (nooit afgekapt, ook niet na twee regels: twee gelijkende
+ * lange namen moeten tot het einde leesbaar blijven), saldo staat
  * rechts met de laag-saldo-markering; geen limiet op het aantal leden, de
  * lijst scrolt. Geen `title`- of hover-only informatie.
  */
@@ -208,7 +209,7 @@ export function LidZoeker({
               }`}
             >
               <InitialsAvatar name={member.name} size="sm" tone="light" />
-              <span className="line-clamp-2 min-w-0 flex-1 break-words text-sm font-bold text-ink">
+              <span className="min-w-0 flex-1 break-words text-sm font-bold text-ink">
                 {member.name}
               </span>
               <span

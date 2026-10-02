@@ -114,7 +114,7 @@ test("uitstellen: de melding wacht tot Afrekenen dicht is, en komt dan meteen (b
 
   await page.getByRole("button", { name: /^Pils,/ }).click();
   await page.getByLabel("Zoek lid op naam").fill("Anna");
-  await page.getByRole("button", { name: /Anna de Vries/ }).click();
+  await page.getByRole("option", { name: /Anna de Vries/ }).click();
   await page.getByRole("button", { name: "Tik afrekenen" }).click();
   const afrekenen = page.getByRole("dialog", { name: /^Afrekenen bij/ });
   await expect(afrekenen).toBeVisible();
@@ -138,7 +138,7 @@ test("race: grens en een tik op Afrekenen in dezelfde klokstap → melding pas n
 
   await page.getByRole("button", { name: /^Pils,/ }).click();
   await page.getByLabel("Zoek lid op naam").fill("Anna");
-  await page.getByRole("button", { name: /Anna de Vries/ }).click();
+  await page.getByRole("option", { name: /Anna de Vries/ }).click();
   await expect(page.getByRole("button", { name: "Tik afrekenen" })).toBeEnabled();
 
   // De grens en de tik vallen in één synchrone JS-taak: de klok springt 5
@@ -303,7 +303,7 @@ test("teller: meerdere keren een overlay open en dicht vóór de grens laat de t
 
   await page.getByRole("button", { name: /^Pils,/ }).click();
   await page.getByLabel("Zoek lid op naam").fill("Anna");
-  await page.getByRole("button", { name: /Anna de Vries/ }).click();
+  await page.getByRole("option", { name: /Anna de Vries/ }).click();
 
   const afrekenen = page.getByRole("dialog", { name: /^Afrekenen bij/ });
   for (let i = 0; i < 2; i++) {
