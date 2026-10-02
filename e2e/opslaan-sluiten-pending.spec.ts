@@ -108,7 +108,7 @@ test("Product beheren: prijs opslaan blokkeert Escape, backdrop en Sluiten; veld
   await expect(dialog.getByRole("button", { name: "Sluiten" })).toBeDisabled();
   // De andere sectie is disabled mét uitleg, en er is maar één aanroep.
   await expect(dialog.getByRole("button", { name: /Uit assortiment halen/ })).toBeDisabled();
-  await expect(dialog.getByText("wacht tot de lopende wijziging klaar is")).toBeVisible();
+  await expect(dialog.getByText("wacht tot de lopende wijziging klaar is").first()).toBeVisible();
   // Focus nooit op body.
   expect(await page.evaluate(() => document.activeElement === document.body)).toBe(false);
 

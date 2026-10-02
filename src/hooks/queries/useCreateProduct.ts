@@ -4,6 +4,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { reportClientError } from "@/lib/clientErrors";
 import type { AssortimentProduct } from "./useAlleProducten";
+import { toAssortimentProduct } from "./productRows";
 
 /** Error codes `create_product` (0005_assortimentbeheer.sql) actually
  *  raises. Anything else (network failure, unexpected server error) falls
@@ -62,13 +63,7 @@ export function useCreateProduct() {
         return null;
       }
       setState({ status: "idle" });
-      return {
-        id: data.id as string,
-        name: data.name as string,
-        category: data.category as string,
-        priceCents: data.price_cents as number,
-        archived: data.archived as boolean,
-      };
+      return toAssortimentProduct(supabase, data);
     } catch (err) {
       const code = toErrorCode(err instanceof Error ? err.message : undefined);
       if (code === "unknown") reportClientError(createClient, "useCreateProduct", err);

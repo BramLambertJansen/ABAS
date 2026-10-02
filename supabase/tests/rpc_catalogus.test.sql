@@ -60,6 +60,7 @@ insert into catalogus values
   ('set_member_archived',       'client', null),
   ('set_member_role',           'client', null),
   ('set_product_archived',      'client', null),
+  ('set_product_image',         'client', null),
   ('start_shift',               'client', null),
   ('top_up',                    'client', null),
   ('touch_bar_session',         'client', null),

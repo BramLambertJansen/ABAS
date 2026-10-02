@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { formatCents } from "@/lib/money";
+import { ProductAfbeelding } from "@/components/ProductAfbeelding";
 import type { Product } from "@/hooks/queries/useProducts";
 import type { CartLine } from "./cart";
 
@@ -84,8 +85,10 @@ export function Assortiment({
 
   // Layout naar designs/Bar App.dc.html → `isSales`: zoekveld (52px, met
   // icoon) + galerij/lijst-schakelaar, categorie-chips, dan kaarten of
-  // rijen met een ronde "+"-knop. Geen productfoto's: die bestaan niet in
-  // het datamodel (het prototype toont daar een lege image-slot).
+  // rijen met een ronde "+"-knop. Elke kaart en rij toont de
+  // productafbeelding, of de lege staat met initialen
+  // (docs/features/productafbeeldingen.md, Besluit 1–3); decoratief, de naam
+  // zit al in de `aria-label`.
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
       <div className="flex flex-none flex-wrap items-center gap-3">
@@ -166,18 +169,21 @@ export function Assortiment({
                   type="button"
                   onClick={() => onAdd(product.id)}
                   aria-label={addLabel(product.name, product.priceCents, qty)}
-                  className="group flex w-full items-center justify-between gap-2 rounded-card border border-border bg-white p-[11px] text-left shadow-[0_1px_2px_rgba(27,30,35,0.03)] transition-[border-color,box-shadow] hover:border-accent hover:shadow-[0_10px_24px_-14px_rgba(27,30,35,0.35)]"
+                  className="group flex w-full flex-col gap-2.5 rounded-card border border-border bg-white p-[11px] text-left shadow-[0_1px_2px_rgba(27,30,35,0.03)] transition-[border-color,box-shadow] hover:border-accent hover:shadow-[0_10px_24px_-14px_rgba(27,30,35,0.35)]"
                 >
-                  <span className="flex min-w-0 flex-col gap-0.5">
-                    <span className="line-clamp-2 break-words text-[13.5px] font-bold leading-tight text-ink">
-                      {product.name}
+                  <ProductAfbeelding imageUrl={product.imageUrl} name={product.name} size="tile" decorative />
+                  <span className="flex w-full items-center justify-between gap-2">
+                    <span className="flex min-w-0 flex-col gap-0.5">
+                      <span className="line-clamp-2 break-words text-[13.5px] font-bold leading-tight text-ink">
+                        {product.name}
+                      </span>
+                      <span className="flex flex-wrap items-center gap-1.5 text-[13px] font-semibold text-muted">
+                        {formatCents(product.priceCents)}
+                        {qty > 0 && <QtyPill qty={qty} />}
+                      </span>
                     </span>
-                    <span className="flex flex-wrap items-center gap-1.5 text-[13px] font-semibold text-muted">
-                      {formatCents(product.priceCents)}
-                      {qty > 0 && <QtyPill qty={qty} />}
-                    </span>
+                    <AddCircle />
                   </span>
-                  <AddCircle />
                 </button>
               </li>
             );
@@ -195,6 +201,7 @@ export function Assortiment({
                   aria-label={addLabel(product.name, product.priceCents, qty)}
                   className="group flex w-full items-center gap-3.5 rounded-xl px-2 py-[9px] text-left transition-colors hover:bg-canvas"
                 >
+                  <ProductAfbeelding imageUrl={product.imageUrl} name={product.name} size="row" decorative />
                   <span className="min-w-0 flex-1 truncate text-sm font-bold text-ink">
                     {product.name}
                   </span>

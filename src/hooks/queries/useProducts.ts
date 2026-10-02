@@ -4,12 +4,16 @@ import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { reportClientError } from "@/lib/clientErrors";
 import { loadErrorMessage } from "@/lib/loadErrors";
+import { productImageUrl } from "./productRows";
 
 export type Product = {
   id: string;
   name: string;
   category: string;
   priceCents: number;
+  /** Publieke URL van de productafbeelding, `null` zonder afbeelding
+   *  (docs/features/productafbeeldingen.md). Gemaakt in productRows.ts. */
+  imageUrl: string | null;
 };
 
 type State =
@@ -33,7 +37,7 @@ export function useProducts(): State & { refetch: () => void } {
       const supabase = createClient();
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, category, price_cents")
+        .select("id, name, category, price_cents, image_path")
         .eq("archived", false)
         .order("name", { ascending: true });
 
@@ -44,6 +48,7 @@ export function useProducts(): State & { refetch: () => void } {
         name: row.name as string,
         category: row.category as string,
         priceCents: row.price_cents as number,
+        imageUrl: productImageUrl(supabase, row.image_path),
       }));
 
       setState({ status: "ready", products });

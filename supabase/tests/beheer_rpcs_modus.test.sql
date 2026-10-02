@@ -5,15 +5,15 @@
 -- lid komt er niet in — ook al zou de ADR 0002-actorcheck hem toelaten. Zo
 -- komt een PIN-sessie (altijd `bar`) nooit in beheer.
 --
--- Data-gedreven: één lijst met de vijftien beheer-RPC's (plus
--- check_beheer_session, 0031), één ronde per
+-- Data-gedreven: één lijst met de zestien beheer-RPC's (plus
+-- check_beheer_session, 0031; set_product_image sinds 0038), één ronde per
 -- faalmodus, sinds 0034 ook aal1 (`aal2_required`, ADR 0017). De guard staat vóór de actorcheck en de invoervalidatie, dus de
 -- argumenten mogen dummy zijn. Run met `npm run db:test`.
 
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(135);
+select plan(142);
 
 -- ── Sessie-helper (dienst per sessie, ADR 0016) ────────────────────────────
 -- De bar-RPC's eisen een geregistreerde bar-sessie met een actieve koppeling
@@ -134,6 +134,8 @@ as $q$
     ('list_members_admin', $s$ select * from list_members_admin() $s$),
     ('mark_member_invite_sent', $s$ select mark_member_invite_sent('00000000-0000-0000-0000-00000000c021') $s$),
     ('reverse_order_as_admin', $s$ select reverse_order_as_admin('00000000-0000-0000-0000-00000000c031', 'reden') $s$),
+    -- 0038: productafbeeldingen, zelfde guard als update_product_price.
+    ('set_product_image', $s$ select set_product_image(gen_random_uuid(), null) $s$),
     -- 0031: de controle vooraf van de invite-route, zelfde voorwaarde.
     ('check_beheer_session', $s$ select check_beheer_session() $s$)
   ) as v(name, sql)
