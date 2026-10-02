@@ -4,7 +4,6 @@ import { useMemo } from "react";
 import { formatCents } from "@/lib/money";
 import type { Product } from "@/hooks/queries/useProducts";
 import type { CartLine } from "./cart";
-
 import type { AssortimentView } from "./useVerkoopDraft";
 
 const ALL_CATEGORIES = null;

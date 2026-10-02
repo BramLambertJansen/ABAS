@@ -196,7 +196,7 @@ export function AfrekenenOverlay({
       )}
 
       {!ready && (
-        <p role="alert" className="text-sm font-bold text-danger">
+        <p role="status" className="text-sm font-bold text-danger">
           Controleer het mandje en de actuele lid- en bezettingsgegevens voordat je afrekent.
         </p>
       )}

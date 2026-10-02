@@ -299,9 +299,8 @@ tab switches. Queries and dialogs stay in the active screen. `BarApp` keys
 successful checkout clears the relevant draft. No browser persistence is used.
 Checkout waits for current products, member balance, settings and crew; missing
 members/products block confirmation with a message, while cached product
-names keep archived lines removable. Open overlays disable tab navigation,
+names keep archived lines removable. Open overlays make the rail `inert`,
 so a pending financial mutation cannot be unmounted by a rail click.
-
 
 ## Money & attribution (settled, from CLAUDE.md)
 

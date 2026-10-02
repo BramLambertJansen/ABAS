@@ -7,11 +7,10 @@ import { DienstActief } from "@/features/bezetting-beheren/DienstActief";
 import { DienstTeLangOpenMelding } from "@/features/dienst-te-lang-open/DienstTeLangOpenMelding";
 import { OverlayPresenceProvider } from "@/components/OverlayPresence";
 import { VerkoopScherm } from "./VerkoopScherm";
-import { useBarSessie } from "@/features/bar-sessie/BarSessieContext";
+import { useBarSessie, useMandjeMelding } from "@/features/bar-sessie/BarSessieContext";
 import { AdminMeldingen } from "@/features/bar-sessie/AdminMeldingen";
 import { UitloggenKnop } from "@/features/bar-sessie/UitloggenKnop";
 import { useVerkoopDraft } from "./useVerkoopDraft";
-import { useMandjeMelding } from "@/features/bar-sessie/BarSessieContext";
 import { ingelogdAls } from "@/features/bar-sessie/teksten";
 
 type Tab = "verkoop" | "dienst";
