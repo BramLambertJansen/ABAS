@@ -737,7 +737,7 @@ test.describe("beheer ingelogde staat (a11y)", () => {
       .getByRole("heading", { name: "Leden" })
       .waitFor({ state: "visible", timeout: 15_000 });
 
-    await page.getByRole("option", { name: /Anna de Vries/i }).click();
+    await page.getByRole("button", { name: /Anna de Vries/i }).click();
 
     const dialog = page.getByRole("dialog", { name: "Lid beheren" });
     await dialog.waitFor({ state: "visible" });
