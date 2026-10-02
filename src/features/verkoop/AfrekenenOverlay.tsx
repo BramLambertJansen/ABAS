@@ -21,6 +21,7 @@ import { insufficientBalanceMessage, placeOrderErrorMessage } from "./messages";
  */
 export function AfrekenenOverlay({
   shiftId,
+  ready,
   member,
   crew,
   lines,
@@ -34,6 +35,7 @@ export function AfrekenenOverlay({
   onRefetchShiftMembers,
 }: {
   shiftId: string;
+  ready: boolean;
   member: MemberOption;
   crew: ShiftMember[];
   lines: CartDisplayLine[];
@@ -55,7 +57,8 @@ export function AfrekenenOverlay({
   );
 
   const needsPicker = crew.length >= 2;
-  const effectiveServedBy = crew.length === 1 ? crew[0].id : servedBy;
+  const effectiveServedBy = crew.length === 1 ? crew[0].id :
+    crew.some((member) => member.id === servedBy) ? servedBy : null;
 
   const insufficientFunds = subtotalCents > member.balanceCents + negativeLimitCents;
   const shortfallCents = subtotalCents - (member.balanceCents + negativeLimitCents);
@@ -69,7 +72,8 @@ export function AfrekenenOverlay({
   // nadat de gebruiker bewust "Ik heb gecontroleerd" koos (besluit C).
   const [gecontroleerd, setGecontroleerd] = useState(false);
   const uitkomstOnbekend = submitErrorCode === "unknown" && !gecontroleerd;
-  const confirmDisabled = insufficientFunds || !effectiveServedBy || inVlucht || uitkomstOnbekend;
+  const confirmDisabled =
+    !ready || insufficientFunds || !effectiveServedBy || inVlucht || uitkomstOnbekend;
 
   // Escape/backdrop-click/"annuleren" mogen niet sluiten terwijl
   // place_order onderweg is: Overlay.tsx unmount't dan deze component (dus
@@ -78,7 +82,7 @@ export function AfrekenenOverlay({
   // openen en indienen vóórdat de eerste aanroep klaar was (dubbele
   // bestelling, dubbele saldo-afschrijving). Reviewbot op PR #41.
   async function handleConfirm() {
-    if (!effectiveServedBy || inVlucht || uitkomstOnbekend) return;
+    if (!ready || !effectiveServedBy || inVlucht || uitkomstOnbekend) return;
     setGecontroleerd(false);
 
     const result = await placeOrderMutation.placeOrder(
@@ -188,6 +192,12 @@ export function AfrekenenOverlay({
           role="alert"
         >
           {insufficientBalanceMessage(shortfallCents)}
+        </p>
+      )}
+
+      {!ready && (
+        <p role="status" className="text-sm font-bold text-danger">
+          Controleer het mandje en de actuele lid- en bezettingsgegevens voordat je afrekent.
         </p>
       )}
 

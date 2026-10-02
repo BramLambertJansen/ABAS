@@ -7,9 +7,10 @@ import { DienstActief } from "@/features/bezetting-beheren/DienstActief";
 import { DienstTeLangOpenMelding } from "@/features/dienst-te-lang-open/DienstTeLangOpenMelding";
 import { OverlayPresenceProvider } from "@/components/OverlayPresence";
 import { VerkoopScherm } from "./VerkoopScherm";
-import { useBarSessie } from "@/features/bar-sessie/BarSessieContext";
+import { useBarSessie, useMandjeMelding } from "@/features/bar-sessie/BarSessieContext";
 import { AdminMeldingen } from "@/features/bar-sessie/AdminMeldingen";
 import { UitloggenKnop } from "@/features/bar-sessie/UitloggenKnop";
+import { useVerkoopDraft } from "./useVerkoopDraft";
 import { ingelogdAls } from "@/features/bar-sessie/teksten";
 
 type Tab = "verkoop" | "dienst";
@@ -75,11 +76,9 @@ const RAIL_TABS: TabItem[] = [
  * Home/End, automatische activatie (twee tabs, lichte panelen). Het
  * panelgebied is het enige `main` van het actieve barscherm.
  *
- * Elk tabblad blijft alleen gemount terwijl het actief is (zelfde
- * mount/unmount-als-lifecycle-aanpak als Overlay.tsx, niet een
- * hidden-toggle) — zo krijgt Verkoop bij terugkeer altijd verse data
- * (assortiment, leden, bezetting) in plaats van een stale snapshot van
- * vóór het wisselen.
+ * Alleen het actieve tabblad is gemount en haalt bij terugkeer verse data
+ * op. De verkoopdraft leeft hier, boven de tabpanelen, zodat invoer de
+ * tabwissel overleeft zonder gelddata als actueel te beschouwen.
  *
  * Sinds dienst-per-sessie (docs/features/dienst-per-sessie.md → Schermflow
  * punt 5) onderaan de rail "Ingelogd als {naam}" en "Uitloggen" (met de
@@ -99,6 +98,8 @@ export function DienstTabs({
   onShiftEnded: () => void;
 }) {
   const sessie = useBarSessie();
+  const draft = useVerkoopDraft();
+  useMandjeMelding(draft.cartLines.length > 0);
   const [tab, setTab] = useState<Tab>("verkoop");
   const idBase = useId();
 
@@ -151,7 +152,7 @@ export function DienstTabs({
         <main className="flex min-h-0 min-w-0 flex-1">
           {tab === "verkoop" && (
             <TabPanel idBase={idBase} tabKey="verkoop" className="flex min-h-0 min-w-0 flex-1">
-              <VerkoopScherm shift={shift} />
+              <VerkoopScherm shift={shift} draft={draft} />
             </TabPanel>
           )}
 

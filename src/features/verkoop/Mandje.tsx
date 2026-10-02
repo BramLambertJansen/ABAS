@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { formatCents } from "@/lib/money";
 import { InitialsAvatar } from "@/components/InitialsAvatar";
 import type { MemberOption } from "@/hooks/queries/useMembers";
@@ -14,6 +14,8 @@ import { insufficientBalanceMessage, NO_MEMBERS_FOUND_MESSAGE } from "./messages
  * docs/features/verkoop.md → Schermflow §2.
  */
 export function Mandje({
+  memberQuery,
+  setMemberQuery,
   members,
   membersStatus,
   membersErrorMessage,
@@ -22,6 +24,7 @@ export function Mandje({
   onSelectMember,
   onClearMember,
   memberNotice,
+  checkoutNotice,
   cartLines,
   subtotalCents,
   insufficientFunds,
@@ -36,6 +39,8 @@ export function Mandje({
   topupDisabled,
   onOpenTopup,
 }: {
+  memberQuery: string;
+  setMemberQuery: (query: string) => void;
   members: MemberOption[];
   membersStatus: "loading" | "error" | "ready";
   membersErrorMessage: string | null;
@@ -44,6 +49,7 @@ export function Mandje({
   onSelectMember: (id: string) => void;
   onClearMember: () => void;
   memberNotice: string | null;
+  checkoutNotice: string | null;
   cartLines: CartDisplayLine[];
   subtotalCents: number;
   insufficientFunds: boolean;
@@ -58,8 +64,6 @@ export function Mandje({
   topupDisabled: boolean;
   onOpenTopup: () => void;
 }) {
-  const [memberQuery, setMemberQuery] = useState("");
-
   const trimmedQuery = memberQuery.trim().toLowerCase();
   const matches = useMemo(
     () =>
@@ -210,6 +214,12 @@ export function Mandje({
       {memberNotice && (
         <p className="flex-none text-xs font-bold text-danger" role="alert">
           {memberNotice}
+        </p>
+      )}
+
+      {checkoutNotice && (
+        <p className="flex-none text-xs font-bold text-danger" role="status">
+          {checkoutNotice}
         </p>
       )}
 
