@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Overlay } from "@/components/Overlay";
 import { StatCard } from "@/components/StatCard";
+import { OnbekendeUitkomstMelding } from "@/components/OnbekendeUitkomstMelding";
+import { useOpslaanBlokkade } from "@/hooks/useOpslaanBlokkade";
 import { BezettingKeuze } from "@/components/BezettingKeuze";
 import { formatCents } from "@/lib/money";
 import { usePlaceOrder, type PlaceOrderErrorCode } from "@/hooks/queries/usePlaceOrder";
@@ -56,7 +58,15 @@ export function AfrekenenOverlay({
   const shortfallCents = subtotalCents - (member.balanceCents + negativeLimitCents);
 
   const pending = placeOrderMutation.status === "pending";
-  const confirmDisabled = insufficientFunds || !effectiveServedBy || pending;
+  // Na 30 seconden zonder antwoord valt de sluitblokkade en is de uitkomst
+  // onbekend; tot die tijd is het verzoek echt in vlucht.
+  const { closeBlocked, timedOut } = useOpslaanBlokkade(pending);
+  const inVlucht = pending && !timedOut;
+  // Onbekende uitkomst (netwerk, onbekende fout, time-out): pas weer afrekenen
+  // nadat de gebruiker bewust "Ik heb gecontroleerd" koos (besluit C).
+  const [gecontroleerd, setGecontroleerd] = useState(false);
+  const uitkomstOnbekend = (submitErrorCode === "unknown" || timedOut) && !gecontroleerd;
+  const confirmDisabled = insufficientFunds || !effectiveServedBy || inVlucht || uitkomstOnbekend;
 
   // Escape/backdrop-click/"annuleren" mogen niet sluiten terwijl
   // place_order onderweg is: Overlay.tsx unmount't dan deze component (dus
@@ -65,7 +75,8 @@ export function AfrekenenOverlay({
   // openen en indienen vóórdat de eerste aanroep klaar was (dubbele
   // bestelling, dubbele saldo-afschrijving). Reviewbot op PR #41.
   async function handleConfirm() {
-    if (!effectiveServedBy || pending) return;
+    if (!effectiveServedBy || inVlucht || uitkomstOnbekend) return;
+    setGecontroleerd(false);
 
     const result = await placeOrderMutation.placeOrder(
       shiftId,
@@ -100,6 +111,11 @@ export function AfrekenenOverlay({
         onRefetchProducts();
         setSubmitErrorCode(result.code);
         break;
+      case "unknown":
+        // Uitkomst onbekend: ververs het saldo zodat de gebruiker kan controleren.
+        onRefetchMembers();
+        setSubmitErrorCode(result.code);
+        break;
       default:
         setSubmitErrorCode(result.code);
     }
@@ -110,11 +126,21 @@ export function AfrekenenOverlay({
       title={`Afrekenen bij ${member.name}`}
       description="Het bedrag gaat van het saldo af en de kassa staat daarna klaar voor de volgende."
       onClose={onClose}
-      closeBlocked={pending}
+      closeBlocked={closeBlocked}
     >
-      <p className="text-sm font-bold text-danger empty:-mt-4" role="alert">
-        {submitErrorCode ? placeOrderErrorMessage(submitErrorCode) : ""}
-      </p>
+      {uitkomstOnbekend ? (
+        <OnbekendeUitkomstMelding
+          onGecontroleerd={() => {
+            setGecontroleerd(true);
+            setSubmitErrorCode(null);
+            onRefetchMembers();
+          }}
+        />
+      ) : (
+        <p className="text-sm font-bold text-danger empty:-mt-4" role="alert">
+          {submitErrorCode ? placeOrderErrorMessage(submitErrorCode) : ""}
+        </p>
+      )}
 
       <StatCard
         variant="member"
@@ -168,7 +194,7 @@ export function AfrekenenOverlay({
       <div className="mt-0.5 flex gap-2.5">
         <button
           type="button"
-          disabled={pending}
+          disabled={closeBlocked}
           onClick={onClose}
           className="flex h-[50px] flex-1 items-center justify-center rounded-2xl border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
         >
@@ -180,7 +206,7 @@ export function AfrekenenOverlay({
           onClick={handleConfirm}
           className="flex h-[50px] flex-1 items-center justify-center rounded-2xl bg-accent-active text-sm font-bold text-white transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:bg-track disabled:text-muted"
         >
-          {pending ? "bezig…" : "ja, afrekenen"}
+          {inVlucht ? "bezig…" : "ja, afrekenen"}
         </button>
       </div>
     </Overlay>

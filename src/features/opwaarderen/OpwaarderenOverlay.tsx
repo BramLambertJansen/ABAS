@@ -3,6 +3,8 @@
 import { useId, useState } from "react";
 import { Overlay } from "@/components/Overlay";
 import { BezettingKeuze } from "@/components/BezettingKeuze";
+import { OnbekendeUitkomstMelding } from "@/components/OnbekendeUitkomstMelding";
+import { useOpslaanBlokkade } from "@/hooks/useOpslaanBlokkade";
 import { formatCents, parseEuroToCents } from "@/lib/money";
 import { useTopUp, type TopUpErrorCode } from "@/hooks/queries/useTopUp";
 import type { MemberOption } from "@/hooks/queries/useMembers";
@@ -82,12 +84,21 @@ export function OpwaarderenOverlay({
     amountCents !== null && amountCents > TOP_UP_CONFIRM_THRESHOLD_CENTS;
 
   const pending = topUpMutation.status === "pending";
+  // Na 30 seconden zonder antwoord valt de sluitblokkade en is de uitkomst
+  // onbekend; tot die tijd is het verzoek echt in vlucht.
+  const { closeBlocked, timedOut } = useOpslaanBlokkade(pending);
+  const inVlucht = pending && !timedOut;
+  // Onbekende uitkomst (netwerk, onbekende fout, time-out): pas weer boeken
+  // nadat de gebruiker bewust "Ik heb gecontroleerd" koos (besluit C).
+  const [gecontroleerd, setGecontroleerd] = useState(false);
+  const uitkomstOnbekend = (submitErrorCode === "unknown" || timedOut) && !gecontroleerd;
   // A4 (besloten, alle standen): nooit een opwaardering naar het lid van de
   // ingelogde sessie. De regel staat er al vóór het boeken, zodat de weigering
   // niet pas na de RPC zichtbaar wordt (zelfde verdeling als de €500): `top_up`
   // weigert het ook zelf (`self_top_up_forbidden`).
   const isSelf = sessie.session !== null && member.id === sessie.session.memberId;
-  const bookDisabled = !amountBookable || !effectiveServedBy || pending || isSelf;
+  const bookDisabled =
+    !amountBookable || !effectiveServedBy || inVlucht || isSelf || uitkomstOnbekend;
 
   // Elke bedragswijziging trekt een openstaande bevestiging in: anders zou
   // een bevestigd bedrag blijven staan terwijl er inmiddels een ander bedrag
@@ -103,7 +114,7 @@ export function OpwaarderenOverlay({
   // de operator dezelfde opwaardering dubbel indienen vóórdat de eerste
   // aanroep klaar is.
   async function handleBook() {
-    if (!amountBookable || !effectiveServedBy || pending || isSelf) return;
+    if (!amountBookable || !effectiveServedBy || inVlucht || isSelf || uitkomstOnbekend) return;
 
     // Eerste tik op een groot bedrag boekt niet, maar vraagt na. Pas de
     // tweede tik ("ja, … boeken") komt hier voorbij.
@@ -113,6 +124,7 @@ export function OpwaarderenOverlay({
       return;
     }
 
+    setGecontroleerd(false);
     const result = await topUpMutation.topUp(
       shiftId,
       member.id,
@@ -135,6 +147,11 @@ export function OpwaarderenOverlay({
         onRefetchMembers();
         onMemberNotFound();
         break;
+      case "unknown":
+        // Uitkomst onbekend: ververs het saldo zodat de gebruiker kan controleren.
+        onRefetchMembers();
+        setSubmitErrorCode(result.code);
+        break;
       default:
         setSubmitErrorCode(result.code);
     }
@@ -154,7 +171,7 @@ export function OpwaarderenOverlay({
     <Overlay
       title={`Saldo opwaarderen bij ${member.name}`}
       onClose={onClose}
-      closeBlocked={pending}
+      closeBlocked={closeBlocked}
     >
       <div className="-mt-1 flex items-baseline justify-between gap-3 text-[13px] font-semibold text-muted">
         <span className="min-w-0 truncate">
@@ -240,7 +257,7 @@ export function OpwaarderenOverlay({
             onClick={handleBook}
             className="flex h-12 flex-none items-center justify-center rounded-[13px] bg-accent-active px-[18px] text-[13.5px] font-extrabold text-white transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:bg-track disabled:text-muted"
           >
-            {pending
+            {inVlucht
               ? "bezig…"
               : confirming && amountCents !== null
                 ? `ja, ${formatCents(amountCents)} boeken`
@@ -260,13 +277,23 @@ export function OpwaarderenOverlay({
 
       {/* Geen min-hoogte: leeg neemt deze regel geen ruimte in (het lege
           vlak onder de titel in de vorige versie). */}
-      <p className="text-sm font-bold text-danger empty:-mt-4" role="alert">
-        {submitErrorCode ? topUpErrorMessage(submitErrorCode) : ""}
-      </p>
+      {uitkomstOnbekend ? (
+        <OnbekendeUitkomstMelding
+          onGecontroleerd={() => {
+            setGecontroleerd(true);
+            setSubmitErrorCode(null);
+            onRefetchMembers();
+          }}
+        />
+      ) : (
+        <p className="text-sm font-bold text-danger empty:-mt-4" role="alert">
+          {submitErrorCode ? topUpErrorMessage(submitErrorCode) : ""}
+        </p>
+      )}
 
       <button
         type="button"
-        disabled={pending}
+        disabled={closeBlocked}
         // In de bevestigingsstap is dit "terug" naar het bedrag, niet
         // "annuleren" van de hele overlay — anders is een verkeerd
         // ingetikt bedrag corrigeren alleen mogelijk door opnieuw te
