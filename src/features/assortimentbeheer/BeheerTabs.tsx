@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
+import { TabList, TabPanel, type TabItem } from "@/components/Tabs";
 import { ProductenLijst } from "./ProductenLijst";
 import { NegatieveLimietInstellingen } from "./NegatieveLimietInstellingen";
 import { ActiviteitstypesInstellingen } from "./ActiviteitstypesInstellingen";
@@ -12,6 +13,24 @@ import { useBarSessie } from "../bar-sessie/BarSessieContext";
 
 type Tab = "assortiment" | "leden" | "instellingen" | "logboek" | "diensten";
 
+const beheerTabClass = (selected: boolean) =>
+  `flex h-9 items-center whitespace-nowrap rounded-[10px] px-[15px] text-[12.5px] font-extrabold transition-colors ${
+    selected ? "bg-ink text-white" : "text-muted-strong hover:bg-border-subtle"
+  }`;
+
+// Wat hier staat is wat gerenderd wordt: Diensten en Logboek alleen voor de
+// beheerder, dus pijlnavigatie slaat ze voor een bardienst vanzelf over.
+const BARDIENST_TABS: TabItem[] = [
+  { key: "assortiment", label: "Assortiment", className: beheerTabClass },
+  { key: "leden", label: "Leden", className: beheerTabClass },
+  { key: "instellingen", label: "Instellingen", className: beheerTabClass },
+];
+const BEHEERDER_TABS: TabItem[] = [
+  ...BARDIENST_TABS,
+  { key: "diensten", label: "Diensten", className: beheerTabClass },
+  { key: "logboek", label: "Logboek", className: beheerTabClass },
+];
+
 /**
  * Navigatie tussen Assortiment (bestaande `ProductenLijst`, ongewijzigd),
  * Leden (nieuw, ledenbeheer — `LedenLijst`, eigen featuremap
@@ -20,9 +39,9 @@ type Tab = "assortiment" | "leden" | "instellingen" | "logboek" | "diensten";
  * `check:arch`-overtreding) en Instellingen (issue #11 —
  * `NegatieveLimietInstellingen`), ná een bevestigde `/beheer`-sessie. Zie
  * docs/features/negatieve-saldolimiet.md → Betrokken shell / Navigatie: dit
- * past exact hetzelfde `role="tablist"`-patroon toe als
- * `src/features/verkoop/DienstTabs.tsx` (bekeken als referentie-
- * implementatie), niet een nieuwe navigatiebeslissing —
+ * gebruikt het gedeelde `TabList`/`TabPanel`
+ * (`src/components/Tabs.tsx`, manuele activatie: pijlen verplaatsen de focus,
+ * Enter/Space activeert) —
  * `assortimentbeheer.md`'s eigen "geen tabbalk"-buiten-scope-punt klopte
  * alleen zolang er precies één scherm achter de beheer-login bestond.
  * Tabvolgorde (Assortiment/Leden/Instellingen) is aan de Developer, geen
@@ -60,102 +79,22 @@ export function BeheerTabs({
 }) {
   const sessie = useBarSessie();
   const [tab, setTab] = useState<Tab>("assortiment");
-  const assortimentTabId = useId();
-  const ledenTabId = useId();
-  const instellingenTabId = useId();
-  const logboekTabId = useId();
-  const dienstenTabId = useId();
+  const idBase = useId();
 
   return (
     <main className="flex min-h-screen w-full flex-col bg-canvas font-sans text-ink antialiased">
       {/* Eén kopbalk zoals het prototype (`beheerOpen`): terug-link, tabs als
           pillen (actief = donker), rechts de BEHEER-badge en uitloggen. */}
       <header className="flex h-[60px] flex-none items-center gap-3.5 border-b border-border bg-white px-5">
-        <div
-          role="tablist"
-          aria-label="Beheer-navigatie"
+        <TabList
+          idBase={idBase}
+          label="Beheer-navigatie"
+          activation="manual"
+          selected={tab}
+          onSelect={(key) => setTab(key as Tab)}
+          items={role === "beheerder" ? BEHEERDER_TABS : BARDIENST_TABS}
           className="flex items-center gap-1"
-        >
-          <button
-            type="button"
-            role="tab"
-            id={assortimentTabId}
-            aria-selected={tab === "assortiment"}
-            aria-controls="assortiment-panel"
-            onClick={() => setTab("assortiment")}
-            className={`flex h-9 items-center whitespace-nowrap rounded-[10px] px-[15px] text-[12.5px] font-extrabold transition-colors ${
-              tab === "assortiment"
-                ? "bg-ink text-white"
-                : "text-muted-strong hover:bg-border-subtle"
-            }`}
-          >
-            Assortiment
-          </button>
-          <button
-            type="button"
-            role="tab"
-            id={ledenTabId}
-            aria-selected={tab === "leden"}
-            aria-controls="leden-panel"
-            onClick={() => setTab("leden")}
-            className={`flex h-9 items-center whitespace-nowrap rounded-[10px] px-[15px] text-[12.5px] font-extrabold transition-colors ${
-              tab === "leden"
-                ? "bg-ink text-white"
-                : "text-muted-strong hover:bg-border-subtle"
-            }`}
-          >
-            Leden
-          </button>
-          <button
-            type="button"
-            role="tab"
-            id={instellingenTabId}
-            aria-selected={tab === "instellingen"}
-            aria-controls="instellingen-panel"
-            onClick={() => setTab("instellingen")}
-            className={`flex h-9 items-center whitespace-nowrap rounded-[10px] px-[15px] text-[12.5px] font-extrabold transition-colors ${
-              tab === "instellingen"
-                ? "bg-ink text-white"
-                : "text-muted-strong hover:bg-border-subtle"
-            }`}
-          >
-            Instellingen
-          </button>
-          {role === "beheerder" && (
-            <button
-              type="button"
-              role="tab"
-              id={dienstenTabId}
-              aria-selected={tab === "diensten"}
-              aria-controls="diensten-panel"
-              onClick={() => setTab("diensten")}
-              className={`flex h-9 items-center whitespace-nowrap rounded-[10px] px-[15px] text-[12.5px] font-extrabold transition-colors ${
-                tab === "diensten"
-                  ? "bg-ink text-white"
-                  : "text-muted-strong hover:bg-border-subtle"
-              }`}
-            >
-              Diensten
-            </button>
-          )}
-          {role === "beheerder" && (
-            <button
-              type="button"
-              role="tab"
-              id={logboekTabId}
-              aria-selected={tab === "logboek"}
-              aria-controls="logboek-panel"
-              onClick={() => setTab("logboek")}
-              className={`flex h-9 items-center whitespace-nowrap rounded-[10px] px-[15px] text-[12.5px] font-extrabold transition-colors ${
-                tab === "logboek"
-                  ? "bg-ink text-white"
-                  : "text-muted-strong hover:bg-border-subtle"
-              }`}
-            >
-              Logboek
-            </button>
-          )}
-        </div>
+        />
 
         <div className="ml-auto flex flex-none items-center gap-2.5">
           <span className="hidden whitespace-nowrap text-xs font-semibold text-muted lg:inline">
@@ -210,62 +149,37 @@ export function BeheerTabs({
         )}
 
         {tab === "assortiment" && (
-          <div
-            id="assortiment-panel"
-            role="tabpanel"
-            aria-labelledby={assortimentTabId}
-            className="flex min-h-0 flex-1 flex-col gap-5"
-          >
+          <TabPanel idBase={idBase} tabKey="assortiment" className="flex min-h-0 flex-1 flex-col gap-5">
             <ProductenLijst />
-          </div>
+          </TabPanel>
         )}
 
         {tab === "leden" && (
-          <div
-            id="leden-panel"
-            role="tabpanel"
-            aria-labelledby={ledenTabId}
-            className="flex min-h-0 flex-1 flex-col gap-5"
-          >
+          <TabPanel idBase={idBase} tabKey="leden" className="flex min-h-0 flex-1 flex-col gap-5">
             <LedenLijst />
-          </div>
+          </TabPanel>
         )}
 
         {tab === "instellingen" && (
-          <div
-            id="instellingen-panel"
-            role="tabpanel"
-            aria-labelledby={instellingenTabId}
-            className="flex min-h-0 flex-1 flex-wrap items-start gap-5"
-          >
+          <TabPanel idBase={idBase} tabKey="instellingen" className="flex min-h-0 flex-1 flex-wrap items-start gap-5">
             <NegatieveLimietInstellingen />
             {/* Nieuwe kaart naast (niet in plaats van) NegatieveLimietInstellingen
               — responsief, scrollbaar raster (issue #18, chat37.md), geen
               vierde tab. Zie docs/features/activiteittypes.md → Schermflow §1. */}
             <ActiviteitstypesInstellingen />
-          </div>
+          </TabPanel>
         )}
 
         {tab === "diensten" && role === "beheerder" && (
-          <div
-            id="diensten-panel"
-            role="tabpanel"
-            aria-labelledby={dienstenTabId}
-            className="flex min-h-0 flex-1 flex-col gap-5"
-          >
+          <TabPanel idBase={idBase} tabKey="diensten" className="flex min-h-0 flex-1 flex-col gap-5">
             <DienstenApparaten />
-          </div>
+          </TabPanel>
         )}
 
         {tab === "logboek" && role === "beheerder" && (
-          <div
-            id="logboek-panel"
-            role="tabpanel"
-            aria-labelledby={logboekTabId}
-            className="flex min-h-0 flex-1 flex-col gap-5"
-          >
+          <TabPanel idBase={idBase} tabKey="logboek" className="flex min-h-0 flex-1 flex-col gap-5">
             <LogboekLijst />
-          </div>
+          </TabPanel>
         )}
       </div>
     </main>
