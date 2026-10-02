@@ -1033,6 +1033,36 @@ is niet gebouwd).
   test op het echte tablet) staan in `dienst-per-sessie.md` → Zoals gebouwd →
   Uitrol. Of ze gedaan zijn, staat niet in de repo.
 
+**Bestandsopslag (Storage) (besloten, 2026-10-02, nog niet gebouwd)**: ADR
+[0018](adr/0018-bestandsopslag-alleen-server-side-schrijven.md),
+`docs/features/productafbeeldingen.md`. De eerste bucket is
+`product-images`, publiek. Hij wordt in een migratie aangemaakt, met
+`allowed_mime_types = {image/webp}` en een `file_size_limit` van 1 MB.
+`storage.objects` heeft voor geen enkele API-rol een schrijfpolicy. Upload,
+vervangen en verwijderen lopen via de Route Handler
+`/beheer/productafbeelding` (logica in `src/lib/productImage.ts`). Dat is
+het patroon van ADR 0006, nu voor Storage:
+- eerst `getUser`, de actorcheck en `check_beheer_session` met de
+  sessie-gebonden client;
+- daarna opnieuw coderen met `sharp` (maximaal 512px, WebP, zonder
+  EXIF/GPS);
+- uploaden met de service-role-client;
+- de verwijzing (`products.image_path`) via de RPC `set_product_image`, met
+  de sessie-gebonden client. Die geeft het vorige pad terug, gelezen onder
+  `for update`. De RPC is een client-functie met guard in
+  `supabase/tests/rpc_catalogus.test.sql`.
+- als laatste het vorige object opruimen via de Storage-API.
+
+Paden zijn onveranderlijk (`products/<id>/<uuid>.webp`), dus de CDN-cache
+veroudert nooit. Publiek mag alleen voor niet-persoonsgebonden beeld;
+bestanden van of over een lid horen in een private bucket met een eigen
+spec. In Product beheren volgt het afbeeldingsblok het pending-model van
+#126 (`OpslaanSectie`, serialisatie per product, 30 s-time-out). Bij de bouw
+breidt deze feature `check:rls` uit (elke bucket heeft een type- en
+groottelimiet en een test, elke storage-policy een test met haar naam) en
+`check:policy` (geen `.storage.from(` buiten de datalaag). Tot nu toe dekte
+geen gate Storage.
+
 ## Wat het prototype deed maar hier nog niet is besloten
 
 Alleen ter referentie — niets hiervan is in of uit scope besloten. Niet bouwen

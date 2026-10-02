@@ -123,6 +123,16 @@ niet alleen voor `inviteUserByEmail`. Een volgende feature die zoiets nodig
 heeft, hoeft dit ADR niet opnieuw te schrijven, alleen dit patroon toe te
 passen.
 
+**Uitgebreid naar Supabase Storage (2026-10-02).**
+[ADR 0018](0018-bestandsopslag-alleen-server-side-schrijven.md) past
+hetzelfde patroon toe op schrijfacties in Storage: een server-only
+entrypoint, verificatie met de sessie-gebonden client, de service-role-client
+alleen voor het uploaden of verwijderen van het object, en de verwijzing in
+de database terug via een gewone RPC. ADR 0018 voegt daar regels aan toe die
+hier niet staan: geen schrijfpolicies op `storage.objects`, en wanneer een
+bucket publiek mag zijn. Eerste toepassing:
+`docs/features/productafbeeldingen.md`.
+
 ## Verworpen alternatieven
 
 - **De service-role-key ook laten lezen door `server.ts`** (geen apart
