@@ -2,6 +2,8 @@
 
 import { useId, useState } from "react";
 import { Overlay } from "@/components/Overlay";
+import { useOpslaanBlokkade } from "@/hooks/useOpslaanBlokkade";
+import { ONBEKENDE_UITKOMST_TEKST } from "@/lib/opslaan";
 import { useShiftCandidates } from "@/hooks/queries/useShiftCandidates";
 import type { ShiftMember } from "@/hooks/queries/useShiftMembers";
 import {
@@ -68,6 +70,10 @@ export function BezettingOverlay({
   const [lastAction, setLastAction] = useState<"add" | "remove" | null>(null);
   const [search, setSearch] = useState("");
   const unavailableId = useId();
+  // Geen formulier, dus geen onopgeslagen-beleid: elke tik is direct een actie.
+  // Wel blokkeren tijdens die actie, zodat het venster niet onder een lopende
+  // mutatie verdwijnt (docs/features/opslaan-sluiten-pending.md).
+  const { closeBlocked, timedOut } = useOpslaanBlokkade(pendingId !== null);
 
   const memberIds = new Set(members.map((member) => member.id));
   const available = candidates.status === "ready" ? candidates.candidates : [];
@@ -118,9 +124,10 @@ export function BezettingOverlay({
       title="Bezetting van deze dienst"
       description="Iedereen hieronder werkt in dezelfde dienst. Tik iemand aan om toe te voegen of af te melden."
       onClose={onClose}
+      closeBlocked={closeBlocked}
     >
       <p className="text-sm font-bold text-danger empty:-mt-4" role="alert">
-        {errorMessage ?? ""}
+        {timedOut ? ONBEKENDE_UITKOMST_TEKST : (errorMessage ?? "")}
       </p>
 
       {membersStatus === "loading" && (
@@ -224,8 +231,9 @@ export function BezettingOverlay({
 
       <button
         type="button"
+        disabled={closeBlocked}
         onClick={onClose}
-        className="flex h-11 w-full items-center justify-center rounded-2xl bg-accent-active text-sm font-bold text-white transition-colors hover:bg-accent"
+        className="flex h-11 w-full items-center justify-center rounded-2xl bg-accent-active text-sm font-bold text-white transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
       >
         Klaar
       </button>

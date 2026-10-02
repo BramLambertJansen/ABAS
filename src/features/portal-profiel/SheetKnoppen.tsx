@@ -12,17 +12,21 @@ export function SheetKnoppen({
   submitLabel,
   disabled,
   onCancel,
+  cancelDisabled = false,
 }: {
   submitLabel: string;
   disabled: boolean;
   onCancel: () => void;
+  /** Tijdens een lopende opslag (`closeBlocked`) sluit ook Annuleer niet. */
+  cancelDisabled?: boolean;
 }) {
   return (
     <div className="flex gap-[10px]">
       <button
         type="button"
+        disabled={cancelDisabled}
         onClick={onCancel}
-        className="flex h-[52px] flex-1 items-center justify-center rounded-2xl border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink"
+        className="flex h-[52px] flex-1 items-center justify-center rounded-2xl border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
       >
         Annuleer
       </button>

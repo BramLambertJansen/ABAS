@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { useHerstelFocus } from "@/hooks/useHerstelFocus";
 import { Overlay } from "@/components/Overlay";
 import { StatCard } from "@/components/StatCard";
+import { OnbekendeUitkomstMelding } from "@/components/OnbekendeUitkomstMelding";
+import { useOpslaanBlokkade } from "@/hooks/useOpslaanBlokkade";
 import { BezettingKeuze } from "@/components/BezettingKeuze";
 import { formatCents } from "@/lib/money";
 import { usePlaceOrder, type PlaceOrderErrorCode } from "@/hooks/queries/usePlaceOrder";
@@ -44,6 +47,8 @@ export function AfrekenenOverlay({
   onRefetchShiftMembers: () => void;
 }) {
   const placeOrderMutation = usePlaceOrder();
+  const herstelFocus = useHerstelFocus();
+  const knopRef = useRef<HTMLButtonElement>(null);
   const [servedBy, setServedBy] = useState<string | null>(null);
   const [submitErrorCode, setSubmitErrorCode] = useState<PlaceOrderErrorCode | null>(
     null
@@ -56,7 +61,15 @@ export function AfrekenenOverlay({
   const shortfallCents = subtotalCents - (member.balanceCents + negativeLimitCents);
 
   const pending = placeOrderMutation.status === "pending";
-  const confirmDisabled = insufficientFunds || !effectiveServedBy || pending;
+  // Geld: geen time-out, de blokkade blijft tot het verzoek klaar is.
+  const { closeBlocked } = useOpslaanBlokkade(pending, { metTimeout: false });
+  // Een tweede geldopdracht blijft geblokkeerd zolang de eerste kan slagen.
+  const inVlucht = pending;
+  // Onbekende uitkomst (netwerk, onbekende fout): pas weer afrekenen
+  // nadat de gebruiker bewust "Ik heb gecontroleerd" koos (besluit C).
+  const [gecontroleerd, setGecontroleerd] = useState(false);
+  const uitkomstOnbekend = submitErrorCode === "unknown" && !gecontroleerd;
+  const confirmDisabled = insufficientFunds || !effectiveServedBy || inVlucht || uitkomstOnbekend;
 
   // Escape/backdrop-click/"annuleren" mogen niet sluiten terwijl
   // place_order onderweg is: Overlay.tsx unmount't dan deze component (dus
@@ -65,7 +78,8 @@ export function AfrekenenOverlay({
   // openen en indienen vóórdat de eerste aanroep klaar was (dubbele
   // bestelling, dubbele saldo-afschrijving). Reviewbot op PR #41.
   async function handleConfirm() {
-    if (!effectiveServedBy || pending) return;
+    if (!effectiveServedBy || inVlucht || uitkomstOnbekend) return;
+    setGecontroleerd(false);
 
     const result = await placeOrderMutation.placeOrder(
       shiftId,
@@ -100,6 +114,11 @@ export function AfrekenenOverlay({
         onRefetchProducts();
         setSubmitErrorCode(result.code);
         break;
+      case "unknown":
+        // Uitkomst onbekend: ververs het saldo zodat de gebruiker kan controleren.
+        onRefetchMembers();
+        setSubmitErrorCode(result.code);
+        break;
       default:
         setSubmitErrorCode(result.code);
     }
@@ -110,11 +129,27 @@ export function AfrekenenOverlay({
       title={`Afrekenen bij ${member.name}`}
       description="Het bedrag gaat van het saldo af en de kassa staat daarna klaar voor de volgende."
       onClose={onClose}
-      closeBlocked={pending}
+      closeBlocked={closeBlocked}
     >
-      <p className="text-sm font-bold text-danger empty:-mt-4" role="alert">
-        {submitErrorCode ? placeOrderErrorMessage(submitErrorCode) : ""}
-      </p>
+      {uitkomstOnbekend ? (
+        <OnbekendeUitkomstMelding
+          hangend={pending}
+          onGecontroleerd={() => {
+            setGecontroleerd(true);
+            setSubmitErrorCode(null);
+            onRefetchMembers();
+            herstelFocus(
+              knopRef.current?.disabled
+                ? knopRef.current.closest<HTMLElement>('[role="dialog"]')
+                : knopRef.current
+            );
+          }}
+        />
+      ) : (
+        <p className="text-sm font-bold text-danger empty:-mt-4" role="alert">
+          {submitErrorCode ? placeOrderErrorMessage(submitErrorCode) : ""}
+        </p>
+      )}
 
       <StatCard
         variant="member"
@@ -168,7 +203,7 @@ export function AfrekenenOverlay({
       <div className="mt-0.5 flex gap-2.5">
         <button
           type="button"
-          disabled={pending}
+          disabled={closeBlocked}
           onClick={onClose}
           className="flex h-[50px] flex-1 items-center justify-center rounded-2xl border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
         >
@@ -176,6 +211,7 @@ export function AfrekenenOverlay({
         </button>
         <button
           type="button"
+          ref={knopRef}
           disabled={confirmDisabled}
           onClick={handleConfirm}
           className="flex h-[50px] flex-1 items-center justify-center rounded-2xl bg-accent-active text-sm font-bold text-white transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:bg-track disabled:text-muted"
