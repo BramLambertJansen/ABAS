@@ -135,9 +135,9 @@ intro-illustratie. `designs/README.md` noemt het onderwerp niet.
   wordt en geen zin in CLAUDE.md. Sinds 2026-10-01 eist de gate
   `rpc_catalogus` (`db:test`, CLAUDE.md → Verificatie) dat elke nieuwe
   functie in `public` ingedeeld is.
-- Open PR's op `main` die dezelfde bestanden raken: #145
-  (tablet-bruikbaarheid, T04) en #137 (verkoopconcept bewaren, T03) wijzigen
-  allebei `Assortiment.tsx`. #145 vervangt de kolommen van de galerij
+- PR's op `main` die dezelfde bestanden raken: #145
+  (tablet-bruikbaarheid, T04) en #148 (verkoopconcept bewaren, T03; vervangt
+  het gesloten #137, inmiddels gemerged) wijzigen allebei `Assortiment.tsx`. #145 vervangt de kolommen van de galerij
   (`shell.columns`) door `auto-fill` met een minimale kaartbreedte en
   herschikt de kaart. Dat is geen inhoudelijk conflict met deze spec. Wie als
   tweede merget, past de markup aan.

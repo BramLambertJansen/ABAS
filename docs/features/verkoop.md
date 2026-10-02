@@ -105,21 +105,46 @@ Expliciet buiten scope.
 
 Een wissel Verkoop → Dienst → Verkoop bewaart gekozen lid, vergelijkingslid
 voor de lidwisselregel, productregels/aantallen, laatst bekende productinformatie,
-product-/ledenzoekterm, categorie en weergave. Een open dialoog blokkeert tabwissels totdat die gesloten is, zodat een
-lopende boeking niet door navigatie kan worden onderbroken. De draft leeft alleen in geheugen, boven de tabpanelen, en wordt
-opnieuw aangemaakt bij een andere dienst of persoonlijke sessie. Afsluiten,
-uitloggen en succesvolle afrekening laten geen oude bestelling achter.
-Een volledige browserreload bewaart geen draft.
+product-/ledenzoekterm, categorie en weergave.
 
-Het actieve tabpaneel haalt zijn gegevens bij iedere terugkeer opnieuw op.
-Bewaarde naam-/prijsinformatie houdt een gearchiveerde regel herkenbaar en
-verwijderbaar; afrekenen vereist geladen actuele producten, leden, instellingen
-en bezetting. Veranderde prijzen/saldi worden in mandje en bevestiging gebruikt.
-Een ontbrekend lid/product blokkeert afrekenen met uitleg; de draft blijft
-beschikbaar om te corrigeren. Een niet meer aanwezige uitvoerder kan niet
-bevestigen. De RPC blijft bedrag, beschikbaarheid, saldo en attributie controleren.
+**Waar de draft leeft.** In `DienstTabs`, via `useVerkoopDraft`, boven de
+tabpanelen; `VerkoopScherm` en `Assortiment`/`Mandje` krijgen hem als prop.
+Queries en dialogen blijven in het actieve scherm. `BarApp` mount `DienstTabs`
+met `key={session.id:shift.id}`: een andere dienst of persoonlijke sessie
+geeft een lege draft, en afsluiten of uitloggen laat geen oude bestelling
+achter. Geen browseropslag: een volledige reload bewaart geen draft.
+`useMandjeMelding` staat ook in `DienstTabs`, zodat de melding "mandje niet
+afgerekend" bij een gesloten sessie ook geldt terwijl het Dienst-tabblad
+actief is.
+
+**Wissen bij afrekenen.** Een geslaagde afrekening wist mandje, gekozen lid,
+vergelijkingslid en snapshot. De ledenzoekterm (en productzoekterm, categorie
+en weergave) blijft na afrekenen bewust staan (besluit Bram).
+
+**Tabwissel tijdens een dialoog.** Een open dialoog kan niet door de rail
+worden onderbroken: `Overlay` (T05) maakt de achtergrond, dus ook de rail,
+`inert` (`overlayShield`). Er is geen aparte disabled-staat op de railknoppen
+(T3's eerste opzet is vervallen). `e2e/verkoop-draft.spec.ts` toetst dit met een
+echte muisklik op de rail.
+
+**Verse data.** Het actieve tabpaneel haalt zijn gegevens bij iedere terugkeer
+opnieuw op. Bewaarde naam-/prijsinformatie houdt een gearchiveerde regel
+herkenbaar en verwijderbaar. Actuele producten gaan voor op de bewaarde cache;
+veranderde prijzen/saldi worden in mandje en bevestiging gebruikt.
+
+**Afrekenen wacht op `ready`.** `ready` (`checkoutReady` in `VerkoopScherm`)
+is waar zodra producten, leden, instellingen en bezetting geladen zijn, de
+bezetting niet leeg is en lid en mandjeproducten nog bestaan. `AfrekenenOverlay`
+gebruikt `ready` zowel in `confirmDisabled` als in `handleConfirm`, naast
+`closeBlocked`/`useOpslaanBlokkade` (#126) en de onbekende-uitkomst-logica. Is
+`ready` onwaar, dan toont de overlay een melding met `role="status"` en blijft
+bevestigen uit. Een ontbrekend lid/product blokkeert afrekenen met uitleg; de
+draft blijft beschikbaar om te corrigeren. Een niet meer aanwezige uitvoerder
+kan niet bevestigen. De RPC blijft bedrag, beschikbaarheid, saldo en
+attributie controleren.
+
 Lidwissel behoudt de bestaande regel: hetzelfde lid bewaart het mandje, een
-ander lid wist de regels. Geen nieuwe geld- of databasecontracten.
+ander lid wist de regels. Geen RPC-, schema- of policy-wijzigingen.
 
 ## Schermflow
 

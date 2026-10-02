@@ -304,16 +304,17 @@ entirely once a shift is open, rather than branching inside its own dark
 PIN-entry layout. Each tab's content is mounted/unmounted as the active tab
 changes (not hidden via CSS) — same lifecycle-based approach as
 `Overlay.tsx` — so returning to a tab always re-fetches fresh data instead of
-showing a stale snapshot. Frontend T03 / #43 lifts only the sale draft into
+showing a stale snapshot. T03 / #43 (PR #148) lifts only the sale draft into
 `DienstTabs` via `useVerkoopDraft`: member selection and its comparison id,
 cart quantities, last-known display information and search/view state survive
 tab switches. Queries and dialogs stay in the active screen. `BarApp` keys
 `DienstTabs` by session and shift; closing the shift, changing session or a
-successful checkout clears the relevant draft. No browser persistence is used.
-Checkout waits for current products, member balance, settings and crew; missing
+successful checkout clears cart and member (the member search term stays, by decision). No browser persistence is used. `useMandjeMelding` also lives in `DienstTabs`.
+Checkout waits (`ready`, in both `confirmDisabled` and `handleConfirm` of `AfrekenenOverlay`) for current products, member balance, settings and crew; missing
 members/products block confirmation with a message, while cached product
-names keep archived lines removable. Open overlays make the rail `inert`,
-so a pending financial mutation cannot be unmounted by a rail click.
+names keep archived lines removable. Open overlays make the rail `inert` (`overlayShield`, T05), so a pending
+financial mutation cannot be unmounted by a rail click; there is no separate
+disabled state on the rail. No RPC, schema or policy changes.
 
 ## Money & attribution (settled, from CLAUDE.md)
 
