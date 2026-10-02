@@ -1,8 +1,7 @@
 # Opslaan, sluiten en gelijktijdige acties voorspelbaar maken
 
-**Status: wacht op akkoord van Bram.** De drie open vragen onderaan (A, B, C)
-moeten beantwoord zijn voor de Developer begint. Tot dan staat bij elke vraag
-een aanbeveling, geen besluit.
+**Status: goedgekeurd door Bram (2026-10-02)**: aanbevelingen bij A, B, C, D
+en E, en een time-out van 30 seconden voor een hangend verzoek.
 
 Spec voor [issue #126](https://github.com/BramLambertJansen/ABAS/issues/126)
 (frontend T06 · P2, epic #121, findings F10 en F11). Bouwt voort op het
@@ -381,8 +380,7 @@ ADR bij die spec, niet erna.
   gebruiker niet voor altijd opsluiten. Dit is een aandachtspunt dat vraag
   C raakt (onbekende uitkomst). **Aanbeveling:** een time-out in de hook
   die de status op "onbekende uitkomst" zet, zodat de blokkade valt. De
-  duur is een beslissing van Bram (niet verzonnen: zie vraag C, dezelfde
-  discussie). Zonder time-out kan een hangend verzoek de dialoog blokkeren
+  duur is door Bram vastgesteld op **30 seconden**. Zonder time-out kan een hangend verzoek de dialoog blokkeren
   tot herladen.
 - **Dubbele klik of Enter-herhaling in een formulier:** de `status`-guard
   bestaat al; het nieuwe pending-model dekt ook Enter in `<form onSubmit>`
