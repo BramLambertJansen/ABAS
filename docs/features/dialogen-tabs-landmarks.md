@@ -559,11 +559,12 @@ met de rail als `nav` "Bar" ervoor.
 
 **Niet gedaan of niet bewezen:**
 
-- **Pending-E2E** is alleen voor Afrekenen en Terugdraaien. Opwaarderen, Dienst
-  afsluiten, Overnemen en Afmelden hebben `closeBlocked` maar nog geen
-  eigen pending-E2E: vervolgwerk
+- **Pending-E2E** is alleen voor Afrekenen en Lid-bestellingen in beheer
+  (`LidBestellingenOverlay`, de terugdraaiflow in beheer). Opwaarderen, Dienst
+  afsluiten, Overnemen, Afmelden en de bar-`TerugdraaienOverlay` hebben
+  `closeBlocked` maar nog geen eigen pending-E2E: vervolgwerk
   [#140](https://github.com/BramLambertJansen/ABAS/issues/140). De spec
-  vroeg dat de bescherming na omzetting aantoonbaar blijft werken; voor die vier
+  vroeg dat de bescherming na omzetting aantoonbaar blijft werken; voor die vijf
   is dat dus nog niet aangetoond.
 - **Handmatige reeks** (echte tablet en telefoon, Safari/iPadOS, touch,
   VoiceOver/TalkBack) is niet uitgevoerd. Deze feature claimt geen werking op
