@@ -446,8 +446,8 @@ afbeelding, gedempt zoals de rest van de rij.
 - Nieuw blok **"Afbeelding"**: een derde `OpslaanSectie` (met de standaard
   omlijsting, zoals "Prijs wijzigen"), met een titel en een korte
   toelichting met de toegestane types en de maximale grootte. Het blok staat
-  bovenaan, direct onder de kop, boven "Prijs wijzigen" en "Uit assortiment"
-  (Besluit 14). Het blok volgt het
+  bovenaan, direct onder de kop, boven de prijs ("Huidige prijs" en "Prijs
+  wijzigen") en "Uit assortiment" (Besluit 14). Het blok volgt het
   pending-model van #126 ([`opslaan-sluiten-pending.md`](opslaan-sluiten-pending.md)
   → "Zoals gebouwd"), net als prijs en archief. Er komt geen eigen variant.
   - Zonder afbeelding de knop **"Afbeelding kiezen"**, met afbeelding
@@ -853,7 +853,8 @@ alternatieven blijven hieronder staan als motivatie. Ze zijn niet open.
 14. **Waar staat het afbeeldingsblok in Product beheren?**
     *Besloten:* het blok "Afbeelding" (uploaden, vervangen, verwijderen) is
     een eigen `OpslaanSectie` bovenaan, direct onder de kop met de
-    52px-afbeelding, en boven "Prijs wijzigen" en "Uit assortiment". Dit
+    52px-afbeelding, en boven de prijs ("Huidige prijs" en "Prijs
+    wijzigen") en "Uit assortiment". Dit
     vult het punt in dat Schermflow aan de Developer liet.
 
 15. **Hoe wordt "Bezig met uploaden…" aangekondigd?**
