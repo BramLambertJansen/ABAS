@@ -251,6 +251,33 @@ Escape/backdrop/focus-trap. A dialog built outside `Overlay` isn't counted.
   touch/screen-reader run. Nothing here claims behaviour on those or WCAG
   conformance.
 
+**Opslaan, sluiten en gelijktijdige acties (built and merged, #126, PR #142,
+2026-10-02; `docs/features/opslaan-sluiten-pending.md`)**: no ADR, ADR 0014
+stands. Shared pieces, all additive to the T05 contract:
+- `src/lib/opslaan.ts`: pure rules and texts (`PENDING_TIMEOUT_MS` = 30 s,
+  per-object serialisation helpers, the "unsaved" definitions, the discard and
+  unknown-outcome texts). Unit-tested.
+- `src/hooks/useOpslaanBlokkade.ts`: `useOpslaanBlokkade(pending, { metTimeout })`
+  returns `closeBlocked` and `timedOut`. Admin dialogs without money keep the
+  default 30 s time-out (the block drops, outcome "unknown"); money overlays
+  (Afrekenen, Opwaarderen, Nieuw lid) pass `{ metTimeout: false }`: no
+  time-out, blocked until the request settles.
+- `src/hooks/useHerstelFocus.ts`: restores focus to the result section after a
+  pending action (never `body`).
+- `src/components/OpslaanSectie.tsx`: one action section (aria-busy, the
+  "wait for the running change" hint, its own `role="alert"` error, so one
+  action's error does not displace another's).
+- `src/components/OnbekendeUitkomstMelding.tsx`: unknown outcome of a money
+  request: check text, "Ik heb gecontroleerd" (disabled while `hangend`), no
+  automatic retry. Discourages a blind retry, does not prove an outcome:
+  there is no idempotency key; backend idempotency is issue
+  [#143](https://github.com/BramLambertJansen/ABAS/issues/143).
+- `Overlay` prop **`onopgeslagen`**: Escape and backdrop ask for confirmation
+  inline in the same dialog (no second overlay, ADR 0014); the consumer's own
+  Sluiten/Annuleren buttons discard directly; `closeBlocked` always wins.
+Consequence: a truly hanging money request keeps its dialog blocked until
+reload. Not covered: `TweestapSheet`, manual Safari/touch/screen-reader run.
+
 **First multi-screen bar navigation (settled, 2026-08-26)**: issue #8 is the
 first time `shells/bar` needed more than one screen behind an open shift.
 `src/features/verkoop/DienstTabs.tsx` renders the navigation (Verkoop,
