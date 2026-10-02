@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// check:policy — CLAUDE.md → Verificatie: "geen queries buiten de datalaag,
+// check:policy — CLAUDE.md → Verificatie: "geen queries of storage-aanroepen
+// buiten de datalaag,
 // geen device-sniffing, geen kale console.error in src/hooks/queries/".
 // What source scanning can't see (client never computes an amount,
 // served_by validated against the roster) is review work or a database
@@ -29,6 +30,16 @@ for (const file of files) {
     !ALLOWED_QUERY_DIRS.some((d) => file.startsWith(d));
   if (queriesOutsideDataLayer) {
     problems.push(`${file}: calls supabase.from()/.rpc() outside src/hooks/queries/ or src/lib/`);
+  }
+
+  // Storage (ADR 0018 → punt 6): `<client>.storage.from(` whatever the
+  // variable is called — `supabase.storage.from(` doesn't match the rule
+  // above, because `storage` sits between `supabase.` and `from`.
+  const storageOutsideDataLayer =
+    /\.\s*storage\s*\.\s*from\s*\(/.test(source) &&
+    !ALLOWED_QUERY_DIRS.some((d) => file.startsWith(d));
+  if (storageOutsideDataLayer) {
+    problems.push(`${file}: calls .storage.from() outside src/hooks/queries/ or src/lib/`);
   }
 
   if (file.startsWith(NO_BARE_CONSOLE_ERROR_DIR) && /\bconsole\s*\.\s*error\s*\(/.test(source)) {
