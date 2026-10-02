@@ -5,6 +5,7 @@ import { formatCents } from "@/lib/money";
 import { InitialsAvatar } from "@/components/InitialsAvatar";
 import type { MemberOption } from "@/hooks/queries/useMembers";
 import type { CartDisplayLine } from "./types";
+import { ZijPaneel } from "@/components/ZijPaneel";
 import { insufficientBalanceMessage, NO_MEMBERS_FOUND_MESSAGE } from "./messages";
 
 /**
@@ -78,7 +79,7 @@ export function Mandje({
     : null;
 
   return (
-    <div className="flex w-[372px] min-h-0 flex-none flex-col gap-3 overflow-auto border-l border-border bg-white p-[18px]">
+    <ZijPaneel>
       {selectedMember ? (
         // Naar designs/Bar App.dc.html → `hasMember`: avatar + naam, rechts
         // "SALDO" met het bedrag groot; daaronder opwaarderen + wissel.
@@ -336,6 +337,6 @@ export function Mandje({
           →
         </span>
       </button>
-    </div>
+    </ZijPaneel>
   );
 }

@@ -1,8 +1,23 @@
 # Bar en beheer bruikbaar op ondersteunde tablets
 
-**Status: concept, wacht op akkoord van Bram.** Besluit D1 is genomen
-(aanbeveling): 768px portret én 1024px landschap worden ondersteund. De open
-vragen onderaan zijn aan Bram; tot hij ze beantwoordt kiest de Developer niets.
+**Status: goedgekeurd door Bram (aanbevelingen bij vraag 1–3), gebouwd, e2e nog
+niet gedraaid.** Besluit D1: 768px portret én 1024px landschap ondersteund.
+Vraag 4 (volgorde met T03/T07) is niet beantwoord; T04 raakt alleen classes en
+layout, geen state, en is dus nu gebouwd. Vraag 5 (fysiek tablet) staat open.
+
+## Gebouwd, afwijkingen en wat niet gedaan is
+
+- Gedeeld `src/components/ZijPaneel.tsx`, breedte `clamp(300px,36vw,372px)`,
+  gebruikt door `Mandje` en `DienstActief`.
+- Grid met `auto-fill`/`minmax(150px,1fr)`; kaart met naam op twee regels
+  (`line-clamp-2`), badge naast de prijs, plus-knop rechts.
+- Rail 80px, 92px vanaf 1024px viewport. Beheerheader mag omslaan.
+- **Afwijking:** geen `@tailwindcss/container-queries`. `auto-fill` volgt de
+  werkelijke inhoudsbreedte al vanzelf; zo is er geen nieuwe dependency nodig.
+- `useShell().columns` wordt door `StaffPicker` nog gebruikt, dus blijft.
+- `check:fast` is groen. De nieuwe `e2e/tablet-bruikbaarheid.spec.ts` kon
+  lokaal niet draaien (geen Supabase-stack in deze omgeving); die draait pas in CI.
+- Niet gecontroleerd: screenshots voor/na op de matrix, fysiek tablet.
 
 Spec voor [issue #124](https://github.com/BramLambertJansen/ABAS/issues/124)
 (frontend T04 · P1, epic #121, finding F04). Stemt af met

@@ -14,6 +14,7 @@ import { Transactielijst } from "@/features/dienst-overzicht/Transactielijst";
 import { durationLabel, ordersPerMember } from "@/features/dienst-overzicht/ledger";
 import { TerugdraaienOverlay } from "@/features/bestelling-terugdraaien/TerugdraaienOverlay";
 import type { LedgerEntry } from "@/hooks/queries/useShiftLedger";
+import { ZijPaneel } from "@/components/ZijPaneel";
 
 const DURATION_TICK_MS = 30_000;
 const TOAST_DURATION_MS = 4000;
@@ -140,7 +141,7 @@ export function DienstActief({
         />
       </div>
 
-      <aside className="flex w-[372px] min-h-0 flex-none flex-col gap-3 overflow-auto border-l border-border bg-white p-[18px]">
+      <ZijPaneel as="aside">
         <h2 className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-muted">
           Dienst actief
         </h2>
@@ -236,7 +237,7 @@ export function DienstActief({
         >
           Dienst afsluiten
         </button>
-      </aside>
+      </ZijPaneel>
 
       {overlayOpen && (
         <BezettingOverlay
