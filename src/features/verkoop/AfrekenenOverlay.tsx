@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { useHerstelFocus } from "@/hooks/useHerstelFocus";
 import { Overlay } from "@/components/Overlay";
 import { StatCard } from "@/components/StatCard";
 import { OnbekendeUitkomstMelding } from "@/components/OnbekendeUitkomstMelding";
@@ -46,6 +47,8 @@ export function AfrekenenOverlay({
   onRefetchShiftMembers: () => void;
 }) {
   const placeOrderMutation = usePlaceOrder();
+  const herstelFocus = useHerstelFocus();
+  const knopRef = useRef<HTMLButtonElement>(null);
   const [servedBy, setServedBy] = useState<string | null>(null);
   const [submitErrorCode, setSubmitErrorCode] = useState<PlaceOrderErrorCode | null>(
     null
@@ -58,10 +61,11 @@ export function AfrekenenOverlay({
   const shortfallCents = subtotalCents - (member.balanceCents + negativeLimitCents);
 
   const pending = placeOrderMutation.status === "pending";
-  // Na 30 seconden zonder antwoord valt de sluitblokkade en is de uitkomst
-  // onbekend; tot die tijd is het verzoek echt in vlucht.
   const { closeBlocked, timedOut } = useOpslaanBlokkade(pending);
-  const inVlucht = pending && !timedOut;
+  // Een hangend verzoek blijft in vlucht, ook na de 30 s-time-out: alleen de
+  // sluitblokkade valt dan (closeBlocked). Een tweede geldopdracht blijft
+  // geblokkeerd zolang de eerste kan slagen.
+  const inVlucht = pending;
   // Onbekende uitkomst (netwerk, onbekende fout, time-out): pas weer afrekenen
   // nadat de gebruiker bewust "Ik heb gecontroleerd" koos (besluit C).
   const [gecontroleerd, setGecontroleerd] = useState(false);
@@ -134,6 +138,11 @@ export function AfrekenenOverlay({
             setGecontroleerd(true);
             setSubmitErrorCode(null);
             onRefetchMembers();
+            herstelFocus(
+              knopRef.current?.disabled
+                ? knopRef.current.closest<HTMLElement>('[role="dialog"]')
+                : knopRef.current
+            );
           }}
         />
       ) : (
@@ -202,11 +211,12 @@ export function AfrekenenOverlay({
         </button>
         <button
           type="button"
+          ref={knopRef}
           disabled={confirmDisabled}
           onClick={handleConfirm}
           className="flex h-[50px] flex-1 items-center justify-center rounded-2xl bg-accent-active text-sm font-bold text-white transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:bg-track disabled:text-muted"
         >
-          {inVlucht ? "bezig…" : "ja, afrekenen"}
+          {pending && !timedOut ? "bezig…" : "ja, afrekenen"}
         </button>
       </div>
     </Overlay>

@@ -450,12 +450,7 @@ test("Afrekenen: afgebroken place_order toont de controletekst, geen 'probeer op
   expect(calls.place_order).toBe(1);
 });
 
-// BEKENDE BUG (gemeld, productiecode niet gewijzigd): na "Ik heb gecontroleerd"
-// verdwijnt de melding met de geklikte knop en valt de focus op <body> (spec,
-// Randgevallen: "nooit op body"). test.fail() houdt de run groen en slaat om
-// zodra het is opgelost; verwijder dan de test.fail().
-test("Afrekenen: focus blijft na 'Ik heb gecontroleerd' in de dialoog (bekende bug)", async ({ page }) => {
-  test.fail();
+test("Afrekenen: focus blijft na 'Ik heb gecontroleerd' in de dialoog", async ({ page }) => {
   await openKassa(page, { place_order: (route) => route.abort("failed") });
   const dialog = await openAfrekenen(page);
   await dialog.getByRole("button", { name: "ja, afrekenen" }).click();
@@ -521,12 +516,7 @@ test("Afrekenen: antwoord komt na de time-out alsnog binnen: de bestelling wordt
   expect(calls.place_order).toBe(1);
 });
 
-// BEKENDE BUG (gemeld, productiecode niet gewijzigd): na de time-out telt het
-// nog hangende verzoek niet meer als "in vlucht" (`inVlucht = pending &&
-// !timedOut`), dus na "Ik heb gecontroleerd" start een tweede place_order terwijl
-// de eerste nog kan slagen: dubbele boeking. test.fail() slaat om bij een fix.
-test("Afrekenen: 'Ik heb gecontroleerd' tijdens een nog hangend verzoek mag geen tweede place_order starten (bekende bug)", async ({ page }) => {
-  test.fail();
+test("Afrekenen: 'Ik heb gecontroleerd' tijdens een nog hangend verzoek mag geen tweede place_order starten", async ({ page }) => {
   // Negatieve test voor 'geen dubbele opdracht tijdens pending': na de time-out
   // hangt het eerste verzoek nog; de gebruiker bevestigt de controle en tikt
   // opnieuw. Het eerste verzoek is dan nog in vlucht, dus een tweede mag niet.
@@ -568,9 +558,7 @@ test("Opwaarderen: afgebroken top_up toont de controletekst, geen 'probeer opnie
   expect(calls.top_up).toBe(1);
 });
 
-// BEKENDE BUG, zelfde als bij Afrekenen (zie daar).
-test("Opwaarderen: focus blijft na 'Ik heb gecontroleerd' in de dialoog (bekende bug)", async ({ page }) => {
-  test.fail();
+test("Opwaarderen: focus blijft na 'Ik heb gecontroleerd' in de dialoog", async ({ page }) => {
   await openKassa(page, { top_up: (route) => route.abort("failed") });
   const dialog = await openOpwaarderen(page);
   await dialog.getByRole("button", { name: "boeken", exact: true }).click();
@@ -608,9 +596,7 @@ test("Opwaarderen: pending blokkeert sluiten, één aanroep; na 30 s onbekende u
   vast.laatDoor();
 });
 
-// BEKENDE BUG, zelfde oorzaak als bij Afrekenen (zie daar).
-test("Opwaarderen: 'Ik heb gecontroleerd' tijdens een nog hangend verzoek mag geen tweede top_up starten (bekende bug)", async ({ page }) => {
-  test.fail();
+test("Opwaarderen: 'Ik heb gecontroleerd' tijdens een nog hangend verzoek mag geen tweede top_up starten", async ({ page }) => {
   await page.clock.install();
   const vast = houdVast();
   const calls = await openKassa(page, {

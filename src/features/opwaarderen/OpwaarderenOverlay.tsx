@@ -1,6 +1,7 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
+import { useHerstelFocus } from "@/hooks/useHerstelFocus";
 import { Overlay } from "@/components/Overlay";
 import { BezettingKeuze } from "@/components/BezettingKeuze";
 import { OnbekendeUitkomstMelding } from "@/components/OnbekendeUitkomstMelding";
@@ -83,11 +84,14 @@ export function OpwaarderenOverlay({
   const needsConfirmation =
     amountCents !== null && amountCents > TOP_UP_CONFIRM_THRESHOLD_CENTS;
 
+  const herstelFocus = useHerstelFocus();
+  const knopRef = useRef<HTMLButtonElement>(null);
   const pending = topUpMutation.status === "pending";
-  // Na 30 seconden zonder antwoord valt de sluitblokkade en is de uitkomst
-  // onbekend; tot die tijd is het verzoek echt in vlucht.
   const { closeBlocked, timedOut } = useOpslaanBlokkade(pending);
-  const inVlucht = pending && !timedOut;
+  // Een hangend verzoek blijft in vlucht, ook na de 30 s-time-out: alleen de
+  // sluitblokkade valt dan (closeBlocked). Een tweede geldopdracht blijft
+  // geblokkeerd zolang de eerste kan slagen.
+  const inVlucht = pending;
   // Onbekende uitkomst (netwerk, onbekende fout, time-out): pas weer boeken
   // nadat de gebruiker bewust "Ik heb gecontroleerd" koos (besluit C).
   const [gecontroleerd, setGecontroleerd] = useState(false);
@@ -253,11 +257,12 @@ export function OpwaarderenOverlay({
           />
           <button
             type="button"
+            ref={knopRef}
             disabled={bookDisabled}
             onClick={handleBook}
             className="flex h-12 flex-none items-center justify-center rounded-[13px] bg-accent-active px-[18px] text-[13.5px] font-extrabold text-white transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:bg-track disabled:text-muted"
           >
-            {inVlucht
+            {pending && !timedOut
               ? "bezig…"
               : confirming && amountCents !== null
                 ? `ja, ${formatCents(amountCents)} boeken`
@@ -283,6 +288,11 @@ export function OpwaarderenOverlay({
             setGecontroleerd(true);
             setSubmitErrorCode(null);
             onRefetchMembers();
+            herstelFocus(
+              knopRef.current?.disabled
+                ? knopRef.current.closest<HTMLElement>('[role="dialog"]')
+                : knopRef.current
+            );
           }}
         />
       ) : (

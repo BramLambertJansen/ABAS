@@ -64,8 +64,8 @@ export function NieuwLidOverlay({
   const [gecontroleerd, setGecontroleerd] = useState(false);
   const uitkomstOnbekend =
     (createMember.errorCode === "unknown" || timedOut) && !gecontroleerd;
-  // Echt in vlucht: tot de time-out. Daarna beslist de onbekende-uitkomstmelding.
-  const inVlucht = pending && !timedOut;
+  // Een hangend verzoek blijft in vlucht, ook na de time-out (alleen closeBlocked valt).
+  const inVlucht = pending;
 
   function wijzig() {
     if (createMember.errorCode && !uitkomstOnbekend) createMember.reset();
