@@ -134,6 +134,7 @@ export function AfrekenenOverlay({
     >
       {uitkomstOnbekend ? (
         <OnbekendeUitkomstMelding
+          hangend={pending}
           onGecontroleerd={() => {
             setGecontroleerd(true);
             setSubmitErrorCode(null);

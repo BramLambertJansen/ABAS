@@ -107,6 +107,7 @@ export function NieuwLidOverlay({
     <Overlay title="Nieuw lid" onClose={onClose} closeBlocked={closeBlocked} onopgeslagen={unsaved}>
       {uitkomstOnbekend ? (
         <OnbekendeUitkomstMelding
+          hangend={pending}
           onGecontroleerd={() => {
             setGecontroleerd(true);
             if (!pending) createMember.reset();

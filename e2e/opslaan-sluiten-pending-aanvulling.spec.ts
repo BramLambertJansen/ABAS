@@ -531,13 +531,40 @@ test("Afrekenen: 'Ik heb gecontroleerd' tijdens een nog hangend verzoek mag geen
   const dialog = await openAfrekenen(page);
   await dialog.getByRole("button", { name: "ja, afrekenen" }).click();
   await page.clock.fastForward(31_000);
-  await dialog.getByRole("button", { name: "Ik heb gecontroleerd" }).click();
-
-  const afrekenen = dialog.getByRole("button", { name: "ja, afrekenen" });
-  if (await afrekenen.isEnabled()) await afrekenen.click();
+  // Zolang het verzoek hangt is bevestigen niet mogelijk.
+  await expect(dialog.getByRole("button", { name: "Ik heb gecontroleerd" })).toBeDisabled();
+  await expect(dialog.getByRole("button", { name: "ja, afrekenen" })).toBeDisabled();
   await page.waitForTimeout(500);
   expect(calls.place_order).toBe(1);
   vast.laatDoor();
+});
+
+test("Afrekenen: hangend verzoek faalt alsnog na een klik op 'Ik heb gecontroleerd': controle blijft vereist, geen tweede request", async ({ page }) => {
+  await page.clock.install();
+  const vast = houdVast();
+  const calls = await openKassa(page, {
+    place_order: async (route) => {
+      await vast.poort;
+      return route.abort("failed");
+    },
+  });
+  const dialog = await openAfrekenen(page);
+  await dialog.getByRole("button", { name: "ja, afrekenen" }).click();
+  await page.clock.fastForward(31_000);
+  const controle = dialog.getByRole("button", { name: "Ik heb gecontroleerd" });
+  await expect(controle).toBeDisabled();
+  await controle.click({ force: true });
+
+  vast.laatDoor();
+  await expect(alertOf(page).filter({ hasText: ONBEKEND_GELD })).toBeVisible();
+  await expect(controle).toBeEnabled();
+  await expect(dialog.getByRole("button", { name: "ja, afrekenen" })).toBeDisabled();
+  await dialog.getByRole("button", { name: "ja, afrekenen" }).click({ force: true });
+  await page.waitForTimeout(500);
+  expect(calls.place_order).toBe(1);
+
+  await controle.click();
+  await expect(dialog.getByRole("button", { name: "ja, afrekenen" })).toBeEnabled();
 });
 
 test("Opwaarderen: afgebroken top_up toont de controletekst, geen 'probeer opnieuw', geen retry, pas na controle opnieuw", async ({ page }) => {
@@ -608,10 +635,34 @@ test("Opwaarderen: 'Ik heb gecontroleerd' tijdens een nog hangend verzoek mag ge
   const dialog = await openOpwaarderen(page);
   await dialog.getByRole("button", { name: "boeken", exact: true }).click();
   await page.clock.fastForward(31_000);
-  await dialog.getByRole("button", { name: "Ik heb gecontroleerd" }).click();
-  const boeken = dialog.getByRole("button", { name: "boeken", exact: true });
-  if (await boeken.isEnabled()) await boeken.click();
+  await expect(dialog.getByRole("button", { name: "Ik heb gecontroleerd" })).toBeDisabled();
+  await expect(dialog.getByRole("button", { name: "boeken", exact: true })).toBeDisabled();
   await page.waitForTimeout(500);
   expect(calls.top_up).toBe(1);
   vast.laatDoor();
+});
+
+test("Opwaarderen: hangend verzoek faalt alsnog na een klik op 'Ik heb gecontroleerd': controle blijft vereist, geen tweede request", async ({ page }) => {
+  await page.clock.install();
+  const vast = houdVast();
+  const calls = await openKassa(page, {
+    top_up: async (route) => {
+      await vast.poort;
+      return route.abort("failed");
+    },
+  });
+  const dialog = await openOpwaarderen(page);
+  await dialog.getByRole("button", { name: "boeken", exact: true }).click();
+  await page.clock.fastForward(31_000);
+  const controle = dialog.getByRole("button", { name: "Ik heb gecontroleerd" });
+  await expect(controle).toBeDisabled();
+  await controle.click({ force: true });
+
+  vast.laatDoor();
+  await expect(alertOf(page).filter({ hasText: ONBEKEND_GELD })).toBeVisible();
+  await expect(controle).toBeEnabled();
+  await expect(dialog.getByRole("button", { name: "boeken", exact: true })).toBeDisabled();
+  await dialog.getByRole("button", { name: "boeken", exact: true }).click({ force: true });
+  await page.waitForTimeout(500);
+  expect(calls.top_up).toBe(1);
 });

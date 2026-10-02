@@ -284,6 +284,7 @@ export function OpwaarderenOverlay({
           vlak onder de titel in de vorige versie). */}
       {uitkomstOnbekend ? (
         <OnbekendeUitkomstMelding
+          hangend={pending}
           onGecontroleerd={() => {
             setGecontroleerd(true);
             setSubmitErrorCode(null);
