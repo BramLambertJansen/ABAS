@@ -1,5 +1,6 @@
 import { formatCents } from "@/lib/money";
 import { SESSION_CODE_INLINE_MESSAGE, isSessionErrorCode } from "@/lib/barSessie";
+import { ONBEKENDE_UITKOMST_GELD_TEKST } from "@/lib/opslaan";
 import type { PlaceOrderErrorCode } from "@/hooks/queries/usePlaceOrder";
 
 /** De onvoldoende-saldo-banner-tekst, gedeeld tussen §2 (mandje-paneel) en
@@ -32,8 +33,12 @@ export function placeOrderErrorMessage(code: PlaceOrderErrorCode): string {
     case "insufficient_balance":
     case "empty_order":
     case "invalid_qty":
-    case "unknown":
       return "er ging iets mis, probeer het opnieuw";
+    case "unknown":
+      // Netwerk- of onbekende fout: de server kan de bestelling al hebben
+      // verwerkt. Geen "probeer opnieuw" (docs/features/opslaan-sluiten-pending.md,
+      // besluit C); de overlay toont daarbij de controlestap.
+      return ONBEKENDE_UITKOMST_GELD_TEKST;
   }
 }
 

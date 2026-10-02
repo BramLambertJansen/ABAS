@@ -4,6 +4,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode, ty
 import { useShell } from "@/lib/shell/ShellProvider";
 import { useRegisterOverlay } from "./OverlayPresence";
 import { acquireOverlay } from "./overlayShield";
+import { WEGGOOIEN_KNOP, WEGGOOIEN_TERUG_KNOP, WEGGOOIEN_VRAAG } from "@/lib/opslaan";
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -67,6 +68,12 @@ function tabbableIn(container: HTMLElement): HTMLElement[] {
  * - `closeBlocked`: zolang waar, doet elk sluitpad (Escape, backdrop) niets
  *   behalve de `role="status"`-melding `closeBlockedMessage` tonen; de dialoog
  *   krijgt `aria-busy`. De consument houdt eigen sluitknoppen `disabled`.
+ * - `onopgeslagen` (docs/features/opslaan-sluiten-pending.md, besluit B):
+ *   zolang waar vragen Escape en backdrop eerst om bevestiging, inline in
+ *   dezelfde dialoog (ADR 0014: nooit een tweede overlay): "Weggooien" sluit,
+ *   "Terug" (of nogmaals Escape/backdrop) laat de dialoog staan. De eigen
+ *   Sluiten/Annuleren-knoppen van de consument gooien bewust wél direct weg
+ *   en lopen dus niet via deze vraag. `closeBlocked` wint altijd.
  * - Bij sluiten gaat de focus naar de trigger als die nog bestaat en
  *   bruikbaar is; anders naar `returnFocusFallback`, het actieve tabpanel of
  *   `main`. Bij een overgang A → B blijft de oorspronkelijke trigger gelden.
@@ -83,6 +90,7 @@ export function Overlay({
   titleRef,
   closeBlocked = false,
   closeBlockedMessage = DEFAULT_CLOSE_BLOCKED_MESSAGE,
+  onopgeslagen = false,
   returnFocusFallback,
   children,
 }: {
@@ -94,6 +102,10 @@ export function Overlay({
    *  getoond. Eigen knoppen van de consument blijven diens zaak. */
   closeBlocked?: boolean;
   closeBlockedMessage?: string;
+  /** Er is invoer die nog niet is opgeslagen: Escape en backdrop vragen
+   *  eerst om bevestiging. Alleen waar als de invoer afwijkt van de laatst
+   *  opgeslagen waarde (zie `src/lib/opslaan.ts`). */
+  onopgeslagen?: boolean;
   /** Opvolger voor de focus als de trigger bij sluiten niet meer bestaat. */
   returnFocusFallback?: RefObject<HTMLElement | null>;
   children: ReactNode;
@@ -114,25 +126,66 @@ export function Overlay({
   const rootRef = useRef<HTMLDivElement>(null);
   const lastFocusedRef = useRef<HTMLElement | null>(null);
   const [blockedAttempt, setBlockedAttempt] = useState(false);
+  const [confirmingDiscard, setConfirmingDiscard] = useState(false);
+  const confirmId = useId();
+  const backRef = useRef<HTMLButtonElement>(null);
+  const beforeConfirmRef = useRef<HTMLElement | null>(null);
+  const wasConfirmingRef = useRef(false);
 
   // Altijd de nieuwste waarden zonder de document-listeners te herbinden.
   const onCloseRef = useRef(onClose);
   const closeBlockedRef = useRef(closeBlocked);
+  const onopgeslagenRef = useRef(onopgeslagen);
+  const confirmingRef = useRef(confirmingDiscard);
   useLayoutEffect(() => {
     onCloseRef.current = onClose;
     closeBlockedRef.current = closeBlocked;
+    onopgeslagenRef.current = onopgeslagen;
+    confirmingRef.current = confirmingDiscard;
   });
 
   // Eén sluitverzoek voor Escape en backdrop: bij `closeBlocked` geen
-  // `onClose`, wel de melding. De focus blijft waar hij is.
+  // `onClose`, wel de melding. De focus blijft waar hij is. Bij onopgeslagen
+  // invoer eerst de inline vraag; tijdens die vraag betekent nogmaals
+  // Escape/backdrop "terug", nooit stil weggooien.
   const requestCloseRef = useRef(() => {
     if (closeBlockedRef.current) setBlockedAttempt(true);
+    else if (confirmingRef.current) setConfirmingDiscard(false);
+    else if (onopgeslagenRef.current) setConfirmingDiscard(true);
     else onCloseRef.current();
   });
 
   useEffect(() => {
     if (!closeBlocked) setBlockedAttempt(false);
   }, [closeBlocked]);
+
+  // De vraag vervalt zodra er niets meer te verliezen valt of er een opslag loopt.
+  useEffect(() => {
+    if (closeBlocked || !onopgeslagen) setConfirmingDiscard(false);
+  }, [closeBlocked, onopgeslagen]);
+
+  // Focus naar "Terug" als de vraag opent (veilige standaard), en bij sluiten
+  // van de vraag terug naar waar hij stond.
+  useEffect(() => {
+    if (confirmingDiscard) {
+      wasConfirmingRef.current = true;
+      const active = document.activeElement as HTMLElement | null;
+      beforeConfirmRef.current = active && dialogRef.current?.contains(active) ? active : null;
+      backRef.current?.focus();
+      return;
+    }
+    if (!wasConfirmingRef.current) return;
+    wasConfirmingRef.current = false;
+    const back = beforeConfirmRef.current;
+    beforeConfirmRef.current = null;
+    const container = dialogRef.current;
+    if (!container) return;
+    const active = document.activeElement;
+    // Alleen herstellen als de focus niet al elders in de dialoog staat.
+    if (active && active !== document.body && container.contains(active) && active !== container) return;
+    if (back && back.isConnected && !back.matches(":disabled")) back.focus();
+    else container.focus();
+  }, [confirmingDiscard]);
 
   // Pending: een control die tijdens `closeBlocked` disabled wordt, laat de
   // browser de focus stil naar body zetten. Dan terug naar de dialoogcontainer,
@@ -294,6 +347,34 @@ export function Overlay({
         )}
       </div>
       {children}
+      {confirmingDiscard && (
+        <div
+          role="group"
+          aria-labelledby={confirmId}
+          className="flex flex-col gap-3 rounded-control border border-border bg-canvas p-3.5"
+        >
+          <p id={confirmId} className="text-sm font-bold text-ink">
+            {WEGGOOIEN_VRAAG}
+          </p>
+          <div className="flex gap-2.5">
+            <button
+              type="button"
+              onClick={() => onCloseRef.current()}
+              className="flex h-11 flex-1 items-center justify-center rounded-control border border-danger bg-white text-sm font-bold text-danger transition-colors hover:bg-canvas"
+            >
+              {WEGGOOIEN_KNOP}
+            </button>
+            <button
+              ref={backRef}
+              type="button"
+              onClick={() => setConfirmingDiscard(false)}
+              className="flex h-11 flex-1 items-center justify-center rounded-control bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover"
+            >
+              {WEGGOOIEN_TERUG_KNOP}
+            </button>
+          </div>
+        </div>
+      )}
       {/* Altijd gemount, alleen de tekst wisselt: dan kondigt een
           schermlezer hem aan. Status, geen alert: dit is geen fout. */}
       <p

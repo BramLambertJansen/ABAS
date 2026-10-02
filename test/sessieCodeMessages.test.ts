@@ -27,6 +27,8 @@ const { reverseOrderErrorMessage } = await import(
   "../src/features/bestelling-terugdraaien/messages.ts"
 );
 
+const { ONBEKENDE_UITKOMST_GELD_TEKST } = await import("../src/lib/opslaan.ts");
+
 const GENERIC = "er ging iets mis, probeer het opnieuw";
 
 for (const code of SESSION_ERROR_CODES) {
@@ -59,8 +61,12 @@ test("A4: self_top_up_forbidden geeft de goedgekeurde tekst", () => {
   assert.equal(SELF_TOP_UP_MESSAGE, topUpErrorMessage("self_top_up_forbidden"));
 });
 
-test("de unknown-tak blijft de generieke melding", () => {
-  assert.equal(placeOrderErrorMessage("unknown"), GENERIC);
-  assert.equal(topUpErrorMessage("unknown"), GENERIC);
+test("de unknown-tak blijft de generieke melding, behalve bij geldverzoeken met onbekende uitkomst", () => {
   assert.equal(reverseOrderErrorMessage("unknown"), GENERIC);
+  // #126, besluit C: een netwerk-/onbekende fout bij afrekenen of opwaarderen
+  // nodigt niet uit tot "probeer het opnieuw" (de server kan het al verwerkt hebben).
+  assert.equal(placeOrderErrorMessage("unknown"), ONBEKENDE_UITKOMST_GELD_TEKST);
+  assert.equal(topUpErrorMessage("unknown"), ONBEKENDE_UITKOMST_GELD_TEKST);
+  assert.doesNotMatch(placeOrderErrorMessage("unknown"), /probeer het opnieuw/);
+  assert.doesNotMatch(topUpErrorMessage("unknown"), /probeer het opnieuw/);
 });
