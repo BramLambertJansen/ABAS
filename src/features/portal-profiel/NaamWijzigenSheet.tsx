@@ -7,6 +7,8 @@ import {
   usePortalUpdateOwnName,
   type UpdateOwnNameErrorCode,
 } from "@/hooks/queries/usePortalUpdateOwnName";
+import { useOpslaanBlokkade } from "@/hooks/useOpslaanBlokkade";
+import { ONBEKENDE_UITKOMST_TEKST, OPSLAAN_BEZIG_TEKST, isTekstOnopgeslagen } from "@/lib/opslaan";
 import { SheetKnoppen } from "./SheetKnoppen";
 
 /** docs/features/portal-profiel.md → Schermflow §1 (goedgekeurde teksten).
@@ -46,6 +48,9 @@ export function NaamWijzigenSheet({
   const [name, setName] = useState(currentName);
   const mutation = usePortalUpdateOwnName();
   const errorId = useId();
+  const pending = mutation.status === "pending";
+  const { closeBlocked, timedOut } = useOpslaanBlokkade(pending);
+  const unsaved = isTekstOnopgeslagen(name, currentName);
 
   const trimmed = name.trim();
   const disabled = trimmed === "" || trimmed === currentName || mutation.status === "pending";
@@ -68,6 +73,8 @@ export function NaamWijzigenSheet({
       title="Naam wijzigen"
       description="Zo staat je naam op de bar-tablet en in het dienstoverzicht."
       onClose={onClose}
+      closeBlocked={closeBlocked}
+      onopgeslagen={unsaved}
     >
       <form onSubmit={submit} className="flex flex-col gap-[14px]" noValidate>
         <TekstVeld
@@ -76,6 +83,7 @@ export function NaamWijzigenSheet({
           type="text"
           autoComplete="name"
           required
+          readOnly={pending}
           value={name}
           onChange={(event) => {
             setName(event.target.value);
@@ -86,10 +94,15 @@ export function NaamWijzigenSheet({
         />
 
         <p id={errorId} className="text-sm font-bold text-danger empty:-mt-[14px]" role="alert">
-          {mutation.errorCode ? errorMessage(mutation.errorCode) : ""}
+          {timedOut ? ONBEKENDE_UITKOMST_TEKST : mutation.errorCode ? errorMessage(mutation.errorCode) : ""}
         </p>
 
-        <SheetKnoppen submitLabel="Opslaan" disabled={disabled} onCancel={onClose} />
+        <SheetKnoppen
+          submitLabel={pending ? OPSLAAN_BEZIG_TEKST : "Opslaan"}
+          disabled={disabled}
+          onCancel={onClose}
+          cancelDisabled={closeBlocked}
+        />
       </form>
     </Overlay>
   );

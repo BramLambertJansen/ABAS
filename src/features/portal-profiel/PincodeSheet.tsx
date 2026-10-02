@@ -5,6 +5,8 @@ import { Overlay } from "@/components/Overlay";
 import { PinToetsenbord, PIN_LENGTH } from "@/components/PinToetsenbord";
 import { usePortalSetOwnPin } from "@/hooks/queries/usePortalSetOwnPin";
 import { setOwnPinErrorMessage } from "@/lib/ownPinErrors";
+import { useOpslaanBlokkade } from "@/hooks/useOpslaanBlokkade";
+import { ONBEKENDE_UITKOMST_TEKST, isNieuwOnopgeslagen } from "@/lib/opslaan";
 
 const MISMATCH_MESSAGE = "Codes komen niet overeen";
 
@@ -42,6 +44,9 @@ export function PincodeSheet({
   const [message, setMessage] = useState<string | null>(null);
   const mutation = usePortalSetOwnPin();
   const pending = mutation.status === "pending";
+  const { closeBlocked, timedOut } = useOpslaanBlokkade(pending);
+  // Ingetoetste cijfers (of de tweede stap) zijn invoer die nog niet is opgeslagen.
+  const unsaved = isNieuwOnopgeslagen([draft, first]);
 
   function restart(nextMessage: string | null) {
     setStep("kies");
@@ -89,7 +94,12 @@ export function PincodeSheet({
   }
 
   return (
-    <Overlay title={step === "kies" ? "Pincode instellen" : "Pincode herhalen"} onClose={onClose}>
+    <Overlay
+      title={step === "kies" ? "Pincode instellen" : "Pincode herhalen"}
+      onClose={onClose}
+      closeBlocked={closeBlocked}
+      onopgeslagen={unsaved}
+    >
       <div className="flex flex-col gap-[14px]">
         <p aria-live="polite" className="text-sm font-medium leading-relaxed text-muted">
           {step === "kies"
@@ -100,7 +110,7 @@ export function PincodeSheet({
         <PinToetsenbord
           tone="light"
           pin={draft}
-          errorMessage={message}
+          errorMessage={timedOut ? ONBEKENDE_UITKOMST_TEKST : message}
           pending={pending}
           onDigit={onDigit}
           onBackspace={onBackspace}
@@ -119,8 +129,9 @@ export function PincodeSheet({
 
         <button
           type="button"
+          disabled={closeBlocked}
           onClick={onClose}
-          className="flex h-[52px] w-full items-center justify-center rounded-2xl border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink"
+          className="flex h-[52px] w-full items-center justify-center rounded-2xl border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
         >
           Annuleer
         </button>

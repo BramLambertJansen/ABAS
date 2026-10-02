@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo } from "react";
-import { useShell } from "@/lib/shell/ShellProvider";
 import { formatCents } from "@/lib/money";
 import type { Product } from "@/hooks/queries/useProducts";
 import type { CartLine } from "./cart";
@@ -9,6 +8,10 @@ import type { CartLine } from "./cart";
 import type { AssortimentView } from "./useVerkoopDraft";
 
 const ALL_CATEGORIES = null;
+
+// Smalste kaart waarop "Rode wijn" of "Spa rood" nog leesbaar blijft; het
+// grid vult zich op de werkelijke inhoudsbreedte (tablet-bruikbaarheid.md).
+const MIN_KAART_PX = 150;
 
 /**
  * Linkerkant/hoofdgebied van het verkoopscherm: zoeken, categoriechips,
@@ -34,7 +37,6 @@ export function Assortiment({
   cart: CartLine[];
   onAdd: (productId: string) => void;
 }) {
-  const shell = useShell();
   const { query, setQuery, category, setCategory, view, setView } = display;
 
   // Trimt en sluit lege categorieën uit — het schema staat `category` als
@@ -156,7 +158,7 @@ export function Assortiment({
       ) : view === "grid" ? (
         <ul
           className="grid flex-1 auto-rows-min content-start gap-3 overflow-auto p-0.5 pb-2"
-          style={{ gridTemplateColumns: `repeat(${shell.columns}, minmax(0, 1fr))` }}
+          style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${MIN_KAART_PX}px, 1fr))` }}
         >
           {visible.map((product) => {
             const qty = qtyByProduct.get(product.id) ?? 0;
@@ -169,17 +171,15 @@ export function Assortiment({
                   className="group flex w-full items-center justify-between gap-2 rounded-card border border-border bg-white p-[11px] text-left shadow-[0_1px_2px_rgba(27,30,35,0.03)] transition-[border-color,box-shadow] hover:border-accent hover:shadow-[0_10px_24px_-14px_rgba(27,30,35,0.35)]"
                 >
                   <span className="flex min-w-0 flex-col gap-0.5">
-                    <span className="truncate text-[13.5px] font-bold text-ink">
+                    <span className="line-clamp-2 break-words text-[13.5px] font-bold leading-tight text-ink">
                       {product.name}
                     </span>
-                    <span className="text-[13px] font-semibold text-muted">
+                    <span className="flex flex-wrap items-center gap-1.5 text-[13px] font-semibold text-muted">
                       {formatCents(product.priceCents)}
+                      {qty > 0 && <QtyPill qty={qty} />}
                     </span>
                   </span>
-                  <span className="flex flex-none items-center gap-1.5">
-                    {qty > 0 && <QtyPill qty={qty} />}
-                    <AddCircle />
-                  </span>
+                  <AddCircle />
                 </button>
               </li>
             );

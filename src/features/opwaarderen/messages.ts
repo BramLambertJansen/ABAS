@@ -1,5 +1,6 @@
 import { formatCents } from "@/lib/money";
 import { SESSION_CODE_INLINE_MESSAGE, isSessionErrorCode } from "@/lib/barSessie";
+import { ONBEKENDE_UITKOMST_GELD_TEKST } from "@/lib/opslaan";
 import type { TopUpErrorCode } from "@/hooks/queries/useTopUp";
 
 /** Harde bovengrens per contante opwaardering, afgedwongen server-side door
@@ -68,7 +69,9 @@ export function topUpErrorMessage(code: TopUpErrorCode): string {
     case "shift_not_open":
       return "de dienst is niet meer actief — herlaad het scherm";
     case "unknown":
-      return "er ging iets mis, probeer het opnieuw";
+      // Netwerk- of onbekende fout: de opwaardering kan al geboekt zijn. Geen
+      // "probeer opnieuw" (docs/features/opslaan-sluiten-pending.md, besluit C).
+      return ONBEKENDE_UITKOMST_GELD_TEKST;
   }
 }
 

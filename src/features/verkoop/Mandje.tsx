@@ -5,6 +5,7 @@ import { formatCents } from "@/lib/money";
 import { InitialsAvatar } from "@/components/InitialsAvatar";
 import type { MemberOption } from "@/hooks/queries/useMembers";
 import type { CartDisplayLine } from "./types";
+import { ZijPaneel } from "@/components/ZijPaneel";
 import { insufficientBalanceMessage, NO_MEMBERS_FOUND_MESSAGE } from "./messages";
 
 /**
@@ -82,7 +83,7 @@ export function Mandje({
     : null;
 
   return (
-    <div className="flex w-[372px] min-h-0 flex-none flex-col gap-3 overflow-auto border-l border-border bg-white p-[18px]">
+    <ZijPaneel>
       {selectedMember ? (
         // Naar designs/Bar App.dc.html → `hasMember`: avatar + naam, rechts
         // "SALDO" met het bedrag groot; daaronder opwaarderen + wissel.
@@ -245,15 +246,22 @@ export function Mandje({
           {cartLines.map((line) => (
             <li
               key={line.productId}
-              className="flex flex-none items-center gap-2 border-b border-border-subtle px-0.5 py-[9px]"
+              className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1.5 border-b border-border-subtle px-0.5 py-[9px]"
             >
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-bold text-ink">{line.name}</p>
+              {/* Twee regels: naam bovenaan, stepper en regeltotaal eronder, de
+                  verwijderknop rechtsboven. In één rij liet het 300px-zijpaneel
+                  (768px portret) de naam ~26px over (tablet-bruikbaarheid.md).
+                  De DOM- en tabvolgorde blijft min, plus, verwijderen; alleen de
+                  plaatsing is een grid. De volledige naam blijft zichtbaar. */}
+              <div className="col-start-1 row-start-1 min-w-0 self-start">
+                <p className="break-words text-sm font-bold leading-tight text-ink">
+                  {line.name}
+                </p>
                 <p className="text-[11.5px] font-semibold text-muted">
                   {formatCents(line.unitPriceCents)} p/st
                 </p>
               </div>
-              <div className="flex flex-none items-center gap-0.5 rounded-control bg-canvas p-[3px]">
+              <div className="col-start-1 row-start-2 flex w-fit items-center gap-0.5 rounded-control bg-canvas p-[3px]">
                 <button
                   type="button"
                   onClick={() => onDec(line.productId)}
@@ -274,14 +282,14 @@ export function Mandje({
                   +
                 </button>
               </div>
-              <span className="min-w-[58px] flex-none text-right text-sm font-extrabold text-ink">
+              <span className="col-start-2 row-start-2 min-w-[58px] text-right text-sm font-extrabold text-ink">
                 {formatCents(line.lineTotalCents)}
               </span>
               <button
                 type="button"
                 onClick={() => onRemove(line.productId)}
                 aria-label={`Verwijder ${line.name} uit het mandje`}
-                className="flex h-[30px] w-[30px] flex-none items-center justify-center rounded-[9px] text-[15px] font-bold text-muted hover:bg-canvas hover:text-danger"
+                className="col-start-2 row-start-1 flex h-[30px] w-[30px] items-center justify-center justify-self-end self-start rounded-[9px] text-[15px] font-bold text-muted hover:bg-canvas hover:text-danger"
               >
                 ×
               </button>
@@ -346,6 +354,6 @@ export function Mandje({
           →
         </span>
       </button>
-    </div>
+    </ZijPaneel>
   );
 }

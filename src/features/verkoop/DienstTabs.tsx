@@ -109,7 +109,7 @@ export function DienstTabs({
       <div className="flex h-screen w-full overflow-hidden bg-canvas font-sans text-ink antialiased">
         <nav
           aria-label="Bar"
-          className="flex w-[92px] flex-none flex-col items-center gap-1 bg-rail pb-[18px] pt-5"
+          className="flex w-[80px] flex-none flex-col min-[1024px]:w-[92px] items-center gap-1 bg-rail pb-[18px] pt-5"
         >
           <div
             aria-hidden="true"

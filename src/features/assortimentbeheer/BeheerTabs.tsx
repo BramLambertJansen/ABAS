@@ -85,7 +85,7 @@ export function BeheerTabs({
     <main className="flex min-h-screen w-full flex-col bg-canvas font-sans text-ink antialiased">
       {/* Eén kopbalk zoals het prototype (`beheerOpen`): terug-link, tabs als
           pillen (actief = donker), rechts de BEHEER-badge en uitloggen. */}
-      <header className="flex h-[60px] flex-none items-center gap-3.5 border-b border-border bg-white px-5">
+      <header className="flex min-h-[60px] flex-none flex-wrap items-center gap-x-3.5 gap-y-2 border-b border-border bg-white px-5 py-2">
         <TabList
           idBase={idBase}
           label="Beheer-navigatie"
@@ -93,7 +93,7 @@ export function BeheerTabs({
           selected={tab}
           onSelect={(key) => setTab(key as Tab)}
           items={role === "beheerder" ? BEHEERDER_TABS : BARDIENST_TABS}
-          className="flex items-center gap-1"
+          className="flex flex-wrap items-center gap-1"
         />
 
         <div className="ml-auto flex flex-none items-center gap-2.5">

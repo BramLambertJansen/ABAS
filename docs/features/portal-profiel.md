@@ -1,5 +1,13 @@
 # Portal-profiel: naam, wachtwoord en eigen bar-PIN
 
+> **Let op (T06, 2026-10-02):** `MijnAccountOverlay.tsx` bestaat niet meer
+> (ADR 0016/0017: "Mijn account" op de bar is vervallen). Verwijzingen
+> hieronder naar dat bestand zijn historisch. Het huidige "Mijn account" zijn
+> de portal-sheets in `src/features/portal-profiel/`: `NaamWijzigenSheet`,
+> `WachtwoordWijzigenSheet`, `PincodeSheet` en `TweestapSheet`, met `AccountTab`
+> en `SheetKnoppen`. Sluit-, pending- en onopgeslagen-gedrag van die sheets
+> staat in `opslaan-sluiten-pending.md`.
+
 > **Bijgewerkt door [`dienst-per-sessie.md`](dienst-per-sessie.md) en
 > [`beheer-tweede-factor.md`](beheer-tweede-factor.md) (ADR 0016/0017, gemerged
 > in [PR #120](https://github.com/BramLambertJansen/ABAS/pull/120), 2026-10-01):** de portal is de enige plek waar de bar-PIN wordt
@@ -86,8 +94,8 @@ De bouw volgt de spec, op deze punten na. Elk punt is tegen de code op
   - het Account-tabblad heeft een kop **"Account"** (`<h2>`) boven de
     profielkaart;
   - de toast staat onderaan het scherm (`fixed`, in een
-    `role="status"`-regio van `AccountTab.tsx`), zelfde duur als in
-    `MijnAccountOverlay.tsx` (3,5 s).
+    `role="status"`-regio van `AccountTab.tsx`), toast van 3,5 s
+    (destijds gelijk aan het inmiddels verdwenen `MijnAccountOverlay.tsx`).
 - **Naam-sheet via `TekstVeld`.** `src/components/TekstVeld.tsx` kreeg een
   `tone`-prop (`"rail"`, de standaard, of `"light"`). Bestaande schermen zijn
   daardoor ongewijzigd. `NaamWijzigenSheet.tsx` gebruikt `tone="light"` in
@@ -167,7 +175,7 @@ zal zijn.
 |---|---|---|
 | `set_own_pin(p_pin text)` | `supabase/migrations/0014_pin_zelfbediening.sql` | **Ongewijzigd hergebruikt.** Herleidt de aanroeper via `auth.uid()`, weigert `lid` (`no_bar_role`) en gearchiveerd (`actor_not_found`), valideert `^[0-9]{4}$` (`invalid_pin_format`), hasht met `crypt(p_pin, gen_salt('bf'))`, `p_pin = null` zet de PIN uit, scrubt `pin_hash` in de return. Dit is de "bestaande PIN-opslag/hashing (#3)" uit het acceptatiecriterium. Er komt geen tweede PIN-RPC. |
 | `useSetOwnPin.ts` | `src/hooks/queries/` | **Niet direct bruikbaar:** importeert `@/lib/supabase/client`, en dat verbiedt `check:arch` voor portal-code (ADR 0009). Zie Hooks voor hoe duplicatie hier wordt voorkomen. |
-| `MijnAccountOverlay.tsx` | `src/features/assortimentbeheer/` | Het "Mijn account"-scherm uit CLAUDE.md → Auth, op het modus-keuzescherm van `/beheer`. Blijft bestaan en blijft ongewijzigd in gedrag. Deelt na dit ticket de foutteksten met de portal (zie Hooks). |
+| `MijnAccountOverlay.tsx` (verwijderd, ADR 0016/0017) | was `src/features/assortimentbeheer/` | Destijds het "Mijn account"-scherm op `/beheer`. Bestaat niet meer; de portal-sheets in `src/features/portal-profiel/` zijn nu de enige plek. |
 | `update_member_name(p_member_id, p_name)` | `0007_ledenbeheer.sql` | **Niet bruikbaar:** alleen voor beheerders (`no_admin_role`) en met een willekeurig doel-id. Een lid mag hiermee nooit schrijven. De validatie (`trim`, niet leeg → `invalid_name`) wordt wel letterlijk overgenomen in de nieuwe RPC. |
 | `members.has_pin` | `0010_pin_hash_kolombeveiliging.sql` | Gegenereerde kolom, leesbaar voor `authenticated`. Bron voor "ingesteld/niet ingesteld". `pin_hash` zelf blijft REVOKED. |
 | `NieuwWachtwoordVelden.tsx` + `passwordPolicy.ts` | `src/components/`, `src/lib/` | **Ongewijzigd hergebruikt** voor Nieuw/Herhalen plus live checklist. Precies waarvoor `wachtwoord-vergeten.md` → "Herbruikbaar voor portal en #17" ze heeft gebouwd. De "Minimaal 8 tekens"-melding uit het prototype vervalt: de checklist toont dat al. |

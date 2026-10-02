@@ -21,11 +21,15 @@ export function NieuwWachtwoordVelden({
   repeat,
   onPasswordChange,
   onRepeatChange,
+  readOnly = false,
 }: {
   password: string;
   repeat: string;
   onPasswordChange: (value: string) => void;
   onRepeatChange: (value: string) => void;
+  /** Bevroren tijdens een lopende opslag: de getoonde invoer blijft gelijk aan
+   *  wat verstuurd is. */
+  readOnly?: boolean;
 }) {
   const passwordId = useId();
   const repeatId = useId();
@@ -47,6 +51,7 @@ export function NieuwWachtwoordVelden({
           required
           aria-describedby={rulesId}
           value={password}
+          readOnly={readOnly}
           onChange={(event) => onPasswordChange(event.target.value)}
           className="h-12 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink outline-none focus:border-accent"
         />
@@ -73,6 +78,7 @@ export function NieuwWachtwoordVelden({
           aria-invalid={mismatch}
           aria-describedby={mismatch ? mismatchId : undefined}
           value={repeat}
+          readOnly={readOnly}
           onChange={(event) => onRepeatChange(event.target.value)}
           className="h-12 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink outline-none focus:border-accent"
         />
