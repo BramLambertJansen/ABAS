@@ -57,14 +57,15 @@ export function NieuwLidOverlay({
   const nameInputRef = useRef<HTMLInputElement>(null);
   const herstelFocus = useHerstelFocus();
   const pending = createMember.status === "pending";
-  const { closeBlocked, timedOut } = useOpslaanBlokkade(pending);
+  // Geld: geen time-out, de blokkade blijft tot het verzoek klaar is.
+  const { closeBlocked } = useOpslaanBlokkade(pending, { metTimeout: false });
   const unsaved = isNieuwOnopgeslagen([name, balanceInput, emailInput]);
-  // Onbekende uitkomst (netwerk/onbekende fout/time-out): pas weer toevoegen
+  // Onbekende uitkomst (netwerk/onbekende fout): pas weer toevoegen
   // nadat de gebruiker bewust "Ik heb gecontroleerd" koos (besluit C).
   const [gecontroleerd, setGecontroleerd] = useState(false);
   const uitkomstOnbekend =
-    (createMember.errorCode === "unknown" || timedOut) && !gecontroleerd;
-  // Een hangend verzoek blijft in vlucht, ook na de time-out (alleen closeBlocked valt).
+    createMember.errorCode === "unknown" && !gecontroleerd;
+  // Een hangend verzoek blijft in vlucht, zonder time-out (closeBlocked blijft staan).
   const inVlucht = pending;
 
   function wijzig() {

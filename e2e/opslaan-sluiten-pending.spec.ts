@@ -14,7 +14,7 @@ import {
  * echte database, zelfde aanpak als e2e/ledenbeheer-invite.spec.ts: Supabase via
  * `page.route()`. Een RPC wordt met opzet vastgehouden (`houdVast`) zodat
  * "pending" deterministisch is. Wat dit níét toetst: de 30 seconden time-out
- * (zie de unit-test voor de waarde), Safari/touch/schermlezer (handmatig,
+ * (zie de aanvulling-spec en de unit-test voor de waarde), Safari/touch/schermlezer (handmatig,
  * Tester), en echte dubbele boeking (geen idempotentie, apart ticket).
  */
 
@@ -257,4 +257,39 @@ test("Nieuw lid: afgebroken create_member toont de controletekst, geen 'probeer 
   await dialog.getByRole("button", { name: "Ik heb gecontroleerd" }).click();
   await expect(dialog.getByRole("button", { name: "Toevoegen" })).toBeEnabled();
   expect(await page.evaluate(() => document.activeElement === document.body)).toBe(false);
+});
+
+test("Nieuw lid: geen time-out voor geld: na 30 s blijft de dialoog geblokkeerd", async ({ page }) => {
+  await page.clock.install();
+  await mockBeheerder(page);
+  let laatDoor!: () => void;
+  const poort = new Promise<void>((resolve) => (laatDoor = resolve));
+  let aanroepen = 0;
+  await page.route(/\/rest\/v1\/rpc\/create_member(\?|$)/, async (route) => {
+    aanroepen++;
+    await poort;
+    return route.abort("failed");
+  });
+  await naarBeheer(page, "Leden");
+  await page.getByRole("button", { name: /nieuw lid/i }).click();
+  const dialog = page.getByRole("dialog", { name: "Nieuw lid" });
+  await dialog.getByLabel("Naam").fill("Pieter");
+  await dialog.getByLabel("Startsaldo (optioneel)").fill("10");
+  await dialog.getByRole("button", { name: "Toevoegen" }).click();
+  await expect.poll(() => aanroepen).toBe(1);
+
+  for (const ms of [29_000, 1_500, 60_000]) {
+    await page.clock.fastForward(ms);
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "Annuleren" })).toBeDisabled();
+    await expect(dialog.getByText(ONBEKEND)).toHaveCount(0);
+    await expect(dialog.getByRole("button", { name: "Ik heb gecontroleerd" })).toHaveCount(0);
+  }
+  expect(aanroepen).toBe(1);
+
+  // Pas na een echte fout verschijnt de onbekende uitkomst.
+  laatDoor();
+  await expect(alertOf(page)).toHaveText(ONBEKEND);
+  await expect(dialog.getByRole("button", { name: "Ik heb gecontroleerd" })).toBeEnabled();
 });

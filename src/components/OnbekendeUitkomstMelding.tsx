@@ -4,7 +4,7 @@ import { GECONTROLEERD_KNOP, ONBEKENDE_UITKOMST_GELD_TEKST } from "@/lib/opslaan
 
 /**
  * Een geldverzoek (afrekenen, opwaarderen, nieuw lid) waarvan de uitkomst
- * onbekend is: netwerkfout, onbekende serverfout of een time-out. Geen
+ * onbekend is: netwerkfout of onbekende serverfout (geen time-out: een hangend geldverzoek houdt de dialoog vast). Geen
  * "probeer opnieuw" en geen automatische tweede poging
  * (docs/features/opslaan-sluiten-pending.md, besluit C): de gebruiker
  * controleert eerst het saldo of de transacties en kiest daarna bewust

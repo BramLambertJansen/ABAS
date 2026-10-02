@@ -13,7 +13,7 @@ import {
  * Aanvulling op e2e/opslaan-sluiten-pending.spec.ts (#126, T06): de gaten die
  * daar open bleven. Bezetting, de portal-sheets (naam, wachtwoord, pincode),
  * de onbekende-uitkomst-flow bij Afrekenen en Opwaarderen, en de time-out van
- * 30 seconden. Zonder echte database: Supabase via `page.route()`, de time-out
+ * 30 seconden (alleen zonder geld; geldoverlays hebben geen time-out). Zonder echte database: Supabase via `page.route()`, de time-out
  * met `page.clock` (fastForward) tegen een met opzet hangend verzoek.
  *
  * Wat dit níét toetst: Safari/touch/schermlezer (handmatig) en echte dubbele
@@ -470,7 +470,7 @@ test("Afrekenen: een domeinfout (insufficient_balance) is géén onbekende uitko
   await expect(dialog.getByRole("button", { name: "Ik heb gecontroleerd" })).toHaveCount(0);
 });
 
-test("Afrekenen: na 30 s zonder antwoord valt de blokkade en is de uitkomst onbekend; geen tweede request", async ({ page }) => {
+test("Afrekenen: geen time-out voor geld: na 30 s blijft de dialoog geblokkeerd, geen onbekende uitkomst, één request", async ({ page }) => {
   await page.clock.install();
   const vast = houdVast();
   const calls = await openKassa(page, {
@@ -483,63 +483,24 @@ test("Afrekenen: na 30 s zonder antwoord valt de blokkade en is de uitkomst onbe
   await dialog.getByRole("button", { name: "ja, afrekenen" }).click();
   await expect(dialog).toHaveAttribute("aria-busy", "true");
 
-  await page.clock.fastForward(29_000);
-  await expect(dialog.getByRole("button", { name: "annuleren" })).toBeDisabled();
-  await expect(dialog.getByText(ONBEKEND_GELD)).toHaveCount(0);
-
-  await page.clock.fastForward(1_500);
-  await expect(alertOf(page).filter({ hasText: ONBEKEND_GELD })).toBeVisible();
-  await expect(dialog.getByRole("button", { name: "annuleren" })).toBeEnabled();
-  await expect(dialog.getByRole("button", { name: "ja, afrekenen" })).toBeDisabled();
-  await expect(page.getByText(/probeer het opnieuw/i)).toHaveCount(0);
-  await page.clock.fastForward(60_000);
+  for (const ms of [29_000, 1_500, 60_000]) {
+    await page.clock.fastForward(ms);
+    await expect(dialog.getByRole("button", { name: "annuleren" })).toBeDisabled();
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByText(ONBEKEND_GELD)).toHaveCount(0);
+    await expect(dialog.getByRole("button", { name: "Ik heb gecontroleerd" })).toHaveCount(0);
+    await expect(dialog.getByRole("button", { name: "bezig…" })).toBeDisabled();
+  }
   expect(calls.place_order).toBe(1);
-  vast.laatDoor();
-});
 
-test("Afrekenen: antwoord komt na de time-out alsnog binnen: de bestelling wordt gewoon afgerond", async ({ page }) => {
-  await page.clock.install();
-  const vast = houdVast();
-  const calls = await openKassa(page, {
-    place_order: async (route) => {
-      await vast.poort;
-      return json(route, 200, { total_cents: 250 });
-    },
-  });
-  const dialog = await openAfrekenen(page);
-  await dialog.getByRole("button", { name: "ja, afrekenen" }).click();
-  await page.clock.fastForward(31_000);
-  await expect(alertOf(page).filter({ hasText: ONBEKEND_GELD })).toBeVisible();
-
+  // Het late antwoord rondt de bestelling gewoon af.
   vast.laatDoor();
   await expect(dialog).toHaveCount(0);
   expect(calls.place_order).toBe(1);
 });
 
-test("Afrekenen: 'Ik heb gecontroleerd' tijdens een nog hangend verzoek mag geen tweede place_order starten", async ({ page }) => {
-  // Negatieve test voor 'geen dubbele opdracht tijdens pending': na de time-out
-  // hangt het eerste verzoek nog; de gebruiker bevestigt de controle en tikt
-  // opnieuw. Het eerste verzoek is dan nog in vlucht, dus een tweede mag niet.
-  await page.clock.install();
-  const vast = houdVast();
-  const calls = await openKassa(page, {
-    place_order: async (route) => {
-      await vast.poort;
-      return json(route, 200, { total_cents: 250 });
-    },
-  });
-  const dialog = await openAfrekenen(page);
-  await dialog.getByRole("button", { name: "ja, afrekenen" }).click();
-  await page.clock.fastForward(31_000);
-  // Zolang het verzoek hangt is bevestigen niet mogelijk.
-  await expect(dialog.getByRole("button", { name: "Ik heb gecontroleerd" })).toBeDisabled();
-  await expect(dialog.getByRole("button", { name: "ja, afrekenen" })).toBeDisabled();
-  await page.waitForTimeout(500);
-  expect(calls.place_order).toBe(1);
-  vast.laatDoor();
-});
-
-test("Afrekenen: hangend verzoek faalt alsnog na een klik op 'Ik heb gecontroleerd': controle blijft vereist, geen tweede request", async ({ page }) => {
+test("Afrekenen: hangend verzoek faalt pas na 30 s: dan pas onbekende uitkomst, controle vereist, geen tweede request", async ({ page }) => {
   await page.clock.install();
   const vast = houdVast();
   const calls = await openKassa(page, {
@@ -551,13 +512,13 @@ test("Afrekenen: hangend verzoek faalt alsnog na een klik op 'Ik heb gecontrolee
   const dialog = await openAfrekenen(page);
   await dialog.getByRole("button", { name: "ja, afrekenen" }).click();
   await page.clock.fastForward(31_000);
-  const controle = dialog.getByRole("button", { name: "Ik heb gecontroleerd" });
-  await expect(controle).toBeDisabled();
-  await controle.click({ force: true });
+  await expect(dialog.getByRole("button", { name: "Ik heb gecontroleerd" })).toHaveCount(0);
 
   vast.laatDoor();
   await expect(alertOf(page).filter({ hasText: ONBEKEND_GELD })).toBeVisible();
+  const controle = dialog.getByRole("button", { name: "Ik heb gecontroleerd" });
   await expect(controle).toBeEnabled();
+  await expect(dialog.getByRole("button", { name: "annuleren" })).toBeEnabled();
   await expect(dialog.getByRole("button", { name: "ja, afrekenen" })).toBeDisabled();
   await dialog.getByRole("button", { name: "ja, afrekenen" }).click({ force: true });
   await page.waitForTimeout(500);
@@ -594,7 +555,7 @@ test("Opwaarderen: focus blijft na 'Ik heb gecontroleerd' in de dialoog", async 
   expect(await page.evaluate(() => !!document.activeElement?.closest('[role="dialog"]'))).toBe(true);
 });
 
-test("Opwaarderen: pending blokkeert sluiten, één aanroep; na 30 s onbekende uitkomst zonder tweede request", async ({ page }) => {
+test("Opwaarderen: geen time-out voor geld: pending blokkeert sluiten, na 30 s nog steeds, één aanroep", async ({ page }) => {
   await page.clock.install();
   const vast = houdVast();
   const calls = await openKassa(page, {
@@ -606,43 +567,23 @@ test("Opwaarderen: pending blokkeert sluiten, één aanroep; na 30 s onbekende u
   const dialog = await openOpwaarderen(page);
   await dialog.getByRole("button", { name: "boeken", exact: true }).click();
   await expect(dialog).toHaveAttribute("aria-busy", "true");
-  await page.keyboard.press("Escape");
-  await page.mouse.click(3, 3);
-  await expect(dialog).toBeVisible();
-  await expect(dialog.getByRole("button", { name: "annuleren" })).toBeDisabled();
   await dialog.getByRole("button", { name: "bezig…" }).click({ force: true });
 
-  await page.clock.fastForward(29_000);
-  await expect(dialog.getByRole("button", { name: "annuleren" })).toBeDisabled();
-  await page.clock.fastForward(1_500);
-  await expect(alertOf(page).filter({ hasText: ONBEKEND_GELD })).toBeVisible();
-  await expect(dialog.getByRole("button", { name: "annuleren" })).toBeEnabled();
-  await expect(dialog.getByRole("button", { name: "boeken", exact: true })).toBeDisabled();
-  await page.clock.fastForward(60_000);
+  for (const ms of [29_000, 1_500, 60_000]) {
+    await page.clock.fastForward(ms);
+    await page.keyboard.press("Escape");
+    await page.mouse.click(3, 3);
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByRole("button", { name: "annuleren" })).toBeDisabled();
+    await expect(dialog.getByText(ONBEKEND_GELD)).toHaveCount(0);
+    await expect(dialog.getByRole("button", { name: "Ik heb gecontroleerd" })).toHaveCount(0);
+  }
   expect(calls.top_up).toBe(1);
   vast.laatDoor();
+  await expect(dialog).toHaveCount(0);
 });
 
-test("Opwaarderen: 'Ik heb gecontroleerd' tijdens een nog hangend verzoek mag geen tweede top_up starten", async ({ page }) => {
-  await page.clock.install();
-  const vast = houdVast();
-  const calls = await openKassa(page, {
-    top_up: async (route) => {
-      await vast.poort;
-      return json(route, 200, { amount_cents: 500 });
-    },
-  });
-  const dialog = await openOpwaarderen(page);
-  await dialog.getByRole("button", { name: "boeken", exact: true }).click();
-  await page.clock.fastForward(31_000);
-  await expect(dialog.getByRole("button", { name: "Ik heb gecontroleerd" })).toBeDisabled();
-  await expect(dialog.getByRole("button", { name: "boeken", exact: true })).toBeDisabled();
-  await page.waitForTimeout(500);
-  expect(calls.top_up).toBe(1);
-  vast.laatDoor();
-});
-
-test("Opwaarderen: hangend verzoek faalt alsnog na een klik op 'Ik heb gecontroleerd': controle blijft vereist, geen tweede request", async ({ page }) => {
+test("Opwaarderen: hangend verzoek faalt pas na 30 s: dan pas onbekende uitkomst, controle vereist, geen tweede request", async ({ page }) => {
   await page.clock.install();
   const vast = houdVast();
   const calls = await openKassa(page, {
@@ -654,13 +595,11 @@ test("Opwaarderen: hangend verzoek faalt alsnog na een klik op 'Ik heb gecontrol
   const dialog = await openOpwaarderen(page);
   await dialog.getByRole("button", { name: "boeken", exact: true }).click();
   await page.clock.fastForward(31_000);
-  const controle = dialog.getByRole("button", { name: "Ik heb gecontroleerd" });
-  await expect(controle).toBeDisabled();
-  await controle.click({ force: true });
+  await expect(dialog.getByRole("button", { name: "Ik heb gecontroleerd" })).toHaveCount(0);
 
   vast.laatDoor();
   await expect(alertOf(page).filter({ hasText: ONBEKEND_GELD })).toBeVisible();
-  await expect(controle).toBeEnabled();
+  await expect(dialog.getByRole("button", { name: "Ik heb gecontroleerd" })).toBeEnabled();
   await expect(dialog.getByRole("button", { name: "boeken", exact: true })).toBeDisabled();
   await dialog.getByRole("button", { name: "boeken", exact: true }).click({ force: true });
   await page.waitForTimeout(500);

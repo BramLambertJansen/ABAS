@@ -61,15 +61,16 @@ export function AfrekenenOverlay({
   const shortfallCents = subtotalCents - (member.balanceCents + negativeLimitCents);
 
   const pending = placeOrderMutation.status === "pending";
-  const { closeBlocked, timedOut } = useOpslaanBlokkade(pending);
+  // Geld: geen time-out, de blokkade blijft tot het verzoek klaar is.
+  const { closeBlocked } = useOpslaanBlokkade(pending, { metTimeout: false });
   // Een hangend verzoek blijft in vlucht, ook na de 30 s-time-out: alleen de
   // sluitblokkade valt dan (closeBlocked). Een tweede geldopdracht blijft
   // geblokkeerd zolang de eerste kan slagen.
   const inVlucht = pending;
-  // Onbekende uitkomst (netwerk, onbekende fout, time-out): pas weer afrekenen
+  // Onbekende uitkomst (netwerk, onbekende fout): pas weer afrekenen
   // nadat de gebruiker bewust "Ik heb gecontroleerd" koos (besluit C).
   const [gecontroleerd, setGecontroleerd] = useState(false);
-  const uitkomstOnbekend = (submitErrorCode === "unknown" || timedOut) && !gecontroleerd;
+  const uitkomstOnbekend = submitErrorCode === "unknown" && !gecontroleerd;
   const confirmDisabled = insufficientFunds || !effectiveServedBy || inVlucht || uitkomstOnbekend;
 
   // Escape/backdrop-click/"annuleren" mogen niet sluiten terwijl
@@ -217,7 +218,7 @@ export function AfrekenenOverlay({
           onClick={handleConfirm}
           className="flex h-[50px] flex-1 items-center justify-center rounded-2xl bg-accent-active text-sm font-bold text-white transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:bg-track disabled:text-muted"
         >
-          {pending && !timedOut ? "bezig…" : "ja, afrekenen"}
+          {pending ? "bezig…" : "ja, afrekenen"}
         </button>
       </div>
     </Overlay>

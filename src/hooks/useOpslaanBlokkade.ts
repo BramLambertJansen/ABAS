@@ -12,19 +12,26 @@ import { PENDING_TIMEOUT_MS } from "@/lib/opslaan";
  * de gebruiker niet voor altijd vastzit en is `timedOut` waar, "de uitkomst is
  * onbekend". Het verzoek zelf wordt niet afgebroken: komt het antwoord later
  * alsnog, dan verwerkt de aanroeper dat gewoon.
+ *
+ * Geldoverlays (Afrekenen, Opwaarderen, Nieuw lid) geven `{ metTimeout: false }`
+ * mee (besluit 1 Bram, 2026-10-02): geen time-out, `closeBlocked` blijft
+ * staan tot het verzoek echt klaar is en `timedOut` is nooit waar.
  */
-export function useOpslaanBlokkade(pending: boolean): { closeBlocked: boolean; timedOut: boolean } {
+export function useOpslaanBlokkade(
+  pending: boolean,
+  { metTimeout = true }: { metTimeout?: boolean } = {},
+): { closeBlocked: boolean; timedOut: boolean } {
   const [timedOutFor, setTimedOutFor] = useState(false);
 
   useEffect(() => {
-    if (!pending) {
+    if (!pending || !metTimeout) {
       setTimedOutFor(false);
       return;
     }
     const timer = setTimeout(() => setTimedOutFor(true), PENDING_TIMEOUT_MS);
     return () => clearTimeout(timer);
-  }, [pending]);
+  }, [pending, metTimeout]);
 
-  const timedOut = pending && timedOutFor;
+  const timedOut = metTimeout && pending && timedOutFor;
   return { closeBlocked: pending && !timedOut, timedOut };
 }

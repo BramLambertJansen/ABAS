@@ -87,15 +87,16 @@ export function OpwaarderenOverlay({
   const herstelFocus = useHerstelFocus();
   const knopRef = useRef<HTMLButtonElement>(null);
   const pending = topUpMutation.status === "pending";
-  const { closeBlocked, timedOut } = useOpslaanBlokkade(pending);
+  // Geld: geen time-out, de blokkade blijft tot het verzoek klaar is.
+  const { closeBlocked } = useOpslaanBlokkade(pending, { metTimeout: false });
   // Een hangend verzoek blijft in vlucht, ook na de 30 s-time-out: alleen de
   // sluitblokkade valt dan (closeBlocked). Een tweede geldopdracht blijft
   // geblokkeerd zolang de eerste kan slagen.
   const inVlucht = pending;
-  // Onbekende uitkomst (netwerk, onbekende fout, time-out): pas weer boeken
+  // Onbekende uitkomst (netwerk, onbekende fout): pas weer boeken
   // nadat de gebruiker bewust "Ik heb gecontroleerd" koos (besluit C).
   const [gecontroleerd, setGecontroleerd] = useState(false);
-  const uitkomstOnbekend = (submitErrorCode === "unknown" || timedOut) && !gecontroleerd;
+  const uitkomstOnbekend = submitErrorCode === "unknown" && !gecontroleerd;
   // A4 (besloten, alle standen): nooit een opwaardering naar het lid van de
   // ingelogde sessie. De regel staat er al vóór het boeken, zodat de weigering
   // niet pas na de RPC zichtbaar wordt (zelfde verdeling als de €500): `top_up`
@@ -262,7 +263,7 @@ export function OpwaarderenOverlay({
             onClick={handleBook}
             className="flex h-12 flex-none items-center justify-center rounded-[13px] bg-accent-active px-[18px] text-[13.5px] font-extrabold text-white transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:bg-track disabled:text-muted"
           >
-            {pending && !timedOut
+            {pending
               ? "bezig…"
               : confirming && amountCents !== null
                 ? `ja, ${formatCents(amountCents)} boeken`
