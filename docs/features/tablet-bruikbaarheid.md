@@ -75,15 +75,18 @@ classes en layout, zoals gespecificeerd.
 
 - **D1:** 768px portret en 1024px landschap zijn ondersteund; geen
   toestelmelding of minimummaat (zie "Besluit D1").
-- **Vraag 1 (zijpaneel op portret):** aanbeveling gevolgd, optie (b): smaller
-  paneel rechts, fluïde `clamp(300px,36vw,372px)` met compactere regels.
-- **Vraag 2 (lange namen):** aanbeveling gevolgd: twee regels in de kaart, de
-  volledige naam in het mandje en in de `aria-label`.
-- **Vraag 3 (container queries):** aanbeveling gevolgd, de plugin zou erbij
-  mogen. De Developer bouwde het zonder de plugin omdat `auto-fill` en
-  viewportbreakpoints volstonden; dat is als bewuste keuze in "Gebouwd"
-  vastgelegd. Ontbreekt ooit een situatie die de plugin vereist, dan is dat een
-  nieuw besluit.
+- **Vragen 1–3:** Bram antwoordde "Akkoord" op de concept-spec met de
+  aanbevelingen erbij; dat is opgevat als goedkeuring van die aanbevelingen,
+  niet als per vraag gekozen opties.
+  - Vraag 1 (zijpaneel op portret): optie (b), smaller paneel rechts, fluïde
+    `clamp(300px,36vw,372px)` met compactere regels.
+  - Vraag 2 (lange namen): twee regels in de kaart, de volledige naam in het
+    mandje en in de `aria-label`.
+  - Vraag 3 (container queries): de aanbeveling was de plugin. De Developer
+    bouwde het **zonder** de plugin omdat `auto-fill` en viewportbreakpoints
+    volstonden. Dat is een eigen keuze van de Developer, vermeld in de
+    PR-tekst, en niet apart door Bram bevestigd. Ontbreekt ooit een situatie
+    die de plugin vereist, dan is dat een nieuw besluit.
 - **Vraag 4 en 5:** niet beantwoord, zie OPEN (b) en (c).
 
 Spec voor [issue #124](https://github.com/BramLambertJansen/ABAS/issues/124)
