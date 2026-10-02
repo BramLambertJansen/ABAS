@@ -12,7 +12,9 @@ import {
 } from "@/hooks/queries/useCreateMember";
 import type { LedenbeheerLid } from "@/hooks/queries/useAlleLeden";
 import { parseEuroToCents } from "@/lib/money";
-import { isValidEmailFormat } from "@/lib/email";
+import { bedragFout, bedragFoutTekst, EMAIL_ONGELDIG_TEKST, emailFout } from "@/lib/veldFouten";
+import { VeldFout } from "@/components/TekstVeld";
+import { useVeldMoment } from "@/hooks/useVeldMoment";
 
 function errorMessage(code: CreateMemberErrorCode): string {
   switch (code) {
@@ -75,22 +77,42 @@ export function NieuwLidOverlay({
   const trimmedBalanceInput = balanceInput.trim();
   const balanceCents =
     trimmedBalanceInput === "" ? null : parseEuroToCents(trimmedBalanceInput);
-  const balanceValid =
-    trimmedBalanceInput === "" || (balanceCents !== null && balanceCents >= 0);
+  const balanceInputRef = useRef<HTMLInputElement>(null);
+  const emailInputRef = useRef<HTMLInputElement>(null);
+  const balanceMoment = useVeldMoment();
+  const emailMoment = useVeldMoment();
+  // Startsaldo en e-mail zijn optioneel; €0 is een geldig startsaldo.
+  const balanceSoort = bedragFout(balanceInput, { optioneel: true, nulToegestaan: true });
+  const balanceMelding =
+    balanceSoort !== null && (balanceMoment.pogingGedaan || balanceMoment.aangeraakt)
+      ? bedragFoutTekst(balanceSoort)
+      : null;
 
   const trimmedEmailInput = emailInput.trim();
-  const emailValid =
-    trimmedEmailInput === "" || isValidEmailFormat(trimmedEmailInput);
+  const emailSoort = emailFout(emailInput);
+  const emailMelding =
+    emailSoort !== null && (emailMoment.pogingGedaan || emailMoment.aangeraakt)
+      ? EMAIL_ONGELDIG_TEKST
+      : null;
 
-  const canSubmit =
-    name.trim() !== "" &&
-    balanceValid &&
-    emailValid &&
-    !inVlucht &&
-    !uitkomstOnbekend;
+  // Een ongeldig bedrag of adres schakelt de knop niet uit: een tik toont de
+  // melding. Uit blijft: geen naam, lopend verzoek, onbekende uitkomst.
+  const canSubmit = name.trim() !== "" && !inVlucht && !uitkomstOnbekend;
 
   async function submit() {
     if (!canSubmit) return;
+    // Eerste ongeldige veld (volgorde in het formulier) krijgt de focus.
+    if (balanceSoort !== null) {
+      balanceMoment.bijPoging();
+      if (emailSoort !== null) emailMoment.bijPoging();
+      balanceInputRef.current?.focus();
+      return;
+    }
+    if (emailSoort !== null) {
+      emailMoment.bijPoging();
+      emailInputRef.current?.focus();
+      return;
+    }
     setGecontroleerd(false);
     const member = await createMember.createMember(
       name,
@@ -148,7 +170,11 @@ export function NieuwLidOverlay({
             €
           </span>
           <input
+            ref={balanceInputRef}
             id={balanceId}
+            aria-invalid={balanceMelding ? true : undefined}
+            aria-describedby={balanceMelding ? `${balanceId}-fout` : undefined}
+            onBlur={balanceMoment.bijBlur}
             type="text"
             inputMode="decimal"
             placeholder="0,00"
@@ -156,11 +182,13 @@ export function NieuwLidOverlay({
             readOnly={inVlucht}
             onChange={(event) => {
               setBalanceInput(event.target.value);
+              balanceMoment.bijWijzig();
               wijzig();
             }}
             className="h-12 flex-1 min-w-0 bg-transparent text-sm font-semibold text-ink outline-none"
           />
         </div>
+        <VeldFout id={`${balanceId}-fout`} tekst={balanceMelding} alert={balanceMoment.pogingAlert} />
       </div>
 
       <div className="flex flex-col gap-1.5">
@@ -168,16 +196,22 @@ export function NieuwLidOverlay({
           E-mailadres (optioneel)
         </label>
         <input
+          ref={emailInputRef}
           id={emailId}
           type="email"
           value={emailInput}
           readOnly={inVlucht}
+          aria-invalid={emailMelding ? true : undefined}
+          aria-describedby={emailMelding ? `${emailId}-fout` : undefined}
+          onBlur={emailMoment.bijBlur}
           onChange={(event) => {
             setEmailInput(event.target.value);
+            emailMoment.bijWijzig();
             wijzig();
           }}
           className="h-12 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink outline-none focus:border-accent"
         />
+        <VeldFout id={`${emailId}-fout`} tekst={emailMelding} alert={emailMoment.pogingAlert} />
       </div>
 
       <div className="flex gap-2.5">

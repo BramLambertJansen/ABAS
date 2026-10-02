@@ -31,14 +31,31 @@ export function TekstVeld({
   inputRef,
   children,
   tone = "rail",
+  fout,
+  foutAlert = false,
+  hint,
+  "aria-describedby": describedBy,
   ...inputProps
 }: {
   label: string;
   tone?: keyof typeof TONES;
   inputRef?: Ref<HTMLInputElement>;
   children?: ReactNode;
+  /** Veldmelding onder het veld; de aanroeper bepaalt wanneer die getoond
+   *  wordt (bij blur of een poging, docs/features/invoerfeedback-zoeken-filters.md).
+   *  Zet `aria-invalid` en `aria-describedby`. */
+  fout?: string | null;
+  /** `role="alert"`: alleen voor de fout na een tik op de primaire knop. */
+  foutAlert?: boolean;
+  /** Vaste uitleg onder het veld, ook als er geen fout is. */
+  hint?: string;
 } & Omit<InputHTMLAttributes<HTMLInputElement>, "id" | "className">) {
   const id = useId();
+  const foutId = `${id}-fout`;
+  const hintId = `${id}-hint`;
+  const beschrijving =
+    [describedBy, hint ? hintId : null, fout ? foutId : null].filter(Boolean).join(" ") ||
+    undefined;
   return (
     <div className="flex flex-col gap-1.5">
       <label htmlFor={id} className={TONES[tone].label}>
@@ -48,9 +65,46 @@ export function TekstVeld({
         ref={inputRef}
         id={id}
         {...inputProps}
+        aria-invalid={fout ? true : inputProps["aria-invalid"]}
+        aria-describedby={beschrijving}
         className={TONES[tone].input}
       />
+      {hint && (
+        <p id={hintId} className="text-xs font-semibold text-muted">
+          {hint}
+        </p>
+      )}
+      <VeldFout id={foutId} tekst={fout} alert={foutAlert} />
       {children}
     </div>
+  );
+}
+
+/**
+ * De veldmelding zelf (bestaande foutstijl: `text-xs font-bold text-danger`),
+ * gedeeld door `TekstVeld` en de invoervelden met een eigen opmaak (bedrag met
+ * €-voorvoegsel, veld naast een knop): één melding-element, één koppelpatroon
+ * (`aria-describedby` naar `id`). `alert` gebruikt `role="alert"` en remount
+ * bij de wissel, zodat een schermlezer de poging-melding voorleest.
+ */
+export function VeldFout({
+  id,
+  tekst,
+  alert = false,
+}: {
+  id: string;
+  tekst?: string | null;
+  alert?: boolean;
+}) {
+  if (!tekst) return null;
+  return (
+    <p
+      key={alert ? "alert" : "stil"}
+      id={id}
+      role={alert ? "alert" : undefined}
+      className="text-xs font-bold text-danger"
+    >
+      {tekst}
+    </p>
   );
 }

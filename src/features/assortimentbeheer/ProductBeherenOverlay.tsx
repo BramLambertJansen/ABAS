@@ -26,6 +26,9 @@ import {
 } from "@/hooks/queries/useProductAfbeelding";
 import type { AssortimentProduct } from "@/hooks/queries/useAlleProducten";
 import { formatCents, parseEuroToCents } from "@/lib/money";
+import { bedragFout, bedragFoutTekst } from "@/lib/veldFouten";
+import { VeldFout } from "@/components/TekstVeld";
+import { useVeldMoment } from "@/hooks/useVeldMoment";
 import { SESSION_CODE_INLINE_MESSAGE, isSessionErrorCode } from "@/lib/barSessie";
 import {
   PRODUCT_IMAGE_ACCEPT,
@@ -133,15 +136,23 @@ export function ProductBeherenOverlay({
   const unsaved = isPrijsOnopgeslagen(priceInput, product.priceCents);
 
   const parsedPriceCents = parseEuroToCents(priceInput);
-  const canSavePrice =
-    priceInput.trim() !== "" &&
-    parsedPriceCents !== null &&
-    parsedPriceCents > 0 &&
-    parsedPriceCents !== product.priceCents &&
-    !busy;
+  const priceMoment = useVeldMoment();
+  const priceSoort = bedragFout(priceInput);
+  const priceMelding =
+    priceSoort !== null && (priceMoment.pogingGedaan || priceMoment.aangeraakt)
+      ? bedragFoutTekst(priceSoort, "prijs")
+      : null;
+  // Een ongeldige of lege prijs schakelt de knop niet uit: een tik toont de
+  // melding. Uit blijft: bezig, of een geldige prijs die niets wijzigt.
+  const canSavePrice = parsedPriceCents !== product.priceCents && !busy;
 
   async function savePrice() {
-    if (!canSavePrice || parsedPriceCents === null) return;
+    if (!canSavePrice) return;
+    if (priceSoort !== null || parsedPriceCents === null) {
+      priceMoment.bijPoging();
+      priceInputRef.current?.focus();
+      return;
+    }
     const updated = await priceMutation.updateProductPrice(
       product.id,
       parsedPriceCents
@@ -325,6 +336,9 @@ export function ProductBeherenOverlay({
             <input
               ref={priceInputRef}
               id={priceId}
+              aria-invalid={priceMelding ? true : undefined}
+              aria-describedby={priceMelding ? `${priceId}-fout` : undefined}
+              onBlur={priceMoment.bijBlur}
               type="text"
               inputMode="decimal"
               placeholder="0,00"
@@ -332,6 +346,7 @@ export function ProductBeherenOverlay({
               readOnly={priceBusy}
               onChange={(event) => {
                 setPriceInput(event.target.value);
+                priceMoment.bijWijzig();
                 if (priceMutation.errorCode) priceMutation.reset();
               }}
               className="h-11 flex-1 min-w-0 bg-transparent text-sm font-semibold text-ink outline-none"
@@ -346,6 +361,7 @@ export function ProductBeherenOverlay({
             {priceBusy ? OPSLAAN_BEZIG_TEKST : "Opslaan"}
           </button>
         </div>
+        <VeldFout id={`${priceId}-fout`} tekst={priceMelding} alert={priceMoment.pogingAlert} />
       </OpslaanSectie>
 
       <OpslaanSectie
