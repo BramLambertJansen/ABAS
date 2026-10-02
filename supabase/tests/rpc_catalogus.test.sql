@@ -96,6 +96,7 @@ insert into catalogus values
   ('close_inactive_bar_sessions','intern', null),
   ('end_member_bar_sessions',   'intern', null),
   ('end_shift_internal',        'intern', null),
+  ('forbid_api_role_truncate',  'intern', null),  -- 0039: BEFORE TRUNCATE-guard op storage (ADR 0019)
   ('member_has_verified_factor','intern', null),
   ('notify_orphan_shift',       'intern', null),
   ('purge_client_errors',       'intern', null),

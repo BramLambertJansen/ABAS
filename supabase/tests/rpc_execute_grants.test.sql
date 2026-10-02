@@ -218,7 +218,9 @@ select ok(
         'public.close_inactive_bar_sessions()',
         -- 0034/0035 (ADR 0017)
         'public.member_has_verified_factor(uuid)',
-        'public.purge_login_throttle()'
+        'public.purge_login_throttle()',
+        -- 0039 (ADR 0019): de BEFORE TRUNCATE-guard op storage
+        'public.forbid_api_role_truncate()'
       ]) as f(sig)
      where has_function_privilege('anon', f.sig, 'EXECUTE')
         or has_function_privilege('authenticated', f.sig, 'EXECUTE')
