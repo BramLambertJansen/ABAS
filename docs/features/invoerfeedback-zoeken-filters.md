@@ -1,9 +1,7 @@
 # Invoerfeedback, ledenzoeker en productfilters
 
 **Status: goedgekeurd door Bram op 2026-10-02**, inclusief vraag 9 en 10 en
-besluit 11 t/m 14 (zie "Besluiten Bram"). De Developer kan alles bouwen, met
-één uitzondering: de knoppen die disabled blijven zonder veldverklaring staan
-als open vraag (zie "Open vragen voor Bram") en zijn nog niet specificeerbaar.
+besluit 11 t/m 15 (zie "Besluiten Bram"). De Developer kan alles bouwen.
 
 Spec voor [issue #127](https://github.com/BramLambertJansen/ABAS/issues/127)
 (frontend T07 · P2, epic #121, findings F12, F15, F16; besluit D3). Bouwt voort
@@ -469,6 +467,14 @@ Genomen op 2026-10-02 ("Pak de aanbevelingen"):
     naar de lidnaam in het lidkaartje (`tabIndex={-1}`); het vangnet-effect in
     `Mandje` voor "lid verdwijnt tijdens bevestiging" blijft staan (vrijwel
     onbereikbaar).
+15. **Knoppen die disabled blijven zonder veldverklaring:** (aanbeveling
+    overgenomen) ongewijzigde invoer en lege verplichte velden blijven bewust
+    `disabled` zonder tekst: leeg eigen-bedragveld bij de negatieve limiet,
+    ongewijzigde prijs of e-mail bij Product beheren en Lid beheren, lege naam of
+    niet gekozen categorie bij Nieuw product en Nieuw lid. Er wordt geen tekst
+    bedacht. Voor het lege limietveld bij een tik levert Bram later zelf een
+    tekst aan; tot dan geldt de knop als `disabled` en gebeurt er niets. Dat is
+    geen blokkade voor deze PR.
 
 Goedgekeurde teksten (Nederlands, in de stijl van `messages.ts`):
 
@@ -489,23 +495,10 @@ Goedgekeurde teksten (Nederlands, in de stijl van `messages.ts`):
 
 ## Open vragen voor Bram
 
-Vraag 9 en 10 zijn op 2026-10-02 beantwoord (zie "Besluiten Bram", punt 9 en 10).
-
-**15. Knoppen die disabled blijven zonder veldverklaring.** De spec (§1, "Knop bij
-een veldfout") staat `disabled` alleen toe bij lopende actie, ontbrekende
-bezetting en A4. Op de gebouwde schermen blijft de knop daarnaast disabled in
-deze gevallen, zonder uitleg bij het veld:
-
-- Negatieve limiet: leeg eigen-bedragveld bij een tik.
-- Product beheren en Lid beheren: ongewijzigde prijs of e-mail.
-- Nieuw product en Nieuw lid: lege naam of niet gekozen categorie. Bij een lege
-  naam met ongeldige prijs ontbreekt bovendien de prijsmelding.
-
-Aanbeveling (geen besluit): ongewijzigde invoer en lege verplichte velden bewust
-disabled laten zonder tekst (gangbaar; geen foutmelding nodig voordat de
-gebruiker iets heeft aangeraakt), en voor een leeg limietveld bij een tik een
-tekst door Bram laten voorstellen. Tot Bram beslist bouwt de Developer hier niets
-nieuws; de tekst voor het lege limietveld wordt niet verzonnen.
+Geen. Vraag 9 en 10 zijn op 2026-10-02 beantwoord, vraag 15 (disabled-knoppen
+zonder veldverklaring) ook (zie "Besluiten Bram", punt 9, 10 en 15). Alleen de
+tekst voor het lege limietveld bij een tik moet Bram nog zelf aanleveren; die staat
+hieronder bij de backlog.
 
 ## Backlog (niet-blokkerende Reviewer-punten, geen besluit)
 
@@ -513,3 +506,5 @@ nieuws; de tekst voor het lege limietveld wordt niet verzonnen.
   lidkaartje (besluit 14).
 - `NegatieveLimietInstellingen` maakt het eigen-bedragveld tijdens opslaan niet
   `readOnly` (pre-existing, strijdt met het pending-model uit T06).
+- Tekst voor het lege eigen-bedragveld bij de negatieve limiet bij een tik (besluit 15):
+  nog door Bram aan te leveren.
