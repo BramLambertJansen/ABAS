@@ -3,9 +3,8 @@
 Spec voor [issue #124](https://github.com/BramLambertJansen/ABAS/issues/124)
 (Frontend T04 · P1, epic #121, finding F04, besluit D1).
 
-**Status: concept; besluiten genomen, wacht op de meldingstekst en akkoord
-van Bram.** De Developer begint niet voordat de tekst (open vraag A) is
-vastgesteld, de spec is goedgekeurd en #137 en T05 gemerged zijn.
+**Status: goedgekeurd door Bram (2026-10-02), meldingstekst vastgesteld.** De
+Developer begint pas nadat #137 en T05 (#125) gemerged zijn.
 
 Bronnen: het issue, de bestaande code op `main` (`9f8e05b`:
 `DienstTabs.tsx`, `Mandje.tsx`, `DienstActief.tsx`, `Assortiment.tsx`,
@@ -361,9 +360,8 @@ gecontroleerd, tenzij anders vermeld.
 ## Besluiten van Bram
 
 1. **Onder 1024 effectief: variant B.** Een niet-blokkerende melding, alleen
-   met CSS getoond (geen `matchMedia`/`userAgent`). **De tekst van de melding
-   is nog niet door Bram vastgesteld** (open vraag A hieronder); de tekst
-   uit het eerdere voorstel is niet goedgekeurd.
+   met CSS getoond (geen `matchMedia`/`userAgent`). De tekst is door Bram vastgesteld (zie
+   open vraag A).
 2. **Ondergrens: 1024 CSS-px effectief**, bevestigd.
 3. **Merge-volgorde: #137 (T03) → T05 (#125) → T04.** De Developer begint pas
    na merge van beide en bouwt op main.
@@ -373,5 +371,5 @@ gecontroleerd, tenzij anders vermeld.
 
 ## Open vragen voor Bram
 
-A. **Tekst van de melding** onder 1024 effectief (bar en beheer). Tot dit
-   beantwoord is, bouwt de Developer geen melding.
+A. ~~Tekst van de melding~~ — beantwoord: "Dit scherm is te smal voor de
+   bar. Gebruik een tablet in landschap" (Bram, 2026-10-02).
