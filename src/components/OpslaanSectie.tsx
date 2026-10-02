@@ -12,7 +12,8 @@ import { WACHT_OP_ANDERE_WIJZIGING_TEKST } from "@/lib/opslaan";
  *   sectie bezig is: een disabled knop zonder reden is een F10-fout;
  * - de eigen foutregel (`role="alert"`) bij de plek waar de gebruiker keek,
  *   zodat een fout van de ene actie niet door een andere wordt verdrongen
- *   (F11). De regel is altijd gemount en neemt leeg geen ruimte in.
+ *   (F11). De regel bestaat alleen zolang er een fout is, zodat er per
+ *   scherm hooguit de actuele fouten als `role="alert"` staan.
  *
  * `chrome={false}` laat de omlijsting weg voor secties die zelf een knop zijn
  * (archiveren), zodat daar alleen hint en fout eronder komen.
@@ -43,9 +44,11 @@ export function OpslaanSectie({
       {wachtOpAnder && !pending && (
         <p className="text-xs font-medium text-muted">{WACHT_OP_ANDERE_WIJZIGING_TEKST}</p>
       )}
-      <p className="text-sm font-bold text-danger empty:hidden" role="alert">
-        {fout ?? ""}
-      </p>
+      {fout && (
+        <p className="text-sm font-bold text-danger" role="alert">
+          {fout}
+        </p>
+      )}
     </div>
   );
 }
