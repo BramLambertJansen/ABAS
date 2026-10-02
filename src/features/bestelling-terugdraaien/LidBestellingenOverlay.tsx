@@ -55,11 +55,6 @@ export function LidBestellingenOverlay({
     return () => clearTimeout(timer);
   }, [toast]);
 
-  function handleClose() {
-    if (pending) return;
-    onClose();
-  }
-
   async function confirmReverse(order: MemberOrder) {
     if (pending || reasonMissing) return;
     const result = await mutation.reverse(order.id, reason);
@@ -81,7 +76,8 @@ export function LidBestellingenOverlay({
     <Overlay
       title="Bestelling terugdraaien"
       description={`Bestellingen van ${memberName}. Het saldo gaat terug naar het lid.`}
-      onClose={handleClose}
+      onClose={onClose}
+      closeBlocked={pending}
     >
       <RoleBadge role={ADMIN_ROLE} tone="light" />
 
@@ -152,7 +148,7 @@ export function LidBestellingenOverlay({
       <button
         type="button"
         disabled={pending}
-        onClick={handleClose}
+        onClick={onClose}
         className="flex h-11 w-full items-center justify-center rounded-control border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink disabled:opacity-50"
       >
         Sluiten

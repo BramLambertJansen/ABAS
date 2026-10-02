@@ -1346,6 +1346,50 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
   });
 
   /**
+   * docs/features/dialogen-tabs-landmarks.md (#125, F28) → Teststrategie →
+   * Axe: de actieve Verkoop- en Dienst-weergave en een open dialoog, met de
+   * best-practice-regels `landmark-one-main` en `region` niet uitgezet.
+   * Dezelfde scans draaien gemockt in e2e/dialogen-tabs-landmarks.spec.ts.
+   */
+  test("bar shell (/) Verkoop, Dienst en open dialoog: één main, geen region-melding (#125)", async ({
+    page,
+  }) => {
+    await ensureShiftStarted(page);
+
+    const scan = async () => {
+      const results = await new AxeBuilder({ page })
+        .withTags(["wcag2a", "wcag2aa"])
+        .withRules(["landmark-one-main", "region"])
+        .analyze();
+      expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
+    };
+
+    const product = page.getByRole("button", { name: /^Pils,/ });
+    await product.waitFor({ state: "visible", timeout: 15_000 });
+    await expect(page.locator("main")).toHaveCount(1);
+    await scan();
+
+    await product.click();
+    await page.getByLabel("Zoek lid op naam").fill("Anna");
+    const memberOption = page.getByRole("button", { name: /Anna de Vries/i });
+    await memberOption.waitFor({ state: "visible", timeout: 15_000 });
+    await memberOption.click();
+    await page.getByRole("button", { name: "Tik afrekenen" }).click();
+    const checkout = page.getByRole("dialog", { name: /^Afrekenen bij/ });
+    await checkout.waitFor({ state: "visible" });
+    await scan();
+    await checkout.getByRole("button", { name: "annuleren" }).click();
+    await checkout.waitFor({ state: "hidden" });
+
+    await page.getByRole("tab", { name: "Dienst" }).click();
+    await page
+      .getByRole("heading", { name: "Dienst", exact: true })
+      .waitFor({ state: "visible", timeout: 15_000 });
+    await expect(page.locator("main")).toHaveCount(1);
+    await scan();
+  });
+
+  /**
    * docs/features/dienst-overzicht.md → Randgevallen → "A11y": the
    * Dienst-scherm itself (DienstActief.tsx — omzetkaart,
    * transactielijst, bezettingspaneel) with no dialog open. The two

@@ -102,11 +102,6 @@ export function OpwaarderenOverlay({
   // "annuleren" mogen niet sluiten terwijl top_up onderweg is — anders kan
   // de operator dezelfde opwaardering dubbel indienen vóórdat de eerste
   // aanroep klaar is.
-  function handleClose() {
-    if (pending) return;
-    onClose();
-  }
-
   async function handleBook() {
     if (!amountBookable || !effectiveServedBy || pending || isSelf) return;
 
@@ -156,7 +151,11 @@ export function OpwaarderenOverlay({
   // methode-toggle (MVP is alleen contant), chips kiezen een bedrag in
   // plaats van direct te boeken, en de "Wie geeft uit?"-picker.
   return (
-    <Overlay title={`Saldo opwaarderen bij ${member.name}`} onClose={handleClose}>
+    <Overlay
+      title={`Saldo opwaarderen bij ${member.name}`}
+      onClose={onClose}
+      closeBlocked={pending}
+    >
       <div className="-mt-1 flex items-baseline justify-between gap-3 text-[13px] font-semibold text-muted">
         <span className="min-w-0 truncate">
           saldo{lowBalance ? " — laag saldo" : ""}
@@ -272,7 +271,7 @@ export function OpwaarderenOverlay({
         // "annuleren" van de hele overlay — anders is een verkeerd
         // ingetikt bedrag corrigeren alleen mogelijk door opnieuw te
         // beginnen, precies op het moment dat de operator al twijfelt.
-        onClick={confirming ? () => setConfirming(false) : handleClose}
+        onClick={confirming ? () => setConfirming(false) : onClose}
         className="-mt-1 self-center px-3 py-1 text-[13px] font-bold text-muted transition-colors hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
       >
         {confirming ? "terug" : "annuleren"}

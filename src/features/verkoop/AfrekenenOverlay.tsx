@@ -64,11 +64,6 @@ export function AfrekenenOverlay({
   // operator kon daarna zonder waarschuwing dezelfde bestelling opnieuw
   // openen en indienen vóórdat de eerste aanroep klaar was (dubbele
   // bestelling, dubbele saldo-afschrijving). Reviewbot op PR #41.
-  function handleClose() {
-    if (pending) return;
-    onClose();
-  }
-
   async function handleConfirm() {
     if (!effectiveServedBy || pending) return;
 
@@ -114,7 +109,8 @@ export function AfrekenenOverlay({
     <Overlay
       title={`Afrekenen bij ${member.name}`}
       description="Het bedrag gaat van het saldo af en de kassa staat daarna klaar voor de volgende."
-      onClose={handleClose}
+      onClose={onClose}
+      closeBlocked={pending}
     >
       <p className="text-sm font-bold text-danger empty:-mt-4" role="alert">
         {submitErrorCode ? placeOrderErrorMessage(submitErrorCode) : ""}
@@ -173,7 +169,7 @@ export function AfrekenenOverlay({
         <button
           type="button"
           disabled={pending}
-          onClick={handleClose}
+          onClick={onClose}
           className="flex h-[50px] flex-1 items-center justify-center rounded-2xl border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
         >
           annuleren

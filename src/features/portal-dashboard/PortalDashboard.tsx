@@ -1,11 +1,23 @@
 "use client";
 
 import { useId, useState } from "react";
+import { TabList, TabPanel, type TabItem } from "@/components/Tabs";
 import { SaldoTab } from "./SaldoTab";
 import { TransactiesTab } from "./TransactiesTab";
 import { AccountTab } from "@/features/portal-profiel/AccountTab";
 
 type Tab = "saldo" | "transacties" | "account";
+
+const portalTabClass = (selected: boolean) =>
+  `flex h-10 flex-1 items-center justify-center rounded-xl text-sm font-bold transition-colors ${
+    selected ? "bg-white text-ink shadow-sm" : "text-muted-strong"
+  }`;
+
+const PORTAL_TABS: TabItem[] = [
+  { key: "saldo", label: "Saldo", className: portalTabClass },
+  { key: "transacties", label: "Transacties", className: portalTabClass },
+  { key: "account", label: "Account", className: portalTabClass },
+];
 
 /**
  * `/portal`'s eerste echte inhoud achter een ingelogde `lid`-sessie —
@@ -15,10 +27,9 @@ type Tab = "saldo" | "transacties" | "account";
  * Container: een kleine header (naam + "Uitloggen", het enige dat overblijft
  * van de placeholder) boven een tab-omschakeling Saldo/Transacties/Account
  * (Account sinds docs/features/portal-profiel.md, #17 — de Uitloggen-knop
- * blijft in de header, geen tweede in het Account-tabblad), zelfde
- * `role="tablist"`-patroon als `DienstTabs.tsx`/`BeheerTabs.tsx` (spec →
- * Schermflow: twee bestaande, niet-gedeelde precedenten voor deze derde
- * kopie, geen blokkade voor dit ticket). Elk tabblad blijft alleen gemount
+ * blijft in de header, geen tweede in het Account-tabblad), via
+ * het gedeelde `TabList`/`TabPanel` (`src/components/Tabs.tsx`), met manuele
+ * activatie: pijlen verplaatsen de focus, Enter/Space activeert. Elk tabblad blijft alleen gemount
  * terwijl het actief is (zelfde mount/unmount-lifecycle als `DienstTabs`),
  * zodat een tab bij terugkeer altijd een verse leeshook-lezing krijgt — er
  * is geen live-subscriptie in v1 (spec → Randgevallen).
@@ -43,9 +54,7 @@ export function PortalDashboard({
   onProfileChanged: () => void;
 }) {
   const [tab, setTab] = useState<Tab>("saldo");
-  const saldoTabId = useId();
-  const transactiesTabId = useId();
-  const accountTabId = useId();
+  const idBase = useId();
   const firstName = name.trim().split(/\s+/)[0] || name;
 
   return (
@@ -70,83 +79,32 @@ export function PortalDashboard({
         </button>
       </header>
 
-      <div
-        role="tablist"
-        aria-label="Portaal-navigatie"
+      <TabList
+        idBase={idBase}
+        label="Portaal-navigatie"
+        activation="manual"
+        selected={tab}
+        onSelect={(key) => setTab(key as Tab)}
+        items={PORTAL_TABS}
         className="mx-5 mt-4 flex flex-none gap-1 rounded-2xl bg-track p-1"
-      >
-        <button
-          type="button"
-          role="tab"
-          id={saldoTabId}
-          aria-selected={tab === "saldo"}
-          aria-controls="saldo-panel"
-          onClick={() => setTab("saldo")}
-          className={`flex h-10 flex-1 items-center justify-center rounded-xl text-sm font-bold transition-colors ${
-            tab === "saldo" ? "bg-white text-ink shadow-sm" : "text-muted-strong"
-          }`}
-        >
-          Saldo
-        </button>
-        <button
-          type="button"
-          role="tab"
-          id={transactiesTabId}
-          aria-selected={tab === "transacties"}
-          aria-controls="transacties-panel"
-          onClick={() => setTab("transacties")}
-          className={`flex h-10 flex-1 items-center justify-center rounded-xl text-sm font-bold transition-colors ${
-            tab === "transacties" ? "bg-white text-ink shadow-sm" : "text-muted-strong"
-          }`}
-        >
-          Transacties
-        </button>
-        <button
-          type="button"
-          role="tab"
-          id={accountTabId}
-          aria-selected={tab === "account"}
-          aria-controls="account-panel"
-          onClick={() => setTab("account")}
-          className={`flex h-10 flex-1 items-center justify-center rounded-xl text-sm font-bold transition-colors ${
-            tab === "account" ? "bg-white text-ink shadow-sm" : "text-muted-strong"
-          }`}
-        >
-          Account
-        </button>
-      </div>
+      />
 
       {tab === "saldo" && (
-        <div
-          id="saldo-panel"
-          role="tabpanel"
-          aria-labelledby={saldoTabId}
-          className="flex min-h-0 flex-1 flex-col"
-        >
+        <TabPanel idBase={idBase} tabKey="saldo" className="flex min-h-0 flex-1 flex-col">
           <SaldoTab />
-        </div>
+        </TabPanel>
       )}
 
       {tab === "transacties" && (
-        <div
-          id="transacties-panel"
-          role="tabpanel"
-          aria-labelledby={transactiesTabId}
-          className="flex min-h-0 flex-1 flex-col"
-        >
+        <TabPanel idBase={idBase} tabKey="transacties" className="flex min-h-0 flex-1 flex-col">
           <TransactiesTab />
-        </div>
+        </TabPanel>
       )}
 
       {tab === "account" && (
-        <div
-          id="account-panel"
-          role="tabpanel"
-          aria-labelledby={accountTabId}
-          className="flex min-h-0 flex-1 flex-col"
-        >
+        <TabPanel idBase={idBase} tabKey="account" className="flex min-h-0 flex-1 flex-col">
           <AccountTab email={email} onProfileChanged={onProfileChanged} />
-        </div>
+        </TabPanel>
       )}
     </main>
   );

@@ -1,11 +1,27 @@
 "use client";
 
-import { useEffect, useId, useLayoutEffect, useRef, type ReactNode, type RefObject } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { useShell } from "@/lib/shell/ShellProvider";
 import { useRegisterOverlay } from "./OverlayPresence";
+import { acquireOverlay } from "./overlayShield";
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+export const DEFAULT_CLOSE_BLOCKED_MESSAGE = "Even wachten, de actie wordt nog verwerkt.";
+
+/** Elementen in de dialoog die nu echt met Tab bereikbaar zijn: zichtbaar,
+ *  niet disabled, niet `tabindex="-1"`, niet in een hidden/inert-tak of een
+ *  disabled fieldset. */
+function tabbableIn(container: HTMLElement): HTMLElement[] {
+  return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
+    (el) =>
+      el.getAttribute("tabindex") !== "-1" &&
+      !el.closest("[hidden], [inert], fieldset:disabled") &&
+      getComputedStyle(el).visibility !== "hidden" &&
+      el.getClientRects().length > 0
+  );
+}
 
 /**
  * First shared overlay primitive (src/components/ was empty until this
@@ -38,6 +54,25 @@ const FOCUSABLE_SELECTOR =
  * docs/features/beheer-tweede-factor.md); de titel krijgt dan
  * `tabIndex={-1}`.
  *
+ * Focus, achtergrond en sluiten (docs/features/dialogen-tabs-landmarks.md):
+ * - Tab/Shift+Tab verlaten de dialoog nooit: de volgorde wordt berekend over
+ *   de nu bereikbare elementen; staat de focus op de container, een titel of
+ *   een net disabled element, dan gaat Tab naar het eerste en Shift+Tab naar
+ *   het laatste. `focusin` buiten de dialoog trekt de focus terug.
+ * - Zolang de dialoog open is, is de achtergrond `inert` (siblings van de
+ *   voorouderketen, geen portal) en ligt de scroll van het document vast.
+ *   Beide lopen via een gedeelde teller (`overlayShield.ts`) zodat een
+ *   overgang overlay A → B niets heropent. Een element dat in een sibling
+ *   van de overlay-tak staat is dus niet bedienbaar zolang de dialoog open is.
+ * - `closeBlocked`: zolang waar, doet elk sluitpad (Escape, backdrop) niets
+ *   behalve de `role="status"`-melding `closeBlockedMessage` tonen; de dialoog
+ *   krijgt `aria-busy`. De consument houdt eigen sluitknoppen `disabled`.
+ * - Bij sluiten gaat de focus naar de trigger als die nog bestaat en
+ *   bruikbaar is; anders naar `returnFocusFallback`, het actieve tabpanel of
+ *   `main`. Bij een overgang A → B blijft de oorspronkelijke trigger gelden.
+ * - Een variant (bv. een bredere detailweergave) mag de layout wijzigen,
+ *   niet deze regels.
+ *
  * Meldt zich bij mount aan bij `OverlayPresenceProvider` en bij unmount weer
  * af (ADR 0014) — zonder provider doet dat niets.
  */
@@ -46,19 +81,27 @@ export function Overlay({
   description,
   onClose,
   titleRef,
+  closeBlocked = false,
+  closeBlockedMessage = DEFAULT_CLOSE_BLOCKED_MESSAGE,
+  returnFocusFallback,
   children,
 }: {
   title: string;
   description?: string;
   onClose: () => void;
   titleRef?: RefObject<HTMLHeadingElement | null>;
+  /** Zolang waar worden Escape en backdrop geweigerd en wordt de melding
+   *  getoond. Eigen knoppen van de consument blijven diens zaak. */
+  closeBlocked?: boolean;
+  closeBlockedMessage?: string;
+  /** Opvolger voor de focus als de trigger bij sluiten niet meer bestaat. */
+  returnFocusFallback?: RefObject<HTMLElement | null>;
   children: ReactNode;
 }) {
   const shell = useShell();
   const titleId = useId();
   const descriptionId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
-  const previouslyFocused = useRef<HTMLElement | null>(null);
   const registerOverlay = useRegisterOverlay();
 
   // ADR 0014: tel mee zolang deze overlay gemount is. `registerOverlay` is
@@ -68,68 +111,148 @@ export function Overlay({
   // deze overlay al in beeld staat.
   useLayoutEffect(() => registerOverlay(), [registerOverlay]);
 
-  // Move focus in on mount, return it to whatever triggered the overlay on
-  // unmount (parent conditionally mounts/unmounts this, never toggles a
-  // hidden prop — so mount/unmount is the open/close lifecycle).
+  const rootRef = useRef<HTMLDivElement>(null);
+  const lastFocusedRef = useRef<HTMLElement | null>(null);
+  const [blockedAttempt, setBlockedAttempt] = useState(false);
+
+  // Altijd de nieuwste waarden zonder de document-listeners te herbinden.
+  const onCloseRef = useRef(onClose);
+  const closeBlockedRef = useRef(closeBlocked);
+  useLayoutEffect(() => {
+    onCloseRef.current = onClose;
+    closeBlockedRef.current = closeBlocked;
+  });
+
+  // Eén sluitverzoek voor Escape en backdrop: bij `closeBlocked` geen
+  // `onClose`, wel de melding. De focus blijft waar hij is.
+  const requestCloseRef = useRef(() => {
+    if (closeBlockedRef.current) setBlockedAttempt(true);
+    else onCloseRef.current();
+  });
+
   useEffect(() => {
-    previouslyFocused.current = document.activeElement as HTMLElement | null;
+    if (!closeBlocked) setBlockedAttempt(false);
+  }, [closeBlocked]);
+
+  // Pending: een control die tijdens `closeBlocked` disabled wordt, laat de
+  // browser de focus stil naar body zetten. Dan terug naar de dialoogcontainer,
+  // zodat toetsenbord en schermlezer binnen de dialoog blijven. De browser doet
+  // die "focus fixup" pas bij de volgende rendering, dus ook na een frame
+  // nogmaals controleren.
+  useLayoutEffect(() => {
+    if (!closeBlocked) return;
+    function herstel() {
+      const container = dialogRef.current;
+      if (!container) return;
+      const active = document.activeElement as HTMLElement | null;
+      const verloren =
+        !active ||
+        active === document.body ||
+        active === document.documentElement ||
+        !container.contains(active) ||
+        active.matches(":disabled") ||
+        !!active.closest("[inert], [hidden], fieldset:disabled");
+      if (verloren) container.focus();
+    }
+    herstel();
+    const frame = requestAnimationFrame(herstel);
+    return () => cancelAnimationFrame(frame);
+  }, [closeBlocked]);
+
+  // Achtergrond inert + scrolllock + trigger onthouden (zie overlayShield.ts),
+  // en de focus naar binnen. Layout-effect: de achtergrond mag geen frame
+  // bedienbaar zijn. Mount/unmount is de open/close-lifecycle (de ouder
+  // mount/unmount deze, nooit een hidden-prop). De trigger wordt hier gelezen
+  // vóórdat de focus naar de dialoog gaat; teruggeven gebeurt in de shield.
+  useLayoutEffect(() => {
+    const root = rootRef.current;
+    if (!root) return;
+    const release = acquireOverlay(root, returnFocusFallback);
     dialogRef.current?.focus();
-    return () => {
-      previouslyFocused.current?.focus?.();
-    };
+    return release;
+    // returnFocusFallback is een ref-object (stabiel); alleen mount/unmount telt.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         event.preventDefault();
-        onClose();
+        requestCloseRef.current();
         return;
       }
       if (event.key !== "Tab") return;
 
       const container = dialogRef.current;
       if (!container) return;
-      const focusable = Array.from(
-        container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
-      );
+      const focusable = tabbableIn(container);
       if (focusable.length === 0) {
         event.preventDefault();
+        container.focus();
         return;
       }
       const first = focusable[0];
       const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
+      const active = document.activeElement as HTMLElement | null;
+      const inList = !!active && focusable.includes(active);
+      if (!inList) {
+        // Container, titel, een net disabled element, of buiten de dialoog.
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus();
+      } else if (event.shiftKey && active === first) {
         event.preventDefault();
         last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
+      } else if (!event.shiftKey && active === last) {
         event.preventDefault();
         first.focus();
       }
     }
 
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
+    // Vangnet: komt de focus toch buiten de dialoog (muis, programmatisch,
+    // schermlezer), dan terug naar de laatst bekende plek, anders de container.
+    function onFocusIn(event: FocusEvent) {
+      const container = dialogRef.current;
+      const target = event.target as Node | null;
+      if (!container || !target) return;
+      if (container.contains(target)) {
+        if (target !== container) lastFocusedRef.current = target as HTMLElement;
+        return;
+      }
+      const back = lastFocusedRef.current;
+      if (back && back.isConnected && container.contains(back) && tabbableIn(container).includes(back)) {
+        back.focus();
+      } else {
+        container.focus();
+      }
+    }
 
-  // Backdrop-tap-to-close, done via a document-level listener rather than
-  // an onClick on the backdrop <div> itself — the backdrop is decorative,
-  // not a focusable/interactive element, so attaching a click handler to it
-  // directly would need a fake interactive role (jsx-a11y flags exactly
-  // that). This gets the same UX without pretending a plain div is a
-  // button; the dialog's own controls (Escape, "Klaar") are the real
-  // keyboard-accessible ways to close.
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("focusin", onFocusIn);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("focusin", onFocusIn);
+    };
+  }, []);
+
+  // Backdrop-tik sluit, via een document-listener in plaats van een onClick op
+  // de backdrop-<div>: die is decoratief, geen bedienbaar element, en een
+  // klikhandler erop vraagt een nep-rol (jsx-a11y). Dialoog-eigen
+  // toetsenbordwegen zijn Escape en de knoppen. `mousedown` blijft: touch
+  // genereert die ook, dus de tik op de telefoon-sheet werkt hetzelfde.
   useEffect(() => {
     function onMouseDown(event: MouseEvent) {
       const container = dialogRef.current;
       if (container && !container.contains(event.target as Node)) {
-        onClose();
+        // Geen focusverlies naar body door de tik op de backdrop: ook een
+        // geblokkeerde backdrop-tik laat de focus waar hij is.
+        event.preventDefault();
+        requestCloseRef.current();
       }
     }
 
     document.addEventListener("mousedown", onMouseDown);
     return () => document.removeEventListener("mousedown", onMouseDown);
-  }, [onClose]);
+  }, []);
 
   const isSheet = shell.overlay === "sheet";
 
@@ -140,6 +263,7 @@ export function Overlay({
       aria-modal="true"
       aria-labelledby={titleId}
       aria-describedby={description ? descriptionId : undefined}
+      aria-busy={closeBlocked ? true : undefined}
       tabIndex={-1}
       className={
         isSheet
@@ -170,18 +294,34 @@ export function Overlay({
         )}
       </div>
       {children}
+      {/* Altijd gemount, alleen de tekst wisselt: dan kondigt een
+          schermlezer hem aan. Status, geen alert: dit is geen fout. */}
+      <p
+        role="status"
+        className={
+          closeBlocked && blockedAttempt
+            ? "text-center text-[12.5px] font-semibold text-muted"
+            : "sr-only"
+        }
+      >
+        {closeBlocked && blockedAttempt ? closeBlockedMessage : ""}
+      </p>
     </div>
   );
 
   switch (shell.overlay) {
     case "modal":
       return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-rail/55 p-4">
+        <div ref={rootRef} className="fixed inset-0 z-50 flex items-center justify-center bg-rail/55 p-4">
           {dialog}
         </div>
       );
     case "sheet":
-      return <div className="fixed inset-0 z-50 flex flex-col justify-end bg-ink/40">{dialog}</div>;
+      return (
+        <div ref={rootRef} className="fixed inset-0 z-50 flex flex-col justify-end bg-ink/40">
+          {dialog}
+        </div>
+      );
     default: {
       const _exhaustive: never = shell.overlay;
       return _exhaustive;
