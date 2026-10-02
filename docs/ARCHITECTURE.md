@@ -245,6 +245,19 @@ Escape/backdrop/focus-trap. A dialog built outside `Overlay` isn't counted.
 - **Landmarks:** `DienstTabs` renders `nav` ("Bar") then one `main` that wraps
   the `tabpanel`; `DienstTeLangOpenMelding` and `AdminMeldingen` sit inside that
   `main` as siblings of the panel. Portal and beheer keep their `main` + `header`.
+- **`ZijPaneel`** (`src/components/ZijPaneel.tsx`, tablet-bruikbaarheid, #124,
+  PR #145) is the right-hand side panel of the bar, shared by `Mandje` (Verkoop)
+  and `DienstActief` (Dienst): `w-[clamp(300px,36vw,372px)]`, scrolls inside
+  itself, `as` is `div` or `aside`. Bar layout on tablets (768px portrait,
+  1024px landscape supported, no device notice): the layout follows available
+  width rather than per-screen breakpoints. The product grid in `Assortiment`
+  is `repeat(auto-fill, minmax(150px, 1fr))` and no longer reads
+  `useShell().columns` (still used by `StaffPicker`); the `DienstTabs` rail is
+  80px, 92px from a 1024px viewport; the `BeheerTabs` header wraps
+  (`flex-wrap`) so Uitloggen stays visible. A basket line is a two-row grid
+  (name, then stepper and line total) so the full name stays readable in the
+  300px panel. Deliberately no `@tailwindcss/container-queries`. Covered by
+  `e2e/tablet-bruikbaarheid.spec.ts`; no physical-tablet check yet.
 - Not built: a `check:policy` rule against `role="dialog"`/`role="tablist"`
   outside these components (Bram's decision, open); pending E2E for the four
   overlays other than Afrekenen/Terugdraaien (#140); the manual Safari/iPadOS/

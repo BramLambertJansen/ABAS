@@ -1,29 +1,93 @@
 # Bar en beheer bruikbaar op ondersteunde tablets
 
-**Status: goedgekeurd door Bram (aanbevelingen bij vraag 1–3), gebouwd, e2e
-groen in CI (PR #145).** Besluit D1: 768px portret én 1024px landschap ondersteund.
-Vraag 4 (volgorde met T03/T07) is niet beantwoord; T04 raakt alleen classes en
-layout, geen state, en is dus nu gebouwd. Vraag 5 (fysiek tablet) staat open.
+**Status: gebouwd en gemerged** (#124, PR #145, merge `c48d063`, 2026-10-02;
+e2e groen in CI). Besluiten direct na die sectie ("Besluiten van Bram"); wat er afweek van
+deze spec staat in "Gebouwd, afwijkingen en wat niet gedaan is". Het deel
+daarna tot die sectie is de oorspronkelijke spec en blijft als besluithistorie
+staan; waar de bouw afwijkt, wint de sectie "Gebouwd".
 
 ## Gebouwd, afwijkingen en wat niet gedaan is
 
-- Gedeeld `src/components/ZijPaneel.tsx`, breedte `clamp(300px,36vw,372px)`,
-  gebruikt door `Mandje` en `DienstActief`.
-- Grid met `auto-fill`/`minmax(150px,1fr)`; kaart met naam op twee regels
-  (`line-clamp-2`), badge naast de prijs, plus-knop rechts.
-- Mandjerij op twee regels (naam boven, stepper + regeltotaal eronder,
-  verwijderen rechtsboven via een grid): in één rij liet het 300px-paneel de
-  naam ~26px over (review PR #145). In het mandje staat de volledige naam
-  (geen afkappen); alleen de productkaart kapt af na twee regels. De DOM- en
-  tabvolgorde per rij is ongewijzigd: min, plus, verwijderen.
-- Rail 80px, 92px vanaf 1024px viewport. Beheerheader mag omslaan.
-- **Afwijking:** geen `@tailwindcss/container-queries`. `auto-fill` volgt de
-  werkelijke inhoudsbreedte al vanzelf; zo is er geen nieuwe dependency nodig.
-- `useShell().columns` wordt door `StaffPicker` nog gebruikt, dus blijft.
-- `check:fast` en CI (`check-all`, inclusief
-  `e2e/tablet-bruikbaarheid.spec.ts`) zijn groen; de e2e kon lokaal niet
-  draaien (geen Supabase-stack in deze omgeving).
-- Niet gecontroleerd: screenshots voor/na op de matrix, fysiek tablet.
+Gemerged in PR #145. Geen datamodel-, RPC-, rol- of statewijziging; alleen
+classes en layout, zoals gespecificeerd.
+
+**Gebouwd:**
+
+- Gedeeld `src/components/ZijPaneel.tsx` (`as` is `div` of `aside`), breedte
+  `clamp(300px,36vw,372px)`, scrolt binnen zichzelf. Gebruikt door `Mandje`
+  (`div`) en `DienstActief` (`aside`). Het paneel staat op elke breedte rechts;
+  er is geen portretvariant onder de inhoud of uitschuifbaar (vraag 1, optie b).
+- Productgrid in `Assortiment.tsx` (gridweergave): `repeat(auto-fill,
+  minmax(150px,1fr))` via `MIN_KAART_PX = 150`; `shell.columns` wordt hier niet
+  meer gebruikt.
+- Productkaart: naam met `line-clamp-2` en `break-words`; de aantallenbadge
+  staat naast de prijs (in dezelfde `flex-wrap`-regel onder de naam), niet
+  naast de naam; plus-knop rechts. De `aria-label` (`addLabel`) bevat de
+  volledige naam.
+- Mandjerij in `Mandje.tsx` als twee-kolommengrid: naam en prijs per stuk
+  linksboven, stepper (min, aantal, plus) linksonder, regeltotaal rechtsonder,
+  verwijderknop rechtsboven. Reden: in één rij liet het 300px-paneel de naam
+  ~26px over (review PR #145). Het mandje toont de volledige naam (geen
+  afkappen, `break-words`); alleen de productkaart kapt af na twee regels. DOM-
+  en tabvolgorde per rij is ongewijzigd: min, plus, verwijderen.
+- Rail in `DienstTabs.tsx`: `w-[80px]`, `min-[1024px]:w-[92px]` vanaf 1024px
+  viewportbreedte (viewportbreakpoint, geen container query).
+- Beheerheader in `BeheerTabs.tsx`: `flex-wrap` met `gap-x-3.5 gap-y-2` en
+  `min-h-[60px]`, ook de tabgroep zelf mag omslaan; Uitloggen blijft zichtbaar
+  (e2e). `DienstActief`-header idem `flex-wrap`.
+- E2E `e2e/tablet-bruikbaarheid.spec.ts` (Supabase gemockt) op 768×1024,
+  1024×768 en 1280×800: geen horizontale paginaoverflow, Uitloggen en alle
+  vijf beheertabs binnen beeld, de badge staat onder de naam (bedekt naam niet),
+  naam in het mandje minstens 120px breed bij 300px-paneel, ook met extreem
+  lange namen. Zoom: een verkleinde layoutviewport (683×512, 150% op 1024×768)
+  en een groter lettertype (`html { font-size: 24px }`) op 1024×768.
+- `check:fast` en CI (`check-all`, inclusief die e2e) zijn groen; de e2e kon
+  lokaal niet draaien (geen Supabase-stack in de bouwomgeving).
+
+**Afwijkingen en invulling:**
+
+- **Geen `@tailwindcss/container-queries`, bewust.** `auto-fill` volgt de
+  werkelijke inhoudsbreedte al vanzelf; rail en paneel gebruiken een
+  viewportbreakpoint of `clamp`. Zo is er geen nieuwe dependency. Dit wijkt af
+  van de aanbeveling bij vraag 3 in de oorspronkelijke spec: zie "Besluiten".
+- `useShell().columns` blijft bestaan: `StaffPicker` gebruikt het nog. Alleen
+  `Assortiment` stopte ermee.
+- Mandjerij op twee regels, niet de één-regel-rij uit de spec (zie boven).
+
+**Niet gedaan of niet bewezen (OPEN):**
+
+- (a) Screenshots voor/na op de matrix zijn niet gemaakt.
+- (b) Controle op een fysiek tablet is niet gedaan; vraag 5 is niet
+  beantwoord (merk/maat onbekend). Deze feature claimt geen werking op een echt
+  toestel, alleen op de Playwright-viewports.
+- (c) Vraag 4, volgorde met T03 ([#43](https://github.com/BramLambertJansen/ABAS/issues/43))
+  en T07 ([#127](https://github.com/BramLambertJansen/ABAS/issues/127)), is
+  onbeantwoord. T04 is gebouwd en gemerged omdat het alleen classes/layout
+  raakt; wie later mergt, lost eventuele conflicten in `Mandje`, `Assortiment`
+  en `DienstTabs` zelf op.
+- (d) De verwijderknop in het mandje is 30px (`h-[30px] w-[30px]`): klein
+  aanraakdoel (Reviewer-opmerking), buiten scope van dit ticket.
+- (e) De lijstweergave in `Assortiment` gebruikt nog `truncate` (één regel,
+  `flex-1`) voor de naam; alleen de gridweergave kreeg `line-clamp-2`. De
+  `aria-label` bevat de volledige naam.
+
+## Besluiten van Bram
+
+- **D1:** 768px portret en 1024px landschap zijn ondersteund; geen
+  toestelmelding of minimummaat (zie "Besluit D1").
+- **Vragen 1–3:** Bram antwoordde "Akkoord" op de concept-spec met de
+  aanbevelingen erbij; dat is opgevat als goedkeuring van die aanbevelingen,
+  niet als per vraag gekozen opties.
+  - Vraag 1 (zijpaneel op portret): optie (b), smaller paneel rechts, fluïde
+    `clamp(300px,36vw,372px)` met compactere regels.
+  - Vraag 2 (lange namen): twee regels in de kaart, de volledige naam in het
+    mandje en in de `aria-label`.
+  - Vraag 3 (container queries): de aanbeveling was de plugin. De Developer
+    bouwde het **zonder** de plugin omdat `auto-fill` en viewportbreakpoints
+    volstonden. Dat is een eigen keuze van de Developer, vermeld in de
+    PR-tekst, en niet apart door Bram bevestigd. Ontbreekt ooit een situatie
+    die de plugin vereist, dan is dat een nieuw besluit.
+- **Vraag 4 en 5:** niet beantwoord, zie OPEN (b) en (c).
 
 Spec voor [issue #124](https://github.com/BramLambertJansen/ABAS/issues/124)
 (frontend T04 · P1, epic #121, finding F04). Stemt af met
@@ -110,8 +174,9 @@ Geen wijzigingen. Rollen en zichtbaarheid blijven zoals ze zijn.
 
 ## ADR nodig?
 
-Nee, tenzij vraag 3 (nieuwe dependency) of een wijziging aan `useShell()`
-(`columns` verwijderen) als architectuurkeuze telt; dat beslist Bram.
+**Nee, bevestigd.** Er kwam geen nieuwe dependency (zie "Gebouwd") en
+`useShell().columns` bleef bestaan. De oorspronkelijke voorwaarde (vraag 3,
+`columns` verwijderen) is dus niet getriggerd.
 
 ## Afstemming met afhankelijke tickets
 
@@ -161,7 +226,7 @@ herinspecteren. Naam-overlap blijft deels reviewwerk.
 - Nieuwe functionaliteit in het mandje of de verkoopdraft (T03).
 - Zoek- en categoriegedrag (T07, D3).
 
-## Open vragen aan Bram (de Developer wacht hierop)
+## Oorspronkelijke open vragen aan Bram (historie)
 
 1. **Zijpaneel op portret (768px).** (a) Mandje onder de productgrid, vast
    onderaan met totaal en Afrekenen. (b) Smaller paneel rechts (~300px).
