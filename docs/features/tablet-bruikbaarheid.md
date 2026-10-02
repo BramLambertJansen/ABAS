@@ -1,7 +1,7 @@
 # Bar en beheer bruikbaar op ondersteunde tablets
 
-**Status: goedgekeurd door Bram (aanbevelingen bij vraag 1–3), gebouwd, e2e nog
-niet gedraaid.** Besluit D1: 768px portret én 1024px landschap ondersteund.
+**Status: goedgekeurd door Bram (aanbevelingen bij vraag 1–3), gebouwd, e2e
+groen in CI (PR #145).** Besluit D1: 768px portret én 1024px landschap ondersteund.
 Vraag 4 (volgorde met T03/T07) is niet beantwoord; T04 raakt alleen classes en
 layout, geen state, en is dus nu gebouwd. Vraag 5 (fysiek tablet) staat open.
 
@@ -11,14 +11,18 @@ layout, geen state, en is dus nu gebouwd. Vraag 5 (fysiek tablet) staat open.
   gebruikt door `Mandje` en `DienstActief`.
 - Grid met `auto-fill`/`minmax(150px,1fr)`; kaart met naam op twee regels
   (`line-clamp-2`), badge naast de prijs, plus-knop rechts.
-- Mandjerij op twee regels (naam + verwijderen boven, stepper + regeltotaal
-  eronder): in één rij liet het 300px-paneel de naam ~26px over (review PR #145).
+- Mandjerij op twee regels (naam boven, stepper + regeltotaal eronder,
+  verwijderen rechtsboven via een grid): in één rij liet het 300px-paneel de
+  naam ~26px over (review PR #145). In het mandje staat de volledige naam
+  (geen afkappen); alleen de productkaart kapt af na twee regels. De DOM- en
+  tabvolgorde per rij is ongewijzigd: min, plus, verwijderen.
 - Rail 80px, 92px vanaf 1024px viewport. Beheerheader mag omslaan.
 - **Afwijking:** geen `@tailwindcss/container-queries`. `auto-fill` volgt de
   werkelijke inhoudsbreedte al vanzelf; zo is er geen nieuwe dependency nodig.
 - `useShell().columns` wordt door `StaffPicker` nog gebruikt, dus blijft.
-- `check:fast` is groen. De nieuwe `e2e/tablet-bruikbaarheid.spec.ts` kon
-  lokaal niet draaien (geen Supabase-stack in deze omgeving); die draait pas in CI.
+- `check:fast` en CI (`check-all`, inclusief
+  `e2e/tablet-bruikbaarheid.spec.ts`) zijn groen; de e2e kon lokaal niet
+  draaien (geen Supabase-stack in deze omgeving).
 - Niet gecontroleerd: screenshots voor/na op de matrix, fysiek tablet.
 
 Spec voor [issue #124](https://github.com/BramLambertJansen/ABAS/issues/124)
