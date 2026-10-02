@@ -16,12 +16,16 @@ export async function createClient() {
       const builder = {
         select: () => builder,
         eq: () => builder,
-        maybeSingle: () => Promise.resolve({ data: state.actor, error: null }),
+        maybeSingle: () =>
+          Promise.resolve(
+            state.actorError ? { data: null, error: state.actorError } : { data: state.actor, error: null }
+          ),
       };
       return builder;
     },
-    async rpc(fn: string) {
+    async rpc(fn: string, args?: unknown) {
       state.calls.push(`rpc:${fn}`);
+      state.rpcArgs.push({ fn, args });
       const result = state.rpc[fn] ?? {};
       return { data: result.data ?? null, error: result.error ?? null };
     },
