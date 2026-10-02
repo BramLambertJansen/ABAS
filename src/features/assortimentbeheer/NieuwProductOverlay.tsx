@@ -1,7 +1,10 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { Overlay } from "@/components/Overlay";
+import { useOpslaanBlokkade } from "@/hooks/useOpslaanBlokkade";
+import { useHerstelFocus } from "@/hooks/useHerstelFocus";
+import { ONBEKENDE_UITKOMST_TEKST, OPSLAAN_BEZIG_TEKST, isNieuwOnopgeslagen } from "@/lib/opslaan";
 import {
   useCreateProduct,
   type CreateProductErrorCode,
@@ -46,6 +49,16 @@ export function NieuwProductOverlay({
   const [priceInput, setPriceInput] = useState("");
   const nameId = useId();
   const priceId = useId();
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const herstelFocus = useHerstelFocus();
+  const pending = createProduct.status === "pending";
+  const { closeBlocked, timedOut } = useOpslaanBlokkade(pending);
+  const unsaved = isNieuwOnopgeslagen([name, category, priceInput]);
+
+  // Een fout hoort bij de invoer die de gebruiker nu wijzigt: wissen zodra hij typt.
+  function wijzig() {
+    if (createProduct.errorCode) createProduct.reset();
+  }
 
   const priceCents = parseEuroToCents(priceInput);
   const canSubmit =
@@ -53,14 +66,16 @@ export function NieuwProductOverlay({
     category !== null &&
     priceCents !== null &&
     priceCents > 0 &&
-    createProduct.status !== "pending";
+    !pending;
 
   async function submit() {
     if (!canSubmit || category === null || priceCents === null) return;
     const product = await createProduct.createProduct(name, category, priceCents);
     if (product) {
       onCreated(product);
+      return;
     }
+    herstelFocus(nameInputRef.current);
   }
 
   return (
@@ -68,9 +83,15 @@ export function NieuwProductOverlay({
       title="Nieuw product"
       description="Naam, categorie en prijs — het product staat meteen op het verkoopscherm."
       onClose={onClose}
+      closeBlocked={closeBlocked}
+      onopgeslagen={unsaved}
     >
       <p className="text-sm font-bold text-danger empty:-mt-4" role="alert">
-        {createProduct.errorCode ? errorMessage(createProduct.errorCode) : ""}
+        {timedOut
+          ? ONBEKENDE_UITKOMST_TEKST
+          : createProduct.errorCode
+            ? errorMessage(createProduct.errorCode)
+            : ""}
       </p>
 
       <div className="flex flex-col gap-1.5">
@@ -78,10 +99,15 @@ export function NieuwProductOverlay({
           Naam
         </label>
         <input
+          ref={nameInputRef}
           id={nameId}
           type="text"
           value={name}
-          onChange={(event) => setName(event.target.value)}
+          readOnly={pending}
+          onChange={(event) => {
+            setName(event.target.value);
+            wijzig();
+          }}
           className="h-12 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink outline-none focus:border-accent"
         />
       </div>
@@ -94,7 +120,11 @@ export function NieuwProductOverlay({
               key={option}
               type="button"
               aria-pressed={category === option}
-              onClick={() => setCategory(option)}
+              disabled={pending}
+              onClick={() => {
+                setCategory(option);
+                wijzig();
+              }}
               className={`flex h-9 items-center justify-center rounded-full border px-3.5 text-xs font-bold transition-colors ${
                 category === option
                   ? "border-accent bg-accent text-rail"
@@ -121,7 +151,11 @@ export function NieuwProductOverlay({
             inputMode="decimal"
             placeholder="0,00"
             value={priceInput}
-            onChange={(event) => setPriceInput(event.target.value)}
+            readOnly={pending}
+            onChange={(event) => {
+              setPriceInput(event.target.value);
+              wijzig();
+            }}
             className="h-12 flex-1 min-w-0 bg-transparent text-sm font-semibold text-ink outline-none"
           />
         </div>
@@ -130,8 +164,9 @@ export function NieuwProductOverlay({
       <div className="flex gap-2.5">
         <button
           type="button"
+          disabled={closeBlocked}
           onClick={onClose}
-          className="flex h-11 flex-1 items-center justify-center rounded-control border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink"
+          className="flex h-11 flex-1 items-center justify-center rounded-control border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
         >
           Annuleren
         </button>
@@ -141,7 +176,7 @@ export function NieuwProductOverlay({
           onClick={submit}
           className="flex h-11 flex-1 items-center justify-center rounded-control bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:bg-track disabled:text-muted"
         >
-          Toevoegen
+          {pending ? OPSLAAN_BEZIG_TEKST : "Toevoegen"}
         </button>
       </div>
     </Overlay>

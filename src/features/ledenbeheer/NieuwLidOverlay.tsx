@@ -1,7 +1,11 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { Overlay } from "@/components/Overlay";
+import { OnbekendeUitkomstMelding } from "@/components/OnbekendeUitkomstMelding";
+import { useOpslaanBlokkade } from "@/hooks/useOpslaanBlokkade";
+import { useHerstelFocus } from "@/hooks/useHerstelFocus";
+import { ONBEKENDE_UITKOMST_GELD_TEKST, OPSLAAN_BEZIG_TEKST, isNieuwOnopgeslagen } from "@/lib/opslaan";
 import {
   useCreateMember,
   type CreateMemberErrorCode,
@@ -23,7 +27,9 @@ function errorMessage(code: CreateMemberErrorCode): string {
     case "no_admin_role":
       return "dit account kan leden niet beheren — vraag een beheerder";
     case "unknown":
-      return "er ging iets mis, probeer het opnieuw";
+      // Onbekende uitkomst van een verzoek dat een startsaldo kan schrijven:
+      // geen "probeer opnieuw" (zie OnbekendeUitkomstMelding).
+      return ONBEKENDE_UITKOMST_GELD_TEKST;
   }
 }
 
@@ -48,6 +54,22 @@ export function NieuwLidOverlay({
   const nameId = useId();
   const balanceId = useId();
   const emailId = useId();
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const herstelFocus = useHerstelFocus();
+  const pending = createMember.status === "pending";
+  const { closeBlocked, timedOut } = useOpslaanBlokkade(pending);
+  const unsaved = isNieuwOnopgeslagen([name, balanceInput, emailInput]);
+  // Onbekende uitkomst (netwerk/onbekende fout/time-out): pas weer toevoegen
+  // nadat de gebruiker bewust "Ik heb gecontroleerd" koos (besluit C).
+  const [gecontroleerd, setGecontroleerd] = useState(false);
+  const uitkomstOnbekend =
+    (createMember.errorCode === "unknown" || timedOut) && !gecontroleerd;
+  // Echt in vlucht: tot de time-out. Daarna beslist de onbekende-uitkomstmelding.
+  const inVlucht = pending && !timedOut;
+
+  function wijzig() {
+    if (createMember.errorCode && !uitkomstOnbekend) createMember.reset();
+  }
 
   const trimmedBalanceInput = balanceInput.trim();
   const balanceCents =
@@ -63,10 +85,12 @@ export function NieuwLidOverlay({
     name.trim() !== "" &&
     balanceValid &&
     emailValid &&
-    createMember.status !== "pending";
+    !inVlucht &&
+    !uitkomstOnbekend;
 
   async function submit() {
     if (!canSubmit) return;
+    setGecontroleerd(false);
     const member = await createMember.createMember(
       name,
       trimmedBalanceInput === "" ? null : balanceCents,
@@ -74,24 +98,41 @@ export function NieuwLidOverlay({
     );
     if (member) {
       onCreated(member);
+      return;
     }
+    herstelFocus(nameInputRef.current);
   }
 
   return (
-    <Overlay title="Nieuw lid" onClose={onClose}>
-      <p className="text-sm font-bold text-danger empty:-mt-4" role="alert">
-        {createMember.errorCode ? errorMessage(createMember.errorCode) : ""}
-      </p>
+    <Overlay title="Nieuw lid" onClose={onClose} closeBlocked={closeBlocked} onopgeslagen={unsaved}>
+      {uitkomstOnbekend ? (
+        <OnbekendeUitkomstMelding
+          onGecontroleerd={() => {
+            setGecontroleerd(true);
+            if (!pending) createMember.reset();
+            herstelFocus(nameInputRef.current);
+          }}
+        />
+      ) : (
+        <p className="text-sm font-bold text-danger empty:-mt-4" role="alert">
+          {createMember.errorCode ? errorMessage(createMember.errorCode) : ""}
+        </p>
+      )}
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor={nameId} className="text-xs font-bold text-muted">
           Naam
         </label>
         <input
+          ref={nameInputRef}
           id={nameId}
           type="text"
           value={name}
-          onChange={(event) => setName(event.target.value)}
+          readOnly={inVlucht}
+          onChange={(event) => {
+            setName(event.target.value);
+            wijzig();
+          }}
           className="h-12 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink outline-none focus:border-accent"
         />
       </div>
@@ -110,7 +151,11 @@ export function NieuwLidOverlay({
             inputMode="decimal"
             placeholder="0,00"
             value={balanceInput}
-            onChange={(event) => setBalanceInput(event.target.value)}
+            readOnly={inVlucht}
+            onChange={(event) => {
+              setBalanceInput(event.target.value);
+              wijzig();
+            }}
             className="h-12 flex-1 min-w-0 bg-transparent text-sm font-semibold text-ink outline-none"
           />
         </div>
@@ -124,7 +169,11 @@ export function NieuwLidOverlay({
           id={emailId}
           type="email"
           value={emailInput}
-          onChange={(event) => setEmailInput(event.target.value)}
+          readOnly={inVlucht}
+          onChange={(event) => {
+            setEmailInput(event.target.value);
+            wijzig();
+          }}
           className="h-12 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink outline-none focus:border-accent"
         />
       </div>
@@ -132,8 +181,9 @@ export function NieuwLidOverlay({
       <div className="flex gap-2.5">
         <button
           type="button"
+          disabled={closeBlocked}
           onClick={onClose}
-          className="flex h-11 flex-1 items-center justify-center rounded-control border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink"
+          className="flex h-11 flex-1 items-center justify-center rounded-control border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
         >
           Annuleren
         </button>
@@ -143,7 +193,7 @@ export function NieuwLidOverlay({
           onClick={submit}
           className="flex h-11 flex-1 items-center justify-center rounded-control bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:bg-track disabled:text-muted"
         >
-          Toevoegen
+          {inVlucht ? OPSLAAN_BEZIG_TEKST : "Toevoegen"}
         </button>
       </div>
     </Overlay>

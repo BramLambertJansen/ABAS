@@ -7,6 +7,8 @@ import { CodeInvoer } from "@/components/CodeInvoer";
 import { FOUT_OVERIG, TWEESTAP_TEKSTEN, type CodeFout } from "@/lib/mfa";
 import { useFocusNaWissel } from "@/hooks/useFocusNaWissel";
 import type { TweestapStart } from "@/hooks/queries/usePortalTweestap";
+import { useOpslaanBlokkade } from "@/hooks/useOpslaanBlokkade";
+import { ONBEKENDE_UITKOMST_TEKST } from "@/lib/opslaan";
 
 type Stap =
   | { soort: "laden" }
@@ -40,6 +42,12 @@ export function TweestapSheet({
 }) {
   const [stap, setStap] = useState<Stap>({ soort: "laden" });
   const gestart = useRef(false);
+  // De code bevestigen is de opslag: tijdens die controle sluit de sheet niet
+  // (docs/features/opslaan-sluiten-pending.md). Het laden van de QR-code is geen
+  // opslag en blijft sluitbaar. Geen onopgeslagen-vraag: de code zelf is
+  // eenmalig en leeft in `CodeInvoer`.
+  const [verifierend, setVerifierend] = useState(false);
+  const { closeBlocked, timedOut } = useOpslaanBlokkade(verifierend);
   // Stap 1 → stap 2: de focus naar de kop "Code invoeren" (besloten 12).
   const kopRef = useRef<HTMLHeadingElement>(null);
   const markeerWissel = useFocusNaWissel(stap.soort, (soort) => (soort === "code" ? kopRef.current : null));
@@ -64,16 +72,22 @@ export function TweestapSheet({
 
   async function verifieer(code: string): Promise<CodeFout | null> {
     if (stap.soort !== "code") return "unknown";
-    const fout = await bevestig(stap.factorId, code);
-    if (!fout) onIngesteld();
-    return fout;
+    setVerifierend(true);
+    try {
+      const fout = await bevestig(stap.factorId, code);
+      if (!fout) onIngesteld();
+      return fout;
+    } finally {
+      setVerifierend(false);
+    }
   }
 
   const annuleer = (
     <button
       type="button"
+      disabled={closeBlocked}
       onClick={onClose}
-      className="flex h-[52px] w-full items-center justify-center rounded-2xl border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink"
+      className="flex h-[52px] w-full items-center justify-center rounded-2xl border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
     >
       Annuleer
     </button>
@@ -84,6 +98,7 @@ export function TweestapSheet({
       title={stap.soort === "code" ? TWEESTAP_TEKSTEN.stap2Titel : TWEESTAP_TEKSTEN.stap1Titel}
       onClose={onClose}
       titleRef={kopRef}
+      closeBlocked={closeBlocked}
     >
       <div className="flex flex-col gap-[14px]">
         {stap.soort === "laden" && (
@@ -142,6 +157,11 @@ export function TweestapSheet({
         {stap.soort === "code" && (
           <>
             <p className="text-sm font-medium leading-relaxed text-muted">{TWEESTAP_TEKSTEN.stap2Uitleg}</p>
+            {timedOut && (
+              <p className="text-sm font-bold text-danger" role="alert">
+                {ONBEKENDE_UITKOMST_TEKST}
+              </p>
+            )}
             <CodeInvoer tone="light" onVerifieer={verifieer} submitLabel={TWEESTAP_TEKSTEN.stap2Knop} />
             {annuleer}
           </>

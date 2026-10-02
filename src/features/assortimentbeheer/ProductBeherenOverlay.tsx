@@ -1,7 +1,16 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { Overlay } from "@/components/Overlay";
+import { OpslaanSectie } from "@/components/OpslaanSectie";
+import { useOpslaanBlokkade } from "@/hooks/useOpslaanBlokkade";
+import { useHerstelFocus } from "@/hooks/useHerstelFocus";
+import {
+  ONBEKENDE_UITKOMST_TEKST,
+  OPSLAAN_BEZIG_TEKST,
+  isBezig,
+  isPrijsOnopgeslagen,
+} from "@/lib/opslaan";
 import {
   useUpdateProductPrice,
   type UpdateProductPriceErrorCode,
@@ -58,10 +67,21 @@ export function ProductBeherenOverlay({
 }) {
   const [product, setProduct] = useState(initialProduct);
   const [priceInput, setPriceInput] = useState("");
-  const [lastAction, setLastAction] = useState<"price" | "archive" | null>(null);
   const priceMutation = useUpdateProductPrice();
   const archiveMutation = useSetProductArchived();
   const priceId = useId();
+  const priceInputRef = useRef<HTMLInputElement>(null);
+  const archiveButtonRef = useRef<HTMLButtonElement>(null);
+  const herstelFocus = useHerstelFocus();
+
+  // Serialisatie per product (docs/features/opslaan-sluiten-pending.md): één
+  // schrijfactie tegelijk, dus een late response kan een nieuwere niet meer
+  // overschrijven en elke sectie houdt zijn eigen fout (F11).
+  const priceBusy = priceMutation.status === "pending";
+  const archiveBusy = archiveMutation.status === "pending";
+  const busy = isBezig(priceBusy, archiveBusy);
+  const { closeBlocked, timedOut } = useOpslaanBlokkade(busy);
+  const unsaved = isPrijsOnopgeslagen(priceInput, product.priceCents);
 
   const parsedPriceCents = parseEuroToCents(priceInput);
   const canSavePrice =
@@ -69,50 +89,49 @@ export function ProductBeherenOverlay({
     parsedPriceCents !== null &&
     parsedPriceCents > 0 &&
     parsedPriceCents !== product.priceCents &&
-    priceMutation.status !== "pending";
+    !busy;
 
   async function savePrice() {
     if (!canSavePrice || parsedPriceCents === null) return;
-    setLastAction("price");
     const updated = await priceMutation.updateProductPrice(
       product.id,
       parsedPriceCents
     );
     if (updated) {
-      setProduct(updated);
+      // Alleen wat deze actie wijzigde; de rest van het lokale product blijft.
+      setProduct((current) => ({ ...current, priceCents: updated.priceCents }));
       setPriceInput("");
       onChanged();
     }
+    herstelFocus(priceInputRef.current);
   }
 
   async function toggleArchived() {
-    setLastAction("archive");
+    if (busy) return;
     const updated = await archiveMutation.setProductArchived(
       product.id,
       !product.archived
     );
     if (updated) {
-      setProduct(updated);
+      setProduct((current) => ({ ...current, archived: updated.archived }));
       onChanged();
     }
+    herstelFocus(archiveButtonRef.current);
   }
-
-  const errorMessage =
-    lastAction === "price" && priceMutation.errorCode
-      ? priceErrorMessage(priceMutation.errorCode)
-      : lastAction === "archive" && archiveMutation.errorCode
-        ? archiveErrorMessage(archiveMutation.errorCode)
-        : null;
 
   return (
     <Overlay
       title="Product beheren"
       description={`Wijzigingen aan ${product.name}.`}
       onClose={onClose}
+      closeBlocked={closeBlocked}
+      onopgeslagen={unsaved}
     >
-      <p className="text-sm font-bold text-danger empty:-mt-4" role="alert">
-        {errorMessage ?? ""}
-      </p>
+      {timedOut && (
+        <p className="text-sm font-bold text-danger" role="alert">
+          {ONBEKENDE_UITKOMST_TEKST}
+        </p>
+      )}
 
       <div className="flex items-center justify-between rounded-control bg-canvas px-3.5 py-3">
         <span className="text-[10.5px] font-bold uppercase tracking-wide text-muted">
@@ -123,7 +142,11 @@ export function ProductBeherenOverlay({
         </span>
       </div>
 
-      <div className="flex flex-col gap-2 rounded-control border border-border p-3.5">
+      <OpslaanSectie
+        pending={priceBusy}
+        wachtOpAnder={archiveBusy}
+        fout={priceMutation.errorCode ? priceErrorMessage(priceMutation.errorCode) : null}
+      >
         <div className="flex flex-col gap-0.5">
           <span className="text-sm font-bold text-ink">Prijs wijzigen</span>
           <span className="text-xs font-medium text-muted">
@@ -139,12 +162,17 @@ export function ProductBeherenOverlay({
               €
             </span>
             <input
+              ref={priceInputRef}
               id={priceId}
               type="text"
               inputMode="decimal"
               placeholder="0,00"
               value={priceInput}
-              onChange={(event) => setPriceInput(event.target.value)}
+              readOnly={priceBusy}
+              onChange={(event) => {
+                setPriceInput(event.target.value);
+                if (priceMutation.errorCode) priceMutation.reset();
+              }}
               className="h-11 flex-1 min-w-0 bg-transparent text-sm font-semibold text-ink outline-none"
             />
           </div>
@@ -154,20 +182,31 @@ export function ProductBeherenOverlay({
             onClick={savePrice}
             className="flex h-11 items-center justify-center rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:bg-track disabled:text-muted"
           >
-            Opslaan
+            {priceBusy ? OPSLAAN_BEZIG_TEKST : "Opslaan"}
           </button>
         </div>
-      </div>
+      </OpslaanSectie>
 
+      <OpslaanSectie
+        chrome={false}
+        pending={archiveBusy}
+        wachtOpAnder={priceBusy}
+        fout={archiveMutation.errorCode ? archiveErrorMessage(archiveMutation.errorCode) : null}
+      >
       <button
+        ref={archiveButtonRef}
         type="button"
-        disabled={archiveMutation.status === "pending"}
+        disabled={busy}
         onClick={toggleArchived}
         className="flex items-center justify-between gap-3 rounded-control border border-border p-3.5 text-left transition-colors hover:border-danger disabled:opacity-50"
       >
         <span className="flex flex-col gap-0.5">
           <span className="text-sm font-bold text-danger">
-            {product.archived ? "Terug in assortiment" : "Uit assortiment halen"}
+            {archiveBusy
+              ? OPSLAAN_BEZIG_TEKST
+              : product.archived
+                ? "Terug in assortiment"
+                : "Uit assortiment halen"}
           </span>
           <span className="text-xs font-medium text-muted">
             {product.archived
@@ -179,11 +218,13 @@ export function ProductBeherenOverlay({
           ›
         </span>
       </button>
+      </OpslaanSectie>
 
       <button
         type="button"
+        disabled={closeBlocked}
         onClick={onClose}
-        className="flex h-11 w-full items-center justify-center rounded-control border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink"
+        className="flex h-11 w-full items-center justify-center rounded-control border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
       >
         Sluiten
       </button>

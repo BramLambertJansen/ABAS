@@ -8,6 +8,8 @@ import { useFocusNaWissel } from "@/hooks/useFocusNaWissel";
 import { NieuwWachtwoordVelden, isPasswordReady } from "@/components/NieuwWachtwoordVelden";
 import { usePortalWachtwoordWijzigen } from "@/hooks/queries/usePortalWachtwoordWijzigen";
 import { passwordUpdateErrorMessage } from "@/lib/authErrors";
+import { useOpslaanBlokkade } from "@/hooks/useOpslaanBlokkade";
+import { ONBEKENDE_UITKOMST_TEKST, OPSLAAN_BEZIG_TEKST, isNieuwOnopgeslagen } from "@/lib/opslaan";
 import { SheetKnoppen } from "./SheetKnoppen";
 
 /**
@@ -36,6 +38,11 @@ export function WachtwoordWijzigenSheet({
   const [password, setPassword] = useState("");
   const [repeat, setRepeat] = useState("");
   const mutation = usePortalWachtwoordWijzigen();
+  const pending = mutation.status === "pending";
+  // De code-controle (stap voor de velden) loopt via `CodeInvoer`, dat zelf zijn
+  // pending bijhoudt: hier alleen de opslag van het wachtwoord blokkeert sluiten.
+  const { closeBlocked, timedOut } = useOpslaanBlokkade(pending);
+  const unsaved = isNieuwOnopgeslagen([password, repeat]);
   // Na de code: de focus naar de kop van de stap met de wachtwoordvelden, de
   // titel van de sheet (besloten 12).
   const kopRef = useRef<HTMLHeadingElement>(null);
@@ -61,6 +68,8 @@ export function WachtwoordWijzigenSheet({
       description={isBarRole ? "Dit is ook je wachtwoord voor beheer op de bar-tablet." : undefined}
       onClose={onClose}
       titleRef={kopRef}
+      closeBlocked={closeBlocked}
+      onopgeslagen={unsaved}
     >
       {mutation.codeStap === "controleren" && (
         <p className="py-6 text-center text-sm font-bold text-muted" role="status">
@@ -87,13 +96,23 @@ export function WachtwoordWijzigenSheet({
           repeat={repeat}
           onPasswordChange={setPassword}
           onRepeatChange={setRepeat}
+          readOnly={pending}
         />
 
         <p className="text-sm font-bold text-danger empty:-mt-[14px]" role="alert">
-          {mutation.errorCode ? passwordUpdateErrorMessage(mutation.errorCode) : ""}
+          {timedOut
+            ? ONBEKENDE_UITKOMST_TEKST
+            : mutation.errorCode
+              ? passwordUpdateErrorMessage(mutation.errorCode)
+              : ""}
         </p>
 
-        <SheetKnoppen submitLabel="Wijzigen" disabled={disabled} onCancel={onClose} />
+        <SheetKnoppen
+          submitLabel={pending ? OPSLAAN_BEZIG_TEKST : "Wijzigen"}
+          disabled={disabled}
+          onCancel={onClose}
+          cancelDisabled={closeBlocked}
+        />
       </form>
       )}
     </Overlay>

@@ -1,7 +1,18 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Overlay } from "@/components/Overlay";
+import { OpslaanSectie } from "@/components/OpslaanSectie";
+import { useOpslaanBlokkade } from "@/hooks/useOpslaanBlokkade";
+import { useHerstelFocus } from "@/hooks/useHerstelFocus";
+import {
+  ONBEKENDE_UITKOMST_TEKST,
+  OPSLAAN_BEZIG_TEKST,
+  WACHT_OP_ANDERE_WIJZIGING_TEKST,
+  isBezig,
+  isKeuzeOnopgeslagen,
+  isTekstOnopgeslagen,
+} from "@/lib/opslaan";
 import {
   useUpdateMemberName,
   type UpdateMemberNameErrorCode,
@@ -173,9 +184,6 @@ export function LidBeherenOverlay({
   const [roleValue, setRoleValue] = useState<LedenbeheerLid["role"]>(
     initialMember.role
   );
-  const [lastAction, setLastAction] = useState<
-    "name" | "email" | "role" | "archive" | "invite" | null
-  >(null);
   const [toast, setToast] = useState<string | null>(null);
 
   const nameMutation = useUpdateMemberName();
@@ -187,6 +195,28 @@ export function LidBeherenOverlay({
   const nameId = useId();
   const emailId = useId();
   const roleId = useId();
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const emailInputRef = useRef<HTMLInputElement>(null);
+  const roleSelectRef = useRef<HTMLSelectElement>(null);
+  const inviteButtonRef = useRef<HTMLButtonElement>(null);
+  const archiveButtonRef = useRef<HTMLButtonElement>(null);
+  const herstelFocus = useHerstelFocus();
+
+  // Serialisatie per lid (docs/features/opslaan-sluiten-pending.md): één
+  // schrijfactie tegelijk. Een late response kan zo een nieuwere niet meer
+  // overschrijven, en elke sectie toont zijn eigen fout (F11): de fout van een
+  // actie blijft staan tot die actie opnieuw start of de invoer wijzigt.
+  const nameBusy = nameMutation.status === "pending";
+  const emailBusy = emailMutation.status === "pending";
+  const roleBusy = roleMutation.status === "pending";
+  const archiveBusy = archiveMutation.status === "pending";
+  const inviteBusy = inviteMutation.status === "pending";
+  const busy = isBezig(nameBusy, emailBusy, roleBusy, archiveBusy, inviteBusy);
+  const { closeBlocked, timedOut } = useOpslaanBlokkade(busy);
+  const unsaved =
+    isTekstOnopgeslagen(nameInput, member.name) ||
+    isTekstOnopgeslagen(emailInput, member.email ?? "") ||
+    isKeuzeOnopgeslagen(roleValue, member.role);
 
   useEffect(() => {
     if (!toast) return;
@@ -200,20 +230,21 @@ export function LidBeherenOverlay({
 
   const trimmedName = nameInput.trim();
   const canSaveName =
-    trimmedName !== "" && trimmedName !== member.name && nameMutation.status !== "pending";
+    trimmedName !== "" && trimmedName !== member.name && !busy;
 
   async function saveName() {
     if (!canSaveName) return;
-    setLastAction("name");
     const updated = await nameMutation.updateMemberName(member.id, trimmedName);
     if (updated) {
-      setMember(updated);
+      // Alleen het veld dat deze actie wijzigde; de rest van het lokale lid blijft.
+      setMember((current) => ({ ...current, name: updated.name }));
       setNameInput(updated.name);
       onChanged();
       showToast("Naam bijgewerkt");
     } else if (nameMutation.errorCode === "member_not_found") {
       onChanged();
     }
+    herstelFocus(nameInputRef.current);
   }
 
   const trimmedEmail = emailInput.trim();
@@ -222,33 +253,33 @@ export function LidBeherenOverlay({
   const canSaveEmail =
     trimmedEmail !== currentEmail &&
     emailFormatValid &&
-    emailMutation.status !== "pending";
+    !busy;
 
   async function saveEmail() {
     if (!canSaveEmail) return;
-    setLastAction("email");
     const result = await emailMutation.updateMemberEmail(
       member.id,
       trimmedEmail === "" ? null : trimmedEmail
     );
     if (result.member) {
-      setMember(result.member);
-      setEmailInput(result.member.email ?? "");
+      const savedEmail = result.member.email;
+      setMember((current) => ({ ...current, email: savedEmail }));
+      setEmailInput(savedEmail ?? "");
       onChanged();
       showToast("E-mailadres bijgewerkt");
     } else if (result.errorCode === "member_not_found") {
       onChanged();
     }
+    herstelFocus(emailInputRef.current);
   }
 
-  const canSaveRole = roleValue !== member.role && roleMutation.status !== "pending";
+  const canSaveRole = roleValue !== member.role && !busy;
 
   async function saveRole() {
     if (!canSaveRole) return;
-    setLastAction("role");
     const updated = await roleMutation.setMemberRole(member.id, roleValue);
     if (updated) {
-      setMember(updated);
+      setMember((current) => ({ ...current, role: updated.role }));
       setRoleValue(updated.role);
       onChanged();
       showToast("Rechten bijgewerkt");
@@ -261,27 +292,28 @@ export function LidBeherenOverlay({
         onChanged();
       }
     }
+    herstelFocus(roleSelectRef.current);
   }
 
   async function toggleArchived() {
-    setLastAction("archive");
+    if (busy) return;
     const nextArchived = !member.archived;
     const updated = await archiveMutation.setMemberArchived(member.id, nextArchived);
     if (updated) {
-      setMember(updated);
+      setMember((current) => ({ ...current, archived: updated.archived }));
       onChanged();
       showToast(`${updated.name} ${updated.archived ? "gearchiveerd" : "teruggezet"}`);
     } else if (archiveMutation.errorCode === "member_not_found") {
       onChanged();
     }
+    herstelFocus(archiveButtonRef.current);
   }
 
   /** Alleen zichtbaar bij `member.email !== null` (spec → Schermflow stap
    *  2) — geen e-mailadres, geen invite-mogelijkheid. Disabled zodra
    *  `member.hasAccount` (spec → Architect-beslissingen → Zichtbaarheid). */
   async function sendInvite() {
-    if (member.hasAccount || inviteMutation.status === "pending") return;
-    setLastAction("invite");
+    if (member.hasAccount || busy) return;
     const result = await inviteMutation.sendInvite(member.id);
     if (result.errorCode === null) {
       if (result.invited) {
@@ -291,7 +323,7 @@ export function LidBeherenOverlay({
         // bij acceptatie (link_invited_member_account, /beheer/callback).
         // Een beheerder ziet `hasAccount` pas `true` worden nadat het lid de
         // link daadwerkelijk gebruikt heeft én de ledenlijst ververst wordt.
-        setMember({ ...member, invitedAt: result.invitedAt });
+        setMember((current) => ({ ...current, invitedAt: result.invitedAt }));
         onChanged();
         showToast("Uitnodiging verstuurd");
       }
@@ -299,39 +331,32 @@ export function LidBeherenOverlay({
       // huidige UI-gating (email !== null, sectie al role-gated) niet
       // bereikbaar buiten een race — geen toast/foutmelding hiervoor
       // gespecificeerd.
+      herstelFocus(inviteButtonRef.current);
       return;
     }
     if (result.errorCode === "member_not_found" || result.errorCode === "already_linked") {
       onChanged();
     }
+    herstelFocus(inviteButtonRef.current);
   }
-
-  const errorMessage =
-    lastAction === "name" && nameMutation.errorCode
-      ? nameErrorMessage(nameMutation.errorCode)
-      : lastAction === "email" && emailMutation.errorCode
-        ? emailErrorMessage(emailMutation.errorCode)
-        : lastAction === "role" && roleMutation.errorCode
-          ? roleErrorMessage(roleMutation.errorCode)
-          : lastAction === "archive" && archiveMutation.errorCode
-            ? archiveErrorMessage(archiveMutation.errorCode)
-            : lastAction === "invite" && inviteMutation.errorCode
-              ? inviteErrorMessage(inviteMutation.errorCode)
-              : null;
 
   return (
     <Overlay
       title="Lid beheren"
       description={`Wijzigingen aan ${member.name}.`}
       onClose={onClose}
+      closeBlocked={closeBlocked}
+      onopgeslagen={unsaved}
     >
       <div aria-live="polite" role="status" className="empty:-mt-4">
         {toast && <p className="text-sm font-bold text-ink">{toast}</p>}
       </div>
 
-      <p className="text-sm font-bold text-danger empty:-mt-4" role="alert">
-        {errorMessage ?? ""}
-      </p>
+      {timedOut && (
+        <p className="text-sm font-bold text-danger" role="alert">
+          {ONBEKENDE_UITKOMST_TEKST}
+        </p>
+      )}
 
       <div className="flex items-center justify-between rounded-control bg-canvas px-3.5 py-3">
         <span className="text-[10.5px] font-bold uppercase tracking-wide text-muted">
@@ -342,7 +367,11 @@ export function LidBeherenOverlay({
         </span>
       </div>
 
-      <div className="flex flex-col gap-2 rounded-control border border-border p-3.5">
+      <OpslaanSectie
+        pending={nameBusy}
+        wachtOpAnder={busy}
+        fout={nameMutation.errorCode ? nameErrorMessage(nameMutation.errorCode) : null}
+      >
         <div className="flex flex-col gap-0.5">
           <span className="text-sm font-bold text-ink">Naam wijzigen</span>
         </div>
@@ -351,10 +380,15 @@ export function LidBeherenOverlay({
             Naam
           </label>
           <input
+            ref={nameInputRef}
             id={nameId}
             type="text"
             value={nameInput}
-            onChange={(event) => setNameInput(event.target.value)}
+            readOnly={nameBusy}
+            onChange={(event) => {
+              setNameInput(event.target.value);
+              if (nameMutation.errorCode) nameMutation.reset();
+            }}
             className="h-11 flex-1 min-w-0 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink outline-none focus:border-accent"
           />
           <button
@@ -363,12 +397,16 @@ export function LidBeherenOverlay({
             onClick={saveName}
             className="flex h-11 items-center justify-center rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:bg-track disabled:text-muted"
           >
-            Opslaan
+            {nameBusy ? OPSLAAN_BEZIG_TEKST : "Opslaan"}
           </button>
         </div>
-      </div>
+      </OpslaanSectie>
 
-      <div className="flex flex-col gap-2 rounded-control border border-border p-3.5">
+      <OpslaanSectie
+        pending={emailBusy}
+        wachtOpAnder={busy}
+        fout={emailMutation.errorCode ? emailErrorMessage(emailMutation.errorCode) : null}
+      >
         <div className="flex flex-col gap-0.5">
           <span className="text-sm font-bold text-ink">E-mailadres</span>
         </div>
@@ -377,10 +415,15 @@ export function LidBeherenOverlay({
             E-mailadres
           </label>
           <input
+            ref={emailInputRef}
             id={emailId}
             type="email"
             value={emailInput}
-            onChange={(event) => setEmailInput(event.target.value)}
+            readOnly={emailBusy}
+            onChange={(event) => {
+              setEmailInput(event.target.value);
+              if (emailMutation.errorCode) emailMutation.reset();
+            }}
             className="h-11 flex-1 min-w-0 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink outline-none focus:border-accent"
           />
           <button
@@ -389,12 +432,16 @@ export function LidBeherenOverlay({
             onClick={saveEmail}
             className="flex h-11 items-center justify-center rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:bg-track disabled:text-muted"
           >
-            Opslaan
+            {emailBusy ? OPSLAAN_BEZIG_TEKST : "Opslaan"}
           </button>
         </div>
-      </div>
+      </OpslaanSectie>
 
-      <div className="flex flex-col gap-2 rounded-control border border-border p-3.5">
+      <OpslaanSectie
+        pending={roleBusy}
+        wachtOpAnder={busy}
+        fout={roleMutation.errorCode ? roleErrorMessage(roleMutation.errorCode) : null}
+      >
         <div className="flex flex-col gap-0.5">
           <span className="text-sm font-bold text-ink">Barrechten</span>
           <span className="text-xs font-medium text-muted">
@@ -406,11 +453,14 @@ export function LidBeherenOverlay({
             Barrechten
           </label>
           <select
+            ref={roleSelectRef}
             id={roleId}
             value={roleValue}
-            onChange={(event) =>
-              setRoleValue(event.target.value as LedenbeheerLid["role"])
-            }
+            disabled={roleBusy}
+            onChange={(event) => {
+              setRoleValue(event.target.value as LedenbeheerLid["role"]);
+              if (roleMutation.errorCode) roleMutation.reset();
+            }}
             className="h-11 flex-1 min-w-0 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink outline-none focus:border-accent"
           >
             {ROLE_OPTIONS.map((option) => (
@@ -425,10 +475,10 @@ export function LidBeherenOverlay({
             onClick={saveRole}
             className="flex h-11 items-center justify-center rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:bg-track disabled:text-muted"
           >
-            Opslaan
+            {roleBusy ? OPSLAAN_BEZIG_TEKST : "Opslaan"}
           </button>
         </div>
-      </div>
+      </OpslaanSectie>
 
       {/* docs/features/portal-login.md → "Ledenkoppeling voor rol `lid`",
           Besloten door Bram punt 1: zichtbaar voor élke rol, niet langer
@@ -439,7 +489,11 @@ export function LidBeherenOverlay({
           bardienst/beheerder-concept, CLAUDE.md → "Dienst & bezetting" —
           een lid heeft nooit een PIN), wel de Wachtwoordaccount-status +
           invite-knop, ongewijzigd gedrag verder. */}
-      <div className="flex flex-col gap-2 rounded-control border border-border p-3.5">
+      <OpslaanSectie
+        pending={inviteBusy}
+        wachtOpAnder={busy && member.email !== null && !member.hasAccount}
+        fout={inviteMutation.errorCode ? inviteErrorMessage(inviteMutation.errorCode) : null}
+      >
         <div className="flex flex-col gap-0.5">
           <span className="text-sm font-bold text-ink">Inloggegevens</span>
           {member.role !== "lid" && (
@@ -469,12 +523,17 @@ export function LidBeherenOverlay({
         {member.email !== null && (
           <div className="flex flex-col gap-1.5">
             <button
+              ref={inviteButtonRef}
               type="button"
-              disabled={member.hasAccount || inviteMutation.status === "pending"}
+              disabled={member.hasAccount || busy}
               onClick={sendInvite}
               className="flex h-11 w-full items-center justify-center rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:bg-track disabled:text-muted"
             >
-              {member.invitedAt === null ? "Invite versturen" : "Invite opnieuw versturen"}
+              {inviteBusy
+                ? OPSLAAN_BEZIG_TEKST
+                : member.invitedAt === null
+                  ? "Invite versturen"
+                  : "Invite opnieuw versturen"}
             </button>
             <span className="text-xs font-medium text-muted">
               {member.hasAccount
@@ -485,12 +544,14 @@ export function LidBeherenOverlay({
             </span>
           </div>
         )}
-      </div>
+      </OpslaanSectie>
 
+      <div className="flex flex-col gap-1.5">
       <button
         type="button"
+        disabled={busy}
         onClick={onOpenOrders}
-        className="flex items-center justify-between gap-3 rounded-control border border-border p-3.5 text-left transition-colors hover:border-danger"
+        className="flex items-center justify-between gap-3 rounded-control border border-border p-3.5 text-left transition-colors hover:border-danger disabled:opacity-50"
       >
         <span className="flex flex-col gap-0.5">
           <span className="text-sm font-bold text-ink">Bestelling terugdraaien</span>
@@ -502,16 +563,31 @@ export function LidBeherenOverlay({
           ›
         </span>
       </button>
+      {busy && (
+        <p className="text-xs font-medium text-muted">{WACHT_OP_ANDERE_WIJZIGING_TEKST}</p>
+      )}
+      </div>
 
+      <OpslaanSectie
+        chrome={false}
+        pending={archiveBusy}
+        wachtOpAnder={busy}
+        fout={archiveMutation.errorCode ? archiveErrorMessage(archiveMutation.errorCode) : null}
+      >
       <button
+        ref={archiveButtonRef}
         type="button"
-        disabled={archiveMutation.status === "pending"}
+        disabled={busy}
         onClick={toggleArchived}
         className="flex items-center justify-between gap-3 rounded-control border border-border p-3.5 text-left transition-colors hover:border-danger disabled:opacity-50"
       >
         <span className="flex flex-col gap-0.5">
           <span className="text-sm font-bold text-danger">
-            {member.archived ? "Lid terugzetten" : "Lid archiveren"}
+            {archiveBusy
+              ? OPSLAAN_BEZIG_TEKST
+              : member.archived
+                ? "Lid terugzetten"
+                : "Lid archiveren"}
           </span>
           <span className="text-xs font-medium text-muted">
             {member.archived
@@ -523,11 +599,13 @@ export function LidBeherenOverlay({
           ›
         </span>
       </button>
+      </OpslaanSectie>
 
       <button
         type="button"
+        disabled={closeBlocked}
         onClick={onClose}
-        className="flex h-11 w-full items-center justify-center rounded-control border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink"
+        className="flex h-11 w-full items-center justify-center rounded-control border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
       >
         Sluiten
       </button>
