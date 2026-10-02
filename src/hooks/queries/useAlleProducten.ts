@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { reportClientError } from "@/lib/clientErrors";
 import { loadErrorMessage } from "@/lib/loadErrors";
+import { toAssortimentProduct } from "./productRows";
 
 /** A row from `products` — the assortiment, read (not written) by
  *  Assortimentbeheer's productenlijst. Writes go through create_product/
@@ -20,6 +21,9 @@ export type AssortimentProduct = {
   category: string;
   priceCents: number;
   archived: boolean;
+  /** Publieke URL van de productafbeelding, `null` zonder afbeelding
+   *  (docs/features/productafbeeldingen.md). Gemaakt in productRows.ts. */
+  imageUrl: string | null;
 };
 
 type State =
@@ -42,19 +46,15 @@ export function useAlleProducten(): State & { refetch: () => void } {
       const supabase = createClient();
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, category, price_cents, archived")
+        .select("id, name, category, price_cents, archived, image_path")
         .order("category", { ascending: true })
         .order("name", { ascending: true });
 
       if (error) throw error;
 
-      const products: AssortimentProduct[] = (data ?? []).map((row) => ({
-        id: row.id as string,
-        name: row.name as string,
-        category: row.category as string,
-        priceCents: row.price_cents as number,
-        archived: row.archived as boolean,
-      }));
+      const products: AssortimentProduct[] = (data ?? []).map((row) =>
+        toAssortimentProduct(supabase, row)
+      );
 
       setState({ status: "ready", products });
     } catch (err) {

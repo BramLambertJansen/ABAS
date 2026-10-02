@@ -6,6 +6,7 @@ import {
   type AssortimentProduct,
 } from "@/hooks/queries/useAlleProducten";
 import { formatCents } from "@/lib/money";
+import { ProductAfbeelding } from "@/components/ProductAfbeelding";
 import { NieuwProductOverlay } from "./NieuwProductOverlay";
 import { ProductBeherenOverlay } from "./ProductBeherenOverlay";
 
@@ -90,9 +91,16 @@ export function ProductenLijst() {
               <button
                 type="button"
                 onClick={() => setOverlay({ kind: "manage", product })}
-                className="flex w-full min-h-[44px] items-center justify-between gap-3 rounded-control px-2.5 py-[11px] text-left transition-colors hover:bg-canvas"
+                className="flex w-full min-h-[44px] items-center gap-3 rounded-control px-2.5 py-[11px] text-left transition-colors hover:bg-canvas"
               >
-                <span className="flex min-w-0 flex-col gap-0.5">
+                <ProductAfbeelding
+                  imageUrl={product.imageUrl}
+                  name={product.name}
+                  size="beheerRow"
+                  decorative
+                  dimmed={product.archived}
+                />
+                <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                   {/* Gearchiveerd: gedempt via de bestaande `muted`-kleur
                       (al gevalideerd op WCAG-AA, zie tailwind.config.ts),
                       niet via opacity — opacity zou dezelfde kleur
