@@ -79,7 +79,8 @@ alleen voor beheerdialogen zonder geld (besluit 1).
 
 **Niet gedekt (open):**
 
-- Geen e2e voor `TweestapSheet`.
+- Geen e2e voor het pending- en sluitgedrag van `TweestapSheet` (de volledige
+  inschrijvingsflow is wel gedekt in `e2e/portal-profiel.spec.ts`, gemockt en live).
 - Geen 30 s-test voor Pincode, Wachtwoord wijzigen en Nieuw product.
 - Geen test voor omgekeerde responsevolgorde in Lid beheren (de serialisatie
   maakt het in de UI onbereikbaar, maar het is niet bewezen met een test).
