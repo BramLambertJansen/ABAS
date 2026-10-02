@@ -248,8 +248,6 @@ export function ProductBeherenOverlay({
           ref={fileInputRef}
           type="file"
           accept={PRODUCT_IMAGE_ACCEPT}
-          aria-labelledby={imageTitleId}
-          aria-describedby={imageHintId}
           tabIndex={-1}
           className="hidden"
           onChange={(event) => {
@@ -260,13 +258,21 @@ export function ProductBeherenOverlay({
             void onImageChosen(file);
           }}
         />
-        <div className="flex flex-wrap items-center gap-2">
+        {/* De groep geeft "Vervangen" en "Verwijderen" hun context voor een
+            schermlezer ("Afbeelding"), zonder de zichtbare teksten te
+            veranderen; het verborgen bestandsinput zit niet in de
+            toegankelijkheidsboom en kan die koppeling niet dragen. */}
+        <div
+          role="group"
+          aria-labelledby={imageTitleId}
+          aria-describedby={imageHintId}
+          className="flex flex-wrap items-center gap-2"
+        >
           <button
             ref={chooseButtonRef}
             type="button"
             disabled={busy}
             onClick={chooseImage}
-            aria-describedby={imageHintId}
             className="flex h-11 items-center justify-center rounded-control border border-border bg-white px-4 text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
           >
             {imageMutation.pendingAction === "upload"

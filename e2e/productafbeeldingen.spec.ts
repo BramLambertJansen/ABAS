@@ -83,6 +83,10 @@ test("zonder afbeelding: kop met lege staat, het blok staat boven de prijs, a11y
 
   await expect(dialog.getByRole("button", { name: "Afbeelding kiezen" })).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Verwijderen" })).toHaveCount(0);
+  // De knop staat in de groep "Afbeelding", met de toegestane types als beschrijving.
+  const groep = dialog.getByRole("group", { name: "Afbeelding" });
+  await expect(groep).toHaveAccessibleDescription("JPG, PNG of WebP, maximaal 4 MB");
+  await expect(groep.getByRole("button", { name: "Afbeelding kiezen" })).toBeVisible();
   await expect(dialog.getByRole("img")).toHaveCount(0);
   await expect(dialog.getByText("JPG, PNG of WebP, maximaal 4 MB")).toBeVisible();
 
@@ -104,6 +108,11 @@ test("met afbeelding: kop toont de afbeelding met alt, Vervangen en Verwijderen,
   await expect(dialog.getByRole("img", { name: "Afbeelding van Pils" })).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Vervangen" })).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Verwijderen" })).toBeVisible();
+  // Een schermlezer hoort "Verwijderen" binnen de groep "Afbeelding", niet als
+  // "product verwijderen".
+  const groep = dialog.getByRole("group", { name: "Afbeelding" });
+  await expect(groep.getByRole("button", { name: "Vervangen" })).toBeVisible();
+  await expect(groep.getByRole("button", { name: "Verwijderen" })).toBeVisible();
 
   const resultaat = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
   expect(resultaat.violations).toEqual([]);
