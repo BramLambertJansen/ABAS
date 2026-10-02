@@ -185,7 +185,11 @@ export function Assortiment({
         {trimmedQuery && (
           <button
             type="button"
-            onClick={clearQuery}
+            onClick={() => {
+              clearQuery();
+              // De knop verdwijnt met de term: focus naar het zoekveld, niet body.
+              document.getElementById("verkoop-product-search")?.focus();
+            }}
             className="flex h-11 items-center rounded-full border border-border bg-white px-4 text-[13px] font-bold text-ink transition-colors hover:border-ink"
           >
             Wis zoekterm

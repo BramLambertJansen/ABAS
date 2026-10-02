@@ -82,6 +82,17 @@ export function Mandje({
   const [lidVerdwenen, setLidVerdwenen] = useState(false);
   const terugRef = useRef<HTMLButtonElement>(null);
   const vraagId = useId();
+  const lidNaamRef = useRef<HTMLParagraphElement>(null);
+  const focusOpLid = useRef(false);
+
+  // Na "Wissen en kiezen" verdwijnen bevestiging en zoeker; de focus gaat naar
+  // de naam in het lidkaartje (niet naar body).
+  useEffect(() => {
+    if (selectedMember && focusOpLid.current) {
+      focusOpLid.current = false;
+      lidNaamRef.current?.focus();
+    }
+  }, [selectedMember]);
 
   useEffect(() => {
     if (bevestig) terugRef.current?.focus();
@@ -113,6 +124,7 @@ export function Mandje({
     const { id } = bevestig;
     // De bevestiging sluit bij de eerste tik: een dubbele tik wisselt één keer.
     setBevestig(null);
+    focusOpLid.current = true;
     onSelectMember(id);
     setMemberQuery("");
   }
@@ -133,7 +145,11 @@ export function Mandje({
               size="md"
               tone="light"
             />
-            <p className="min-w-0 flex-1 break-words text-base font-extrabold tracking-[-0.015em] text-ink">
+            <p
+              ref={lidNaamRef}
+              tabIndex={-1}
+              className="min-w-0 flex-1 break-words text-base font-extrabold tracking-[-0.015em] text-ink outline-none"
+            >
               {selectedMember.name}
             </p>
             <div className="flex flex-none flex-col items-end gap-px">
