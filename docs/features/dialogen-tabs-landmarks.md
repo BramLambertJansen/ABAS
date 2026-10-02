@@ -1,6 +1,10 @@
 # Dialogen, tabs en landmarks herstellen
 
-**Status: goedgekeurd door Bram** (besluiten onderaan, "Besluiten van Bram").
+**Status: gebouwd en gemerged** (#125, PR #139, merge `52cf69a`, 2026-10-02).
+Besluiten onderaan ("Besluiten van Bram"); wat er afweek van deze spec staat
+in "Gebouwd, afwijkingen en wat niet gedaan is". Het deel hieronder tot die
+sectie is de oorspronkelijke spec en blijft als besluithistorie staan; waar
+de bouw afwijkt, wint de sectie "Gebouwd".
 
 Spec voor [issue #125](https://github.com/BramLambertJansen/ABAS/issues/125)
 (frontend T05 · P1, epic #121, findings F05, F17, F28). Levert het gedeelde
@@ -492,6 +496,83 @@ de gedeelde componenten loopt.
 - Offline/PWA-uitbreiding, geld-/auth-/schemawijzigingen.
 - Een verklaring van volledige WCAG-conformiteit.
 
+## Gebouwd, afwijkingen en wat niet gedaan is
+
+Gemerged in PR #139. Bestanden: `src/components/Overlay.tsx` (aangepast),
+`src/components/overlayShield.ts` en `src/components/Tabs.tsx` (nieuw),
+`src/lib/tabKeys.ts` (nieuw, pure toetslogica), `test/tabKeys.test.ts`,
+`e2e/dialogen-tabs-landmarks.spec.ts`,
+`e2e/dialogen-tabs-landmarks-negatief.spec.ts`, een extra scan in
+`e2e/a11y.spec.ts`, en de consumenten `PortalDashboard`, `BeheerTabs`,
+`DienstTabs` en zeven overlays. Geen datamodel-, RPC- of rolwijziging, zoals
+gespecificeerd.
+
+**Zoals gespecificeerd gebouwd:** focusinsluiting over de nu bereikbare
+elementen plus `focusin`-vangnet; `inert` op siblings van de voorouderketen
+(geen portal); scrolllock; `closeBlocked`/`closeBlockedMessage` met
+`aria-busy` en een altijd gemounte `role="status"`; focus terug naar de
+trigger met opvolgerketen; roving tabindex, `aria-orientation`,
+Home/End, `aria-controls` alleen op de actieve tab; één `main` in `DienstTabs`
+met de rail als `nav` "Bar" ervoor.
+
+**Afwijkingen en invulling door de Developer:**
+
+- **Gedeelde teller in `overlayShield.ts`**, niet in `Overlay` zelf. Loslaten
+  (inert, scrolllock, focus terug) gebeurt uitgesteld via `setTimeout 0` en
+  wordt geannuleerd als er intussen een overlay opent; dat is het mechanisme
+  voor de overgang A → B waarbij de oorspronkelijke trigger blijft gelden. Een
+  `MutationObserver` maakt ook later ingevoegde achtergrondnodes `inert`
+  (bijvoorbeeld een pollresultaat).
+- **Scrolllock** zet `overflow: hidden` op `<html>` en compenseert de
+  scrollbarbreedte met `padding-right` op `<body>`; beide worden exact
+  teruggezet.
+- **`closeBlockedMessage`** is zichtbaar na een geblokkeerde poging
+  (Escape of backdrop), niet zolang `closeBlocked` waar is. Zonder poging blijft
+  de regio leeg (`sr-only`).
+- **`closeBlocked` is op zeven overlays toegepast**, niet vier: Afrekenen,
+  Opwaarderen, Dienst afsluiten, Overnemen, Afmelden, Lid-bestellingen en
+  Terugdraaien. De eigen `handleClose`-bescherming met `if (pending) return`
+  is vervangen door `closeBlocked={pending}`.
+- **`returnFocusFallback`** bestaat als optionele prop, maar geen enkele
+  consument geeft hem mee. In de praktijk valt de focus bij een verdwenen
+  trigger op het actieve `role="tabpanel"` en anders op `main`.
+- **Tabprimitive** is `TabList` plus `TabPanel` in `src/components/Tabs.tsx`
+  (props `idBase`, `orientation`, `activation`, `items`). Ids zijn afgeleid van
+  een `idBase` (`useId()`) van de aanroeper. Wrap-around staat altijd aan, er is
+  geen prop om het uit te zetten.
+- **`TabPanel` is zelf een tabstop** (`tabIndex=0`) zolang het geen focusbare
+  inhoud heeft (W3C-tabspatroon). Dat stond niet in de spec.
+- **Activatie** per tabbalk zoals besloten: handmatig in `PortalDashboard` en
+  `BeheerTabs`, automatisch in `DienstTabs`.
+- **Landmarks:** de meldingen (`DienstTeLangOpenMelding`, `AdminMeldingen`)
+  staan als siblings van het tabpanel binnen het `main`, niet in een eigen
+  benoemde regio. Beide zijn `fixed`, dus geen layoutverschil. Daarmee vallen
+  ze niet meer buiten elke landmark. Tijdens een open dialoog zijn ze `inert`
+  (voorstel uit vraag 10, niet expliciet door Bram bevestigd).
+- **Backdrop-sluiting** blijft `mousedown` op `document` (niet `pointerdown`),
+  nu met `preventDefault` zodat een tik op de backdrop de focus niet naar
+  `body` laat vallen, ook niet bij een geblokkeerde poging.
+- **Tests:** unit voor `nextTabIndex` (`test/tabKeys.test.ts`); E2E in twee
+  nieuwe bestanden (positief en negatief) plus een axe-scan van Verkoop,
+  Dienst en een open Afrekenen-dialoog in `e2e/a11y.spec.ts` met
+  `landmark-one-main` en `region` aan.
+
+**Niet gedaan of niet bewezen:**
+
+- **Pending-E2E** is alleen voor Afrekenen en Terugdraaien. Opwaarderen, Dienst
+  afsluiten, Overnemen en Afmelden hebben `closeBlocked` maar nog geen
+  eigen pending-E2E: vervolgwerk
+  [#140](https://github.com/BramLambertJansen/ABAS/issues/140). De spec
+  vroeg dat de bescherming na omzetting aantoonbaar blijft werken; voor die vier
+  is dat dus nog niet aangetoond.
+- **Handmatige reeks** (echte tablet en telefoon, Safari/iPadOS, touch,
+  VoiceOver/TalkBack) is niet uitgevoerd. Deze feature claimt geen werking op
+  Safari, touch of schermlezers, en geen WCAG-conformiteit.
+- **`check:policy`-regel** voor `role="dialog"`/`role="tablist"` buiten de
+  gedeelde componenten is niet gebouwd; aparte beslissing van Bram (zie
+  "Gate-signaal"). Er is dus geen gate die een vierde tabkopie of een
+  eigen dialoog tegenhoudt.
+
 ## Besluiten van Bram
 
 Expliciet door Bram besloten:
@@ -513,7 +594,9 @@ Expliciet door Bram besloten:
 Nog niet expliciet door Bram bevestigd; dit is het voorstel uit de spec en
 geldt als uitgangspunt: wrap-around (vraag 5), backdrop-sluiting op touch
 (vraag 6), browserdoel voor `inert` (vraag 8), gedrag van meldingen onder een
-open dialoog (vraag 10).
+open dialoog (vraag 10). Gebouwd volgens dat voorstel (altijd wrap-around,
+`mousedown` behouden, `inert` zonder polyfill, meldingen inert onder een
+dialoog); blijft onbevestigd tot Bram er expliciet over beslist.
 
 ## Oorspronkelijke open beslissingen (historie)
 

@@ -213,13 +213,51 @@ The only provider sits in `DienstTabs`, for the "dienst staat nog open"-melding
 is open instead of stacking on top — two `Overlay`s at once fight over
 Escape/backdrop/focus-trap. A dialog built outside `Overlay` isn't counted.
 
+**Dialogs, tabs and landmarks (built and merged, #125, PR #139, 2026-10-02;
+`docs/features/dialogen-tabs-landmarks.md`)**: no ADR, ADR 0014 stands.
+- `Overlay` now keeps Tab/Shift+Tab inside the dialog (computed over the
+  currently tabbable elements, plus a `focusin` backstop) and shields the
+  background through `src/components/overlayShield.ts`: `inert` on the
+  siblings of the overlay's ancestor chain (no portal), document scroll lock,
+  and the element to return focus to. One shared counter, release deferred by
+  a `setTimeout 0`, so a sequence A → B (Lid beheren → Bestellingen →
+  Terugdraaien) neither reopens the background nor loses the original trigger.
+  Stacking stays forbidden (ADR 0014). Consequence: anything in a sibling of
+  the overlay branch (rail, notifications) is not operable while a dialog is
+  open. A variant may change layout, never these rules.
+- **`closeBlocked` / `closeBlockedMessage`** are the shared close contract:
+  while `closeBlocked` is true, Escape and backdrop do nothing but show the
+  `role="status"` message (after an attempt) and the dialog gets `aria-busy`.
+  The consumer keeps its own close buttons `disabled`. Applied as
+  `closeBlocked={pending}` on the seven money/confirm overlays (Afrekenen,
+  Opwaarderen, Dienst afsluiten, Overnemen, Afmelden, Lid-bestellingen,
+  Terugdraaien). A control that becomes disabled during `closeBlocked` sends
+  focus to the dialog container. Optional `returnFocusFallback` exists, no
+  consumer passes it yet; the fallback chain is trigger, that ref, the active
+  `role="tabpanel"`, `main`.
+- **`Tabs`** (`src/components/Tabs.tsx`: `TabList`, `TabPanel`) is the single
+  tablist implementation for `PortalDashboard`, `BeheerTabs` and `DienstTabs`:
+  roving tabindex, `orientation` (rail = vertical), `activation` (manual for
+  portal and beheer, automatic for the rail), wrap-around, `aria-controls` only
+  on the selected tab (panels still mount only while active). Key logic is the
+  pure `nextTabIndex` in `src/lib/tabKeys.ts` (unit-tested). A `TabPanel`
+  without focusable content is itself a tab stop. Shells only pass classes.
+- **Landmarks:** `DienstTabs` renders `nav` ("Bar") then one `main` that wraps
+  the `tabpanel`; `DienstTeLangOpenMelding` and `AdminMeldingen` sit inside that
+  `main` as siblings of the panel. Portal and beheer keep their `main` + `header`.
+- Not built: a `check:policy` rule against `role="dialog"`/`role="tablist"`
+  outside these components (Bram's decision, open); pending E2E for the four
+  overlays other than Afrekenen/Terugdraaien (#140); the manual Safari/iPadOS/
+  touch/screen-reader run. Nothing here claims behaviour on those or WCAG
+  conformance.
+
 **First multi-screen bar navigation (settled, 2026-08-26)**: issue #8 is the
 first time `shells/bar` needed more than one screen behind an open shift.
 `src/features/verkoop/DienstTabs.tsx` renders the navigation (Verkoop,
 default/active; Dienst, the existing #7 `DienstActief` content). Originally
 a plain top tab bar; since 2026-09-24 it follows the prototype's dark
 92px icon-rail (Bram: "zet zoveel mogelijk recht" na een ontwerp-vs-code-
-vergelijking) — still a `role="tablist"` (now `aria-orientation="vertical"`),
+vergelijking) — still a `role="tablist"` (now `aria-orientation="vertical"`, via the shared `TabList`),
 so the navigation contract from `docs/features/verkoop.md` → Navigatie is
 unchanged, only the pixels. `DienstStarten.tsx` hands off to `DienstTabs`
 entirely once a shift is open, rather than branching inside its own dark
@@ -702,7 +740,7 @@ instellingenscherm voor de systeembrede negatieflimiet
 (`docs/features/negatieve-saldolimiet.md`). Levert `/beheer`'s eerste echte
 navigatiestructuur: `BeheerTabs.tsx` (`src/features/assortimentbeheer/`)
 rendert een tabbalk (Assortiment | Instellingen) met hetzelfde
-`role="tablist"`-/mount-per-tab-patroon als `DienstTabs.tsx` (zie "First
+`role="tablist"`-/mount-per-tab-patroon als `DienstTabs.tsx` (sinds #125 beide via het gedeelde `TabList`; zie "First
 multi-screen bar navigation" hierboven) — het eerste moment waarop `/beheer`
 zelf twee schermen achter één sessie krijgt; `Assortimentbeheer.tsx` rendert
 `BeheerTabs` in plaats van rechtstreeks `ProductenLijst`, en de "Ingelogd
