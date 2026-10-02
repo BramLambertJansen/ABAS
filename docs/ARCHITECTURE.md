@@ -991,9 +991,10 @@ is niet gebouwd).
   vergeten. De sessie wordt server-side aangemaakt en geregistreerd vóór de
   browser de tokens krijgt; een mislukte registratie sluit de nieuwe sessie
   (`scope: "local"`). De service-role-client (`src/lib/supabase/admin.ts`)
-  wordt alleen server-side gebruikt, door `barLogin.ts` en `inviteMember.ts`
-  (ADR 0006, `check:arch`); `SUPABASE_SECRET_KEY` is daarmee nodig voor elke
-  login op de bar, ook lokaal en in CI.
+  wordt alleen server-side gebruikt, door `barLogin.ts`, `inviteMember.ts`
+  en `productImage.ts` (Storage-schrijfacties, ADR 0018) (ADR 0006,
+  `check:arch`); `SUPABASE_SECRET_KEY` is daarmee nodig voor elke login op
+  de bar, ook lokaal en in CI.
 - *Cookies*: `abas_apparaat` (`HttpOnly`, 30 dagen, alleen de hash in
   `bar_devices`) bindt de PIN aan een apparaat; `abas_bar_bevestigd` (een
   sessiecookie, niet `HttpOnly`, waarde het `session_id`) is de

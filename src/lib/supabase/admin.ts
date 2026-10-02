@@ -20,6 +20,14 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
  * plain read of the target member — never for a `members` write, which
  * always goes back through a session-bound RPC call (ADR 0006 → Beslissing
  * punt 3, `auth.uid()` is empty on this client).
+ *
+ * Second kind of use (ADR 0018): Storage writes — uploading and removing
+ * objects in the `product-images` bucket from src/lib/productImage.ts, after
+ * that file has verified the caller with the session-bound client.
+ * storage.objects has no write policy for any API role, so this client is
+ * the only way in. The reference in the database (`products.image_path`)
+ * still goes through a session-bound RPC (`set_product_image`), never
+ * through this client.
  */
 export function createAdminClient() {
   return createSupabaseClient(
