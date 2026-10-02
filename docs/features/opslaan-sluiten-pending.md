@@ -1,7 +1,28 @@
 # Opslaan, sluiten en gelijktijdige acties voorspelbaar maken
 
 **Status: goedgekeurd door Bram (2026-10-02)**: aanbevelingen bij A, B, C, D
-en E, en een time-out van 30 seconden voor een hangend verzoek.
+en E, en een time-out van 30 seconden voor een hangend verzoek, alleen voor
+beheerdialogen zonder geld (besluit 1 hieronder).
+
+## Besluiten Bram (2026-10-02)
+
+1. **30 s-time-out alleen zonder geld.** Geldoverlays (Afrekenen, Opwaarderen,
+   Nieuw lid met startsaldo) houden `closeBlocked` tot het verzoek echt klaar
+   is, ongewijzigd; de time-out geldt alleen voor beheerdialogen zonder geld.
+   Bij een hangend geldverzoek blijft de dialoog geblokkeerd. "Onbekende
+   uitkomst" plus controleknop verschijnen alleen na een echte netwerk-/
+   onbekende fout (niet door time-out); de knop is disabled zolang het
+   verzoek pending is. **Bewust gevolg:** een echt hangend geldverzoek houdt
+   de dialoog vast tot herladen. Geen backend-idempotentie in T06 (apart
+   ticket, vraag C optie 3).
+2. **Weggooi-tekst:** "Niet-opgeslagen wijziging weggooien?" (de eerdere
+   schrijfwijze "Ongeslagen wijziging weggooien?" was een typfout).
+3. **Generieke time-outtekst voor niet-geldacties:** "De uitkomst is onbekend.
+   Controleer eerst de actuele gegevens voordat je opnieuw probeert."
+4. **"Bestelling terugdraaien" is disabled tijdens een lopende wijziging in
+   Lid beheren**, met een uitlegregel (tekst in de stijl van de andere
+   uitleg bij disabled knoppen; de Developer gebruikt de bestaande
+   serialisatie-uitleg uit "Zichtbare status").
 
 Spec voor [issue #126](https://github.com/BramLambertJansen/ABAS/issues/126)
 (frontend T06 · P2, epic #121, findings F10 en F11). Bouwt voort op het
@@ -167,11 +188,13 @@ Zie vraag B. Gemeenschappelijke eisen, ongeacht de keuze:
 - **Actielijsten zonder formulier** (Bezetting): pending-model en
   sluitcontract; geen onopgeslagen-beleid (er is geen concept, elke tik is
   direct een actie).
-- **Geldbevestigingen** (Afrekenen, Opwaarderen, Terugdraaien en de vier
-  andere): behouden `closeBlocked` en hun extra bescherming ongewijzigd;
-  het enige dat T06 doet is vraag C beantwoorden. Hun beleid wordt dus
-  **niet** versoepeld, ook niet als vraag A voor "taak buiten de dialoog"
-  kiest (zie vraag A).
+- **Geldoverlays** (Afrekenen, Opwaarderen, Nieuw lid met startsaldo;
+  daarnaast Terugdraaien en de vier andere bestaande): behouden
+  `closeBlocked` tot het verzoek echt klaar is en hun extra bescherming
+  ongewijzigd, **zonder 30 s-time-out** (besluit 1); het enige dat T06 doet
+  is vraag C toepassen. Hun beleid wordt dus **niet** versoepeld, ook niet
+  als vraag A voor "taak buiten de dialoog" kiest. De time-out geldt alleen
+  voor beheerdialogen zonder geld.
 
 ## Open vragen voor Bram
 
@@ -204,8 +227,8 @@ status-regio, en geeft de gebruiker de foutmelding op de plek waar hij de
 invoer nog heeft. Optie 2 is alleen verdedigbaar als Bram verwacht dat
 opslaan op de bar-tablet regelmatig langzaam is; dat is niet aangetoond
 (het ticket gebruikt een met opzet vertraagde RPC). Geldoverlays blijven in
-elk geval geblokkeerd: bij een lopende geldmutatie is een verdwenen venster
-nooit goed.
+elk geval geblokkeerd, ook zonder time-out (besluit 1): bij een lopende
+geldmutatie is een verdwenen venster nooit goed.
 
 ### Vraag B: gedrag bij sluiten met onopgeslagen invoer
 
@@ -213,7 +236,7 @@ Het ticket vraagt "een bewuste keuze, geen bevestigingsspam bij
 ongewijzigde of al opgeslagen forms".
 
 - **Optie 1: bevestigen.** Escape, backdrop en Sluiten/Annuleren tonen
-  "Ongeslagen wijziging weggooien?" met Weggooien en Terug. Alleen als de
+  "Niet-opgeslagen wijziging weggooien?" met Weggooien en Terug (besluit 2). Alleen als de
   invoer onopgeslagen is (definitie hierboven). Geldt voor Nieuw lid, Nieuw
   product, Product beheren, Lid beheren en de portal-sheets.
 - **Optie 2: stil weggooien** (huidig gedrag, nu met `closeBlocked` bij
@@ -289,7 +312,12 @@ Opties:
   echte backendtests (ticket: "bewijs van echte geld-idempotentie vraagt een
   backendtest").
 
-**Aanbeveling: optie 1 in T06 én optie 3 als apart vereiste-ticket.** T06
+**Besluit Bram (2026-10-02): optie 1 in T06 én optie 3 als apart
+vereiste-ticket, met de afbakening uit besluit 1.** De onbekende-uitkomst-
+tekst en controleknop verschijnen alleen na een echte netwerk-/onbekende
+fout, nooit door een time-out (geldverzoeken hebben er geen), en de knop is
+disabled zolang het verzoek pending is. Bij een hangend geldverzoek blijft
+de dialoog geblokkeerd. Oorspronkelijke aanbeveling: T06
 doet wat de UI eerlijk kan (stoppen met "probeer opnieuw" op onbekende
 geldfouten, expliciet de onbekende staat tonen, naar saldo/transacties
 verwijzen, geen automatische retry) en zegt letterlijk in de UI en PR niet
@@ -376,12 +404,18 @@ ADR bij die spec, niet erna.
 - **`member_not_found` / `product_not_found` tijdens pending:** de dialoog
   blijft open met de fout en `onChanged()` ververst de lijst, zoals nu;
   `closeBlocked` valt weg zodra de fout er is, zodat de gebruiker kan sluiten.
-- **Pending dat nooit eindigt** (netwerk hangt): `closeBlocked` mag de
-  gebruiker niet voor altijd opsluiten. Dit is een aandachtspunt dat vraag
-  C raakt (onbekende uitkomst). **Aanbeveling:** een time-out in de hook
-  die de status op "onbekende uitkomst" zet, zodat de blokkade valt. De
-  duur is door Bram vastgesteld op **30 seconden**. Zonder time-out kan een hangend verzoek de dialoog blokkeren
-  tot herladen.
+- **Pending dat nooit eindigt** (netwerk hangt), besluit 1:
+  - *Beheerdialogen zonder geld* (Product beheren, Nieuw product, Lid beheren,
+    Bezetting, portal-sheets): na **30 seconden** zet de hook de status op
+    "onbekende uitkomst" en valt `closeBlocked`, zodat de gebruiker niet
+    voor altijd is opgesloten. Tekst: besluit 3.
+  - *Geldoverlays* (Afrekenen, Opwaarderen, Nieuw lid met startsaldo): **geen
+    time-out.** `closeBlocked` blijft tot het verzoek echt klaar is,
+    ongewijzigd. Een hangend geldverzoek houdt de dialoog dus geblokkeerd, en
+    de controleknop blijft disabled zolang het pending is. Bewust gevolg:
+    een echt hangend geldverzoek houdt de dialoog vast tot herladen; er is
+    geen backend-idempotentie om daarna veilig opnieuw te proberen (apart
+    ticket, vraag C optie 3).
 - **Dubbele klik of Enter-herhaling in een formulier:** de `status`-guard
   bestaat al; het nieuwe pending-model dekt ook Enter in `<form onSubmit>`
   (de portal-sheets).
@@ -390,8 +424,12 @@ ADR bij die spec, niet erna.
   de focus naar de sectie met het resultaat (de foutregel of het veld), niet
   naar `body`.
 - **Nieuw lid met startsaldo:** de invoer is tijdens pending bevroren
-  (naam, saldo, e-mail); na een onbekende uitkomst geen "Toevoegen" met
-  dezelfde waarden zonder de controlestap uit vraag C.
+  (naam, saldo, e-mail), zonder time-out (geldoverlay, besluit 1); na een
+  echte netwerk-/onbekende fout geen "Toevoegen" met dezelfde waarden zonder
+  de controlestap uit vraag C.
+- **Bestelling terugdraaien in Lid beheren** (besluit 4): disabled zolang er
+  een wijziging voor dit lid loopt, met een uitlegregel (tekst: besluit 4).
+  Past in de serialisatie per object; de terugdraai-RPC zelf verandert niet.
 - **Toast in `LidBeherenOverlay`** (3,5 s, `aria-live`): blijft; de nieuwe
   statusregel per sectie is aanvullend, niet in plaats van.
 
@@ -424,9 +462,17 @@ vertraagde routes via `page.route` voor deterministische pending):**
 6. Onopgeslagen (vraag B): gewijzigd veld plus Escape/backdrop toont de
    keuze; ongewijzigd of net opgeslagen formulier sluit zonder vraag; de
    bewuste Annuleren-knop volgt de gekozen variant.
-7. Onbekende geldstatus (vraag C): afgebroken `place_order`/`top_up`/
-   `create_member`-request toont de controletekst, geen "probeer opnieuw", en
-   er volgt geen automatische tweede request (tel requests).
+7. Onbekende geldstatus (vraag C): een echte netwerk-/onbekende fout (request
+   afgebroken, niet een time-out) op `place_order`/`top_up`/`create_member`
+   toont de controletekst, geen "probeer opnieuw", en er volgt geen
+   automatische tweede request (tel requests). De controleknop is disabled
+   zolang het verzoek pending is. **Geen time-outtest voor geld:** een
+   hangend geldverzoek houdt de dialoog geblokkeerd (besluit 1); dat is
+   juist wat de test bevestigt (na ruim 30 s blijft `closeBlocked` staan).
+   De 30 s-time-out wordt alleen getest voor beheerdialogen zonder geld
+   (Product beheren, Lid beheren, Nieuw product, Bezetting, portal-sheets):
+   na 30 s valt de blokkade, de generieke time-outtekst staat er en de
+   dialoog is sluitbaar.
 8. Focus: tijdens en na pending nooit op `body`.
 
 **Axe:** een open Product beheren in pending-toestand en een
