@@ -101,6 +101,26 @@ schermbrede/persistente header-bezetting-chip (zoals het ontwerp op meerdere
 schermen toont) is nadrukkelijk **niet** vereist door deze spec — zie
 Expliciet buiten scope.
 
+### Verkoopdraft binnen de dienst (T03 / #43)
+
+Een wissel Verkoop → Dienst → Verkoop bewaart gekozen lid, vergelijkingslid
+voor de lidwisselregel, productregels/aantallen, laatst bekende productinformatie,
+product-/ledenzoekterm, categorie en weergave. Een open dialoog blokkeert tabwissels totdat die gesloten is, zodat een
+lopende boeking niet door navigatie kan worden onderbroken. De draft leeft alleen in geheugen, boven de tabpanelen, en wordt
+opnieuw aangemaakt bij een andere dienst of persoonlijke sessie. Afsluiten,
+uitloggen en succesvolle afrekening laten geen oude bestelling achter.
+Een volledige browserreload bewaart geen draft.
+
+Het actieve tabpaneel haalt zijn gegevens bij iedere terugkeer opnieuw op.
+Bewaarde naam-/prijsinformatie houdt een gearchiveerde regel herkenbaar en
+verwijderbaar; afrekenen vereist geladen actuele producten, leden, instellingen
+en bezetting. Veranderde prijzen/saldi worden in mandje en bevestiging gebruikt.
+Een ontbrekend lid/product blokkeert afrekenen met uitleg; de draft blijft
+beschikbaar om te corrigeren. Een niet meer aanwezige uitvoerder kan niet
+bevestigen. De RPC blijft bedrag, beschikbaarheid, saldo en attributie controleren.
+Lidwissel behoudt de bestaande regel: hetzelfde lid bewaart het mandje, een
+ander lid wist de regels. Geen nieuwe geld- of databasecontracten.
+
 ## Schermflow
 
 ### 1. Assortiment (linkerkant/hoofdgebied)
