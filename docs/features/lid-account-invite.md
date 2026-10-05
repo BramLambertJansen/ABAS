@@ -1,5 +1,20 @@
 # Lid-account aanmaken: magic-link invite via een handmatige knop
 
+> **Bijgewerkt door [`account-koppeling-bewijs.md`](account-koppeling-bewijs.md)
+> (ADR 0020, migratie `0040`, gemerged in [PR #157](https://github.com/BramLambertJansen/ABAS/pull/157),
+> 2026-10-05):** de koppelregel hieronder ("matchen op `auth.email()`") is
+> vervangen. `link_invited_member_account()` is een wrapper om
+> `link_member_account_internal` en koppelt alleen een sessie met een
+> `amr`-methode uit de mailbox, van precies het account dat
+> `inviteUserByEmail` aanmaakte (`members.invited_auth_user_id`), met een
+> bevestigd adres gelijk aan `members.email`, en nooit een gearchiveerd lid.
+> Bij het koppelen worden wachtwoord, MFA-factoren en de andere sessies van
+> het account gewist. `mark_member_invite_sent` heet nu
+> `mark_member_invite_sent(p_member_id, p_auth_user_id)` en weigert met
+> `invite_account_mismatch` een account waarvan het adres niet bij het lid
+> past; `inviteMember.ts` geeft het id uit `inviteUserByEmail` mee en nodigt
+> een gearchiveerd lid niet uit (`invited: false`).
+
 > **Bijgewerkt door [`dienst-per-sessie.md`](dienst-per-sessie.md) en
 > [`beheer-tweede-factor.md`](beheer-tweede-factor.md) (gemerged in [PR #120](https://github.com/BramLambertJansen/ABAS/pull/120),
 > 2026-10-01):** `src/lib/inviteMember.ts` roept vóór `inviteUserByEmail`

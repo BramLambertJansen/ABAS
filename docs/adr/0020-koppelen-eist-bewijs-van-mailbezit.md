@@ -1,9 +1,10 @@
 # 0020 — Een lid koppelen aan een auth-account eist bewijs van mailbezit in de huidige sessie, gebonden aan het uitgenodigde account
 
-Status: **geaccepteerd (2026-10-05)**. Bram heeft de keuzes voor deze opdracht
+Status: **geaccepteerd (2026-10-05), geïmplementeerd (PR #157)**. Bram heeft de keuzes voor deze opdracht
 bij de Architect gelegd (item B van de review van 2026-10-05); de spec
 [`docs/features/account-koppeling-bewijs.md`](../features/account-koppeling-bewijs.md)
-geldt daarmee als goedgekeurd. Te bouwen in migratie `0040`. **Vervangt** de
+geldt daarmee als goedgekeurd. Gebouwd in migratie `0040` (PR #157, gemerged
+2026-10-05), inclusief beide herzieningen hieronder. **Vervangt** de
 matchregel uit [ADR 0006](0006-privileged-auth-admin-calls-via-server-actie-naast-rpc.md)
 → "Aanvulling (2026-09-21)" ("matchen op `auth.email()`"); de rest van die
 aanvulling (geen foutcodes, stille no-op bij 0 of meer dan 1 match) blijft
@@ -22,8 +23,9 @@ oorspronkelijke Beslissing 3 ("een ongekoppeld account met een wachtwoord
 wordt niet gekoppeld") blokkeerde daardoor het hoofdpad zelf. Een
 GoTrue-tijdelijk wachtwoord en een wachtwoord van een aanvaller zijn in de
 database niet te onderscheiden; de nieuwe Beslissing 3 vraagt dat ook niet
-meer. Details en Developer-delta:
-[spec → Herziening](../features/account-koppeling-bewijs.md#herziening-2026-10-05-na-review-van-73edbbf).
+meer. Details:
+[spec → Verloop](../features/account-koppeling-bewijs.md#verloop-wat-afweek-van-de-eerste-spec)
+en keuze 3.
 
 ## Herziening 2 (2026-10-05, na review van 3b0528c)
 
@@ -41,8 +43,9 @@ later werkt op elk apparaat waar het lid zelf met zijn wachtwoord inlogde,
 zoals de gedeelde bartablet.
 
 Gedicht met de nieuwe **Beslissing 8**. Het Restrisico is herschreven naar
-wat er echt overblijft. Developer-delta:
-[spec → Herziening 2](../features/account-koppeling-bewijs.md#herziening-2-2026-10-05-na-review-van-3b0528c).
+wat er echt overblijft. Details:
+[spec → Verloop](../features/account-koppeling-bewijs.md#verloop-wat-afweek-van-de-eerste-spec)
+en keuze 10.
 
 ## Context
 

@@ -750,8 +750,8 @@ zonder dat er ooit een e-mailadres of portal-account bij hoort.
   eveneens nullable `members.invited_at timestamptz`-veld onderscheidt "nog
   niet uitgenodigd" van "uitgenodigd op [datum], nog geen account" in de
   UI — die tussenstaat is met deze herziening ook daadwerkelijk bereikbaar.
-- **Koppelen eist bewijs van mailbezit (ADR 0020, 2026-10-05, migratie
-  `0040`).** Een e-mailadres op een sessie is geen bewijs. De koppel-RPC's
+- **Koppelen eist bewijs van mailbezit (ADR 0020, 2026-10-05, gebouwd in
+  `0040`, PR #157).** Een e-mailadres op een sessie is geen bewijs. De koppel-RPC's
   koppelen alleen een sessie met een `amr`-methode uit de mailbox
   (`invite`/`magiclink`/`otp`/`email/signup`), van precies het auth-account
   dat `inviteUserByEmail` aanmaakte (`members.invited_auth_user_id`, gezet
@@ -766,8 +766,10 @@ zonder dat er ooit een e-mailadres of portal-account bij hoort.
   PostgREST geldig tot het verloopt; daarom eisen `register_bar_session` en
   `set_own_pin` dat de rij in `auth.sessions` nog bestaat (ADR 0020 →
   Beslissing 8): elke client-RPC die iets maakt dat langer leeft dan het
-  token (sessie, inloggegeven, apparaatvertrouwen) doet dat. Zie
-  `docs/features/account-koppeling-bewijs.md`.
+  token (sessie, inloggegeven, apparaatvertrouwen) doet dat. Koppel- en
+  sessiegedrag is tegen de echte GoTrue bewezen in
+  `integration/account-koppeling.test.ts` (`npm run test:integration`, CI).
+  Zie `docs/features/account-koppeling-bewijs.md`.
 
 **Gebouwd (#24, 2026-09-21)**: zie hieronder, changelog-entry na
 "Ledenbeheer" — de bullets hierboven beschrijven de daadwerkelijk gebouwde
