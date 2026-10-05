@@ -108,15 +108,17 @@ select ok(
   'list_members_admin blijft aanroepbaar voor een ingelogde sessie'
 );
 
--- De drie RLS-helpers uit 0015 zijn een geval apart: hun EXECUTE wordt niet
+-- De RLS-helpers (caller_member_id/caller_owns_order uit 0015,
+-- caller_has_bar_role uit 0039) zijn een geval apart: hun EXECUTE wordt niet
 -- door applicatiecode gebruikt maar door de policy-expressies zelf, die met
 -- de rechten van de aanroepende rol worden geëvalueerd. Zonder deze grant
--- faalt élke select op members/orders/order_lines/top_ups met "permission
--- denied for function caller_is_lid" — een stuk minder voor de hand liggend
--- dan een gewone RPC die niet meer werkt, dus expliciet vastgelegd.
+-- faalt élke select op members/orders/order_lines/top_ups/order_reversals
+-- met "permission denied for function caller_has_bar_role" — een stuk minder
+-- voor de hand liggend dan een gewone RPC die niet meer werkt, dus expliciet
+-- vastgelegd.
 select ok(
-  has_function_privilege('authenticated', 'public.caller_is_lid()', 'EXECUTE'),
-  'caller_is_lid blijft uitvoerbaar voor authenticated (nodig voor de RLS-policies uit 0015)'
+  has_function_privilege('authenticated', 'public.caller_has_bar_role()', 'EXECUTE'),
+  'caller_has_bar_role blijft uitvoerbaar voor authenticated (nodig voor de RLS-policies uit 0039)'
 );
 
 -- Added for 0020_bestelling_terugdraaien.sql: both reversal RPCs move money.

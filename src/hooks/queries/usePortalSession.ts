@@ -15,15 +15,16 @@ import { logLocalError, reportClientError } from "@/lib/clientErrors";
  * `archived` gaan mee in de state, zodat het Account-tabblad de PIN-rij
  * alleen voor bar-rollen toont. Alleen een sessie zónder gekoppelde
  * `members`-rij rapporteert `denied`, met dezelfde neutrale melding als
- * voorheen. Let op (ADR 0012 → Beslissing 2): een bardienst/beheerder-sessie
- * leest via RLS álle `members`-rijen, dus deze lookup filtert expliciet op
- * de eigen `auth_user_id` — nooit op RLS leunen.
+ * voorheen. Let op (ADR 0012 → Beslissing 2, ADR 0019): een sessie van een
+ * **actieve** bardienst/beheerder (gekoppeld, niet gearchiveerd) leest via
+ * RLS álle `members`-rijen, ook op de portal, dus deze lookup filtert
+ * expliciet op de eigen `auth_user_id` — nooit op RLS leunen.
  *
  * Geen `archived`-filter op de members-lookup, in tegenstelling tot
- * `useBeheerSession.ts`: `0015_lid_leest_alleen_eigen_rijen.sql`'s
- * `caller_is_lid()` filtert bewust ook niet op `archived` ("een gearchiveerd
- * lid dat nog een sessie heeft moet zijn eigen historie kunnen inzien") —
- * dezelfde grens geldt hier voor de sessie-gate zelf.
+ * `useBeheerSession.ts`: sinds `0039_leespolicies_allowlist.sql` (ADR 0019)
+ * geldt de eigen-rij-tak van de leespolicies voor iedereen, ook gearchiveerd
+ * ("een gearchiveerd lid dat nog een sessie heeft moet zijn eigen historie
+ * kunnen inzien") — dezelfde grens geldt hier voor de sessie-gate zelf.
  *
  * Cookie-isolatie (ADR 0009) maakt dit hook onbereikbaar voor de gedeelde
  * bar-tablet-device-sessie: `sb-portal-auth-token` bestaat pas na een

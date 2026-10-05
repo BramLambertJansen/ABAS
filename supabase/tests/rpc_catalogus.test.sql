@@ -70,7 +70,7 @@ insert into catalogus values
   ('update_negative_limit',     'client', null),
   ('update_product_price',      'client', null),
   -- client, zonder guard
-  ('caller_is_lid',             'client', 'RLS-helper: zegt alleen iets over de aanroeper zelf'),
+  ('caller_has_bar_role',       'client', 'RLS-helper: zegt alleen iets over de aanroeper zelf'),
   ('caller_member_id',          'client', 'RLS-helper: zegt alleen iets over de aanroeper zelf'),
   ('caller_owns_order',         'client', 'RLS-helper: zegt alleen iets over de aanroeper zelf'),
   ('is_shift_member',           'client', 'RLS-helper voor shift_members'),
