@@ -1,7 +1,7 @@
 "use client";
 
-import { useId, useState } from "react";
-import { TabList, TabPanel, type TabItem } from "@/components/Tabs";
+import { useEffect, useId, useRef, useState } from "react";
+import { TabList, TabPanel, tabElementId, type TabItem } from "@/components/Tabs";
 import { SaldoTab } from "./SaldoTab";
 import { TransactiesTab } from "./TransactiesTab";
 import { AccountTab } from "@/features/portal-profiel/AccountTab";
@@ -55,6 +55,16 @@ export function PortalDashboard({
 }) {
   const [tab, setTab] = useState<Tab>("saldo");
   const idBase = useId();
+  // "Alle transacties" verwijdert zijn eigen knop uit de DOM (het Saldo-panel
+  // unmount); de focus gaat dan naar de tab "Transacties" i.p.v. naar body.
+  const focusTransactiesTab = useRef(false);
+
+  useEffect(() => {
+    if (tab === "transacties" && focusTransactiesTab.current) {
+      focusTransactiesTab.current = false;
+      document.getElementById(tabElementId(idBase, "transacties"))?.focus();
+    }
+  }, [tab, idBase]);
   const firstName = name.trim().split(/\s+/)[0] || name;
 
   return (
@@ -91,7 +101,12 @@ export function PortalDashboard({
 
       {tab === "saldo" && (
         <TabPanel idBase={idBase} tabKey="saldo" className="flex min-h-0 flex-1 flex-col">
-          <SaldoTab />
+          <SaldoTab
+            onShowAll={() => {
+              focusTransactiesTab.current = true;
+              setTab("transacties");
+            }}
+          />
         </TabPanel>
       )}
 
