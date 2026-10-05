@@ -756,8 +756,11 @@ zonder dat er ooit een e-mailadres of portal-account bij hoort.
   (`invite`/`magiclink`/`otp`/`email/signup`), van precies het auth-account
   dat `inviteUserByEmail` aanmaakte (`members.invited_auth_user_id`, gezet
   door `mark_member_invite_sent`), met een bevestigd adres gelijk aan
-  `members.email`, zonder wachtwoord, en nooit voor een gearchiveerd lid.
-  Bij het koppelen eindigen de andere Auth-sessies van het account. Een
+  `members.email`, en nooit voor een gearchiveerd lid. Bij het koppelen
+  worden wachtwoord en MFA-factoren gewist en eindigen de andere
+  Auth-sessies van het account (herzien 2026-10-05: GoTrue zet zelf een
+  tijdelijk wachtwoord bij het openen van een uitnodiging, dus "zonder
+  wachtwoord" eisen blokkeerde elke koppeling). Een
   adreswijziging wist de uitnodiging. Zie
   `docs/features/account-koppeling-bewijs.md`.
 

@@ -1,11 +1,133 @@
 # Account koppelen alleen met bewijs van mailbezit
 
-**Status: goedgekeurd (2026-10-05), nog niet gebouwd.** Bram heeft de keuzes
-voor deze opdracht bij de Architect gelegd: de spec geldt als goedgekeurd
-zodra hij geschreven is, en elke keuze staat hieronder met reden. Item B van
-de review van 2026-10-05. Architectuurbeslissing:
+**Status: goedgekeurd (2026-10-05), gebouwd in 73edbbf, herzien na review
+(2026-10-05, zie Herziening).** Bram heeft de keuzes voor deze opdracht bij
+de Architect gelegd: de spec geldt als goedgekeurd zodra hij geschreven is,
+en elke keuze staat hieronder met reden. Item B van de review van
+2026-10-05. Architectuurbeslissing:
 [ADR 0020](../adr/0020-koppelen-eist-bewijs-van-mailbezit.md). Migratie
-`0040`.
+`0040` (nog niet gemerged, mag aangepast).
+
+## Herziening (2026-10-05, na review van 73edbbf)
+
+Deze sectie is de delta voor de Developer. De rest van de spec is al
+bijgewerkt naar de herziene stand; waar hij afwijkt van 73edbbf, geldt de
+spec.
+
+### Wat er mis was
+
+- **Reviewer:** `signInWithOtp({ shouldCreateUser: true })` maakt voor een
+  onbekend of onbevestigd adres via Signup een account met een willekeurig
+  tijdelijk wachtwoord (GoTrue `magic_link.go:84-91`). `inviteUserByEmail`
+  hergebruikt een onbevestigd account (`invite.go:66-70`). Stap 4 van `0040`
+  (`coalesce(v_password,'') <> ''` → niet koppelen) blokkeert dan blijvend
+  een lid dat vóór de uitnodiging de portal probeerde.
+- **Architect, bij nalezen van dezelfde bron: het hoofdpad zelf breekt.**
+  `signupVerify` (`verify.go:317-329`) zet bij het openen van een
+  uitnodiging (`type=invite`, en ook `type=signup`) op elk account zonder
+  wachtwoord met `invited_at` een willekeurig wachtwoord van 64 tekens
+  ("sign them up with temporary password, and require application to
+  present the user with a password set form"). Dat gebeurt vóór de sessie
+  wordt uitgegeven, voor `token_hash` (`verify.go:256`) en voor PKCE
+  (`verify.go:152`). Wie de uitnodiging opent, heeft bij het koppelen dus
+  altijd `encrypted_password` gevuld, en stap 4 weigert. De pgTAP-fixtures
+  (`encrypted_password = ''`) draaien geen GoTrue en zagen dat niet.
+- Conclusie: op het moment van koppelen is een GoTrue-tijdelijk wachtwoord,
+  een wachtwoord van een aanvaller en een wachtwoord dat het lid zelf via
+  herstel zette, in de database niet te onderscheiden. Een controle op
+  `encrypted_password` is niet te repareren. Die moet weg.
+
+### Nieuwe keuze 3: bij het koppelen worden alle inloggegevens gewist, behalve de sessie die het bewijs leverde
+
+Zie keuze 3 hieronder. Kort: na een geslaagde koppeling, in dezelfde
+functie, `encrypted_password = ''`, alle `auth.mfa_factors` van het account
+weg, en (zoals al gebouwd) alle andere `auth.sessions` weg. Na de koppeling
+komt alleen nog binnen wie zojuist mailbezit aantoonde. Wat er vóór de
+koppeling op het account stond, verdwijnt: het GoTrue-tijdelijke wachtwoord,
+het wachtwoord van een aanvaller die het adres vóór de uitnodiging
+registreerde ("Confirm email" aan), en een wachtwoord plus TOTP die een
+aanvaller zette via een sessie uit een signup op het uitgenodigde adres
+("Confirm email" uit, zie Randgevallen).
+
+**Verworpen: de richting van de reviewer** (in `inviteMember.ts` een
+bestaand onbevestigd account verwijderen en vers uitnodigen). Lost alleen het
+geval vóór de uitnodiging op: het verse invite-account krijgt bij het openen
+toch een tijdelijk wachtwoord (`verify.go:317`), dus stap 4 blijft het
+hoofdpad blokkeren. Daarnaast vraagt het een nieuwe service-role-RPC (de
+admin-API kan niet op e-mail zoeken), een destructieve delete en een race
+met een bevestiging die net binnenkomt. Na de reset is het niet nodig: een
+hergebruikt onbevestigd account houdt niets over dat de koppeling overleeft.
+
+**Verworpen: `mark_member_invite_sent` laten eisen dat
+`auth.users.invited_at is not null`.** GoTrue zet `invited_at` ook bij een
+hergebruikt onbevestigd account, dus het onderscheidt niets. Met de reset
+maakt het ook niet meer uit wie het account aanmaakte; wel dat het adres
+klopt (al gecontroleerd) en dat de sessie die koppelt mailbezit aantoonde.
+
+### `amr`: wat de bron zegt (correctie)
+
+Het commentaar in `0040` (stap 3) en ADR 0020 → Beslissing 7 zeiden dat
+herstel- en adreswijzigingssessies `recovery`/`email_change` dragen. Onjuist
+voor onze routes: `verifyOtp` met `token_hash` (ADR 0008, beide callbacks)
+geeft voor elk type `otp` (`verify.go:185` GET, `:285` POST). Alleen PKCE
+(`?code=`) neemt de methode uit de flow state (`token.go:256`, namen uit
+`factor.go:117-141`: `invite`, `magiclink`, `email/signup`, `recovery`,
+`email_change`). Een herstelsessie via `token_hash` kan dus koppelen. Geen
+lek: herstel bewijst evengoed mailbezit (de mail gaat naar dit adres). De
+lijst blijft `invite`, `magiclink`, `otp`, `email/signup`.
+
+### Blocker 2: bewijs zonder Docker in deze sessie
+
+De handmatige controle tegen `supabase start` is geen merge-voorwaarde meer.
+In de plaats:
+
+1. **Bronverificatie** (sectie Tests → Bronverificatie): wat GoTrue doet,
+   met bestand en regel, als vastgelegd bewijs.
+2. **Een integratietest in CI tegen de echte GoTrue.** CI draait al de
+   volledige lokale stack (`.github/workflows/ci.yml`, `supabase start`). Een
+   nieuwe test (`integration/account-koppeling.test.ts`) doorloopt het
+   hoofdpad en de aanval met echte tokens. Dat had de fout hierboven
+   gevangen. Zie Tests → Integratietest. Merge-voorwaarde: groen in CI.
+3. **Na de merge, door Bram, op het gehoste project** (sectie Na de merge):
+   de gehoste GoTrue-versie en de instelling "Confirm email" zijn hier niet
+   te zien.
+
+### Checklist Developer (t.o.v. 73edbbf)
+
+**`0040_koppelen_eist_bewijs_van_mailbezit.sql`**
+
+1. Kopcommentaar: voorwaarde "(4) geen wachtwoord heeft" vervangen door
+   "bij het koppelen worden wachtwoord, MFA-factoren en alle andere sessies
+   van het account gewist (ADR 0020 → Beslissing 3)".
+2. `link_member_account_internal`, stap 3: commentaar corrigeren volgens
+   "`amr`: wat de bron zegt" hierboven (via `token_hash` altijd `otp`, ook
+   bij herstel; `recovery`/`email_change` alleen via PKCE, en die staan
+   bewust niet in de lijst).
+3. Stap 4: `encrypted_password` uit de `select`, de voorwaarde
+   `coalesce(v_password, '') <> ''` weg, variabele `v_password` weg.
+   Commentaar: "keuze 3" eruit.
+4. Na stap 7 (`update members ... returning`), vóór het verwijderen van de
+   sessies, nieuw:
+   `update auth.users set encrypted_password = '' where id = v_uid;` en
+   `delete from auth.mfa_factors where user_id = v_uid;` (cascadeert naar
+   `auth.mfa_challenges`). Daarna de bestaande `delete from auth.sessions`.
+   Commentaar: na de koppeling komt alleen de bewijzende sessie binnen; wat
+   ervoor op het account stond (GoTrue-tijdelijk wachtwoord bij het openen
+   van de uitnodiging, `verify.go:317`, of iets van een ander) is weg.
+   Zelfde soort DML op het `auth`-schema als `0034` (`auth.sessions`).
+   Alleen op het pad dat echt koppelt, nooit bij een no-op.
+5. `mark_member_invite_sent`: ongewijzigd.
+
+**`src/lib/inviteMember.ts`**: ongewijzigd.
+
+**pgTAP** (`account_koppeling_bewijs.test.sql`, zie Tests): test 5 wordt
+positief; nieuwe tests 23-26.
+
+**Integratietest**: nieuw bestand, nieuw script, CI-stap (zie Tests →
+Integratietest).
+
+**Docs na de bouw:** rij voor `test:integration` in de tabel in `CLAUDE.md`
+→ Verificatie.
 
 ## Aanleiding (geverifieerd in de code)
 
@@ -43,10 +165,10 @@ Een `members`-rij krijgt alleen een `auth_user_id` als de sessie die koppelt:
 1. via een link of code uit de mailbox tot stand kwam (`amr`);
 2. van precies het auth-account is dat de uitnodiging aanmaakte;
 3. een bevestigd adres heeft dat nog steeds gelijk is aan `members.email`;
-4. van een account zonder wachtwoord is;
 
-en het lid niet gearchiveerd is. Ongeacht de projectinstelling "Confirm
-email".
+en het lid niet gearchiveerd is. Bij het koppelen verdwijnen wachtwoord,
+MFA-factoren en alle andere sessies van het account: daarna komt alleen de
+sessie met het bewijs binnen. Ongeacht de projectinstelling "Confirm email".
 
 ## Betrokken shell(s)
 
@@ -76,16 +198,20 @@ Met "Confirm email" uit zet Supabase `email_confirmed_at` bij elke signup,
 dus die kolom alleen bewijst niets. Het JWT bevat `amr`: een array van
 `{method, timestamp}` die Supabase Auth per sessie vastlegt en ondertekent.
 Toegestaan: `invite`, `magiclink`, `otp`, `email/signup`. Elk van die
-methoden vraagt een token uit een mail aan dit adres. De drie callback-paden
-leveren er altijd één op: `verifyOtp` met `type=invite`/`magiclink`/`email`,
-of `exchangeCodeForSession` na een magic link of invite.
+methoden vraagt een token uit een mail aan dit adres. De callback-paden
+leveren er altijd één op: `verifyOtp` met `token_hash` geeft voor elk type
+`otp` (`verify.go:185`, `:285`); `exchangeCodeForSession` (PKCE) geeft de
+methode uit de flow state (`token.go:256`), na een uitnodiging of magic link
+dus `invite`, `magiclink` of `email/signup`.
 
 `email_confirmed_at is not null` blijft als tweede laag (de opdracht vroeg
 erom, en het kost niets), maar is niet de garantie.
 
-Niet toegestaan: `recovery` en `email_change`. Ze bewijzen ook mailbezit,
-maar geen enkele route die koppelt levert ze op. ADR 0020 → Beslissing 7: een
-flow die ze nodig heeft, voegt ze bewust toe.
+Niet in de lijst: `recovery` en `email_change`. Die komen alleen via PKCE
+voor; via `token_hash` worden ook herstel en adreswijziging `otp` en kunnen
+ze dus koppelen. Geen lek: beide bewijzen mailbezit van het huidige adres.
+ADR 0020 → Beslissing 7: een PKCE-flow die ze nodig heeft, voegt ze bewust
+toe.
 
 ### 2. Binden aan het invite-auth-user-id
 
@@ -100,27 +226,46 @@ aantoonde, koppelen. Met binding is het één bekend account. Een tweede reden:
 als iemand vóór de uitnodiging een account op het adres registreert, geeft
 GoTrue `email_exists` (bevestigd) of stuurt de uitnodiging naar het
 bestaande, onbevestigde account. In dat laatste geval is het teruggegeven id
-van dat account; keuze 3 vangt dat af.
+van dat account; keuze 3 wist bij het koppelen wat er al op stond.
 
 Een opnieuw verstuurde uitnodiging naar een nog onbevestigd account geeft
 hetzelfde id terug; `mark_member_invite_sent` overschrijft gewoon.
 
-### 3. Geen koppeling als het account al een wachtwoord heeft
+### 3. Bij het koppelen worden wachtwoord en MFA-factoren gewist (herzien)
 
-De uitnodiging zet geen wachtwoord; dat komt pas ná de koppeling (portal,
-`usePortalWachtwoordWijzigen`, of herstel). Heeft het account op het moment
-van koppelen `encrypted_password` gevuld, dan heeft iemand dat buiten de
-uitnodiging om gezet, bijvoorbeeld met een wachtwoord-signup vóór de
-uitnodiging (in een project met "Confirm email" aan). Na de koppeling zou die
-persoon met zijn wachtwoord binnenkomen. Weigeren (stille no-op).
+*Vervangt "geen koppeling als het account al een wachtwoord heeft"; zie
+Herziening.*
 
-Gevolg voor een legitiem lid: wie vóór het aanklikken van de uitnodiging via
-"wachtwoord vergeten" een wachtwoord zette, wordt niet gekoppeld. Zeldzaam;
-faalt dicht. Zie Randgevallen.
+Op het moment van koppelen staat er bijna altijd een wachtwoord op het
+account dat niemand kent: GoTrue zet het zelf bij het openen van de
+uitnodiging (`verify.go:317-329`) en bij een magic-link-aanvraag voor een
+onbekend adres (`magic_link.go:84-91`). Het kan ook van een aanvaller zijn:
+een wachtwoord-signup vóór de uitnodiging ("Confirm email" aan, GoTrue
+hergebruikt dat onbevestigde account voor de uitnodiging), of een
+`updateUser({ password })` via een sessie die een signup op het uitgenodigde
+adres opleverde ("Confirm email" uit, `signup.go:193-196` en `:305-315`).
+In de database is dat niet te onderscheiden.
 
-Gecontroleerd bij het koppelen, niet bij het versturen: alleen dan staat vast
-dat er tussendoor niets veranderde. Daardoor is er ook geen nieuwe foutcode
-en geen nieuwe tekst in Ledenbeheer nodig.
+Daarom niet weigeren, maar resetten: bij een geslaagde koppeling, in
+dezelfde functie, `auth.users.encrypted_password = ''` en `delete from
+auth.mfa_factors where user_id = <account>`. Samen met keuze 4 (andere
+sessies weg) geldt na de koppeling: het enige inlogmiddel op het account is
+de sessie die zojuist mailbezit aantoonde.
+
+Gevolg voor het lid: geen. Na een uitnodiging kende het lid zijn wachtwoord
+toch al niet (het GoTrue-tijdelijke). Het stelt er een in via de portal
+(`usePortalWachtwoordWijzigen`, `updateUser({ password })`, werkt zonder
+huidig wachtwoord), zoals nu. Wie vóór het koppelen via "wachtwoord vergeten"
+een eigen wachtwoord zette, verliest dat bij het koppelen en stelt het
+opnieuw in. Zeldzaam, en faalt veilig (zie Randgevallen).
+
+Geen nieuwe toestand: CLAUDE.md → Auth verbiedt alleen-PIN; na de koppeling
+is `pin_hash` null (migratie, stap 6.10), dus geen PIN en geen wachtwoord, net als direct
+na een uitnodiging nu.
+
+Alleen op het pad dat echt koppelt. Een no-op (geen bewijs, ander account,
+al gekoppeld) raakt niets aan, en een al gekoppeld lid koppelt nooit opnieuw
+(stap 5), dus een in gebruik zijnd wachtwoord wordt nooit gewist.
 
 ### 4. Bij het koppelen eindigen alle andere Auth-sessies van het account
 
@@ -134,9 +279,9 @@ Restrisico.
 
 ### 5. Adres uit `auth.users`, niet uit de claim
 
-De RPC leest `email`, `email_confirmed_at` en `encrypted_password` uit
-`auth.users where id = auth.uid()`. Zelfde waarde als `auth.email()`, maar
-uit de bron, en in één query met de andere twee velden. `auth.users` lezen
+De RPC leest `email` en `email_confirmed_at` uit `auth.users where id =
+auth.uid()`. Zelfde waarde als `auth.email()`, maar uit de bron, en in één
+query met het andere veld. `auth.users` lezen
 vanuit een `SECURITY DEFINER`-functie heeft precedent (`0034` leest
 `auth.mfa_factors`).
 
@@ -235,9 +380,9 @@ Volgorde:
    3. `amr`: `jsonb_typeof(auth.jwt() -> 'amr') = 'array'` en `exists (select
       1 from jsonb_array_elements(auth.jwt() -> 'amr') e where e ->> 'method'
       in ('invite', 'magiclink', 'otp', 'email/signup'))`; anders return.
-   4. `select email, email_confirmed_at, encrypted_password from auth.users
-      where id = v_uid`; geen rij, `email is null`, `email_confirmed_at is
-      null` of `coalesce(encrypted_password, '') <> ''` → return.
+   4. `select email, email_confirmed_at from auth.users where id = v_uid`;
+      geen rij, `email is null` of `email_confirmed_at is null` → return.
+      (Herzien: geen controle op `encrypted_password` meer, zie keuze 3.)
    5. Al gekoppeld: `exists (select 1 from members where auth_user_id =
       v_uid)` → return. (Zonder deze stap gooit de unique-constraint op
       `auth_user_id` een fout; de RPC mag nooit gooien.)
@@ -247,8 +392,11 @@ Volgorde:
       Aantal ≠ 1 → return. Daarna die ene rij ophalen (twee queries, zoals nu:
       `min()` bestaat niet voor `uuid`, `0012:153-158`).
    7. `update members set auth_user_id = v_uid where id = ... returning *`.
-   8. `delete from auth.sessions where user_id = v_uid and id <> v_session_id`.
-   9. `pin_hash := null`, return.
+   8. **(Herzien, keuze 3)** `update auth.users set encrypted_password = ''
+      where id = v_uid;` en `delete from auth.mfa_factors where user_id =
+      v_uid;`.
+   9. `delete from auth.sessions where user_id = v_uid and id <> v_session_id`.
+   10. `pin_hash := null`, return.
 7. **`link_invited_member_account()`** en **`link_lid_member_account()`**:
    `create or replace`, zelfde signatuur, body is alleen `return
    link_member_account_internal(null)` resp. `('lid')`. Grants ongewijzigd
@@ -297,14 +445,18 @@ hem via `list_members_admin` (geen UI).
 
 | Geval | Gedrag |
 |---|---|
-| Uitnodiging openen (`type=invite`, of PKCE `?code=`) | `amr` = `invite`, account zonder wachtwoord, id = gebonden id → gekoppeld. |
-| Uitnodiging niet geopend, lid vraagt een magic link aan op portal of `/beheer` | Zelfde account (zelfde adres), `amr` = `otp`/`magiclink`, bevestigd na verify → gekoppeld. |
+| Uitnodiging openen (`token_hash`, `type=invite`) | GoTrue bevestigt en zet een tijdelijk wachtwoord (`verify.go:317`); `amr` = `otp`; id = gebonden id → gekoppeld, wachtwoord daarna leeg. Via PKCE `?code=`: `amr` = `invite`, verder gelijk. |
+| Uitnodiging niet geopend, lid vraagt een magic link aan op portal of `/beheer` | Zelfde account (zelfde adres). "Confirm email" aan: GoTrue stuurt een bevestigingsmail (`type=signup`, ook tijdelijk wachtwoord); uit: bevestigt direct en stuurt een magic link. Na verify `amr` = `otp` → gekoppeld, wachtwoord leeg. |
+| Lid probeerde de portal vóór de uitnodiging, opende die mail niet ("Confirm email" aan) | Onbevestigd account met GoTrue-tijdelijk wachtwoord; de uitnodiging hergebruikt het en bindt zijn id. Lid opent de uitnodiging → gekoppeld, wachtwoord leeg. (Dit was de blocker van de review.) |
+| Idem, "Confirm email" uit | De portalpoging bevestigde het account direct → uitnodigen geeft `email_exists`. Bestaand gedrag; zie Buiten scope. |
 | Wachtwoordlogin | `amr` = `password` → nooit koppelen. Was al zo (alleen de callbacks koppelen). |
 | Wachtwoord-signup op het adres vóór de uitnodiging, "Confirm email" uit | Account bevestigd → `inviteUserByEmail` geeft `email_exists` → geen `invited_at` → niets koppelbaar. Bestaand gedrag; zie Buiten scope. |
-| Idem, "Confirm email" aan | Onbevestigd account met wachtwoord → GoTrue stuurt de uitnodiging naar dát account en geeft zijn id terug. Eigenaar opent de link → `encrypted_password` gevuld → **geen koppeling** (keuze 3). Ledenbeheer blijft "uitgenodigd, nog geen account" tonen. |
-| Signup op het adres ná de uitnodiging | Ander account kan niet (adres bestaat). Op hetzelfde account: `amr` = `password` → geen koppeling via die sessie. Koppelt de eigenaar later, dan eindigt die sessie (keuze 4). |
+| Idem, "Confirm email" aan | Onbevestigd account met het wachtwoord van de aanvaller → GoTrue stuurt de uitnodiging naar dát account en geeft zijn id terug. Aanvaller heeft geen sessie (onbevestigd). Eigenaar opent de link → gekoppeld, **wachtwoord van de aanvaller gewist** (keuze 3). |
+| Signup op het adres ná de uitnodiging, "Confirm email" aan | GoTrue wijzigt het bestaande onbevestigde account niet (`signup.go:195`), stuurt alleen een bevestigingsmail naar het adres. Aanvaller krijgt niets. |
+| Idem, "Confirm email" uit | GoTrue bevestigt het uitgenodigde account en geeft de aanvaller een sessie met `amr` = `password` (`signup.go:228-236`, `:305-315`). Daarmee kan hij een wachtwoord zetten en een TOTP-factor inschrijven, maar niet koppelen. Opent het lid daarna de uitnodigingslink of een magic link op portal of `/beheer` → gekoppeld (werkt de uitnodigingslink niet meer omdat het account al bevestigd is, dan de magic link); wachtwoord en factor van de aanvaller weg, zijn sessie weg (keuze 4). Opnieuw uitnodigen geeft dan `email_exists`. Restrisico access token: ADR 0020. |
 | Directe PostgREST-aanroep zonder bewijs | Stille no-op, zoals elk ander niet-van-toepassing-geval. |
-| Lid zette vóór het openen van de uitnodiging een wachtwoord via "wachtwoord vergeten" | Niet gekoppeld (keuze 3). Herstel valt buiten deze spec; zelfde categorie als `email_exists` (Buiten scope). Komt alleen voor als iemand eerst herstel doet en daarna pas de uitnodiging opent. |
+| Lid zette vóór het koppelen een wachtwoord via "wachtwoord vergeten" | De herstelflow koppelt niet (de hooks roepen geen link-RPC aan). Bij de eerstvolgende koppeling via een maillink wordt dat wachtwoord gewist (keuze 3); het lid stelt het opnieuw in via de portal. |
+| Er stond vóór het koppelen een TOTP-factor op het account | Wie het ook inschreef (de Auth-API staat het elke sessie toe): bij het koppelen gewist; het lid stelt tweestap opnieuw in via de portal. |
 | Beheerder wijzigt het adres na de uitnodiging | `invited_at` en `invited_auth_user_id` leeg; oude link logt nog in maar koppelt niet; beheerder nodigt opnieuw uit naar het nieuwe adres. |
 | Alleen hoofdletters gewijzigd | Uitnodiging blijft. |
 | Lid gearchiveerd na de uitnodiging | Niet koppelbaar zolang gearchiveerd; na heractiveren weer wel. |
@@ -338,8 +490,10 @@ Negatief (elk: `link_invited_member_account()` geeft null **en**
 4. **Ander auth-uid dan de uitgenodigde**: tweede account, zelfde adres
    (ander hoofdlettergebruik mag), bevestigd, `amr` = `magiclink`, maar
    `invited_auth_user_id` wijst naar het eerste.
-5. **Account met wachtwoord**: gebonden id, bevestigd, `amr` = `invite`,
-   `encrypted_password = crypt(...)`.
+5. *(Herzien: verplaatst naar positief, zie 23.)* In plaats daarvan:
+   **no-op raakt niets aan**: account met `encrypted_password =
+   crypt(...)` en een `auth.mfa_factors`-rij, `amr` = `password` → null, en
+   wachtwoord, factor en tweede sessie zijn ongewijzigd.
 6. **Gearchiveerd lid niet koppelbaar**: alles in orde, `archived = true`.
 7. Geen `session_id`-claim.
 8. Adres in `auth.users` wijkt af van `members.email` (gebonden id klopt).
@@ -378,6 +532,18 @@ Positief:
     sessie bestaat nog.
 22. Happy path met `amr` = `magiclink` en met `otp` (de portal-route), via
     `link_lid_member_account` voor een `lid`.
+23. **Account met wachtwoord wordt gekoppeld en het wachtwoord is daarna
+    leeg** (herzien, was negatief 5): gebonden id, bevestigd, `amr` = `otp`,
+    `encrypted_password = crypt(...)` → rij terug, `auth.users.encrypted_password
+    = ''`. Dit is het hoofdpad: GoTrue zet bij het openen van de uitnodiging
+    zelf een wachtwoord.
+24. **MFA-factoren weg na koppelen**: zelfde opzet met een verified
+    `auth.mfa_factors`-rij op het account → na koppelen geen factor meer.
+25. **Al gekoppeld account: wachtwoord blijft**: account al aan een lid
+    gekoppeld, met wachtwoord en factor, `amr` = `otp` → null, wachtwoord en
+    factor ongewijzigd (een in gebruik zijnd wachtwoord wordt nooit gewist).
+26. **Ander account met hetzelfde adres: niets gewist** (variant van 4): het
+    niet-gebonden account houdt wachtwoord en sessies.
 
 ### Bestaande pgTAP-bestanden
 
@@ -392,16 +558,92 @@ Positief:
 - `rpc_catalogus.test.sql`: `link_member_account_internal` als `intern`;
   reden bij de twee link-RPC's bijwerken (zie RPC's).
 
-### Handmatige controle (Developer, tegen `supabase start`)
+### Bronverificatie (vastgelegd bewijs, vervangt de handmatige controle)
 
-De lijst `amr`-methoden is gebaseerd op de methodenamen van Supabase Auth.
-Controleer één keer lokaal, per callback-pad (uitnodiging via Ledenbeheer en
-Inbucket; magic link op `/portal`; magic link op `/beheer`), dat de koppeling
-lukt, en leg in de PR vast welke `amr`-methode elk pad opleverde. Levert een
-pad een methode op die niet in de lijst staat: stop en meld het, niet zelf
-toevoegen (ADR 0020 → Beslissing 7). Controleer ook dat een
-`supabase.auth.signUp` met wachtwoord op een uitgenodigd adres geen
-koppeling oplevert via `/auth/callback`.
+Gelezen in de broncode van Supabase Auth (GoTrue, `supabase/auth`, kopie van
+2026-10-05; welke versie het gehoste project draait, is hier niet te zien,
+daarom de integratietest en de controle na de merge):
+
+| Wat | Waar | Gevolg voor deze spec |
+|---|---|---|
+| `verifyOtp` met `token_hash` (POST) geeft voor elk type `amr` = `otp` | `verify.go:285` | Beide callbacks (ADR 0008) leveren `otp`; staat in de lijst. |
+| GET `/verify` impliciet: idem `otp`; PKCE: auth code met methode uit `type` | `verify.go:137-141`, `:185-190` | |
+| PKCE-uitwisseling: `amr` = methode uit de flow state | `token.go:256` | `invite`, `magiclink`, `email/signup`; `recovery`/`email_change` niet in de lijst (keuze 1). |
+| Methodenamen | `factor.go:117-141` | `email/signup` is de enige met een slash. |
+| Openen van een uitnodiging (`invite`/`signup`) zet een tijdelijk wachtwoord als er geen is en `invited_at` gevuld is | `verify.go:317-329` | Reden voor de herziening van keuze 3. |
+| Magic link voor onbekend/onbevestigd adres: Signup met tijdelijk wachtwoord | `magic_link.go:80-91` | Idem. |
+| Signup op bestaand onbevestigd account wijzigt het account niet; met autoconfirm bevestigt het en geeft een sessie met `password` | `signup.go:193-196`, `:228-236`, `:305-315` | Randgevallen "Signup na de uitnodiging". |
+| `inviteUserByEmail` op bestaand account: bevestigd → `email_exists`, onbevestigd → hergebruiken | `invite.go:42-72` | Keuze 2. |
+
+### Integratietest tegen de echte GoTrue (nieuw, merge-voorwaarde)
+
+CI start de volledige lokale stack al (`ci.yml`, `supabase start`) en zet
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` en
+`SUPABASE_SECRET_KEY`. Lokaal staat `enable_confirmations = false`: het
+slechtste geval voor de aanval.
+
+- Bestand `integration/account-koppeling.test.ts` (buiten `test/`, want `npm
+  test` draait vóór `supabase start`; buiten `src/`, dus buiten
+  `check:arch`/`check:policy`). `node --test`, zoals `test/`.
+- Script `"test:integration": "node --test \"integration/**/*.test.ts\""` in
+  `package.json`; toevoegen aan `check:all` na `db:test`, en in `ci.yml` een
+  stap `npm run test:integration` na `npm run db:test`, vóór `supabase stop`.
+- Twee clients per scenario: service-role (opzet, controle) en publishable
+  key (de "gebruiker"). Unieke adressen per run (`koppel-<random>@example.test`).
+  Ruimt eigen `members`- en `auth.users`-rijen op (`auth.admin.deleteUser`).
+- Een `members`-rij met `invited_at` en `invited_auth_user_id` zet de test via
+  de service-role-client rechtstreeks: `mark_member_invite_sent` eist een
+  beheersessie met aal2 en is al door pgTAP gedekt.
+- Tokens zonder mail: `auth.admin.generateLink({ type, email })` →
+  `properties.hashed_token` → `verifyOtp({ token_hash, type })` op de
+  gebruikersclient. Precies wat de callbacks doen.
+
+Scenario's (elk met een eigen lid en adres):
+
+1. **Hoofdpad uitnodiging.** `generateLink({ type: "invite" })` → id binden
+   aan het lid → `verifyOtp({ type: "invite" })` → `amr` uit het access token
+   bevat `otp` → `rpc("link_invited_member_account")` geeft het lid terug;
+   `members.auth_user_id` = dat id. (Faalde op 73edbbf.)
+2. **Portal-pad voor een `lid`.** Uitgenodigd lid (`type: "invite"`, binden),
+   daarna `generateLink({ type: "magiclink" })` → `verifyOtp({ type:
+   "magiclink" })` → `link_lid_member_account` koppelt.
+3. **Aanval met signup, autoconfirm.** Uitnodigen en binden → aanvaller:
+   `signUp({ email, password: P1 })` geeft een sessie → `updateUser({
+   password: P2 })` → `link_invited_member_account` met die sessie geeft
+   null. Daarna het lid via magic link → koppelt. Dan: `signInWithPassword({
+   email, password: P2 })` faalt; `refreshSession` met het refresh token van
+   de aanvaller faalt; `auth.getUser(<access token van de aanvaller>)` faalt
+   (sessie bestaat niet meer). Slaagt die laatste toch: niet afzwakken, stop
+   en meld het aan Bram (raakt ADR 0020 → Restrisico).
+4. **Wachtwoordlogin koppelt nooit.** Uitnodigen en binden → admin
+   `updateUserById(id, { password: P, email_confirm: true })` →
+   `signInWithPassword({ email, password: P })` → `amr` bevat `password` →
+   link-RPC geeft null, `members.auth_user_id` blijft null.
+
+Levert een pad een `amr`-methode op die niet in de lijst staat: stop en meld
+het, niet zelf toevoegen (ADR 0020 → Beslissing 7).
+
+### Na de merge (Bram, gehoste project, eenmalig)
+
+Het gehoste project kan een andere GoTrue-versie draaien dan de lokale
+stack, en "Confirm email" is daar onbekend. Vijf minuten, met een eigen
+tweede mailadres:
+
+1. Ledenbeheer → nieuw lid (rol `bardienst`) met dat adres → Uitnodigen.
+2. Open de uitnodigingsmail op een ander apparaat of privévenster, klik de
+   link. Verwacht: ingelogd; Ledenbeheer toont het lid als "account
+   gekoppeld".
+3. Supabase-dashboard → SQL editor: `select encrypted_password = '' as leeg
+   from auth.users where email = '<adres>';` Verwacht `leeg = true`.
+4. Portal → wachtwoord instellen voor dit lid; daarna op de bar inloggen
+   vanaf de namenlijst met dat wachtwoord. Verwacht: lukt.
+5. Herhaal 1-2 met een tweede adres, maar vraag vóór het klikken van de
+   uitnodiging eerst een magic link aan op `/portal` en open alleen die.
+   Verwacht: gekoppeld.
+
+Mislukt stap 2 of 5: het lid blijft "uitgenodigd". Meld het; geen
+herstelactie nodig, er is niets verkeerd gekoppeld (de controle faalt
+dicht).
 
 ## Documentatie (door de Architect bij deze spec bijgewerkt)
 

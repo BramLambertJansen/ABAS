@@ -167,8 +167,9 @@ bucket publiek mag zijn. Eerste toepassing:
 > **Matchregel vervangen door [ADR 0020](0020-koppelen-eist-bewijs-van-mailbezit.md)
 > (2026-10-05):** matchen op `auth.email()` is geen bewijs van mailbezit.
 > Koppelen eist nu een `amr`-methode uit de mailbox, binding aan het
-> invite-auth-user-id, een bevestigd adres zonder wachtwoord en een
-> niet-gearchiveerd lid. "Geen foutcodes, stille no-op bij 0 of meer dan 1
+> invite-auth-user-id, een bevestigd adres en een niet-gearchiveerd lid;
+> bij het koppelen worden wachtwoord, MFA-factoren en andere sessies
+> gewist. "Geen foutcodes, stille no-op bij 0 of meer dan 1
 > match" hieronder blijft staan.
 
 Gevonden bij een herziening van `docs/features/lid-account-invite.md` naar

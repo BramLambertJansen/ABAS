@@ -11,6 +11,20 @@ staan. Raakt [ADR 0005](0005-wachtwoord-verplicht-pin-optionele-snelkoppeling.md
 [0008](0008-auth-maillinks-via-token-hash.md) en
 [0013](0013-accountbestaan-niet-geheim-op-auth-api.md) niet.
 
+## Herziening (2026-10-05, na review van de bouw in 73edbbf)
+
+Beslissing 3 is vervangen en Beslissing 7 gecorrigeerd. Aanleiding, met
+bron (Supabase Auth/GoTrue): bij het openen van een uitnodiging zet GoTrue
+zelf een willekeurig wachtwoord op elk account zonder wachtwoord
+(`verify.go:317-329`), en een magic-link-aanvraag voor een onbekend adres
+maakt een account met een tijdelijk wachtwoord (`magic_link.go:84-91`). De
+oorspronkelijke Beslissing 3 ("een ongekoppeld account met een wachtwoord
+wordt niet gekoppeld") blokkeerde daardoor het hoofdpad zelf. Een
+GoTrue-tijdelijk wachtwoord en een wachtwoord van een aanvaller zijn in de
+database niet te onderscheiden; de nieuwe Beslissing 3 vraagt dat ook niet
+meer. Details en Developer-delta:
+[spec → Herziening](../features/account-koppeling-bewijs.md#herziening-2026-10-05-na-review-van-73edbbf).
+
 ## Context
 
 `link_invited_member_account()` (`0012`) en `link_lid_member_account()`
@@ -53,18 +67,22 @@ sessie met precies dat `auth.uid()` kan het lid koppelen. Een ander account
 met hetzelfde adres (eerder of later geregistreerd) kan het nooit, ook niet
 met een geldige magic link.
 
-**3. Een nog ongekoppeld account met een wachtwoord wordt niet gekoppeld.**
-De uitnodigingsflow zet geen wachtwoord (er is geen instelscherm vóór de
-koppeling). Een wachtwoord op dat moment is door iemand anders gezet dan via
-de uitnodiging, en wie het kent, zou na de koppeling met dat wachtwoord
-binnenkomen (pre-account-takeover). Geldt ongeacht het gedrag van de
-GoTrue-versie bij een signup op een bestaand adres.
+**3. Bij het koppelen worden het wachtwoord en alle MFA-factoren van het
+account gewist (herzien 2026-10-05).** Wat vóór de koppeling op het account
+stond, is niet door deze eigenaar aangetoond: een GoTrue-tijdelijk
+wachtwoord, een wachtwoord van wie het adres vóór de uitnodiging
+registreerde (pre-account-takeover), of een wachtwoord en TOTP-factor die
+iemand zette via een sessie zonder mailbezit. Niet weigeren (dat blokkeert
+het hoofdpad, zie Herziening) maar resetten, in dezelfde transactie als de
+koppeling, alleen als er echt gekoppeld wordt. Het lid stelt daarna zelf
+een wachtwoord in, zoals al na elke uitnodiging.
 
 **4. Bij het koppelen eindigen alle andere Auth-sessies van dat account.**
 Een sessie die vóór de koppeling op het account bestond, is niet door deze
 eigenaar aangetoond. Zelfde mechanisme als `close_bar_session_internal`
 (`0034`): de rij in `auth.sessions` verdwijnt, Supabase Auth weigert daarna
-verversen.
+verversen. Met 3 samen: na de koppeling is de sessie die het bewijs
+leverde het enige inlogmiddel op het account.
 
 **5. De uitnodiging hoort bij het adres.** Een adreswijziging
 (`update_member_email`) wist `invited_at` en `invited_auth_user_id`: naar
@@ -73,9 +91,14 @@ het nieuwe adres ging nog geen uitnodiging.
 **6. Gearchiveerde leden worden niet gekoppeld.**
 
 **7. Elk toekomstig koppelpad volgt 1 t/m 4.** Een nieuwe flow die een
-andere `amr`-methode wil toelaten (bijvoorbeeld `recovery` of `email_change`
-als die route ooit gaat koppelen), voegt die expliciet toe in de spec van die
+andere `amr`-methode wil toelaten, voegt die expliciet toe in de spec van die
 flow, met motivatie dat de methode mailbezit bewijst. Nooit `password`.
+*(Gecorrigeerd 2026-10-05.)* Via `token_hash` (ADR 0008) geeft GoTrue voor
+élk type `otp` (`verify.go:185`, `:285`), ook voor herstel en adreswijziging;
+die sessies kunnen dus al koppelen, en terecht: ze bewijzen mailbezit van het
+huidige adres. Alleen PKCE levert `recovery`/`email_change` als eigen methode
+(`token.go:256`); die staan niet in de lijst, tot een PKCE-flow ze nodig
+heeft.
 
 ## Gevolgen
 
@@ -88,9 +111,18 @@ flow, met motivatie dat de methode mailbezit bewijst. Nooit `password`.
   `invited_auth_user_id` via een backfill uit `auth.users.invited_at`; waar
   dat niet eenduidig kan, wordt `invited_at` gewist en moet de beheerder
   opnieuw uitnodigen.
-- Wie vóór het aanklikken van de uitnodiging via "wachtwoord vergeten" een
-  wachtwoord zette, wordt niet automatisch gekoppeld (Beslissing 3). Bewust:
-  dit is zeldzaam en faalt dicht; zie de spec → Randgevallen.
+- Wie vóór het koppelen via "wachtwoord vergeten" een wachtwoord zette,
+  verliest dat bij het koppelen (Beslissing 3) en stelt het opnieuw in.
+  Bewust: zeldzaam, en veiliger dan een wachtwoord laten staan waarvan niet
+  vast te stellen is wie het zette.
+- Een TOTP-factor die vóór het koppelen op het account stond, moet opnieuw
+  worden ingesteld.
+- Een lid dat vóór de uitnodiging de portal probeerde ("Confirm email" aan),
+  wordt gewoon gekoppeld: de uitnodiging hergebruikt dat onbevestigde
+  account, en wat erop stond verdwijnt bij het koppelen.
+- Het bewijs voor het GoTrue-gedrag is een integratietest in CI tegen de
+  lokale Supabase-stack (spec → Tests), plus een eenmalige controle door
+  Bram op het gehoste project na de merge.
 
 **Restrisico, geaccepteerd.** Beslissing 4 verwijdert de Auth-sessie, maar
 een al uitgegeven access token blijft voor PostgREST geldig tot het verloopt
@@ -98,9 +130,13 @@ een al uitgegeven access token blijft voor PostgREST geldig tot het verloopt
 op het uitgenodigde account wist te krijgen (alleen denkbaar met "Confirm
 email" uit en een GoTrue-versie die op een signup naar een bestaand,
 onbevestigd adres een sessie uitgeeft) én binnen dat uur de echte eigenaar
-koppelt. Dichten hoort bij het aparte item "JWT na afmelden" (zie ADR 0019 →
-Verworpen alternatieven); "Confirm email" aanzetten op het gehoste project
-sluit het pad nu al.
+koppelt. Binnen dat uur kan dat token PostgREST aanroepen als het
+gekoppelde lid (aal1, zonder bardienst-sessie); de Auth-API zelf
+(`updateUser`, verversen) hoort het te weigeren omdat de sessie weg is. Dat
+laatste bewijst de integratietest (spec → Tests, scenario 3); faalt het, dan
+komt dit restrisico terug bij Bram. Dichten voor PostgREST hoort bij het
+aparte item "JWT na afmelden" (zie ADR 0019 → Verworpen alternatieven);
+"Confirm email" aanzetten op het gehoste project sluit het pad nu al.
 
 ## Verworpen alternatieven
 
@@ -119,6 +155,19 @@ sluit het pad nu al.
   het zelfs bevestigd) en een wachtwoord van die ander hebben. Veilig
   koppelen vraagt een eigen flow (verplicht nieuw wachtwoord, alle sessies
   weg); zie de spec → Buiten scope.
+- **Een ongekoppeld account met een wachtwoord weigeren** (de oorspronkelijke
+  Beslissing 3). GoTrue zet zelf een wachtwoord bij het openen van een
+  uitnodiging; dat blokkeerde elke koppeling. Vervangen door resetten.
+- **Bij uitnodigen een bestaand onbevestigd account verwijderen en vers
+  uitnodigen.** Lost alleen het geval vóór de uitnodiging op (het verse
+  account krijgt bij het openen alsnog een tijdelijk wachtwoord), vraagt een
+  service-role-RPC om `auth.users` op adres te zoeken, en een destructieve
+  delete met een race tegen een net binnenkomende bevestiging. Na de reset
+  overbodig.
+- **`mark_member_invite_sent` laten eisen dat het account
+  `auth.users.invited_at` heeft.** GoTrue zet die kolom ook bij een
+  hergebruikt account; onderscheidt niets. Met de reset doet het er niet toe
+  wie het account aanmaakte.
 - **Het e-mailadres uit de JWT-claim blijven gebruiken.** Het adres komt nu
   uit `auth.users` bij `auth.uid()`: dezelfde waarde, maar geen afhankelijkheid
   van hoe een claim in de sessie terechtkwam.
