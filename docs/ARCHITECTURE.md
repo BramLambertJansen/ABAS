@@ -291,6 +291,38 @@ stands. Shared pieces, all additive to the T05 contract:
 Consequence: a truly hanging money request keeps its dialog blocked until
 reload. Not covered: `TweestapSheet`, manual Safari/touch/screen-reader run.
 
+**Invoerfeedback, ledenzoeker en productfilters (built and merged, #127, PR #152,
+`3a8d13e`; `docs/features/invoerfeedback-zoeken-filters.md`)**: no ADR, no
+database, RPC or policy change. Shared pieces:
+- `src/lib/veldFouten.ts`: classification (`bedragFout`, `emailFout`) plus the
+  user-facing texts for all forms (`bedragFoutTekst`, `EMAIL_ONGELDIG_TEKST`;
+  these live here, not in `messages.ts`). The value stays with
+  `parseEuroToCents`; no amount is computed here.
+- `src/hooks/useVeldMoment.ts`: only tracks the touched/attempted/alert flags.
+  It does not decide visibility: each consumer combines the flags with its own
+  classification (the immediate `tehoog` rule exists only in
+  `OpwaarderenOverlay`; recovery follows from recomputing the classification).
+- `src/components/TekstVeld.tsx`: additive `fout`/`foutAlert`/`hint` props;
+  `TekstVeld` wires `aria-invalid`/`aria-describedby` itself. The exported
+  `VeldFout` only renders the message and sets `role="alert"` when its `alert`
+  argument is true; custom-styled inputs must wire the aria attributes
+  themselves. Primary buttons are no longer `disabled` on an invalid amount or
+  e-mail; the attempt shows the error.
+- `src/components/LidZoeker.tsx`: the member search as a combobox; its keys live
+  in `LidZoeker.handleKeyDown`.
+- `src/hooks/useListbox.ts`: shared state and DOM behaviour only (ids,
+  open/active state, outside click, scroll into view) for `LidZoeker` and
+  `Select.tsx`. No keyboard logic: keys stay in `LidZoeker.handleKeyDown` and
+  `Select.handleKeyDown`.
+- `src/features/verkoop/productFilter.ts` (`filterProducten`): filtering by
+  search term/category only. The result line and the D3 category-click
+  behaviour live in `Assortiment`; `zoekResultaatTekst` in
+  `src/features/verkoop/messages.ts`.
+- `lidwisselWistMandje` in `src/features/verkoop/cart.ts`: a pure predicate
+  shared by `VerkoopScherm.chooseMember` (which clears the cart) and `Mandje`
+  (which shows the inline confirmation first): a member switch clears a filled
+  cart only for another member.
+
 **First multi-screen bar navigation (settled, 2026-08-26)**: issue #8 is the
 first time `shells/bar` needed more than one screen behind an open shift.
 `src/features/verkoop/DienstTabs.tsx` renders the navigation (Verkoop,

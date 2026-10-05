@@ -1,7 +1,10 @@
 # Invoerfeedback, ledenzoeker en productfilters
 
-**Status: goedgekeurd door Bram op 2026-10-02**, inclusief vraag 9 en 10 en
-besluit 11 t/m 15 (zie "Besluiten Bram"). De Developer kan alles bouwen.
+**Status: gebouwd** ([PR #152](https://github.com/BramLambertJansen/ABAS/pull/152),
+gemerged in main als `3a8d13e`). Goedgekeurd door Bram op 2026-10-02, inclusief
+vraag 9 en 10 en besluit 11 t/m 15 (zie "Besluiten Bram"). Wat er daadwerkelijk
+staat: zie "Zoals gebouwd" onderaan; de rest van dit document is de
+goedgekeurde spec.
 
 Spec voor [issue #127](https://github.com/BramLambertJansen/ABAS/issues/127)
 (frontend T07 · P2, epic #121, findings F12, F15, F16; besluit D3). Bouwt voort
@@ -495,16 +498,102 @@ Goedgekeurde teksten (Nederlands, in de stijl van `messages.ts`):
 
 ## Open vragen voor Bram
 
-Geen. Vraag 9 en 10 zijn op 2026-10-02 beantwoord, vraag 15 (disabled-knoppen
-zonder veldverklaring) ook (zie "Besluiten Bram", punt 9, 10 en 15). Alleen de
-tekst voor het lege limietveld bij een tik moet Bram nog zelf aanleveren; die staat
-hieronder bij de backlog.
+Alle beantwoord. Vraag 9 en 10 op 2026-10-02, vraag 15 (disabled-knoppen zonder
+veldverklaring) ook (zie "Besluiten Bram", punt 9, 10 en 15). Alleen de tekst
+voor het lege limietveld bij een tik moet Bram nog zelf aanleveren; die staat
+bij de backlog en blokkeert niets.
+
+## Zoals gebouwd
+
+Gebouwd in PR #152 (issue #127, T07), gemerged als `3a8d13e`. De Reviewer
+oordeelde de PR merge-klaar. Geen datamodel-, RPC- of policywijzigingen, geen
+ADR (zoals gespecificeerd).
+
+**Onderdelen**
+
+- `src/lib/veldFouten.ts`: classificatie (`bedragFout` met `BedragFout`: leeg,
+  ongeldig, teveelDecimalen, negatief, nul, tehoog; `emailFout` via
+  `isValidEmailFormat`) en de gebruikerstekst die daarbij hoort voor alle
+  formulieren: `bedragFoutTekst` (per soort, `tehoog` heeft hier bewust geen
+  tekst: de grens hoort bij het scherm) en `EMAIL_ONGELDIG_TEKST`. De spec
+  noemde hiervoor oorspronkelijk `messages.ts`; die teksten staan dus in
+  `veldFouten.ts`. De waarde zelf blijft van `parseEuroToCents` in `money.ts`;
+  er wordt hier nooit een bedrag berekend.
+- `src/hooks/useVeldMoment.ts`: houdt alleen de vlaggen `aangeraakt` (blur),
+  `pogingGedaan` en `pogingAlert` (alleen direct na een poging) bij. Het
+  beslist niet zelf of een fout zichtbaar is: elke consument combineert de
+  vlaggen met zijn eigen classificatie. De directe `tehoog`-regel zit alleen
+  in `OpwaarderenOverlay` (`amountTooHigh`); direct herstel volgt uit het
+  opnieuw berekenen van de classificatie bij elke wijziging.
+- `src/components/TekstVeld.tsx`: additieve props `fout`, `foutAlert` en `hint`;
+  `TekstVeld` koppelt `aria-invalid` en `aria-describedby` zelf aan het input.
+  De geexporteerde `VeldFout` rendert alleen de melding en zet `role="alert"`
+  alleen als zijn `alert`-argument waar is; invoervelden met eigen opmaak
+  (bijvoorbeeld in `OpwaarderenOverlay`) gebruiken `VeldFout` zelf en moeten
+  `aria-invalid`/`aria-describedby` zelf koppelen. Bestaande aanroepen blijven
+  werken.
+- `src/components/LidZoeker.tsx`: de ledenzoeker als combobox. De toetsen
+  (pijltoetsen, Enter, Escape eerst lijst dan tekst) zitten in
+  `LidZoeker.handleKeyDown`; laden/fout/nulresultaten en de resultaatregel met
+  enkelvoud zitten in het component zelf (de teksten staan in
+  `LidZoeker.tsx`).
+- `src/hooks/useListbox.ts`: gedeelde state en DOM-gedrag van `LidZoeker` en
+  `Select.tsx`: id's (`aria-controls`/`aria-activedescendant`), open- en
+  actieve-optiestate, sluiten bij een klik buiten het component en de actieve
+  optie in beeld scrollen. Geen toetsenbordlogica: de toetsen blijven in
+  `LidZoeker.handleKeyDown` en `Select.handleKeyDown`.
+- `src/features/verkoop/productFilter.ts`: `filterProducten` filtert alleen op
+  zoekterm (alle categorieen) of categorie. De resultaatregel en het
+  categorieklikgedrag van D3 (klik wist de zoekterm) zitten in `Assortiment`;
+  de tekst `zoekResultaatTekst` staat in `src/features/verkoop/messages.ts`.
+- `src/features/verkoop/cart.ts`: `lidwisselWistMandje(lastMemberId, memberId,
+  aantalRegels)` is een zuiver predicaat (geen mutatie): de ene regel voor
+  `VerkoopScherm.chooseMember` (die het mandje daadwerkelijk wist) en `Mandje`
+  (die eerst de inline bevestiging toont). `verkoop.md` blijft kloppen:
+  "wissel" wist het mandje niet, pas het kiezen van een ander lid doet dat.
+
+**Afwijkingen en besluiten tijdens de bouw (besluit 11 t/m 15)**
+
+- Geen regelklem: namen wrappen over zoveel regels als nodig (11; vervangt
+  "twee regels" uit §3).
+- Backspace of handmatig leegmaken van het zoekveld zet `category` terug op
+  "Alle", net als "Wis zoekterm" (12).
+- Enkelvoud: "1 product" en "1 lid gevonden" (13).
+- Focusdoelen: na "Wis zoekterm" naar het zoekveld; na "Wissen en kiezen" naar
+  de lidnaam in het lidkaartje (`tabIndex={-1}`); het vangnet-effect in
+  `Mandje` ("lid verdwijnt tijdens bevestiging") blijft staan (14).
+- Disabled-knoppen zonder tekst zijn bewust: ongewijzigde invoer en lege
+  verplichte velden (leeg eigen-bedragveld bij de negatieve limiet, ongewijzigde
+  prijs of e-mail, lege naam of categorie) blijven `disabled`, er is geen
+  tekst bedacht (15).
+
+**Bewust gewijzigd productcontract.** De primaire knoppen (Opwaarderen, prijs,
+e-mail en bedragvelden in beheer) zijn niet meer `disabled` bij een ongeldig
+bedrag of e-mailadres: de tik toont de veldfout en voert niets uit. Bestaande
+tests op "knop disabled bij ongeldig bedrag" zijn daarop aangepast (besluit 3).
+
+**Tester- en CI-bevindingen**
+
+- Tester: twee focusbugs waarbij de focus op `body` terechtkwam (na "Wis
+  zoekterm" en na "Wissen en kiezen"); gefixt in `1a171d5`.
+- CI: `a11y.spec.ts` (regel 740) verwachtte opties in de beheer-ledenlijst, maar
+  die heeft knoppen; de test opent Lid beheren nu via de knop. Gefixt in
+  `4c259f4`.
+
+**Niet gedekt**
+
+- Handmatig, nog niet uitgevoerd: schermlezer, Safari, fysieke tablet. Geen
+  claim over werking daarop.
+- Het vangnet-effect in `Mandje` ("lid verdwijnt tijdens bevestiging") is niet
+  via e2e bereikbaar en alleen via een componenttest te testen.
 
 ## Backlog (niet-blokkerende Reviewer-punten, geen besluit)
 
+- Tekst voor het lege eigen-bedragveld bij de negatieve limiet bij een tik
+  (besluit 15): nog door Bram aan te leveren.
 - Zichtbare focusring of `aria-live` voor de lidnaam met `tabIndex={-1}` in het
   lidkaartje (besluit 14).
 - `NegatieveLimietInstellingen` maakt het eigen-bedragveld tijdens opslaan niet
   `readOnly` (pre-existing, strijdt met het pending-model uit T06).
-- Tekst voor het lege eigen-bedragveld bij de negatieve limiet bij een tik (besluit 15):
-  nog door Bram aan te leveren.
+- Hover-contrast van `hover:bg-accent` valt onder T12
+  ([#132](https://github.com/BramLambertJansen/ABAS/issues/132)).
