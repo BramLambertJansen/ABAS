@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { isAuthRetryableFetchError } from "@/lib/supabase/authErrors";
-import { createClient } from "@/lib/supabase/portalClient";
+import { createClient, wisPortalSessieLokaal } from "@/lib/supabase/portalClient";
 import { logLocalError, reportClientError } from "@/lib/clientErrors";
 import {
   sessieOphaalFoutStaat,
@@ -185,7 +185,15 @@ export function usePortalSession(): PortalSessionState & {
   async function signOut() {
     try {
       const supabase = createClient();
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        // auth-js `_signOut` geeft bij een sessionError `{error}` terug vóór
+        // `_removeSession()`: de cookie blijft, er komt geen SIGNED_OUT. Lokaal
+        // opruimen en de sessie opnieuw lezen (leeg → signed-out, geen netwerk).
+        logLocalError("usePortalSession (signOut)", error);
+        wisPortalSessieLokaal();
+        setTick((t) => t + 1);
+      }
     } catch (err) {
       logLocalError("usePortalSession (signOut)", err);
     }

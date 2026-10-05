@@ -29,11 +29,17 @@ import { useFocusNaHerstel } from "@/hooks/useFocusNaHerstel";
 export default function PortalShellHome() {
   const session = usePortalSession();
   const kopRef = useRef<HTMLHeadingElement>(null);
+  const meldingRef = useRef<HTMLParagraphElement>(null);
   // Na een geslaagde retry verdwijnt de foutknop; de focus gaat naar de
-  // dashboardkop, nooit naar body (T06). `denied` telt als "nog niet hersteld".
+  // dashboardkop, nooit naar body (T06). `denied` krijgt een eigen aanroep (meldingsregel).
   useFocusNaHerstel(
     session.status === "error" ? "error" : session.status === "signed-in" ? "ready" : "loading",
     kopRef,
+  );
+  // Herstel dat `denied` oplevert: focus naar de meldingsregel van PortalLogin.
+  useFocusNaHerstel(
+    session.status === "error" ? "error" : session.status === "denied" ? "ready" : "loading",
+    meldingRef,
   );
 
   if (session.status === "loading") {
@@ -80,6 +86,9 @@ export default function PortalShellHome() {
   }
 
   return (
-    <PortalLogin deniedMessage={session.status === "denied" ? session.message : undefined} />
+    <PortalLogin
+      deniedMessage={session.status === "denied" ? session.message : undefined}
+      meldingRef={meldingRef}
+    />
   );
 }

@@ -765,6 +765,28 @@ test.describe("portal: sessielookup (#115)", () => {
     await expect(nietGekoppeld(page)).toBeVisible();
     await expect(page.locator('input[type="email"]')).toBeVisible();
     await expect(sessieFout(page)).toHaveCount(0);
+    // Focus naar de meldingsregel van PortalLogin, nooit body.
+    await expect(alertOf(page).filter({ hasText: "niet gekoppeld" })).toBeFocused();
+    await focusNietOpBody(page);
+  });
+
+  test("uitloggen vanaf het foutscherm met token- en logout-fouten (netwerk weg): lokaal opgeruimd, loginscherm", async ({ page }) => {
+    const staat = await mockPortalZonderLogin(page);
+    staat.sessie = 500;
+    await portalLoginMetWachtwoord(page, USER.email, "Aurora#2026");
+    await expect(sessieFout(page)).toBeVisible({ timeout: 15_000 });
+    // Netwerk weg: de opgeslagen sessie is verlopen en refresh/logout falen,
+    // zodat auth-js signOut() met een sessionError afbreekt.
+    await page.route(/\/auth\/v1\/token(\?|$)/, (route) => route.abort("failed"));
+    await page.route(/\/auth\/v1\/logout(\?|$)/, (route) => route.abort("failed"));
+    await page.clock.fastForward(2 * 3600_000);
+    await uitloggenKnop(page).click();
+    // De refresh-retries van auth-js lopen op de nagebootste klok.
+    for (let i = 0; i < 10; i++) await page.clock.fastForward(5_000);
+    await expect(page.locator('input[type="email"]')).toBeVisible({ timeout: 15_000 });
+    await expect(sessieFout(page)).toHaveCount(0);
+    await expect(uitloggenKnop(page)).toHaveCount(0);
+    expect(await page.evaluate(() => document.cookie)).not.toContain("sb-portal-v2-auth-token");
   });
 
   test("achtergrondlookup met netwerkfout: dashboard blijft ook zonder verbinding", async ({ page }) => {
