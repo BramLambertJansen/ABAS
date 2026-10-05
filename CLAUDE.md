@@ -15,13 +15,13 @@ te schrijven.
 ## Verificatie
 
 CI draait `npm run check:all` op elke PR en moet groen zijn vóór merge; CI
-draait alleen op PR's, dus open bij de eerste push meteen een PR. De
+draait op PR's en pushes naar main; open bij de eerste push meteen een PR. De
 pre-commit hook draait `check:fast` (alles zonder database); `build`,
 `check:a11y` en `db:test` laten we aan CI over.
 
 | Gate | Bewaakt |
 |---|---|
-| `check:arch` | shells geïsoleerd, features shell-onwetend, Supabase-client privé, service-role-client nooit vanuit client-code |
+| `check:arch` | shells geïsoleerd, features shell-onwetend, Supabase-client privé, server-only modules nooit bereikbaar vanuit client-code, ook niet indirect |
 | `check:policy` | geen queries of storage-aanroepen buiten de datalaag, geen device-sniffing, geen kale `console.error` in `src/hooks/queries/` (fouten via `src/lib/clientErrors.ts`) |
 | `check:rls` | elke tabel RLS, elke policy een negatieve test, geldtabellen REVOKED, elke bucket een type- en groottelimiet, elke storage-policy een negatieve test |
 | `check:a11y` | WCAG-AA (axe-core, elk shell-entrypoint) + `eslint-plugin-jsx-a11y`, `lint` faalt op warnings |

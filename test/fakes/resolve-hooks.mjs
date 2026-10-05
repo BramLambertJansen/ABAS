@@ -7,10 +7,9 @@
  * zelf ongewijzigd en zonder database getest kan worden. `next/server`
  * heeft geen exports-map; Node vindt alleen `next/server.js`.
  *
- * Ook gebruikt door test/tabletKoppeling.test.ts: `server-only` is geen
- * eigen dependency, Next.js lost het tijdens de build zelf op (server-lagen
- * → een lege module, clientcode → een buildfout). Node kent die alias niet;
- * hier wijst hij naar dezelfde lege module die Next.js server-side gebruikt.
+ * server-only is een expliciete dependency (ADR 0021). Een test die een
+ * gemarkeerde module echt laadt, gebruikt dezelfde lege module als Next.js
+ * server-side. Geen globale react-server-conditie: die verandert React zelf.
  */
 const FAKES = {
   "@/lib/supabase/server": new URL("./supabaseServer.ts", import.meta.url).href,

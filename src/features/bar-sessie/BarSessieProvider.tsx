@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useBarAuth } from "@/hooks/queries/useBarAuth";
+import { EerdereGeldActie } from "@/components/EerdereGeldActie";
 import { useMijnDienst } from "@/hooks/queries/useMijnDienst";
 import { useBarHartslag } from "@/hooks/queries/useBarHartslag";
 import { useEndBarSession } from "@/hooks/queries/useEndBarSession";
@@ -351,6 +352,7 @@ function BarSessieScope({ children, auth, melding, setMelding, bevestigLogin }: 
   return (
     <BarSessieContext.Provider value={waarde}>
       {children}
+      {fase === "actief" && <EerdereGeldActie />}
       {melding && <SessieMeldingOverlay melding={melding} onClose={() => setMelding(null)} />}
       {toast && (
         <div

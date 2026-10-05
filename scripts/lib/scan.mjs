@@ -3,7 +3,7 @@
 // CLAUDE.md → Verificatie. Tighten with a real parser if these start
 // producing false positives/negatives that matter.
 import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
+import { join, relative, posix } from "node:path";
 
 const SRC_EXT = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs"]);
 const SKIP_DIRS = new Set(["node_modules", ".next", ".git"]);
@@ -29,15 +29,44 @@ export function read(root, relPath) {
   return readFileSync(join(root, relPath), "utf8");
 }
 
-// Matches `import ... from "x"` and `export ... from "x"` (single or
-// double quotes), returning the module specifiers referenced by a file.
-const IMPORT_RE = /(?:import|export)\s[^;]*?\sfrom\s+["']([^"']+)["']/g;
+// Conservative source scanner, not a JavaScript parser (ADR 0021).
+export function importRefsOf(source) {
+  const clean = stripComments(source);
+  const refs = [];
+  const staticImport = /\b(import|export)\s+(type\s+)?(?:[^;"']*?\sfrom\s*)?["']([^"']+)["']/g;
+  for (const match of clean.matchAll(staticImport)) {
+    refs.push({ spec: match[3], typeOnly: Boolean(match[2]),
+      sideEffect: /^import\s*["']/.test(match[0]) });
+  }
+  for (const match of clean.matchAll(/\b(?:import|require)\s*\(\s*["']([^"']+)["']\s*\)/g)) {
+    refs.push({ spec: match[1], typeOnly: false, sideEffect: false });
+  }
+  return refs;
+}
 
 export function importsOf(source) {
-  const specs = [];
-  let m;
-  while ((m = IMPORT_RE.exec(source))) specs.push(m[1]);
-  return specs;
+  return importRefsOf(source).map((ref) => ref.spec);
+}
+
+export function hasNonLiteralImport(source) {
+  const clean = stripComments(source);
+  for (const match of clean.matchAll(/\b(?:import|require)\s*\(/g)) {
+    if (!/^\s*(["'])[^"'\\]*\1\s*\)/.test(clean.slice(match.index + match[0].length))) return true;
+  }
+  return false;
+}
+
+export function resolveSpec(fromFile, spec, files) {
+  let path;
+  if (spec.startsWith("@/")) path = `src/${spec.slice(2)}`;
+  else if (spec.startsWith(".")) path = posix.join(posix.dirname(fromFile), spec);
+  else return null;
+  path = posix.normalize(path).replace(/\.(ts|tsx|js|jsx|mjs)$/, "");
+  if (!path.startsWith("src/")) return null;
+  for (const suffix of [".ts", ".tsx", ".js", ".jsx", ".mjs", "/index.ts", "/index.tsx"]) {
+    if (files.has(path + suffix)) return path + suffix;
+  }
+  return null;
 }
 
 // Strips block and line comments so a docstring that MENTIONS a banned

@@ -1,3 +1,7 @@
 {
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "buildCommand": "npm run check:deployment && npm run build",
+  "regions": [
+    "dub1"
+  ]
 }

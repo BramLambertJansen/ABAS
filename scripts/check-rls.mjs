@@ -7,6 +7,15 @@
 // least mention it) — this does NOT replace the actual pgTAP negative
 // tests in supabase/tests/, see tester.md. First pass, see
 // scripts/lib/scan.mjs for the general caveat on regex-over-SQL.
+//
+// Twee eigenschappen bewijst dit script bewust niet zelf, omdat een scan
+// over de broncode van de migraties ze niet kan zien: dat geen API-rol een
+// tabelrecht heeft dat RLS omzeilt (TRUNCATE, REFERENCES, TRIGGER, en voor
+// `anon` elk recht), en dat elke bucket werkzame limieten heeft. Die toetst
+// de database zelf, in twee pgTAP-invarianten (ADR 0022,
+// docs/features/tabelrechten-api-rollen.md → Gates). Dit script eist alleen
+// dat die invarianten er zijn en hun kern nog bevatten (zie onderaan); of ze
+// kloppen, bewijst `db:test`.
 import { readdirSync, readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
@@ -51,6 +60,10 @@ for (const table of tables) {
 // Money tables: REVOKE must be explicit somewhere in migrations, per
 // CLAUDE.md → Architectuurbeslissingen. Names hardcoded because "which
 // tables are money tables" is a judgment call a script can't infer.
+// Bewust geen eis op `truncate`/`references`/`trigger` hier (ADR 0022,
+// spec → Besluit 4): de invariant in tabelrechten_api_rollen.test.sql dekt
+// de geldtabellen al, net als elke andere tabel, en een lexicale eis zou na
+// de projectbrede revoke van 0041 meteen voldaan zijn zonder iets te bewijzen.
 const MONEY_TABLES = ["orders", "order_lines", "top_ups", "members", "order_reversals"];
 for (const table of MONEY_TABLES) {
   if (tables.includes(table)) {
@@ -72,6 +85,14 @@ for (const table of MONEY_TABLES) {
 //      storage.objects is always mentioned in some test.
 // SQL line comments are stripped first, so prose about a bucket in a
 // migration header doesn't count as (or hide) a real statement.
+//
+// Regel 1 en 2 zijn een vroege waarschuwing, niet de gate: ze draaien in
+// check:fast zonder database en vangen het gewone geval al bij het
+// committen. Een `insert into "storage"."buckets"` met aanhalingstekens of
+// een latere `update storage.buckets set file_size_limit = null` glipt er
+// lexicaal langs. De echte gate is de invariant in
+// supabase/tests/storage_bucket_limieten.test.sql, die elke rij van
+// storage.buckets na alle migraties toetst (ADR 0022, spec → Besluit 3).
 const migrationSqlNoComments = migrationSql.replace(/--.*$/gm, "");
 const bucketInsertRe = /insert\s+into\s+storage\.buckets\b([^;]*);/gi;
 const buckets = [];
@@ -104,11 +125,42 @@ for (const policy of storagePolicies) {
   }
 }
 
+// Invarianten in de database (ADR 0022, docs/features/tabelrechten-api-
+// rollen.md → Gates → check:rls). Verplicht: wie een van de twee bestanden
+// weghaalt of uitkleedt, krijgt al bij de pre-commit hook een fout. Lexicaal
+// en daarmee zwak, maar het doel is beperkt: of de invariant klopt, bewijst
+// `db:test`. Commentaar telt niet mee.
+const INVARIANTS = [
+  {
+    file: "tabelrechten_api_rollen.test.sql",
+    what: "API-rollen hebben geen RLS-omzeilende tabelrechten",
+    needles: ["'TRUNCATE'", "'TRIGGER'", "'REFERENCES'", "has_sequence_privilege", "forbid_api_role_truncate"],
+  },
+  {
+    file: "storage_bucket_limieten.test.sql",
+    what: "elke bucket heeft werkzame limieten",
+    needles: ["file_size_limit", "allowed_mime_types", "product-images"],
+  },
+];
+for (const { file, what, needles } of INVARIANTS) {
+  const path = join(testsDir, file);
+  if (!existsSync(path)) {
+    problems.push(`supabase/tests/${file}: ontbreekt — de invariant "${what}" is verplicht (ADR 0022)`);
+    continue;
+  }
+  const sql = readFileSync(path, "utf8").replace(/--.*$/gm, "");
+  for (const needle of needles) {
+    if (!sql.includes(needle)) {
+      problems.push(`supabase/tests/${file}: noemt ${needle} niet meer (buiten commentaar) — de invariant "${what}" is uitgekleed (ADR 0022)`);
+    }
+  }
+}
+
 if (problems.length) {
   console.error(["check:rls failed:", ...problems.map((p) => `  - ${p}`)].join("\n"));
   process.exit(1);
 }
 
 console.log(
-  `check:rls: ok (${tables.length} tables, ${buckets.length} storage buckets, ${storagePolicies.length} storage policies checked)`
+  `check:rls: ok (${tables.length} tables, ${buckets.length} storage buckets, ${storagePolicies.length} storage policies, ${INVARIANTS.length} invariants checked)`
 );

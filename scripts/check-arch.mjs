@@ -2,7 +2,7 @@
 // check:arch — CLAUDE.md → Verificatie: "shells geïsoleerd, features
 // shell-onwetend, Supabase-client privé". See scripts/lib/scan.mjs for
 // what this is and isn't (regex over source, not a real AST — first pass).
-import { walk, read, importsOf, stripComments, fail } from "./lib/scan.mjs";
+import { walk, read, importsOf, importRefsOf, hasNonLiteralImport, resolveSpec, stripComments, fail } from "./lib/scan.mjs";
 
 const root = process.cwd();
 const files = walk(`${root}/src`, root);
@@ -15,16 +15,35 @@ const problems = [];
 // src/lib/supabase/admin.ts's own warning does) isn't treated as one.
 const USE_CLIENT_RE = /^\s*["']use client["']/;
 
-// The service-role client bypasses RLS entirely. `auth.uid()` is empty on
-// it, so every RPC actorcheck (ADR 0002) silently sees "no actor" — and
-// SUPABASE_SECRET_KEY isn't inlined into a client bundle (Next.js only
-// inlines NEXT_PUBLIC_*), so an import from client code fails at runtime
-// with an unhelpful error instead of leaking anything. Either way it's
-// never correct. Flagged by directory as well as by directive: everything
-// under hooks/queries, features, shells and components is client-side by
-// construction in this app, whether or not the individual file carries the
-// directive.
-const ADMIN_CLIENT_RE = /(^|\/)lib\/supabase\/admin$|^\.\.?\/.*supabase\/admin$/;
+// Server-only is the explicit boundary, including indirect imports (ADR 0021).
+const REQUIRED_SERVER_ONLY = [
+  "src/lib/supabase/admin.ts", "src/lib/supabase/server.ts",
+  "src/lib/supabase/portalServer.ts",
+];
+const fileSet = new Set(files);
+const sources = new Map(files.map((file) => [file, stripComments(read(root, file))]));
+const refs = new Map(files.map((file) => [file, importRefsOf(sources.get(file))]));
+const marked = new Set(files.filter((file) => refs.get(file).some(
+  (ref) => ref.sideEffect && ref.spec === "server-only"
+)));
+for (const file of REQUIRED_SERVER_ONLY) {
+  if (!fileSet.has(file)) problems.push(`${file}: required server-only module is missing (ADR 0021)`);
+  else if (!/^\s*import\s*["']server-only["']\s*;/.test(sources.get(file))) {
+    problems.push(`${file}: must start with import "server-only" (ADR 0021)`);
+  }
+}
+for (const file of files) {
+  if (hasNonLiteralImport(sources.get(file))) {
+    problems.push(`${file}: non-literal import()/require() — check:arch can't follow it (ADR 0021)`);
+  }
+  if (file !== "src/lib/supabase/admin.ts" && sources.get(file).includes("SUPABASE_SECRET_KEY")) {
+    problems.push(`${file}: SUPABASE_SECRET_KEY may only be read in src/lib/supabase/admin.ts (ADR 0006)`);
+  }
+}
+const edges = new Map(files.map((file) => [file, refs.get(file)
+  .filter((ref) => !ref.typeOnly)
+  .map((ref) => resolveSpec(file, ref.spec, fileSet)).filter(Boolean)]));
+
 const CLIENT_ONLY_DIRS = [
   "src/hooks/queries/",
   "src/features/",
@@ -78,11 +97,27 @@ function isPortalOnlyFile(file) {
 }
 
 for (const file of files) {
-  const source = read(root, file);
+  const source = sources.get(file);
   const specs = importsOf(source);
   const isClientModule =
     USE_CLIENT_RE.test(stripComments(source)) ||
     CLIENT_ONLY_DIRS.some((d) => file.startsWith(d));
+
+  if (isClientModule) {
+    const seen = new Set([file]);
+    const queue = [[file]];
+    for (let i = 0; i < queue.length; i++) {
+      const chain = queue[i];
+      const target = chain.at(-1);
+      if (marked.has(target)) {
+        const via = chain.slice(1, -1).join(" -> ") || "direct import";
+        problems.push(`${file}: reaches server-only ${target} via ${via} — server-only modules never enter a client bundle (ADR 0021); move shared types/rules to a separate module`);
+      }
+      for (const next of edges.get(target)) {
+        if (!seen.has(next)) { seen.add(next); queue.push([...chain, next]); }
+      }
+    }
+  }
 
   for (const spec of specs) {
     // 1. Shells isolated: shells/bar must not import from shells/portal,
@@ -114,15 +149,6 @@ for (const file of files) {
       file !== "src/middleware.ts"
     ) {
       problems.push(`${file}: imports "${spec}" directly — only src/lib/supabase/{client,server}.ts (or src/middleware.ts) may do this`);
-    }
-
-    // 4. The service-role client never reaches client-side code. Closes
-    //    the hole ADR 0006 → "Signaal voor een mogelijke toekomstige gate"
-    //    named and src/lib/supabase/admin.ts's own header warned about,
-    //    which until now was reviewer discipline only (app-review
-    //    2026-09-21).
-    if (isClientModule && ADMIN_CLIENT_RE.test(spec)) {
-      problems.push(`${file}: imports "${spec}" — the service-role client (src/lib/supabase/admin.ts) is server-only; it bypasses RLS and has no auth.uid(). Call it from a Route Handler/Server Action via src/lib/ instead (ADR 0006)`);
     }
 
     // 5. Portal/bar-beheer session cookie isolation — see PORTAL_ONLY_DIRS/

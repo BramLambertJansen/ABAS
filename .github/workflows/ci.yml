@@ -13,7 +13,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
 
       - run: npm ci
@@ -74,6 +74,7 @@ jobs:
             echo "SUPABASE_SECRET_KEY=$(echo "$status" | jq -r '.SERVICE_ROLE_KEY')"
           } >> "$GITHUB_ENV"
 
+      - run: npm run check:deployment
       - run: npm run build
       - run: npm run check:arch
       - run: npm run check:policy

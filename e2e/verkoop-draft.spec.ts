@@ -35,7 +35,7 @@ async function verkoop(page: Page) {
     state.crew.map((name) => ({ member_id: name, added_at: new Date().toISOString(), members: { name } }))));
   await page.route(/\/rest\/v1\/app_settings(\?|$)/, (route) => json(route, 200, { negative_limit_cents: 0, low_balance_threshold_cents: 1000 }));
   await page.route(/\/rest\/v1\/activity_types(\?|$)/, (route) => json(route, 200, [{ id: "training", name: "Training" }]));
-  await page.route(/\/rest\/v1\/rpc\/place_order(\?|$)/, (route) => {
+  await page.route(/\/rest\/v1\/rpc\/place_order_once(\?|$)/, (route) => {
     state.orders.push(route.request().postDataJSON());
     return json(route, 200, { total_cents: 500 });
   });
@@ -189,7 +189,7 @@ test("een open of lopende afrekening kan niet via de rail worden onderbroken", a
   await verkoop(page);
   let release!: () => void;
   const held = new Promise<void>((resolve) => { release = resolve; });
-  await page.route(/\/rest\/v1\/rpc\/place_order(\?|$)/, async (route) => {
+  await page.route(/\/rest\/v1\/rpc\/place_order_once(\?|$)/, async (route) => {
     await held;
     return json(route, 200, { total_cents: 500 });
   });

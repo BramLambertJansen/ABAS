@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { runMoneyRequest, isMoneyRequestError, type MoneyRequestErrorCode } from "@/lib/moneyRequest";
 import { reportClientError } from "@/lib/clientErrors";
 import type { LedenbeheerLid } from "./useAlleLeden";
 
@@ -11,6 +12,7 @@ import type { LedenbeheerLid } from "./useAlleLeden";
  *  patroon als useCreateProduct.ts. `invalid_email` — nieuw, zie
  *  docs/features/ledenbeheer-email.md → RPC's. */
 export type CreateMemberErrorCode =
+  | MoneyRequestErrorCode
   | "invalid_name"
   | "invalid_starting_balance"
   | "invalid_email"
@@ -24,6 +26,7 @@ type State =
   | { status: "error"; code: CreateMemberErrorCode };
 
 function toErrorCode(message: string | undefined): CreateMemberErrorCode {
+  if (isMoneyRequestError(message)) return message;
   if (
     message === "invalid_name" ||
     message === "invalid_starting_balance" ||
@@ -56,7 +59,7 @@ export function useCreateMember() {
       // create_member returns `members` (single row, not `setof members`) —
       // zie useCreateProduct.ts voor waarom geen .single()/.maybeSingle()
       // nodig is.
-      const { data, error } = await supabase.rpc("create_member", {
+      const { data, error } = await runMoneyRequest(supabase, "create_member", {
         p_name: name,
         p_starting_balance_cents: startingBalanceCents,
         p_email: email,
@@ -69,27 +72,28 @@ export function useCreateMember() {
         return null;
       }
       setState({ status: "idle" });
+      const member = data as Record<string, unknown>;
       return {
-        id: data.id as string,
-        name: data.name as string,
-        role: data.role as LedenbeheerLid["role"],
-        balanceCents: data.balance_cents as number,
-        archived: data.archived as boolean,
+        id: member.id as string,
+        name: member.name as string,
+        role: member.role as LedenbeheerLid["role"],
+        balanceCents: member.balance_cents as number,
+        archived: member.archived as boolean,
         // create_member zet role altijd op 'lid' met pin_hash/auth_user_id
         // op null (0007_ledenbeheer.sql) — meegeven vanuit de teruggegeven
         // rij zelf (niet hardcoded false) zodat dit niet stilletjes
         // losraakt van wat de RPC daadwerkelijk doet. `has_pin` (generated
         // column) i.p.v. `pin_hash` (0010_pin_hash_kolombeveiliging.sql
         // scrubt pin_hash in de RPC-return naar null).
-        hasAccount: data.auth_user_id !== null,
-        hasPin: data.has_pin as boolean,
-        email: data.email as string | null,
+        hasAccount: member.auth_user_id !== null,
+        hasPin: member.has_pin as boolean,
+        email: member.email as string | null,
         // create_member zet invited_at nooit (0012_lid_account_uitnodigen.sql
         // — een net aangemaakt lid heeft role 'lid', dus nooit eligible voor
         // een invite, zie docs/features/lid-account-invite.md → Betrokken
         // shell(s)). Meegeven vanuit de rij zelf, niet hardcoded null,
         // zelfde reden als hasAccount/hasPin hierboven.
-        invitedAt: data.invited_at as string | null,
+        invitedAt: member.invited_at as string | null,
       };
     } catch (err) {
       const code = toErrorCode(err instanceof Error ? err.message : undefined);

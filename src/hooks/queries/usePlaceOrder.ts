@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { runMoneyRequest, isMoneyRequestError, type MoneyRequestErrorCode } from "@/lib/moneyRequest";
 import { reportClientError } from "@/lib/clientErrors";
 import { isSessionErrorCode, notifySessionCode, type SessionErrorCode } from "@/lib/barSessie";
 
@@ -18,6 +19,7 @@ import { isSessionErrorCode, notifySessionCode, type SessionErrorCode } from "@/
  *  de centrale afhandeling (`notifySessionCode`, src/lib/barSessie.ts): één
  *  melding voor de hele bar in plaats van een inline foutregel per scherm. */
 export type PlaceOrderErrorCode =
+  | MoneyRequestErrorCode
   | SessionErrorCode
   | "shift_not_open"
   | "served_by_not_on_shift"
@@ -39,6 +41,7 @@ const KNOWN_CODES: PlaceOrderErrorCode[] = [
 ];
 
 function toErrorCode(message: string | undefined): PlaceOrderErrorCode {
+  if (isMoneyRequestError(message)) return message;
   if (isSessionErrorCode(message)) {
     notifySessionCode(message);
     return message;
@@ -82,7 +85,7 @@ export function usePlaceOrder() {
     setState({ status: "pending" });
     try {
       const supabase = createClient();
-      const { data, error } = await supabase.rpc("place_order", {
+      const { data, error } = await runMoneyRequest(supabase, "place_order", {
         p_shift_id: shiftId,
         p_member_id: memberId,
         p_lines: lines.map((line) => ({

@@ -26,7 +26,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(38);
+select plan(39);
 
 -- ── 1) Niets in public is uitvoerbaar zonder sessie ──────────────────────
 
@@ -370,6 +370,12 @@ select ok(
 select ok(
   to_regprocedure('public.start_shift(uuid,text,uuid)') is null,
   'de oude start_shift met PIN bestaat niet meer'
+);
+
+select ok(
+  not has_function_privilege('authenticated', 'public.forbid_api_role_truncate()', 'EXECUTE')
+    and not has_function_privilege('service_role', 'public.forbid_api_role_truncate()', 'EXECUTE'),
+  'de truncate-guard is intern en niet direct uitvoerbaar door API-rollen'
 );
 
 select * from finish();

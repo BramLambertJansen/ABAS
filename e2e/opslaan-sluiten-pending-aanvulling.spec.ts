@@ -388,7 +388,7 @@ async function openKassa(page: Page, geld: { place_order?: Geld; top_up?: Geld }
     json(route, 200, { negative_limit_cents: 0, low_balance_threshold_cents: 1000 })
   );
   for (const rpc of ["place_order", "top_up"] as const) {
-    await page.route(new RegExp(`/rest/v1/rpc/${rpc}(\\?|$)`), (route) => {
+    await page.route(new RegExp(`/rest/v1/rpc/${rpc}_once(\\?|$)`), (route) => {
       const n = calls[rpc]++;
       const handler = geld[rpc];
       if (handler) return handler(route, n);

@@ -1,5 +1,6 @@
 "use client";
 
+import { PENDING_REQUEST_MESSAGE, REQUEST_STORAGE_MESSAGE } from "@/lib/moneyRequest";
 import { useId, useRef, useState } from "react";
 import { Overlay } from "@/components/Overlay";
 import { OnbekendeUitkomstMelding } from "@/components/OnbekendeUitkomstMelding";
@@ -18,6 +19,12 @@ import { useVeldMoment } from "@/hooks/useVeldMoment";
 
 function errorMessage(code: CreateMemberErrorCode): string {
   switch (code) {
+    case "pending_request":
+    case "request_id_conflict":
+    case "invalid_request_id":
+      return PENDING_REQUEST_MESSAGE;
+    case "request_storage_unavailable":
+      return REQUEST_STORAGE_MESSAGE;
     case "invalid_name":
       return "vul een naam in";
     case "invalid_starting_balance":

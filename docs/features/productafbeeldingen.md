@@ -118,7 +118,7 @@ anders in dan de tekst eronder:
 - **`ProductAfbeelding` heeft een extra prop `dimmed`.** Daarmee is een
   gearchiveerd product in de beheerlijst gedempt, zoals de rest van de rij.
   De spec noemde dat gedrag wel, maar niet de prop.
-- **`sharp` staat vast op `0.34.5`**, een exacte versie in `package.json`.
+- **`sharp` staat vast op `0.35.5`**, een exacte versie in `package.json`.
   Dat is de versie die `next` al meebrengt, dus er komt geen tweede kopie.
   De spec zei "0.34.x".
 - **De bestaanscheck in `set_product_image` (RPC stap 4) zit erin.**
@@ -489,10 +489,12 @@ Foutcodes van de route: de sessiecodes uit `SESSION_ERROR_CODES`,
 `invalid_image_path` en `image_not_found` horen via deze route nooit voor te
 komen. Komen ze toch, dan worden ze `unknown` en gelogd.
 
-**Nieuwe directe afhankelijkheid:** `sharp`, in `package.json` vastgezet op
-de versie die `next` al meebrengt (vandaag 0.34.x volgens de lockfile). Er
-komt dus geen tweede kopie. Draait alleen in de Node-runtime van de route.
-Mag nooit in een `"use client"`-bestand belanden.
+**Directe afhankelijkheid:** `sharp`, exact `0.35.5`. De versie is op
+2026-10-05 bijgewerkt vanwege kwetsbaarheden in de meegeleverde native
+beeldlibraries. De bestaande tests voor echte beeldbytes bewaken het gedrag.
+Next.js kan een eigen versie meebrengen; de lockfile is de waarheid over
+deduplicatie. Draait alleen in de Node-runtime van de route.
+
 
 ## Datalaag (client)
 

@@ -8,6 +8,7 @@ export function createClient() {
   const state = fakeMoney();
   return {
     auth: {
+      async getSession() { return { data: { session: { user: { id: "test-actor" } } }, error: null }; },
       async signOut(options: unknown) {
         state.signOuts.push(options);
         return { error: null };
