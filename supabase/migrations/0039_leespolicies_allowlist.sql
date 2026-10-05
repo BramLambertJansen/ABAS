@@ -27,8 +27,11 @@
 -- SECURITY DEFINER om dezelfde reden als de helpers uit 0015: een policy op
 -- members kan members niet zelf bevragen (42P17), en vijf policies laten
 -- afhangen van wat members_select toevallig toelaat is fragiel.
--- Parameterloos en STABLE: per statement één keer geëvalueerd. Geen guard:
--- de helper zegt alleen iets over de aanroeper zelf.
+-- Parameterloos en STABLE. Een STABLE functie in een policy-qual wordt nog
+-- steeds per rij aangeroepen; daarom staat de aanroep in de policies als
+-- `(select caller_has_bar_role())`, zodat Postgres hem als initplan één keer
+-- per statement evalueert. Geen guard: de helper zegt alleen iets over de
+-- aanroeper zelf.
 
 create or replace function caller_has_bar_role()
 returns boolean
@@ -63,23 +66,23 @@ revoke execute on function caller_has_bar_role() from anon;
 
 drop policy members_select on members;
 create policy members_select on members for select to authenticated
-  using (caller_has_bar_role() or auth_user_id = auth.uid());
+  using ((select caller_has_bar_role()) or auth_user_id = auth.uid());
 
 drop policy orders_select on orders;
 create policy orders_select on orders for select to authenticated
-  using (caller_has_bar_role() or member_id = caller_member_id());
+  using ((select caller_has_bar_role()) or member_id = caller_member_id());
 
 drop policy order_lines_select on order_lines;
 create policy order_lines_select on order_lines for select to authenticated
-  using (caller_has_bar_role() or caller_owns_order(order_id));
+  using ((select caller_has_bar_role()) or caller_owns_order(order_id));
 
 drop policy top_ups_select on top_ups;
 create policy top_ups_select on top_ups for select to authenticated
-  using (caller_has_bar_role() or member_id = caller_member_id());
+  using ((select caller_has_bar_role()) or member_id = caller_member_id());
 
 drop policy order_reversals_select on order_reversals;
 create policy order_reversals_select on order_reversals for select to authenticated
-  using (caller_has_bar_role() or caller_owns_order(order_id));
+  using ((select caller_has_bar_role()) or caller_owns_order(order_id));
 
 -- ── caller_is_lid() weg ──────────────────────────────────────────────────
 --
