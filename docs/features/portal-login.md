@@ -611,17 +611,19 @@ was aan #17 toegewezen, is daar buiten scope verklaard en staat nu in #106.
   portal-read van lid-eigen data filtert daarom expliciet op de eigen rij of
   gaat via een zelf-scopende RPC. Leunen op de RLS-narrowing van ADR 0007
   mag niet meer: die geldt alleen voor rol `lid`.
-- De `denied`-staat blijft alleen voor een sessie **zonder gekoppelde
+- De `denied`-staat is alleen voor een sessie **zonder gekoppelde
   `members`-rij** (device-cookie kan dit sowieso niet meer, zie
   Cookie-isolatie; wél mogelijk: een `auth.users`-rij zonder gekoppeld
   lid). Die toont "Dit account is niet gekoppeld aan een lid.", dezelfde
-  neutrale melding als voorheen. Let op: `usePortalSession` zet dezelfde
-  `denied`-staat ook als de `members`-lookup zelf faalt (netwerk-, RLS- of
-  PostgREST-fout, na `reportClientError`). `denied` betekent dus "geen
-  gekoppeld lid gevonden", niet per se "er bestaat geen gekoppeld lid". Een
-  aparte laadfout-staat is niet gebouwd. Tot #17 kreeg ook een
-  bardienst/beheerder-sessie deze staat (`data.role !== "lid"`), zoals deze
-  spec oorspronkelijk voorschreef. Die regel is vervallen.
+  neutrale melding als voorheen. `denied` betekent uitsluitend "lookup
+  geslaagd, geen `members`-rij". Een mislukte lookup (netwerk-, RLS- of
+  PostgREST-fout) is sinds #115 een aparte staat `error`: `LeesFout` met
+  "Opnieuw proberen" en "Uitloggen", nooit de "niet gekoppeld"-melding (zie
+  [`portal-sessielookup-laadfout.md`](portal-sessielookup-laadfout.md)). Een
+  mislukte lookup op de achtergrond (sessie al bevestigd) laat het dashboard
+  staan. Tot #17 kreeg ook een bardienst/beheerder-sessie deze staat
+  (`data.role !== "lid"`), zoals deze spec oorspronkelijk voorschreef. Die
+  regel is vervallen.
 - `link_lid_member_account()`: geen rolcheck op de aanroeper, harde
   `role = 'lid'`-filter op het doelrecord — zie "Ledenkoppeling" hierboven.
 

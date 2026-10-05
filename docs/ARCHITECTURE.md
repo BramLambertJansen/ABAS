@@ -323,7 +323,7 @@ database, RPC or policy change. Shared pieces:
   (which shows the inline confirmation first): a member switch clears a filled
   cart only for another member.
 
-**Recoverable read errors and current portal data (T08, #128; built in part,
+**Recoverable read errors and current portal data (T08, #128; built,
 `docs/features/leesfouten-herstel-actuele-data.md`)**: no ADR (the spec's
 "ADR nodig?" says no), no RPC, RLS, migration, schema or auth change; only
 existing reads are issued more often. Shared pieces:
@@ -362,13 +362,28 @@ existing reads are issued more often. Shared pieces:
   names load and when they fail. The parameter hooks (`useShiftMembers`,
   `useShiftLedger`, `useShiftSummary`, `useMemberOrders`) have a last-request-wins
   counter.
-- *Not built yet*: the `PortalShellHome` part (`userId` plus `key={userId}` on
-  `PortalDashboard`, a background lookup that does not fall back, the
-  `getSession` catch and the error classification of `usePortalSession`). It
-  waits for #115, which owns that hook; `usePortalSession.ts` and `PortalShellHome.tsx` are untouched. Also out
-  of scope: `useBeheerSession`, #78, #51, #67, a session-expired message. Not
-  verified live: a real booking on the bar followed by a portal refresh,
-  flight mode, Safari/Android behaviour of `visibilitychange`/`online`.
+- `PortalShellHome` part (built in #115, PR #164,
+  `docs/features/portal-sessielookup-laadfout.md`): `usePortalSession` has a
+  separate `error` state (`loadErrorMessage`; `denied` now only means "lookup
+  succeeded, no `members` row"), `userId` in `signed-in` with
+  `key={userId}` on `PortalDashboard`, a request counter plus in-flight skip,
+  and a background lookup (same `userId` already `signed-in`) whose failure
+  leaves the dashboard standing. The decision table is the pure, unit-tested
+  `src/lib/portalSessie.ts` (no React, no Supabase). `INITIAL_SESSION` without
+  a session is ignored; `getSession()` decides, and a retryable fetch error
+  there (`isAuthRetryableFetchError`) is `error`, not `signed-out`. Module
+  boundaries: `src/lib/supabase/authErrors.ts` re-exports that one pure
+  function so hooks need not import a Supabase package (`check:arch`);
+  `portalClient.ts` exports `wisPortalSessieLokaal()` (clears only the
+  `PORTAL_COOKIE` `sb-portal-v2-auth-token` and its `.N` chunks, never the
+  bar/beheer cookie, ADR 0009), used as the `signOut` fallback when
+  `auth.signOut()` returns an `{error}` before auth-js removes the session.
+  supabase-js serves a failed token refresh from cache for 60 s, so a retry
+  within that minute stays an error screen. Still out of scope:
+  `useBeheerSession`, #78, #51, #67, a session-expired message. Not verified
+  live: a real booking on the bar followed by a portal refresh, flight mode on a
+  phone, a tab switch with the network dropping, Safari/Android behaviour of
+  `visibilitychange`/`online`.
 
 **First multi-screen bar navigation (settled, 2026-08-26)**: issue #8 is the
 first time `shells/bar` needed more than one screen behind an open shift.
