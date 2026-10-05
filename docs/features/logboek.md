@@ -1,3 +1,9 @@
+> **Let op (PR #166, T10):** de passages hieronder over Aandacht, de "stille
+> cap" en de lege staat ("Nog niets vastgelegd") zijn vervangen door
+> [`logboek-chronologisch-reikwijdte.md`](logboek-chronologisch-reikwijdte.md);
+> daar geldt de tekst, niet hier. De Docs-rol werkt de rest van dit document na
+> de merge bij.
+
 # Logboek (filterbare audit-log)
 
 Spec voor [issue #19](https://github.com/BramLambertJansen/ABAS/issues/19).

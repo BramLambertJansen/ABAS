@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 import { LeesFout } from "@/components/LeesFout";
 import { useLeesHerstel } from "@/hooks/useLeesHerstel";
-import { useLogboek, type LogboekEntry } from "@/hooks/queries/useLogboek";
+import { LOGBOEK_LIMIT, useLogboek, type LogboekEntry } from "@/hooks/queries/useLogboek";
+import { logboekKey } from "@/hooks/queries/logboekSamenvoegen";
 import { InitialsAvatar } from "@/components/InitialsAvatar";
 import {
   LOGBOEK_FILTERS,
@@ -11,7 +12,9 @@ import {
   countLabel,
   describeRow,
   filterLogboek,
+  groepeerPerDag,
   logboekEmptyState,
+  reikwijdteTekst,
   type LogboekFilterId,
 } from "./logboek";
 
@@ -22,11 +25,11 @@ const NO_ENTRIES: LogboekEntry[] = [];
 
 /**
  * Logboek — de vierde tab in `BeheerTabs.tsx` (docs/features/logboek.md).
- * Leesscherm: org-brede geldbewegingen (verkoop, opwaardering,
- * terugdraaiing), doorzoekbaar en filterbaar. Assortiment/Leden hebben
- * vandaag geen databron (zie Datamodel aldaar) — hun chip toont dezelfde
- * "Nog niets vastgelegd"-lege-staat als een echt lege installatie, geen
- * foutmelding.
+ * Leesscherm: org-brede gebeurtenissen (verkoop, opwaardering,
+ * terugdraaiing) per dag in Nederlandse tijd, doorzoekbaar en filterbaar
+ * (docs/features/logboek-chronologisch-reikwijdte.md). Assortiment/Leden
+ * hebben geen databron — hun chip zegt dat eerlijk, geen foutmelding. Het
+ * scherm meldt altijd welke historie het toont en of die beperkt is.
  */
 export function LogboekLijst() {
   const logboek = useLogboek();
@@ -36,11 +39,16 @@ export function LogboekLijst() {
   const [filter, setFilter] = useState<LogboekFilterId>("alles");
 
   const entries = logboek.status === "ready" ? logboek.entries : NO_ENTRIES;
+  const beperkt = logboek.status === "ready" && logboek.beperkt;
+  const reikwijdte = { beperkt, limit: LOGBOEK_LIMIT };
+  const dagId = useId();
+  // Bij render bepaald: de dagkop volgt de rijen, niet de klok.
+  const nu = new Date();
   const filtered = useMemo(
     () => filterLogboek(entries, { query, filter }),
     [entries, query, filter]
   );
-  const emptyState = logboekEmptyState(filter, filtered.length, entries.length);
+  const emptyState = logboekEmptyState(filter, filtered.length, entries.length, reikwijdte);
 
   return (
     <>
@@ -50,10 +58,13 @@ export function LogboekLijst() {
         </h1>
         {logboek.status === "ready" && (
           <span className="whitespace-nowrap text-[12.5px] font-bold text-muted">
-            {countLabel(filtered.length, entries.length)}
+            {countLabel(filtered.length, entries.length, reikwijdte)}
           </span>
         )}
       </div>
+      {logboek.status === "ready" && (
+        <p className="text-[12.5px] font-semibold text-muted">{reikwijdteTekst(reikwijdte)}</p>
+      )}
 
       <div className="flex flex-none flex-wrap items-center gap-2.5">
         <div className="relative min-w-[220px] flex-1">
@@ -127,19 +138,31 @@ export function LogboekLijst() {
           </div>
         )}
         {logboek.status === "ready" && !emptyState && (
-          <ul>
-            {filtered.map((entry) => (
-              <LogboekRow key={entry.id} entry={entry} />
+          <div>
+            {groepeerPerDag(filtered, nu).map((dag) => (
+              <section key={dag.key} aria-labelledby={`${dagId}-${dag.key}`}>
+                <h2
+                  id={`${dagId}-${dag.key}`}
+                  className="px-2.5 pb-1 pt-3 text-[12px] font-extrabold text-muted-strong"
+                >
+                  {dag.label}
+                </h2>
+                <ul>
+                  {dag.entries.map((entry) => (
+                    <LogboekRow key={logboekKey(entry)} entry={entry} nu={nu} />
+                  ))}
+                </ul>
+              </section>
             ))}
-          </ul>
+          </div>
         )}
       </div>
     </>
   );
 }
 
-function LogboekRow({ entry }: { entry: LogboekEntry }) {
-  const { tag, action, detail } = describeRow(entry);
+function LogboekRow({ entry, nu }: { entry: LogboekEntry; nu: Date }) {
+  const { tag, action, detail, statusLabel } = describeRow(entry, nu);
   const flagged = tag === "LET OP";
 
   return (
@@ -161,18 +184,23 @@ function LogboekRow({ entry }: { entry: LogboekEntry }) {
       >
         {tag}
       </span>
-      <span className="flex-none" title={entry.servedByName}>
-        <InitialsAvatar name={entry.servedByName} size="chip" tone="light" />
+      <span className="flex-none" title={entry.actorName}>
+        <InitialsAvatar name={entry.actorName} size="chip" tone="light" />
       </span>
       <div className="flex min-w-0 flex-1 flex-col gap-px">
         <span
-          className={`truncate text-[13.5px] ${flagged ? "font-extrabold text-danger" : "font-bold text-ink"}`}
+          className={`truncate text-[13.5px] ${flagged ? "font-extrabold text-danger" : "font-bold text-ink"} ${
+            statusLabel ? "line-through" : ""
+          }`}
         >
           {action}
         </span>
-        <span className="truncate text-[11.5px] font-semibold text-muted">
+        <span
+          className={`text-[11.5px] font-semibold text-muted ${flagged ? "break-words" : "truncate"}`}
+        >
           {detail}
-          <span className="sr-only">, door {entry.servedByName}</span>
+          {statusLabel && <span className="font-extrabold text-muted-strong"> · {statusLabel}</span>}
+          <span className="sr-only">, door {entry.actorName}</span>
         </span>
       </div>
     </li>

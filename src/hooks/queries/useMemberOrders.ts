@@ -18,7 +18,13 @@ export type MemberOrder = {
 type State =
   | { status: "loading" }
   | { status: "error"; message: string }
-  | { status: "ready"; orders: MemberOrder[] };
+  | {
+      status: "ready";
+      orders: MemberOrder[];
+      /** Er bestaan meer dan `MEMBER_ORDERS_LIMIT` bestellingen: de oudste
+       *  ontbreken. Exact: er wordt er één extra opgehaald. */
+      beperkt: boolean;
+    };
 
 /** Zoveel recente bestellingen toont de beheerlijst. Terugdraaien is voor
  *  een recente vergissing; wie verder terug moet, is een database-klus. */
@@ -47,11 +53,13 @@ export function useMemberOrders(
         .select("id, created_at, total_cents, order_lines(qty), order_reversals(order_id)")
         .eq("member_id", memberId)
         .order("created_at", { ascending: false })
-        .limit(MEMBER_ORDERS_LIMIT);
+        .limit(MEMBER_ORDERS_LIMIT + 1);
 
       if (error) throw error;
 
-      const orders: MemberOrder[] = (data ?? []).map((row) => {
+      const rows = data ?? [];
+      const beperkt = rows.length > MEMBER_ORDERS_LIMIT;
+      const orders: MemberOrder[] = rows.slice(0, MEMBER_ORDERS_LIMIT).map((row) => {
         const lines = (row.order_lines ?? []) as unknown as { qty: number }[];
         // Eén-op-één-embed: object of null, al typeert de untyped client
         // het als array (zie useShiftLedger.ts → firstOrNull).
@@ -66,7 +74,7 @@ export function useMemberOrders(
       });
 
       if (huidigeRequest !== request.current) return;
-      setState({ status: "ready", orders });
+      setState({ status: "ready", orders, beperkt });
     } catch (err) {
       if (huidigeRequest !== request.current) return;
       reportClientError(createClient, "useMemberOrders", err);

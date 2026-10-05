@@ -6,13 +6,16 @@ import { useLeesHerstel } from "@/hooks/useLeesHerstel";
 import { Overlay } from "@/components/Overlay";
 import { RoleBadge } from "@/components/RoleBadge";
 import { formatCents } from "@/lib/money";
-import { formatDate } from "@/lib/date";
-import { useMemberOrders, type MemberOrder } from "@/hooks/queries/useMemberOrders";
+import { dagKop, klokTijd } from "@/lib/date";
+import {
+  MEMBER_ORDERS_LIMIT,
+  useMemberOrders,
+  type MemberOrder,
+} from "@/hooks/queries/useMemberOrders";
 import {
   useReverseOrderAsAdmin,
   type ReverseOrderErrorCode,
 } from "@/hooks/queries/useReverseOrder";
-import { clockLabel } from "@/features/dienst-overzicht/ledger";
 import { REVERSE_REASON_MAX_LENGTH, reverseOrderErrorMessage } from "./messages";
 
 const TOAST_DURATION_MS = 3500;
@@ -140,6 +143,12 @@ export function LidBestellingenOverlay({
             geen bestellingen van dit lid
           </p>
         )}
+        {orders.status === "ready" && orders.beperkt && (
+          <p className="text-[12.5px] font-bold text-muted-strong">
+            Alleen de laatste {MEMBER_ORDERS_LIMIT} bestellingen van {memberName} staan hier. Oudere
+            bestellingen zijn niet te zien in beheer.
+          </p>
+        )}
         {orders.status === "ready" && orders.orders.length > 0 && (
           <ul className="flex flex-col gap-2">
             {orders.orders.map((order) => (
@@ -190,7 +199,7 @@ function OrderRow({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
-  const when = `${formatDate(order.createdAt)} ${clockLabel(order.createdAt)}`;
+  const when = `${dagKop(order.createdAt, new Date())} ${klokTijd(order.createdAt)}`;
   const items = `${order.itemCount} ${order.itemCount === 1 ? "item" : "items"}`;
 
   if (order.reversed) {
