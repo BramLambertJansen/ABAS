@@ -59,7 +59,7 @@ token, binnen de rest van zijn looptijd:
 | elke RPC achter `require_*` (geld, dienst, beheer, hartslag, uitloggen) | werkt zolang `bar_sessions` open is | `session_ended` |
 | `update_own_name` | werkt | `actor_not_found` |
 | `list_own_transactions` | eigen rijen | 0 rijen |
-| `my_bar_state` | eigen bar-sessie | `{"session": null}` |
+| `my_bar_state` | eigen bar-sessie | open bar-sessie: `{"session": null}`; gesloten bar-sessie: ongewijzigd (`status: 'ended'` met sluitreden) |
 | `link_*_member_account` | koppelt (met mailbewijs) | no-op (`null`) |
 | `register_bar_session` / `set_own_pin` | al geweigerd (`0040`) | ongewijzigd, nu via de helper |
 | `log_client_error` | werkt | werkt (keuze 6) |
@@ -75,7 +75,8 @@ gesloten, met een melding als de dienst daardoor onbemand raakt.
   UI.
 - **`shells/bar`**: `useBeheerSession` meldt uit bij een dood token (keuze 9).
   De bar zelf verandert niet: een dood token krijgt `session_ended` van de
-  guards en `{"session": null}` van `my_bar_state`. Beide paden bestaan al
+  guards en van `my_bar_state` `{"session": null}` (bar-sessie nog open) of
+  de bestaande `status: 'ended'` met sluitreden (keuze 5). Die paden bestaan al
   (`BarSessieProvider.tsx`: melding "Je bent uitgelogd" (`geen_sessie`) en
   lokaal uitloggen).
 
@@ -168,7 +169,7 @@ te sluiten".
 |---|---|---|
 | `update_own_name` | `raise 'actor_not_found'`, als eerste controle | Bestaande code; `usePortalUpdateOwnName.ts:19` handelt hem af. Geen nieuwe tekst. |
 | `list_own_transactions` | 0 rijen: `and (select caller_session_alive())` in beide `where`-clausules | Zelfde uitkomst als RLS: een lege lijst, geen fout. |
-| `my_bar_state` | `{"session": null}`, direct na het lezen van de claim | Zelfde als "geen claim". De bar toont al "Je bent uitgelogd" en logt lokaal uit (`BarSessieProvider.tsx`, `sessieWeg`). Geen naam of rol terug. |
+| `my_bar_state` | Bar-sessie nog open (`ended_at is null`): `{"session": null}`, zonder naam of rol. Bar-sessie al gesloten: ongewijzigd t.o.v. vóór `0041`, dus `session` met `status: 'ended'`, `end_reason`, `left_shift_open` en de overige sessievelden, zonder `shift`, `other_shift` of `notifications` | Open: zelfde als "geen claim"; de bar toont "Je bent uitgelogd" en logt lokaal uit (`BarSessieProvider.tsx`, `sessieWeg`). Gesloten: `close_bar_session_internal` verwijdert bij **elke** sluiting de Auth-sessie (`0034`), dus elk token van een gesloten bar-sessie is dood. Een kale `null` daar zou de sluitreden-meldingen op de tablet (afgemeld, inactief, `geen_bar_rol`, `beheerder_geworden`, "de dienst loopt nog") wegvagen, terwijl Randgevallen die "ongewijzigd" noemt. Wat terugkomt is de eigen bar-sessie van de tokenhouder (gevonden via de door GoTrue getekende `session_id`), dezelfde velden als vóór `0041`, zonder dienst- of beheergegevens (`status <> 'active'`). ADR 0022 → Beslissing 4 ("of heeft een reden waarom niet") dekt deze gedeeltelijke uitzondering. |
 | `link_member_account_internal` (dus beide `link_*`) | `return null`, als stap 2b (na het lezen van `v_session_id`) | Koppelen maakt iets dat langer leeft dan het token (ADR 0020 → Beslissing 8). Stille no-op, zoals elke andere afwijking daar. |
 | `register_bar_session` | `session_ended` (ongewijzigd) | Refactor naar de helper. |
 | `set_own_pin` | `actor_not_found` (ongewijzigd) | Refactor naar de helper. |
@@ -201,9 +202,11 @@ zelfde patroon als `close_inactive_bar_sessions`, `0028:778-782`). Voor elke
   zoals al gebeurt met `niet_hervat`. Daardoor geen wijziging aan
   `shift_sessions`, `admin_notifications` of de client. De melding wordt
   "{naam} is uitgelogd zonder af te sluiten." (`teksten.ts:225`), en dat klopt.
-  De tablet ziet `my_bar_state` → `{"session": null}` en toont "Je bent
-  uitgelogd". Een `endReason` van `elders_uitgelogd` zou via `default` op
-  dezelfde melding uitkomen (`barSessie.ts:259`).
+  De tablet ziet `my_bar_state` → `{"session": null}` zolang de job nog
+  niet gedraaid heeft, en daarna `status: 'ended'` met `end_reason:
+  'elders_uitgelogd'` (keuze 5). Beide komen uit op "Je bent uitgelogd": een
+  `endReason` van `elders_uitgelogd` valt via `default` op dezelfde melding
+  (`barSessie.ts:259`).
 - **Eigen functie, niet in `close_inactive_bar_sessions`**: die naam zou dan
   niet meer kloppen, en de bestaande tests van de inactiviteitsjob hoeven
   niets te weten van `auth.sessions`.
@@ -294,9 +297,12 @@ Volgorde (een policy verwijst naar de helper, dus die eerst):
 7. **`list_own_transactions()`**: body uit `0024:25-78`, beide `where`-clausules
    `and (select caller_session_alive())`. Return type ongewijzigd, dus
    `create or replace`. Grants herhalen.
-8. **`my_bar_state()`**: body uit `0037:221-457`. Direct na `if v_session_id
-   is null then return ...`: `if not caller_session_alive() then return
-   jsonb_build_object('session', null); end if;`. Grants herhalen.
+8. **`my_bar_state()`**: body uit `0037:221-457`. Direct na het ophalen van
+   de bar-sessie (`if not found then return ...`): `if v_session.ended_at is
+   null and not caller_session_alive() then return
+   jsonb_build_object('session', null); end if;`. Een gesloten bar-sessie
+   loopt door het bestaande pad (keuze 5: sluitreden blijft zichtbaar).
+   Grants herhalen.
 9. **`link_member_account_internal(text)`**: body uit `0040:262-396`. Na
    stap 2: `if not caller_session_alive() then return null; end if;`. Grants
    herhalen (intern). De wrappers hoeven niet te veranderen.
@@ -339,7 +345,7 @@ rol nog iets buiten de globale tabellen.
 | Geval | Gedrag |
 |---|---|
 | Lid logt uit op de portal | Alleen deze sessie weg (`local`). Het token van dit apparaat ziet niets meer; andere apparaten van het lid werken door. |
-| Bardienst herstelt zijn wachtwoord op de telefoon terwijl hij op de tablet een bar-sessie heeft | Alle Auth-sessies weg (globaal). De volgende RPC op de tablet (hartslag, bestelling) → `session_ended`. `my_bar_state` (poll 30 s) → `{"session": null}` → "Je bent uitgelogd", lokaal uitloggen. Binnen een minuut sluit de cron-job de bar-sessie (`elders_uitgelogd`); stond er een dienst open en was dit de laatste koppeling, dan krijgt de beheerder de melding "… is uitgelogd zonder af te sluiten.". |
+| Bardienst herstelt zijn wachtwoord op de telefoon terwijl hij op de tablet een bar-sessie heeft | Alle Auth-sessies weg (globaal). De volgende RPC op de tablet (hartslag, bestelling) → `session_ended`. `my_bar_state` (poll 30 s) → `{"session": null}`, of na de cron-job `status: 'ended'` met `end_reason: 'elders_uitgelogd'` → in beide gevallen "Je bent uitgelogd", lokaal uitloggen. Binnen een minuut sluit de cron-job de bar-sessie (`elders_uitgelogd`); stond er een dienst open en was dit de laatste koppeling, dan krijgt de beheerder de melding "… is uitgelogd zonder af te sluiten.". |
 | Idem, wachtwoord gewijzigd in de portal (`updateUser`) | GoTrue beëindigt de andere sessies. Zelfde verloop als hierboven. |
 | Bardienst logt uit op de portal terwijl hij op de tablet een bar-sessie heeft | Na keuze 8 alleen de portalsessie; de bar-sessie loopt door. |
 | Beheerder meldt een apparaat af, of de inactiviteitsjob sluit een sessie | Ongewijzigd: `close_bar_session_internal` zet `ended_at` en verwijdert de Auth-sessie. De cron-job uit keuze 7 slaat de rij over (`ended_at` gezet). |
@@ -396,7 +402,10 @@ authenticated` (RLS geldt niet voor de superuser,
 8. **`list_own_transactions`**: dode sessie → 0 rijen; levend → de eigen
    rijen.
 9. **`my_bar_state`**: dode sessie met een open bar-sessie →
-   `{"session": null}` (exact, geen `member_name`).
+   `{"session": null}` (exact, geen `member_name`). Dode sessie met een
+   gesloten bar-sessie (bijv. via `close_bar_session_internal(…, 'afgemeld')`)
+   → `session.status = 'ended'`, `session.end_reason = 'afgemeld'`, en geen
+   sleutel `shift`, `other_shift` of `notifications`.
 10. **`link_invited_member_account`**: uitgenodigd lid, claims met `amr`
     `otp` en een dode `session_id` → `null`, `auth_user_id` blijft leeg, en
     een andere (levende) sessie van het account bestaat nog (stap 9 niet
@@ -473,11 +482,18 @@ email_confirm: true })` en een direct via service-role gekoppeld lid
    `updateUser({ password: nieuw })` → `signOut()` (zonder scope, dus
    globaal, zoals de hook). Met `metToken(T)`:
    - `members` → 0 rijen; `bar_sessions` → 0 rijen;
-   - `rpc("touch_bar_session")` → `session_ended`;
-   - `rpc("my_bar_state")` → `{ session: null }`.
+   - `rpc("touch_bar_session")` → `session_ended`.
    Daarna pollt de test via service-role de `bar_sessions`-rij van T (elke
    2 s, hooguit 90 s) tot `ended_at` gezet is, en verwacht `end_reason =
-   'elders_uitgelogd'`. Dit bewijst dat GoTrue de rij echt verwijdert en dat
+   'elders_uitgelogd'`. **Pas daarna**, met `metToken(T)`:
+   `rpc("my_bar_state")` → geen fout, `data.session.status === 'ended'`,
+   `data.session.end_reason === 'elders_uitgelogd'`,
+   `data.session.left_shift_open === false`, en `data` heeft geen sleutel
+   `shift`, `other_shift` of `notifications`. Niet vóór de poll: de cron-job
+   draait elke minuut en kan tussen `signOut()` en die aanroep vallen, dan
+   komt al `status: 'ended'` terug in plaats van `{ session: null }` (keuze
+   5), en de test zou zeldzaam flaky zijn. De `null`-tak bij een open
+   bar-sessie is deterministisch gedekt in pgTAP (blok 9). Dit bewijst dat GoTrue de rij echt verwijdert en dat
    de cron-job in de stack draait. Geen dienst starten in dit scenario:
    `start_shift` staat maar één open dienst toe, en CI laat er een open uit
    eerdere stappen. Koppeling en melding zijn met pgTAP gedekt (blok 11).
