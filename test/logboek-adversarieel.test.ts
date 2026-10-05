@@ -186,3 +186,21 @@ test("countLabel: beperkt met filter en 0 resultaten", () => {
   assert.equal(countLabel(0, 200, r), "0 van de meest recente 200");
   assert.equal(countLabel(1, 1, { beperkt: false, limit: 200 }), "1 handeling");
 });
+
+test("µs-volgorde over bronnen: zelfde ms, andere µs, ongeacht id en fractielengte", () => {
+  const a = entry({ id: "a", kind: "verkoop", createdAt: "2026-09-24T21:10:00.123456Z" });
+  const b = entry({ id: "z", kind: "terugdraaiing", createdAt: "2026-09-24T21:10:00.123457+00:00" });
+  const c = entry({ id: "m", kind: "opwaardering", createdAt: "2026-09-24T21:10:00.1234Z" });
+  const d = entry({ id: "b", kind: "verkoop", createdAt: "2026-09-24T21:10:00.12Z" });
+  const verwacht = ["z", "a", "m", "b"];
+  for (const bronnen of [[[a], [b], [c, d]], [[d, c], [b, a]], [[c], [a, d], [b]]]) {
+    const { entries } = voegLogboekSamen(bronnen, 10);
+    assert.deepEqual(entries.map((e) => e.id), verwacht);
+  }
+});
+
+test("µs-gelijk valt terug op id aflopend", () => {
+  const x = entry({ id: "a", createdAt: "2026-09-24T21:10:00.123456Z" });
+  const y = entry({ id: "b", createdAt: "2026-09-24T21:10:00.123456+00:00" });
+  assert.deepEqual(voegLogboekSamen([[x], [y]], 10).entries.map((e) => e.id), ["b", "a"]);
+});

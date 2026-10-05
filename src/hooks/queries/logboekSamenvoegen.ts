@@ -12,12 +12,23 @@ export function logboekKey(entry: Pick<LogboekEntry, "kind" | "id">): string {
   return `${entry.kind}:${entry.id}`;
 }
 
+/** De cijfers achter de milliseconde (µs en ns) als vaste 6-cijferige string,
+ *  zodat string-vergelijking numeriek klopt bij wisselend aantal
+ *  fractiecijfers. `Date.parse` kapt na de milliseconde af. */
+function subMilliseconden(timestamp: string): string {
+  const fractie = /\.(\d+)/.exec(timestamp)?.[1] ?? "";
+  return fractie.padEnd(9, "0").slice(3, 9);
+}
+
 /** Nieuwste eerst. Bij een gelijk tijdstip: een terugdraaiing boven zijn
  *  eigen verkoop (zelfde order-id), en voor de rest het grootste id eerst, zodat
  *  de volgorde deterministisch is. */
 export function vergelijkLogboek(a: LogboekEntry, b: LogboekEntry): number {
   const verschil = Date.parse(b.createdAt) - Date.parse(a.createdAt);
   if (verschil !== 0) return verschil;
+  const subA = subMilliseconden(a.createdAt);
+  const subB = subMilliseconden(b.createdAt);
+  if (subA !== subB) return subA < subB ? 1 : -1;
   if (a.id === b.id && a.kind !== b.kind) {
     if (a.kind === "terugdraaiing") return -1;
     if (b.kind === "terugdraaiing") return 1;

@@ -83,7 +83,7 @@ type State =
  * `orders`/`order_lines`/`top_ups`/`order_reversals` onder de bestaande RLS
  * (ADR 0007), org-breed.
  *
- * Drie platte selects, elk op het eigen tijdstip aflopend en met
+ * Drie platte selects, elk op het eigen tijdstip aflopend (daarna op id, zoals `vergelijkLogboek`, zodat de afkapgrens bij gelijke tijden deterministisch is) en met
  * `LOGBOEK_LIMIT + 1` rijen: een element van de gemeenschappelijke top 200
  * staat ook in de top 200 van zijn eigen bron, en met die ene extra rij weet
  * de hook exact of er meer bestaat (`beperkt`). Eén mislukte bron is één
@@ -109,6 +109,7 @@ export function useLogboek(): State & { refetch: () => void } {
             "id, created_at, total_cents, served_by, member:members!member_id(name), server:members!served_by(name), order_lines(qty, products(name)), order_reversals(order_id)"
           )
           .order("created_at", { ascending: false })
+          .order("id", { ascending: false })
           .limit(LOGBOEK_LIMIT + 1),
         supabase
           .from("top_ups")
@@ -116,6 +117,7 @@ export function useLogboek(): State & { refetch: () => void } {
             "id, created_at, amount_cents, method, served_by, member:members!member_id(name), server:members!served_by(name)"
           )
           .order("created_at", { ascending: false })
+          .order("id", { ascending: false })
           .limit(LOGBOEK_LIMIT + 1),
         supabase
           .from("order_reversals")
@@ -123,6 +125,7 @@ export function useLogboek(): State & { refetch: () => void } {
             "order_id, created_at, reason, via, refunded_cents, reversed_by, reverser:members!reversed_by(name), order:orders!order_id(id, created_at, member:members!member_id(name), order_lines(qty, products(name)))"
           )
           .order("created_at", { ascending: false })
+          .order("order_id", { ascending: false })
           .limit(LOGBOEK_LIMIT + 1),
       ]);
 
