@@ -62,7 +62,9 @@ async function inloggen(email: string, password: string): Promise<{ client: Supa
 }
 
 async function aantalRijen(client: SupabaseClient, tabel: string): Promise<number> {
-  const { data, error } = await client.from(tabel).select("*");
+  // Alleen `id`: op members zijn email en pin_hash kolomgewijs REVOKEd
+  // (0009/0010), dus `select("*")` geeft daar altijd permission denied.
+  const { data, error } = await client.from(tabel).select("id");
   assert.equal(error, null, `select op ${tabel} gaf een fout: ${error?.message}`);
   return (data ?? []).length;
 }
