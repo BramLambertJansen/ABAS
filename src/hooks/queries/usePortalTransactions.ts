@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/portalClient";
 import { reportClientError } from "@/lib/clientErrors";
+import type { VerversInfo } from "@/lib/verversen";
+import { useStaleLezing } from "./useStaleLezing";
 
 /**
  * Eén transactie van de ingelogde portal-sessie (elke rol, ADR 0012) —
@@ -66,13 +67,11 @@ type State =
  * (0015, ADR 0007) leunt dit niet: die versmalt alleen een `lid`-sessie, een
  * bardienst/beheerder-sessie ziet via RLS alle bestelregels.
  */
-export function usePortalTransactions(): State & { refetch: () => void } {
-  const [state, setState] = useState<State>({ status: "loading" });
-  const [tick, setTick] = useState(0);
-
-  const load = useCallback(async () => {
-    setState({ status: "loading" });
-    try {
+export function usePortalTransactions(): State & { ververs: VerversInfo; refetch: () => void } {
+  const { state, ververs, refetch } = useStaleLezing<PortalTransaction[]>({
+    wat: "Kan de transacties niet laden.",
+    report: (err) => reportClientError(createClient, "usePortalTransactions", err),
+    load: async () => {
       const supabase = createClient();
       const { data, error } = await supabase.rpc("list_own_transactions");
       if (error) throw error;
@@ -116,26 +115,15 @@ export function usePortalTransactions(): State & { refetch: () => void } {
         reversedByName: row.reversed_by_name,
         itemsDescription: row.kind === "bestelling" ? (itemsByOrderId.get(row.id) ?? "") : null,
       }));
+      return transactions;
+    },
+  });
 
-      setState({ status: "ready", transactions });
-    } catch (err) {
-      reportClientError(createClient, "usePortalTransactions", err);
-      setState({
-        status: "error",
-        message: "Kan de transacties niet laden. Controleer de verbinding.",
-      });
-    }
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    load().catch(() => {
-      if (!cancelled) setState({ status: "error", message: "Onbekende fout." });
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [tick, load]);
-
-  return { ...state, refetch: () => setTick((t) => t + 1) };
+  if (state.status === "ready") {
+    return { status: "ready", transactions: state.data, ververs, refetch };
+  }
+  if (state.status === "error") {
+    return { status: "error", message: state.message, ververs, refetch };
+  }
+  return { status: "loading", ververs, refetch };
 }

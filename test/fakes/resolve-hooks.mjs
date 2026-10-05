@@ -7,9 +7,12 @@
  * zelf ongewijzigd en zonder database getest kan worden. `next/server`
  * heeft geen exports-map; Node vindt alleen `next/server.js`.
  *
- * server-only is een expliciete dependency (ADR 0021). Een test die een
- * gemarkeerde module echt laadt, gebruikt dezelfde lege module als Next.js
- * server-side. Geen globale react-server-conditie: die verandert React zelf.
+ * `server-only` (ADR 0021): het package zelf wijst buiten Next naar een
+ * module die gooit, zodat een test die per ongeluk een gemarkeerde module
+ * echt laadt hard faalt. Laadt een test zo'n module bewust, dan wijst deze
+ * mapping `server-only` naar dezelfde lege module die Next.js server-side
+ * gebruikt. Geen huidige test heeft dat nodig; de mapping blijft als vangnet
+ * (docs/features/server-only-afscherming.md → keuze 2).
  */
 const FAKES = {
   "@/lib/supabase/server": new URL("./supabaseServer.ts", import.meta.url).href,

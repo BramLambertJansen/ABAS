@@ -3,6 +3,8 @@
 import { useEffect, useId, useRef, useState } from "react";
 import type { LedgerEntry } from "@/hooks/queries/useShiftLedger";
 import { InitialsAvatar } from "@/components/InitialsAvatar";
+import { LeesFout } from "@/components/LeesFout";
+import { useLeesHerstel } from "@/hooks/useLeesHerstel";
 import { formatCents } from "@/lib/money";
 import {
   ALL_PEOPLE,
@@ -25,10 +27,13 @@ type LedgerState =
  */
 export function Transactielijst({
   ledger,
+  onRetry,
   showServedBy,
   onReverse,
 }: {
   ledger: LedgerState;
+  /** `refetch` van de ledger-hook (herstelknop bij een leesfout). */
+  onRetry: () => void;
   /** Initialen van wie de boeking deed — alleen zinvol met meer dan één
    *  persoon in de bezetting, zelfde regel als het ontwerp. */
   showServedBy: boolean;
@@ -38,6 +43,8 @@ export function Transactielijst({
 }) {
   const [query, setQuery] = useState("");
   const [personId, setPersonId] = useState(ALL_PEOPLE);
+  const lijstRef = useRef<HTMLDivElement>(null);
+  const herstel = useLeesHerstel({ ...ledger, refetch: onRetry }, lijstRef);
 
   const entries = ledger.status === "ready" ? ledger.entries : [];
   const people = peopleWithCounts(entries);
@@ -86,16 +93,26 @@ export function Transactielijst({
         )}
       </div>
 
-      <div className="flex min-h-[180px] flex-[1_1_auto] flex-col overflow-auto rounded-card border border-border bg-white px-4 pb-1.5">
-        {ledger.status === "loading" && (
+      <div
+        ref={lijstRef}
+        role="group"
+        aria-label="Boekingen"
+        tabIndex={-1}
+        className="flex min-h-[180px] flex-[1_1_auto] flex-col overflow-auto rounded-card border border-border bg-white px-4 pb-1.5"
+      >
+        {ledger.status === "loading" && !herstel.toonFout && (
           <p className="py-11 text-center text-[13.5px] font-bold text-muted" role="status">
             Boekingen laden…
           </p>
         )}
-        {ledger.status === "error" && (
-          <p className="py-11 text-center text-[13.5px] font-bold text-danger" role="alert">
-            {ledger.message}
-          </p>
+        {herstel.toonFout && (
+          <LeesFout
+            tone="light"
+            className="py-11"
+            message={herstel.message}
+            onRetry={herstel.retry}
+            bezig={herstel.bezig}
+          />
         )}
         {ledger.status === "ready" && groups.length === 0 && (
           <div className="flex flex-col gap-[5px] px-[34px] py-11 text-center">

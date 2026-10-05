@@ -2,6 +2,14 @@
 
 Spec voor [issue #57](https://github.com/BramLambertJansen/ABAS/issues/57).
 
+> **Bijgewerkt door [`account-koppeling-bewijs.md`](account-koppeling-bewijs.md)
+> (ADR 0020, migratie `0040`, gemerged in [PR #157](https://github.com/BramLambertJansen/ABAS/pull/157),
+> 2026-10-05):** `update_member_email` wist nu ook een openstaande
+> uitnodiging (`invited_at` en `invited_auth_user_id` naar `null`) zodra het
+> adres na `lower(trim(...))` verandert, ook bij wissen; alleen hoofdletters
+> wijzigen laat de uitnodiging staan. `list_members_admin()` geeft
+> `invited_auth_user_id` als laatste kolom mee.
+
 **Aanvulling (2026-09-02, P1-bevinding op PR #59, geen nieuw ticket):** een
 geautomatiseerde code-review op PR #59 signaleerde dat de oorspronkelijke
 aanname onder "Rolzichtbaarheid" hieronder — "geen nieuwe leestoegang nodig,

@@ -27,6 +27,8 @@ export function Mandje({
   members,
   membersStatus,
   membersErrorMessage,
+  onRetryMembers,
+  membersRetrying,
   lowBalanceThresholdCents,
   selectedMember,
   onSelectMember,
@@ -54,6 +56,8 @@ export function Mandje({
   members: MemberOption[];
   membersStatus: "loading" | "error" | "ready";
   membersErrorMessage: string | null;
+  onRetryMembers: () => void;
+  membersRetrying: boolean;
   lowBalanceThresholdCents: number;
   selectedMember: MemberOption | null;
   onSelectMember: (id: string) => void;
@@ -201,6 +205,8 @@ export function Mandje({
             members={members}
             status={membersStatus}
             errorMessage={membersErrorMessage}
+            onRetry={onRetryMembers}
+            retryBezig={membersRetrying}
             lowBalanceThresholdCents={lowBalanceThresholdCents}
             onSelect={chooseMember}
           />

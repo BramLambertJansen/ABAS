@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, type KeyboardEvent } from "react";
 import { InitialsAvatar } from "@/components/InitialsAvatar";
+import { LeesFout } from "@/components/LeesFout";
 import { useListbox } from "@/hooks/useListbox";
 import { formatCents } from "@/lib/money";
 
@@ -39,6 +40,8 @@ export function LidZoeker({
   members,
   status,
   errorMessage,
+  onRetry,
+  retryBezig,
   lowBalanceThresholdCents,
   onSelect,
   inputId = "verkoop-member-search",
@@ -48,6 +51,9 @@ export function LidZoeker({
   members: ZoekLid[];
   status: "loading" | "error" | "ready";
   errorMessage: string | null;
+  /** Herstelknop bij een leesfout: alleen de `refetch` van de ledenlijst. */
+  onRetry: () => void;
+  retryBezig: boolean;
   lowBalanceThresholdCents: number;
   onSelect: (id: string) => void;
   inputId?: string;
@@ -174,9 +180,13 @@ export function LidZoeker({
       </p>
 
       {status === "error" && (
-        <p className="mt-1 text-xs font-semibold text-danger" role="alert">
-          {errorMessage}
-        </p>
+        <LeesFout
+          tone="light"
+          className="mt-2 items-start text-left"
+          message={errorMessage ?? ""}
+          onRetry={onRetry}
+          bezig={retryBezig}
+        />
       )}
 
       <ul

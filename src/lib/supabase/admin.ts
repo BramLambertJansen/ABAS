@@ -14,9 +14,10 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
  * publishable key and sometimes the secret key would make "does this bypass
  * RLS" a property of an argument instead of the import itself.
  *
- * The server-only marker makes Next.js reject any client import, including
- * indirect imports. check:arch follows that import graph too (ADR 0021).
- * Only used for
+ * The `import "server-only"` marker above makes `next build` fail on any
+ * import from client code, also an indirect one (via barLogin.ts,
+ * inviteMember.ts, productImage.ts, …), and `check:arch` checks the same
+ * thing transitively (ADR 0021). Only used for
  * `supabase.auth.admin.*` calls (currently `inviteUserByEmail`) and, once
  * the aanroeper is already authorized (see src/lib/inviteMember.ts), a
  * plain read of the target member — never for a `members` write, which

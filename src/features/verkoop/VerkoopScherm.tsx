@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { LeesFout } from "@/components/LeesFout";
+import { useLeesHerstel } from "@/hooks/useLeesHerstel";
 import type { OpenShift } from "@/hooks/queries/useMijnDienst";
 import { useProducts } from "@/hooks/queries/useProducts";
 import { useMembers } from "@/hooks/queries/useMembers";
@@ -35,6 +37,18 @@ export function VerkoopScherm({ shift, draft }: { shift: OpenShift; draft: Verko
   const appSettings = useAppSettings();
   const crew = useShiftMembers(shift.id);
   const [bezettingOpen, setBezettingOpen] = useState(false);
+  // Herstel per sectie (docs/features/leesfouten-herstel-actuele-data.md):
+  // elke leeshook krijgt zijn eigen "Opnieuw proberen"; een retry roept alleen
+  // zijn `refetch` aan, dus mandje, gekozen lid en zoektekst (draft) blijven.
+  // Afrekenen en Opwaarderen blijven geblokkeerd tot de data weer `ready` is.
+  const assortimentRef = useRef<HTMLDivElement>(null);
+  // Ledenlijst, bezetting en instellingen hebben na herstel geen eigen element
+  // (de foutregel is dan weg): de focus gaat naar de kop van het scherm.
+  const titelRef = useRef<HTMLHeadingElement>(null);
+  const productsHerstel = useLeesHerstel(products, assortimentRef);
+  const membersHerstel = useLeesHerstel(members, titelRef);
+  const crewHerstel = useLeesHerstel(crew, titelRef);
+  const settingsHerstel = useLeesHerstel(appSettings, titelRef);
 
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [topupOpen, setTopupOpen] = useState(false);
@@ -250,7 +264,11 @@ export function VerkoopScherm({ shift, draft }: { shift: OpenShift; draft: Verko
     <div className="flex min-h-0 min-w-0 flex-1">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-hidden px-[26px] pb-[22px] pt-6">
         <header className="flex flex-none flex-wrap items-center gap-3.5">
-          <h1 className="text-[25px] font-extrabold leading-none tracking-[-0.025em] text-ink">
+          <h1
+            ref={titelRef}
+            tabIndex={-1}
+            className="text-[25px] font-extrabold leading-none tracking-[-0.025em] text-ink"
+          >
             Bar
           </h1>
           <BezettingPil
@@ -259,18 +277,50 @@ export function VerkoopScherm({ shift, draft }: { shift: OpenShift; draft: Verko
             onOpen={() => setBezettingOpen(true)}
           />
         </header>
-        {products.status === "loading" && (
+        {crewHerstel.toonFout && (
+          <div className="flex-none">
+            <LeesFout
+              tone="light"
+              message={crewHerstel.message}
+              onRetry={crewHerstel.retry}
+              bezig={crewHerstel.bezig}
+            />
+          </div>
+        )}
+        {settingsHerstel.toonFout && (
+          <div className="flex-none">
+            <LeesFout
+              tone="light"
+              message={settingsHerstel.message}
+              onRetry={settingsHerstel.retry}
+              bezig={settingsHerstel.bezig}
+            />
+          </div>
+        )}
+        {products.status === "loading" && !productsHerstel.toonFout && (
           <p className="flex flex-1 items-center justify-center text-sm font-semibold text-muted" role="status">
             Assortiment laden…
           </p>
         )}
-        {products.status === "error" && (
-          <p className="flex flex-1 items-center justify-center text-sm font-semibold text-danger" role="alert">
-            {products.message}
-          </p>
+        {productsHerstel.toonFout && (
+          <LeesFout
+            tone="light"
+            className="flex-1 justify-center"
+            message={productsHerstel.message}
+            onRetry={productsHerstel.retry}
+            bezig={productsHerstel.bezig}
+          />
         )}
         {products.status === "ready" && (
-          <Assortiment products={productList} cart={cartLines} onAdd={inc} display={draft} />
+          <div
+            ref={assortimentRef}
+            role="group"
+            aria-label="Assortiment"
+            tabIndex={-1}
+            className="flex min-h-0 flex-1 flex-col"
+          >
+            <Assortiment products={productList} cart={cartLines} onAdd={inc} display={draft} />
+          </div>
         )}
       </div>
 
@@ -279,8 +329,10 @@ export function VerkoopScherm({ shift, draft }: { shift: OpenShift; draft: Verko
         memberQuery={draft.memberQuery}
         setMemberQuery={draft.setMemberQuery}
         members={memberList}
-        membersStatus={members.status}
-        membersErrorMessage={members.status === "error" ? members.message : null}
+        membersStatus={membersHerstel.toonFout ? "error" : members.status}
+        membersErrorMessage={membersHerstel.toonFout ? membersHerstel.message : null}
+        onRetryMembers={membersHerstel.retry}
+        membersRetrying={membersHerstel.bezig}
         lowBalanceThresholdCents={lowBalanceThresholdCents}
         selectedMember={selectedMember}
         onSelectMember={chooseMember}

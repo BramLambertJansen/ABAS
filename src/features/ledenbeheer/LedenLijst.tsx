@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { LeesFout } from "@/components/LeesFout";
+import { useLeesHerstel } from "@/hooks/useLeesHerstel";
 import { useAlleLeden, type LedenbeheerLid } from "@/hooks/queries/useAlleLeden";
 import { useAppSettings } from "@/hooks/queries/useAppSettings";
 import { formatCents } from "@/lib/money";
@@ -39,6 +41,8 @@ function matchesFilter(
  */
 export function LedenLijst() {
   const members = useAlleLeden();
+  const kopRef = useRef<HTMLHeadingElement>(null);
+  const herstel = useLeesHerstel(members, kopRef);
   const appSettings = useAppSettings();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<StatusFilter>("actief");
@@ -89,7 +93,9 @@ export function LedenLijst() {
   return (
     <>
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-[19px] font-extrabold tracking-[-0.02em]">Leden</h1>
+        <h1 ref={kopRef} tabIndex={-1} className="text-[19px] font-extrabold tracking-[-0.02em]">
+          Leden
+        </h1>
         <button
           type="button"
           onClick={() => setOverlay({ kind: "new" })}
@@ -160,16 +166,20 @@ export function LedenLijst() {
         ))}
       </div>
 
-      {members.status === "loading" && (
+      {members.status === "loading" && !herstel.toonFout && (
         <p className="text-sm font-semibold text-muted" role="status">
           Ledenlijst laden…
         </p>
       )}
 
-      {members.status === "error" && (
-        <p className="text-sm font-semibold text-danger" role="alert">
-          {members.message}
-        </p>
+      {herstel.toonFout && (
+        <LeesFout
+          tone="light"
+          className="items-start text-left"
+          message={herstel.message}
+          onRetry={herstel.retry}
+          bezig={herstel.bezig}
+        />
       )}
 
       {members.status === "ready" && members.members.length === 0 && (

@@ -76,11 +76,16 @@ script hoeft te wijzigen: die regel staat elk bestand onder
 mapprefix, niet op een vaste lijst van twee bestandsnamen) — alleen de
 proza in `docs/ARCHITECTURE.md` → "Lid-accounts" ("alleen die twee
 bestanden") moet bijgewerkt worden zodra dit bestand er is, zie Gevolgen.
-`admin.ts` mag **nooit** in de clientgraaf terechtkomen. Sinds
-[ADR 0021](0021-server-only-markering-is-de-grens-client-server.md) dwingt
-`import "server-only"` dit af tijdens de Next.js-build; `check:arch` volgt
-ook indirecte imports en bewaakt dat alleen `admin.ts` de secret leest.
-
+`admin.ts` mag **nooit** importeren in een `"use client"`-bestand — er is
+vandaag geen gate die dat specifiek afdwingt (`check:arch` verbiedt alleen
+*welk* bestand de SDK importeert, niet *vanuit welk ander bestand* het
+geïmporteerd wordt), dus dit is een discipline-eis voor de Developer/
+Reviewer, geen script-garantie. Zie "Signaal voor een mogelijke toekomstige
+gate" hieronder.
+**(Aanvulling 2026-10-05):** achterhaald. Sinds
+[ADR 0021](0021-server-only-markering-is-de-grens-client-server.md) begint
+`admin.ts` met `import "server-only"` (de build faalt bij elke import vanuit
+clientcode, ook indirect) en controleert `check:arch` dat transitief.
 
 **De uitvoering (de daadwerkelijke `inviteUserByEmail`-aanroep, plus alles
 eromheen) is een server-only entrypoint — Server Action of Route Handler,
@@ -234,9 +239,19 @@ route toch altijd naar hetzelfde vervolgscherm redirect.
 - `.env.example`'s `SUPABASE_SECRET_KEY`-regel gaat van "niet gebruikt door
   de app zelf" naar daadwerkelijk gebruikt — de begeleidende comment moet
   mee-veranderen (zie `docs/features/lid-account-invite.md` → Datamodel).
-- **Server/client-gate gerealiseerd:** de eerdere wens voor een gate is
-  ingevuld door [ADR 0021](0021-server-only-markering-is-de-grens-client-server.md).
-  `check:arch` volgt de importgraaf transitief; de build bewaakt de markering.
+- **Signaal voor een mogelijke toekomstige gate** (CLAUDE.md → "Regel over
+  regels"): er bestaat geen geautomatiseerde controle die verbiedt dat een
+  `"use client"`-bestand `src/lib/supabase/admin.ts` importeert — vandaag is
+  er precies één plek die dit nodig heeft (deze feature), dus nog te vroeg
+  voor een gate op basis van één precedent, zelfde afweging als ADR 0004 zelf
+  al maakte voor PII-kolommen. Als een toekomstige feature dit patroon
+  herhaalt, is dát het moment om `check:arch` uit te breiden met een
+  specifieke regel ("`admin.ts` mag alleen geïmporteerd worden vanuit een
+  server-only bestand"), in plaats van opnieuw op reviewdiscipline te
+  vertrouwen.
+  **(Ingelost 2026-10-05, [ADR 0021](0021-server-only-markering-is-de-grens-client-server.md)):**
+  `server-only`-markering plus een transitieve `check:arch`-regel, zie
+  `docs/features/server-only-afscherming.md`.
 - `db:test` (pgTAP) kan de RPC-kant van elke toekomstige actie die dit
   patroon volgt blijven dekken (actorcheck, guards), maar niet de
   `auth.admin.*`-aanroep zelf — dat blijft een gat dat alleen handmatige

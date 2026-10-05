@@ -1,12 +1,12 @@
 # Server-only modules hard afschermen van clientbundels
 
-**Status: gebouwd in deze branch (2026-10-05); merge na groene CI en review.** Bram heeft de keuzes
+**Status: goedgekeurd (2026-10-05), nog niet gebouwd.** Bram heeft de keuzes
 voor deze opdracht bij de Architect gelegd: de spec geldt als goedgekeurd
 zodra hij geschreven is. Item C van de review van 2026-10-05.
 Architectuurbeslissing:
 [ADR 0021](../adr/0021-server-only-markering-is-de-grens-client-server.md).
 
-## Aanleiding (situatie vóór implementatie)
+## Aanleiding (geverifieerd in de code)
 
 - `src/lib/supabase/admin.ts` (`createAdminClient`, service-role, leest
   `SUPABASE_SECRET_KEY`) heeft geen `import "server-only"`. Het
@@ -128,7 +128,8 @@ met fixtures te testen in `npm test`; de build van Next niet (zie keuze 5).
 Regel 4 (`ADMIN_CLIENT_RE`) vervalt. Hij is een speciaal geval van de nieuwe
 regel.
 
-**3a. `scripts/lib/scan.mjs`: imports volledig herkennen.** Nieuwe export
+**3a. `scripts/lib/scan.mjs`: imports volledig herkennen.** (Herzien:
+AST in plaats van regex, zie "Herziening".) Nieuwe export
 `importRefsOf(source)` die op `stripComments(source)` draait en per import
 `{ spec, typeOnly }` teruggeeft. Herkende vormen:
 
@@ -151,7 +152,8 @@ uitgebreide herkenning krijgen. Draai `check:arch` na de wijziging op de
 huidige tree; nieuwe meldingen op die regels zijn echte vondsten en moeten
 opgelost of gemeld worden, niet weggefilterd.
 
-**3b. Oplossen naar bestanden.** Een helper `resolveSpec(fromFile, spec,
+**3b. Oplossen naar bestanden.** (Herzien: eerst het exacte pad, zie
+"Herziening".) Een helper `resolveSpec(fromFile, spec,
 files)`. `@/x` wordt `src/x`, een relatief pad wordt opgelost tegen de map van
 `fromFile`. Een expliciete extensie (`.ts/.tsx/.js/.jsx/.mjs`) wordt eerst
 gestript. Daarna in volgorde proberen: `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`,
@@ -213,6 +215,39 @@ onze code. In CI testen we wat van ons is: dat de markeringen er staan en dat
 geen clientmodule er een bereikt. Dat de build faalt, bewijst de Developer
 één keer handmatig (Testplan, stap 4) en zet hij met de uitvoer in de PR.
 
+## Herziening (2026-10-05, na Codex-review op PR #160)
+
+Drie bevindingen op de regex-aanpak uit 3a/3b, alle drie in
+`scripts/lib/scan.mjs`. Besloten door de orchestrator van de werkstraat;
+de keuzes en regels hierboven blijven staan, alleen de herkenning en de
+oplosvolgorde veranderen.
+
+- **Importherkenning via de TypeScript-AST, niet via regex.** Vals
+  negatief: `stripComments` was niet lexicaal, dus `const l = "x//y";`
+  gevolgd door `import("…")` op dezelfde regel verdween. Vals positief:
+  `type S = import("…").S` telde als runtime-import. `importRefsOf`,
+  `hasNonLiteralImport` en de "eerste statement"-controle lopen nu over
+  de AST van `typescript` (al devDependency; parsermodus per extensie).
+  Comments en strings tellen daardoor nooit meer als import. Een
+  import-type (`import("a").T`, `typeof import("a")`) en
+  `import type x = require("a")` zijn type-only; `import x = require("a")`
+  wordt gevolgd. Ongewijzigd: inline `{ type T }` blijft een gewone
+  import (ook als elke specifier inline `type` is), een template literal
+  blijft niet-letterlijk. Dit haalt de "volwaardige parser" uit
+  "Expliciet buiten scope" naar binnen, zoals die alinea voor dit geval
+  al voorzag. `stripComments` blijft voor de andere regels
+  (`check:policy`, `"use client"`, `SUPABASE_SECRET_KEY`).
+- **Oplossen: eerst het exacte pad (3b).** `@/lib/dual.tsx` werd gestript
+  en `.ts` eerst geprobeerd, dus volgde de gate `dual.ts` terwijl Next
+  `dual.tsx` laadt. Nieuwe volgorde: het exacte pad; dan `<pad>.<ext>` en
+  `<pad>/index.<ext>`; pas zonder treffer een expliciete extensie strippen
+  en dezelfde lijst proberen (zo blijft `./x.js` → `x.ts` werken). Een
+  specifier met trailing slash (of `.`/`..`) is een map: alleen
+  `<map>/index.<ext>`, nooit een gelijknamig bestand.
+
+Op de huidige tree (212 bestanden, 843 imports) geeft de AST exact
+dezelfde refs als de oude regex.
+
 ## Datamodel
 
 Geen wijziging.
@@ -251,6 +286,10 @@ Niet van toepassing.
   zoektocht vanaf `useBarAuth.ts` dat, met de keten.
 - **Test laadt een gemarkeerde module echt:** gooit meteen; oplossing in
   keuze 2.
+- **Clientmodule importeert een `"use server"`-module die een gemarkeerde
+  module bereikt:** gemeld, zoals elke andere import (ADR 0021, punt 6).
+  Geen speciale behandeling van de directive in de zoektocht en geen extra
+  test daarvoor; vandaag staat er nergens `"use server"` in `src/`.
 
 ## Testplan
 
@@ -338,5 +377,9 @@ Na de merge (Docs-rol): `CLAUDE.md` → Verificatie, rij `check:arch` (keuze
 - Een algemene regel voor alle niet-`NEXT_PUBLIC_`-env-vars in clientcode.
   Next inlinet ze niet, dus er lekt niets. Alleen `SUPABASE_SECRET_KEY`
   krijgt een regel (3c), als het secret dat RLS omzeilt.
+- Server Actions (`"use server"`) als toegestane weg naar gemarkeerde
+  modules. Bevoorrechte serverlogica loopt via Route Handlers; de gate
+  blijft Server Actions vanuit clientcode weigeren tot een ADR dat herziet
+  (ADR 0021, punt 6).
 - `tsconfig`-optie `noUncheckedSideEffectImports`. Niet nodig: met het
   package geïnstalleerd lost `import "server-only"` gewoon op.

@@ -334,6 +334,53 @@ database, RPC or policy change. Shared pieces:
   (which shows the inline confirmation first): a member switch clears a filled
   cart only for another member.
 
+**Recoverable read errors and current portal data (T08, #128; built in part,
+`docs/features/leesfouten-herstel-actuele-data.md`)**: no ADR (the spec's
+"ADR nodig?" says no), no RPC, RLS, migration, schema or auth change; only
+existing reads are issued more often. Shared pieces:
+- `src/lib/verversen.ts`: pure and unit-tested. `moetVerversen` (a running
+  read is never restarted; `online` always refreshes; returning to the tab only
+  when the last success is 30 s or older, the last attempt failed or nothing was
+  loaded yet), `bijgewerktLabel` ("Bijgewerkt om HH:mm", fixed `Europe/Amsterdam`;
+  `PORTAL_TIME_ZONE` moved here from `transacties.ts`), the stale-machine
+  transitions and `maakRondeGuard` (last request wins).
+- `src/hooks/queries/useStaleLezing.ts`: the one machine behind
+  `usePortalBalance`, `usePortalTransactions` and `usePortalAppSettings`
+  (stale-while-revalidate: a failed refresh from `ready` keeps the data and sets
+  `ververs.mislukt`; only a failed first round or retry is `error`; the retry
+  keeps the button mounted). Calls no Supabase itself; errors go through
+  `reportClientError` and `loadErrorMessage`.
+- `src/hooks/useVerversBijTerugkeer.ts` (listeners on `visibilitychange` and
+  `online`, never polling or Realtime), `src/components/VerversStatus.tsx`
+  (portal only, `role="status"`), `src/components/LeesFout.tsx` (error line plus
+  "Opnieuw proberen", `aria-disabled` while busy so focus stays),
+  `src/hooks/useFocusNaHerstel.ts` (focus goes to the healed section after a
+  retry, never `body`; via `useHerstelFocus`) and `src/hooks/useLeesHerstel.ts`
+  (the bar read hooks: keeps the error and a disabled button up during the
+  retry, calls `useFocusNaHerstel`). `src/hooks/useFocusNaFaseFout.ts` is the
+  separate case for the session phase `fout` of `BarApp` and `Assortimentbeheer`,
+  which have their own retry button: it focuses the screen's `h1` after a
+  successful retry; its `hadFout` flag is module-level because
+  `Assortimentbeheer` redirects to `/` (a new mount) after success. Known low
+  risk: the flag survives an unmount, so a later mount can move focus from
+  `body` to the `h1` (untested edge case).
+- Portal: Saldo has one refresh button for balance, settings and transactions
+  (label = oldest of the three); Transactions refreshes only the transactions.
+  A tab switch always reads fresh (mount per tab, unchanged).
+- Bar: fail-closed on purpose (no stale-while-revalidate, decision 2): the read
+  screens only gained "Opnieuw proberen" and Afrekenen/Opwaarderen stay blocked
+  until the data is `ready`. `BarInloggen` shows "Inloggen met e-mail" while the
+  names load and when they fail. The parameter hooks (`useShiftMembers`,
+  `useShiftLedger`, `useShiftSummary`, `useMemberOrders`) have a last-request-wins
+  counter.
+- *Not built yet*: the `PortalShellHome` part (`userId` plus `key={userId}` on
+  `PortalDashboard`, a background lookup that does not fall back, the
+  `getSession` catch and the error classification of `usePortalSession`). It
+  waits for #115, which owns that hook; `usePortalSession.ts` and `PortalShellHome.tsx` are untouched. Also out
+  of scope: `useBeheerSession`, #78, #51, #67, a session-expired message. Not
+  verified live: a real booking on the bar followed by a portal refresh,
+  flight mode, Safari/Android behaviour of `visibilitychange`/`online`.
+
 **First multi-screen bar navigation (settled, 2026-08-26)**: issue #8 is the
 first time `shells/bar` needed more than one screen behind an open shift.
 `src/features/verkoop/DienstTabs.tsx` renders the navigation (Verkoop,
@@ -761,8 +808,8 @@ zonder dat er ooit een e-mailadres of portal-account bij hoort.
   eveneens nullable `members.invited_at timestamptz`-veld onderscheidt "nog
   niet uitgenodigd" van "uitgenodigd op [datum], nog geen account" in de
   UI — die tussenstaat is met deze herziening ook daadwerkelijk bereikbaar.
-- **Koppelen eist bewijs van mailbezit (ADR 0020, 2026-10-05, migratie
-  `0040`).** Een e-mailadres op een sessie is geen bewijs. De koppel-RPC's
+- **Koppelen eist bewijs van mailbezit (ADR 0020, 2026-10-05, gebouwd in
+  `0040`, PR #157).** Een e-mailadres op een sessie is geen bewijs. De koppel-RPC's
   koppelen alleen een sessie met een `amr`-methode uit de mailbox
   (`invite`/`magiclink`/`otp`/`email/signup`), van precies het auth-account
   dat `inviteUserByEmail` aanmaakte (`members.invited_auth_user_id`, gezet
@@ -777,8 +824,10 @@ zonder dat er ooit een e-mailadres of portal-account bij hoort.
   PostgREST geldig tot het verloopt; daarom eisen `register_bar_session` en
   `set_own_pin` dat de rij in `auth.sessions` nog bestaat (ADR 0020 →
   Beslissing 8): elke client-RPC die iets maakt dat langer leeft dan het
-  token (sessie, inloggegeven, apparaatvertrouwen) doet dat. Zie
-  `docs/features/account-koppeling-bewijs.md`.
+  token (sessie, inloggegeven, apparaatvertrouwen) doet dat. Koppel- en
+  sessiegedrag is tegen de echte GoTrue bewezen in
+  `integration/account-koppeling.test.ts` (`npm run test:integration`, CI).
+  Zie `docs/features/account-koppeling-bewijs.md`.
 
 **Gebouwd (#24, 2026-09-21)**: zie hieronder, changelog-entry na
 "Ledenbeheer" — de bullets hierboven beschrijven de daadwerkelijk gebouwde
@@ -1218,6 +1267,21 @@ ADR (ADR 0010/0012 dekken de zichtbaarheid van `reversed_by_name`).
   transacties" roept `onShowAll` aan; na de statuswissel zet een effect de
   focus op `tabElementId(idBase, "transacties")` (bestaande export van
   `src/components/Tabs.tsx`).
+
+## Server/client-grens (settled 2026-10-05)
+
+Een module die alleen op de server mag draaien, begint met
+`import "server-only";` ([ADR 0021](adr/0021-server-only-markering-is-de-grens-client-server.md),
+`docs/features/server-only-afscherming.md`). Verplicht voor
+`src/lib/supabase/admin.ts` (service-role), `server.ts` en `portalServer.ts`
+(servercookies). Elke module die er één importeert, is daarmee transitief
+server-only en krijgt geen eigen markering. `next build` faalt als zo'n module
+in een clientbundel komt. `check:arch` volgt de importgraaf vanaf elke
+clientmodule (statisch, kaal, `import()`, `require()`, met of zonder
+extensie; type-only telt niet) en meldt de keten. Types en pure regels die
+clientcode nodig heeft, staan in een eigen module (`barLoginTypes.ts`,
+`productImageRules.ts`). Een nieuw secret krijgt een eigen gemarkeerde module
+en een plek in de verplichte lijst van `check:arch`.
 
 ## Wat het prototype deed maar hier nog niet is besloten
 

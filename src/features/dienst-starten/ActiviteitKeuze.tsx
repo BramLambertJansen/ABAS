@@ -1,6 +1,9 @@
 "use client";
 
+import { useRef } from "react";
+import { LeesFout } from "@/components/LeesFout";
 import { Select } from "@/components/Select";
+import { useFocusNaHerstel } from "@/hooks/useFocusNaHerstel";
 import { StaffHeader } from "./StaffHeader";
 import type { ActiviteitType } from "@/hooks/queries/useActiviteitTypes";
 
@@ -18,6 +21,8 @@ export function ActiviteitKeuze({
   activityTypes,
   loading,
   loadErrorMessage,
+  onRetryLoad,
+  retryLoadBezig,
   errorMessage,
   pending,
   onSelect,
@@ -27,6 +32,9 @@ export function ActiviteitKeuze({
   activityTypes: ActiviteitType[];
   loading: boolean;
   loadErrorMessage: string | null;
+  /** `refetch` van de activiteittypes (herstelknop bij een leesfout). */
+  onRetryLoad: () => void;
+  retryLoadBezig: boolean;
   errorMessage: string | null;
   pending: boolean;
   onSelect: (activityType: ActiviteitType) => void;
@@ -39,24 +47,38 @@ export function ActiviteitKeuze({
     if (activityType) onSelect(activityType);
   }
 
+  const kopRef = useRef<HTMLHeadingElement>(null);
+  useFocusNaHerstel(
+    loadErrorMessage ? "error" : loading ? "loading" : "ready",
+    kopRef
+  );
+
   return (
     <div className="flex w-full max-w-[360px] flex-col items-center gap-5">
       <StaffHeader name={staffName} />
 
-      <h2 className="text-center text-lg font-extrabold tracking-tight text-white">
+      <h2
+        ref={kopRef}
+        tabIndex={-1}
+        className="text-center text-lg font-extrabold tracking-tight text-white outline-none"
+      >
         Voor welke activiteit is deze dienst?
       </h2>
 
-      {loading && (
+      {loading && !loadErrorMessage && (
         <p className="text-sm font-semibold text-rail-muted" role="status">
           Activiteittypes laden…
         </p>
       )}
 
-      {!loading && loadErrorMessage && (
-        <p className="max-w-xs text-center text-sm font-semibold text-rail-error" role="alert">
-          {loadErrorMessage}
-        </p>
+      {loadErrorMessage && (
+        <LeesFout
+          tone="rail"
+          className="max-w-xs"
+          message={loadErrorMessage}
+          onRetry={onRetryLoad}
+          bezig={retryLoadBezig}
+        />
       )}
 
       {!loading && !loadErrorMessage && activityTypes.length === 0 && (

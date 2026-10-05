@@ -1,8 +1,19 @@
 #!/usr/bin/env node
 // check:arch — CLAUDE.md → Verificatie: "shells geïsoleerd, features
 // shell-onwetend, Supabase-client privé". See scripts/lib/scan.mjs for
-// what this is and isn't (regex over source, not a real AST — first pass).
-import { walk, read, importsOf, importRefsOf, hasNonLiteralImport, resolveSpec, stripComments, fail } from "./lib/scan.mjs";
+// what this is and isn't (imports via the TypeScript AST, the directive and
+// secret-name checks still regex over comment-stripped source).
+import {
+  walk,
+  read,
+  importsOf,
+  importRefsOf,
+  hasNonLiteralImport,
+  startsWithServerOnly,
+  resolveSpec,
+  stripComments,
+  fail,
+} from "./lib/scan.mjs";
 
 const root = process.cwd();
 const files = walk(`${root}/src`, root);
@@ -11,39 +22,14 @@ const problems = [];
 // Matches the `"use client"` / `'use client'` directive, which must be the
 // first statement in a module — so anchor at the start, allowing only
 // leading comments/whitespace before it. Checked against comment-stripped
-// source so a file that merely *mentions* the directive in prose (as
-// src/lib/supabase/admin.ts's own warning does) isn't treated as one.
+// source so a file that merely *mentions* the directive in a comment isn't
+// treated as one.
 const USE_CLIENT_RE = /^\s*["']use client["']/;
 
-// Server-only is the explicit boundary, including indirect imports (ADR 0021).
-const REQUIRED_SERVER_ONLY = [
-  "src/lib/supabase/admin.ts", "src/lib/supabase/server.ts",
-  "src/lib/supabase/portalServer.ts",
-];
-const fileSet = new Set(files);
-const sources = new Map(files.map((file) => [file, stripComments(read(root, file))]));
-const refs = new Map(files.map((file) => [file, importRefsOf(sources.get(file))]));
-const marked = new Set(files.filter((file) => refs.get(file).some(
-  (ref) => ref.sideEffect && ref.spec === "server-only"
-)));
-for (const file of REQUIRED_SERVER_ONLY) {
-  if (!fileSet.has(file)) problems.push(`${file}: required server-only module is missing (ADR 0021)`);
-  else if (!/^\s*import\s*["']server-only["']\s*;/.test(sources.get(file))) {
-    problems.push(`${file}: must start with import "server-only" (ADR 0021)`);
-  }
-}
-for (const file of files) {
-  if (hasNonLiteralImport(sources.get(file))) {
-    problems.push(`${file}: non-literal import()/require() — check:arch can't follow it (ADR 0021)`);
-  }
-  if (file !== "src/lib/supabase/admin.ts" && sources.get(file).includes("SUPABASE_SECRET_KEY")) {
-    problems.push(`${file}: SUPABASE_SECRET_KEY may only be read in src/lib/supabase/admin.ts (ADR 0006)`);
-  }
-}
-const edges = new Map(files.map((file) => [file, refs.get(file)
-  .filter((ref) => !ref.typeOnly)
-  .map((ref) => resolveSpec(file, ref.spec, fileSet)).filter(Boolean)]));
-
+// Client modules: the directive above, or a file under one of these
+// directories — everything under hooks/queries, features, shells and
+// components is client-side by construction in this app, whether or not the
+// individual file carries the directive.
 const CLIENT_ONLY_DIRS = [
   "src/hooks/queries/",
   "src/features/",
@@ -97,27 +83,8 @@ function isPortalOnlyFile(file) {
 }
 
 for (const file of files) {
-  const source = sources.get(file);
-  const specs = importsOf(source);
-  const isClientModule =
-    USE_CLIENT_RE.test(stripComments(source)) ||
-    CLIENT_ONLY_DIRS.some((d) => file.startsWith(d));
-
-  if (isClientModule) {
-    const seen = new Set([file]);
-    const queue = [[file]];
-    for (let i = 0; i < queue.length; i++) {
-      const chain = queue[i];
-      const target = chain.at(-1);
-      if (marked.has(target)) {
-        const via = chain.slice(1, -1).join(" -> ") || "direct import";
-        problems.push(`${file}: reaches server-only ${target} via ${via} — server-only modules never enter a client bundle (ADR 0021); move shared types/rules to a separate module`);
-      }
-      for (const next of edges.get(target)) {
-        if (!seen.has(next)) { seen.add(next); queue.push([...chain, next]); }
-      }
-    }
-  }
+  const source = read(root, file);
+  const specs = importsOf(source, file);
 
   for (const spec of specs) {
     // 1. Shells isolated: shells/bar must not import from shells/portal,
@@ -163,6 +130,106 @@ for (const file of files) {
       /^@\/lib\/supabase\/(portalClient|portalServer)$/.test(spec)
     ) {
       problems.push(`${file}: imports "${spec}" — only portal code (or ${SHARED_AUTH_CALLBACK_FILE}) may use portalClient.ts/portalServer.ts (ADR 0009)`);
+    }
+  }
+}
+
+// 4. Server-only modules never reach a client bundle (ADR 0021, replaces
+//    the old direct-import rule for admin.ts). The service-role client
+//    bypasses RLS entirely: `auth.uid()` is empty on it, so every RPC
+//    actorcheck (ADR 0002) silently sees "no actor" (ADR 0006). The
+//    `import "server-only"` marker makes `next build` fail for any client
+//    import, also an indirect one; this rule checks the same thing
+//    transitively before the build (pre-commit), with the import chain in
+//    the message. Type-only imports are skipped (erased at compile time);
+//    package specifiers aren't followed.
+const SERVER_ONLY_SPEC = "server-only";
+const REQUIRED_SERVER_ONLY = [
+  "src/lib/supabase/admin.ts",
+  "src/lib/supabase/server.ts",
+  "src/lib/supabase/portalServer.ts",
+];
+const SECRET_KEY_NAME = "SUPABASE_SECRET_KEY";
+const SECRET_KEY_FILE = "src/lib/supabase/admin.ts";
+// Reachability uses `marked` (the marker anywhere — `next build` fails on
+// that too); the REQUIRED_SERVER_ONLY check demands the stricter form: the
+// marker as the module's first statement, only directives (`"use strict";`)
+// before it (startsWithServerOnly, on the AST).
+
+const fileSet = new Set(files);
+// Parsed once per file: resolved runtime edges, marker, client-ness.
+const info = new Map();
+function infoOf(file) {
+  let i = info.get(file);
+  if (i) return i;
+  const source = read(root, file);
+  const code = stripComments(source);
+  const refs = importRefsOf(source, file);
+  i = {
+    source,
+    code,
+    marked: refs.some((r) => !r.typeOnly && r.spec === SERVER_ONLY_SPEC),
+    markedFirst: startsWithServerOnly(source, file),
+    isClient: USE_CLIENT_RE.test(code) || CLIENT_ONLY_DIRS.some((d) => file.startsWith(d)),
+    edges: [
+      ...new Set(
+        refs
+          .filter((r) => !r.typeOnly)
+          .map((r) => resolveSpec(file, r.spec, fileSet))
+          .filter(Boolean)
+      ),
+    ],
+  };
+  info.set(file, i);
+  return i;
+}
+
+for (const required of REQUIRED_SERVER_ONLY) {
+  if (!fileSet.has(required)) {
+    problems.push(`${required}: listed in REQUIRED_SERVER_ONLY but missing — update the list deliberately (ADR 0021)`);
+  } else if (!infoOf(required).markedFirst) {
+    problems.push(`${required}: must start with import "server-only" (ADR 0021)`);
+  }
+}
+
+for (const file of files) {
+  const { source, code, isClient } = infoOf(file);
+
+  if (hasNonLiteralImport(source, file)) {
+    problems.push(`${file}: non-literal import()/require() — check:arch can't follow it (ADR 0021)`);
+  }
+
+  // ADR 0006 → Beslissing: only admin.ts reads the secret key.
+  if (file !== SECRET_KEY_FILE && code.includes(SECRET_KEY_NAME)) {
+    problems.push(`${file}: mentions ${SECRET_KEY_NAME} — only ${SECRET_KEY_FILE} may read it (ADR 0006)`);
+  }
+
+  if (!isClient) continue;
+
+  // Breadth-first: the first time a file is reached is via a shortest chain.
+  const prev = new Map([[file, null]]);
+  const queue = [file];
+  while (queue.length) {
+    const current = queue.shift();
+    if (infoOf(current).marked) {
+      const chain = [];
+      for (let n = prev.get(current); n !== null && n !== undefined; n = prev.get(n)) chain.unshift(n);
+      const via = chain.slice(1);
+      const where =
+        current === file
+          ? " (the client module itself is marked)"
+          : via.length
+            ? ` via ${via.join(" → ")}`
+            : "";
+      problems.push(
+        `${file}: reaches server-only ${current}${where} — server-only modules never enter a client bundle (ADR 0021); move shared types/rules to a separate module`
+      );
+    }
+    for (const next of infoOf(current).edges) {
+      if (!prev.has(next)) {
+        prev.set(next, current);
+        queue.push(next);
+      }
     }
   }
 }
