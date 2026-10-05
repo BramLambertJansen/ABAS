@@ -1,6 +1,6 @@
 # Leespolicies als allowlist: brede leestoegang alleen voor een actieve bar-rol
 
-**Status: goedgekeurd (2026-10-05).** Bram heeft de keuzes voor deze opdracht
+**Status: gebouwd (PR #156, migratie `0039`, gemerged 2026-10-05).** Bram heeft de keuzes voor deze opdracht
 bij de Architect gelegd: de spec geldt als goedgekeurd zodra hij geschreven
 is, en elke keuze staat hieronder met reden. Item A van de review van
 2026-10-05. Architectuurbeslissing:
@@ -279,6 +279,9 @@ Fixtures erbij (zelfde vorm als de bestaande):
   bestelregel daarop, een terugdraaiing daarvan, en een opwaardering naar
   `…02b4`. Zo heeft de gearchiveerde bardienst in alle vijf tabellen een eigen
   rij, en is "ziet alleen eigen" te onderscheiden van "ziet niets";
+- auth-user `…02a6` met members-rij `…02b6` "RLS Gearchiveerde Beheerder",
+  rol `beheerder`, `archived = true`, zonder eigen bestellingen (toegevoegd
+  door de Tester voor blok 5);
 - `…02a3` blijft het account zonder `members`-rij; het commentaar wordt
   "account zonder gekoppeld lid (verkeerd uitgenodigd, self-signup, oud
   device-account)".
@@ -296,8 +299,12 @@ Blokken:
 | 2b (nieuw) | actieve beheerder `…02a5` | alle vijf tabellen = tabeltotaal | 5 |
 | 3 (omgedraaid) | account zonder lid `…02a3` | `members`, `orders`, `order_lines`, `top_ups`, `order_reversals` = **0**; `shifts` en `products` = tabeltotaal (globaal, keuze 6) | 7 |
 | 4 (nieuw) | gearchiveerde bardienst `…02a4` | `members` = 1 en die rij heet "RLS Gearchiveerde Bardienst"; `orders`, `order_lines`, `top_ups`, `order_reversals` = eigen aantal; `orders where id = …02e0` (van lid A) = 0 | 7 |
+| 5 (Tester) | gearchiveerde beheerder `…02a6` | `members` = 1; `orders`, `order_lines` = 0 (de archiefcheck geldt ook voor beheerder) | 3 |
+| 6 (Tester) | bardienst `…02a2` na `role = 'lid'` | `members` = 1; `orders`, `top_ups` = 0, ook al staat `…02b2` nog in de bezetting van de open dienst (randgeval rolwijziging, geen cache) | 3 |
+| 7 (Tester) | `anon` | som van de vijf tabellen = 0 (alle vijf policies zijn `to authenticated`) | 1 |
 
-`plan(34)`. Geen absolute aantallen voor "ziet alles" (zie de kop van het
+`plan(41)`. Blokken 5-7 zijn bij het testen toegevoegd; de spec noemde
+oorspronkelijk blok 1-4 met `plan(34)`. Geen absolute aantallen voor "ziet alles" (zie de kop van het
 bestand); "ziet niets" is wel absoluut 0, omdat dat een bewering is die door
 geen enkele seed-rij verandert.
 
@@ -313,7 +320,9 @@ Werkt op `pg_policies` waar `schemaname = 'public'` en `cmd in ('SELECT',
    tabel met `using (true)`: is hij echt globaal? Zo ja, zet hem hier op de
    lijst, met reden (ADR 0019)".
 3. Voor `members`, `orders`, `order_lines`, `top_ups` en `order_reversals`
-   bevat de `qual` van de select-policy `caller_has_bar_role()`.
+   bevat de `qual` van elke select-policy `caller_has_bar_role()` (een
+   `like`-match, dus de initplan-vorm `(select caller_has_bar_role())` telt
+   mee).
 
 `plan(3)`. Toets 3 vangt een latere migratie die één van de vijf per ongeluk
 terugzet naar `true` of naar een andere vorm.
@@ -354,7 +363,7 @@ Voor de Developer bij de bouw:
   `members`-rijen". Bijwerken naar ADR 0019: alleen een **actieve** bar-rol
   leest breed; de expliciete `auth_user_id`-filter blijft verplicht.
 - `docs/ARCHITECTURE.md` → "Leestoegang per rol": "gebouwd" + PR-nummer
-  toevoegen na merge (Docs).
+  toevoegen na merge (Docs). Gedaan: PR #156.
 
 ## Expliciet buiten scope
 
