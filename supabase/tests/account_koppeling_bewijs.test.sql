@@ -27,7 +27,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(83);
+select plan(87);
 
 -- ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -131,6 +131,8 @@ select v.id::uuid, '00000000-0000-0000-0000-000000000000',
     -- 17)-18) mark_member_invite_sent
     ('00000000-0000-0000-0000-0000000ac030', 'akb-iemand-anders@test.local', '', null),
     ('00000000-0000-0000-0000-0000000ac031', 'AKB-Uitnodig@test.local',    '', null),
+    -- 17b) auth-account zonder adres (bv. een telefoonaccount)
+    ('00000000-0000-0000-0000-0000000ac032', null,                         '', null),
     -- 20)-22) happy paths
     ('00000000-0000-0000-0000-0000000ac040', 'akb-happy@test.local',       '', now()),
     ('00000000-0000-0000-0000-0000000ac041', 'akb-magic@test.local',       '', now()),
@@ -218,6 +220,9 @@ insert into members (id, name, role, pin_hash, balance_cents, archived, email, i
   -- 16)-18): nog niet uitgenodigd.
   ('00000000-0000-0000-0000-0000000ac0b0', 'AKB Uitnodig', 'bardienst', null, 0, false,
    'akb-uitnodig@test.local', null, null, null),
+  -- 17a): nog niet uitgenodigd, zonder adres.
+  ('00000000-0000-0000-0000-0000000ac0b1', 'AKB Zonder Adres', 'bardienst', null, 0, false,
+   null, null, null, null),
   -- 20)-22): gemengde hoofdletters in members.email; echte pin_hash zodat de
   -- scrub-assertie niet vacuous is.
   ('00000000-0000-0000-0000-0000000ac0c0', 'AKB Happy', 'bardienst', crypt('1234', gen_salt('bf')), 0, false,
@@ -422,6 +427,28 @@ select ok(
   (select invited_at is null and invited_auth_user_id is null
      from members where id = '00000000-0000-0000-0000-0000000ac0b0'),
   'na invite_account_mismatch zijn invited_at en invited_auth_user_id ongewijzigd');
+
+-- 17a) Lid zonder adres. Zonder de `v_member.email is null`-guard wordt
+--      `lower(v_auth_email) <> lower(null)` null, niet true, en zou de
+--      uitnodiging aan een willekeurig account gebonden worden.
+select throws_ok(
+  $$ select mark_member_invite_sent('00000000-0000-0000-0000-0000000ac0b1', '00000000-0000-0000-0000-0000000ac031') $$,
+  'P0001', 'invite_account_mismatch',
+  'mark_member_invite_sent weigert een lid zonder adres (invite_account_mismatch)');
+select ok(
+  (select invited_at is null and invited_auth_user_id is null
+     from members where id = '00000000-0000-0000-0000-0000000ac0b1'),
+  'na invite_account_mismatch zonder lidadres zijn invited_at en invited_auth_user_id ongewijzigd');
+
+-- 17b) Auth-account zonder adres: zelfde null-val, nu aan de andere kant.
+select throws_ok(
+  $$ select mark_member_invite_sent('00000000-0000-0000-0000-0000000ac0b0', '00000000-0000-0000-0000-0000000ac032') $$,
+  'P0001', 'invite_account_mismatch',
+  'mark_member_invite_sent weigert een auth-account zonder adres (invite_account_mismatch)');
+select ok(
+  (select invited_at is null and invited_auth_user_id is null
+     from members where id = '00000000-0000-0000-0000-0000000ac0b0'),
+  'na invite_account_mismatch zonder auth-adres zijn invited_at en invited_auth_user_id ongewijzigd');
 
 -- 18) Happy: het account staat op het adres van het lid (andere
 --     hoofdletters).

@@ -8,7 +8,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(114);
+select plan(116);
 
 -- ── Sessie-helper (dienst per sessie, ADR 0016) ────────────────────────────
 -- De bar-RPC's eisen een geregistreerde bar-sessie met een actieve koppeling
@@ -221,6 +221,30 @@ select throws_ok(
   $$ select register_bar_session('beheer') $$,
   'P0001', 'session_ended',
   'een sessie-id dat al van een ander lid is, kan niet overgenomen worden (Auth-sessie van een ander account)'
+);
+
+-- De eigen Auth-sessie, maar de bar_sessions-rij met dat id staat op een
+-- ander lid. Langs de API kan die toestand niet ontstaan (register_bar_session
+-- zet altijd het eigen lid), maar de tak `v_session.member_id <> v_member.id`
+-- blijft de laatste verdediging. Rechtstreeks ingevoegd, langs de RPC om:
+-- e0d4 staat in auth.sessions op de aanroeper e0a3, de bar_sessions-rij op
+-- de bardienst e011.
+insert into auth.sessions (id, user_id, created_at, updated_at) values
+  ('00000000-0000-0000-0000-00000000e0d4', '00000000-0000-0000-0000-00000000e0a3', now(), now());
+insert into bar_sessions (auth_session_id, member_id, mode) values
+  ('00000000-0000-0000-0000-00000000e0d4', '00000000-0000-0000-0000-00000000e011', 'bar');
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000e0a3', true);
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000e0a3","session_id":"00000000-0000-0000-0000-00000000e0d4","aal":"aal2"}', true);
+select throws_ok(
+  $$ select register_bar_session('bar') $$,
+  'P0001', 'no_bar_role',
+  'eigen Auth-sessie, maar de bar-sessie met dat id staat op een ander lid: no_bar_role'
+);
+select is(
+  (select member_id from bar_sessions where auth_session_id = '00000000-0000-0000-0000-00000000e0d4'),
+  '00000000-0000-0000-0000-00000000e011'::uuid,
+  'de bar-sessie van het andere lid is niet overgenomen'
 );
 
 -- Beëindigd: niet opnieuw te registreren.

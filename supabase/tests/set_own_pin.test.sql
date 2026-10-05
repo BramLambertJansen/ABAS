@@ -28,7 +28,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(23);
+select plan(25);
 
 -- ── Fixtures ──────────────────────────────────────────────────────────
 
@@ -307,6 +307,22 @@ select throws_ok(
 select ok(
   (select crypt('3456', pin_hash) = pin_hash from members where id = '00000000-0000-0000-0000-000000000123'),
   'na de geweigerde aanroep zonder Auth-sessie is de PIN ongewijzigd'
+);
+
+-- 17) session_id van een bestaande Auth-sessie van een ander account: de
+-- bardienst (110) met de sessie van de beheerder (f314, op 114). Bewijst de
+-- `user_id = auth.uid()`-helft van de controle; 15 en 16 raken alleen het
+-- ontbreken van claim of rij.
+select pg_temp.claims('00000000-0000-0000-0000-000000000110', '00000000-0000-4000-8000-00000000f314');
+select throws_ok(
+  $$ select set_own_pin('2222') $$,
+  'P0001', 'actor_not_found',
+  'set_own_pin met de Auth-sessie van een ander account: actor_not_found'
+);
+select ok(
+  (select pin_hash is null or crypt('2222', pin_hash) <> pin_hash
+     from members where auth_user_id = '00000000-0000-0000-0000-000000000110'),
+  'na de geweigerde aanroep met een vreemde Auth-sessie is de PIN van de bardienst niet 2222'
 );
 
 select * from finish();
