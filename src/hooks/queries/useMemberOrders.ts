@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { reportClientError } from "@/lib/clientErrors";
 import { loadErrorMessage } from "@/lib/loadErrors";
@@ -32,8 +32,13 @@ export function useMemberOrders(
 ): State & { refetch: () => void } {
   const [state, setState] = useState<State>({ status: "loading" });
   const [tick, setTick] = useState(0);
+  // Laatste-request-wint: een late respons voor een oude dienst of een ander
+  // lid vervangt de data van de huidige niet (docs/features/
+  // leesfouten-herstel-actuele-data.md → Verouderde antwoorden).
+  const request = useRef(0);
 
   const load = useCallback(async () => {
+    const huidigeRequest = ++request.current;
     setState({ status: "loading" });
     try {
       const supabase = createClient();
@@ -60,8 +65,10 @@ export function useMemberOrders(
         };
       });
 
+      if (huidigeRequest !== request.current) return;
       setState({ status: "ready", orders });
     } catch (err) {
+      if (huidigeRequest !== request.current) return;
       reportClientError(createClient, "useMemberOrders", err);
       setState({
         status: "error",
@@ -72,11 +79,13 @@ export function useMemberOrders(
 
   useEffect(() => {
     let cancelled = false;
+    const requests = request;
     load().catch(() => {
       if (!cancelled) setState({ status: "error", message: "Onbekende fout." });
     });
     return () => {
       cancelled = true;
+      requests.current++;
     };
   }, [tick, load]);
 

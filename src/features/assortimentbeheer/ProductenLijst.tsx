@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { LeesFout } from "@/components/LeesFout";
+import { useLeesHerstel } from "@/hooks/useLeesHerstel";
 import {
   useAlleProducten,
   type AssortimentProduct,
@@ -23,6 +25,8 @@ const TOAST_DURATION_MS = 3500;
  */
 export function ProductenLijst() {
   const products = useAlleProducten();
+  const kopRef = useRef<HTMLHeadingElement>(null);
+  const herstel = useLeesHerstel(products, kopRef);
   const [overlay, setOverlay] = useState<
     { kind: "new" } | { kind: "manage"; product: AssortimentProduct } | null
   >(null);
@@ -41,7 +45,9 @@ export function ProductenLijst() {
   return (
     <>
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-[19px] font-extrabold tracking-[-0.02em]">Assortiment</h1>
+        <h1 ref={kopRef} tabIndex={-1} className="text-[19px] font-extrabold tracking-[-0.02em]">
+          Assortiment
+        </h1>
         <button
           type="button"
           onClick={() => setOverlay({ kind: "new" })}
@@ -62,16 +68,20 @@ export function ProductenLijst() {
         )}
       </div>
 
-      {products.status === "loading" && (
+      {products.status === "loading" && !herstel.toonFout && (
         <p className="text-sm font-semibold text-muted" role="status">
           Assortiment laden…
         </p>
       )}
 
-      {products.status === "error" && (
-        <p className="text-sm font-semibold text-danger" role="alert">
-          {products.message}
-        </p>
+      {herstel.toonFout && (
+        <LeesFout
+          tone="light"
+          className="items-start text-left"
+          message={herstel.message}
+          onRetry={herstel.retry}
+          bezig={herstel.bezig}
+        />
       )}
 
       {products.status === "ready" && products.products.length === 0 && (

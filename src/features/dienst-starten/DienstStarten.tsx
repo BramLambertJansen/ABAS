@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useLeesHerstel } from "@/hooks/useLeesHerstel";
 import { AuroraMerk } from "@/components/AuroraMerk";
 import {
   useActiviteitTypes,
@@ -58,6 +59,7 @@ function activityErrorMessage(code: StartShiftErrorCode): string {
 export function DienstStarten() {
   const sessie = useBarSessie();
   const activiteitTypes = useActiviteitTypes();
+  const typesHerstel = useLeesHerstel(activiteitTypes);
   const startShiftMutation = useStartShift();
   const [gekozen, setGekozen] = useState(false);
 
@@ -115,10 +117,10 @@ export function DienstStarten() {
           activityTypes={
             activiteitTypes.status === "ready" ? activiteitTypes.activityTypes : []
           }
-          loading={activiteitTypes.status === "loading"}
-          loadErrorMessage={
-            activiteitTypes.status === "error" ? activiteitTypes.message : null
-          }
+          loading={activiteitTypes.status === "loading" && !typesHerstel.toonFout}
+          loadErrorMessage={typesHerstel.toonFout ? typesHerstel.message : null}
+          onRetryLoad={typesHerstel.retry}
+          retryLoadBezig={typesHerstel.bezig}
           errorMessage={
             startShiftMutation.errorCode
               ? activityErrorMessage(startShiftMutation.errorCode) || null

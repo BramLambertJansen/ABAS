@@ -1,6 +1,8 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useId, useRef, useState } from "react";
+import { LeesFout } from "@/components/LeesFout";
+import { useLeesHerstel } from "@/hooks/useLeesHerstel";
 import {
   useAlleActiviteitTypes,
   type AlleActiviteitType,
@@ -70,6 +72,8 @@ function archivedErrorMessage(code: SetActivityTypeArchivedErrorCode): string {
  */
 export function ActiviteitstypesInstellingen() {
   const types = useAlleActiviteitTypes();
+  const kopRef = useRef<HTMLHeadingElement>(null);
+  const herstel = useLeesHerstel(types, kopRef);
   const createMutation = useCreateActivityType();
   const updateNameMutation = useUpdateActivityTypeName();
   const archivedMutation = useSetActivityTypeArchived();
@@ -144,7 +148,7 @@ export function ActiviteitstypesInstellingen() {
   return (
     <div className="flex max-w-md flex-col gap-4 rounded-card border border-border bg-white p-5">
       <div className="flex flex-col gap-1">
-        <h2 className="text-base font-extrabold tracking-tight">
+        <h2 ref={kopRef} tabIndex={-1} className="text-base font-extrabold tracking-tight">
           Activiteitstypes
         </h2>
         <p className="text-xs font-semibold text-muted">
@@ -157,16 +161,20 @@ export function ActiviteitstypesInstellingen() {
         {errorMessage ?? ""}
       </p>
 
-      {types.status === "loading" && (
+      {types.status === "loading" && !herstel.toonFout && (
         <p className="text-sm font-semibold text-muted" role="status">
           Activiteitstypes laden…
         </p>
       )}
 
-      {types.status === "error" && (
-        <p className="text-sm font-semibold text-danger" role="alert">
-          {types.message}
-        </p>
+      {herstel.toonFout && (
+        <LeesFout
+          tone="light"
+          className="items-start text-left"
+          message={herstel.message}
+          onRetry={herstel.retry}
+          bezig={herstel.bezig}
+        />
       )}
 
       {types.status === "ready" && types.activityTypes.length === 0 && (
