@@ -1371,7 +1371,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
 
     await product.click();
     await page.getByLabel("Zoek lid op naam").fill("Anna");
-    const memberOption = page.getByRole("button", { name: /Anna de Vries/i });
+    const memberOption = page.getByRole("option", { name: /Anna de Vries/i });
     await memberOption.waitFor({ state: "visible", timeout: 15_000 });
     await memberOption.click();
     await page.getByRole("button", { name: "Tik afrekenen" }).click();
@@ -1410,7 +1410,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
     await product.waitFor({ state: "visible", timeout: 15_000 });
     await product.click();
     await page.getByLabel("Zoek lid op naam").fill("Anna");
-    const memberOption = page.getByRole("button", { name: /Anna de Vries/i });
+    const memberOption = page.getByRole("option", { name: /Anna de Vries/i });
     await memberOption.waitFor({ state: "visible", timeout: 15_000 });
     await memberOption.click();
     await page.getByRole("button", { name: "Tik afrekenen" }).click();
@@ -1471,7 +1471,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
     await product.waitFor({ state: "visible", timeout: 15_000 });
     await product.click();
     await page.getByLabel("Zoek lid op naam").fill("Anna");
-    const memberOption = page.getByRole("button", { name: /Anna de Vries/i });
+    const memberOption = page.getByRole("option", { name: /Anna de Vries/i });
     await memberOption.waitFor({ state: "visible", timeout: 15_000 });
     await memberOption.click();
     await page.getByRole("button", { name: "Tik afrekenen" }).click();
@@ -1548,7 +1548,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
     await product.click();
 
     await page.getByLabel("Zoek lid op naam").fill("Anna");
-    const memberOption = page.getByRole("button", { name: /Anna de Vries/i });
+    const memberOption = page.getByRole("option", { name: /Anna de Vries/i });
     await memberOption.waitFor({ state: "visible", timeout: 15_000 });
     await memberOption.click();
 
@@ -1592,7 +1592,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
     // Verkoop is already the active/default tab.
 
     await page.getByLabel("Zoek lid op naam").fill("Anna");
-    const memberOption = page.getByRole("button", { name: /Anna de Vries/i });
+    const memberOption = page.getByRole("option", { name: /Anna de Vries/i });
     await memberOption.waitFor({ state: "visible", timeout: 15_000 });
     await memberOption.click();
 
@@ -1629,7 +1629,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
     await ensureShiftStarted(page);
 
     await page.getByLabel("Zoek lid op naam").fill("Anna");
-    const memberOption = page.getByRole("button", { name: /Anna de Vries/i });
+    const memberOption = page.getByRole("option", { name: /Anna de Vries/i });
     await memberOption.waitFor({ state: "visible", timeout: 15_000 });
     await memberOption.click();
 

@@ -52,7 +52,7 @@ async function verkoop(page: Page) {
   await page.getByRole("button", { name: /^Bar/ }).click();
   await expect(page.getByRole("heading", { name: "Bar", exact: true })).toBeVisible();
   await page.getByLabel("Zoek lid").fill("Betalend");
-  await page.getByRole("button", { name: /Betalend lid/ }).click();
+  await page.getByRole("option", { name: /Betalend lid/ }).click();
   await page.getByLabel("Zoek product", { exact: true }).fill("Pils");
   await page.getByRole("button", { name: /^Pils/ }).click();
   await page.getByRole("button", { name: "Eén Pils meer" }).click();
@@ -141,12 +141,16 @@ test("lidwisselveiligheid en nog niet afgeronde ledenzoekterm overleven tabwisse
   await page.getByLabel("Zoek lid").fill("Betalend");
   await heenEnTerug(page);
   await expect(page.getByLabel("Zoek lid")).toHaveValue("Betalend");
-  await page.getByRole("button", { name: /Betalend lid/ }).click();
+  // De lijst staat na een tabwissel gesloten tot de eerste toets of ArrowDown (T07).
+  await page.getByLabel("Zoek lid").press("ArrowDown");
+  await page.getByRole("option", { name: /Betalend lid/ }).click();
   await expect(page.getByText("2 stuks", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "wissel", exact: true }).click();
   await heenEnTerug(page);
   await page.getByLabel("Zoek lid").fill("Ander");
-  await page.getByRole("button", { name: /Ander lid/ }).click();
+  await page.getByRole("option", { name: /Ander lid/ }).click();
+  // Een ander lid met een gevuld mandje vraagt eerst een bevestiging (T07).
+  await page.getByRole("button", { name: "Wissen en kiezen" }).click();
   await expect(page.getByText("nog niets getikt", { exact: true })).toBeVisible();
 });
 

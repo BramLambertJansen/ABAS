@@ -28,3 +28,17 @@ export function applyDelta(
 export function removeLine(lines: CartLine[], productId: string): CartLine[] {
   return lines.filter((line) => line.productId !== productId);
 }
+
+/** Wist het kiezen van dit lid het mandje? Eén regel voor `chooseMember`
+ *  (doet het wissen) en `Mandje` (toont daarvoor eerst de bevestiging).
+ *  Alleen bij een ánder lid dan het laatst gekozen lid én een gevuld mandje:
+ *  zonder eerder lid of met hetzelfde lid blijft het mandje staan (geen
+ *  afrekening bij de verkeerde betaler, docs/features/verkoop.md → §2).
+ *  `lastMemberId` overleeft "wissel", `selectedMemberId` niet. */
+export function lidwisselWistMandje(
+  lastMemberId: string | null,
+  memberId: string,
+  aantalRegels: number
+): boolean {
+  return lastMemberId !== null && lastMemberId !== memberId && aantalRegels > 0;
+}

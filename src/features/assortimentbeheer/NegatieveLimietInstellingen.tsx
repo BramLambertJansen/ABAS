@@ -1,12 +1,15 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { VeldFout } from "@/components/TekstVeld";
+import { useVeldMoment } from "@/hooks/useVeldMoment";
 import { useAppSettings } from "@/hooks/queries/useAppSettings";
 import {
   useUpdateNegativeLimit,
   type UpdateNegativeLimitErrorCode,
 } from "@/hooks/queries/useUpdateNegativeLimit";
 import { formatCents, parseEuroToCents } from "@/lib/money";
+import { bedragFout, bedragFoutTekst } from "@/lib/veldFouten";
 
 const TOAST_DURATION_MS = 3500;
 
@@ -42,6 +45,8 @@ export function NegatieveLimietInstellingen() {
   const [customAmount, setCustomAmount] = useState("");
   const [toast, setToast] = useState<string | null>(null);
   const inputId = useId();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const moment = useVeldMoment();
 
   useEffect(() => {
     if (!toast) return;
@@ -77,8 +82,14 @@ export function NegatieveLimietInstellingen() {
 
   const parsedCustomCents =
     customAmount.trim() === "" ? null : parseEuroToCents(customAmount);
-  const canSaveCustom =
-    parsedCustomCents !== null && parsedCustomCents >= 0 && !pending;
+  // €0 ("geen") is geldig. Een ongeldig bedrag schakelt de knop niet uit: een
+  // tik toont de melding. Uit blijft: niets ingevuld of een lopend verzoek.
+  const customSoort = bedragFout(customAmount, { optioneel: true, nulToegestaan: true });
+  const customMelding =
+    customSoort !== null && (moment.pogingGedaan || moment.aangeraakt)
+      ? bedragFoutTekst(customSoort)
+      : null;
+  const canSaveCustom = customAmount.trim() !== "" && !pending;
 
   async function apply(cents: number) {
     if (pending) return;
@@ -178,25 +189,38 @@ export function NegatieveLimietInstellingen() {
           Ander bedrag
         </label>
         <input
+          ref={inputRef}
           id={inputId}
+          aria-invalid={customMelding ? true : undefined}
+          aria-describedby={customMelding ? `${inputId}-fout` : undefined}
+          onBlur={moment.bijBlur}
           type="text"
           inputMode="decimal"
           placeholder="ander bedrag"
           value={customAmount}
-          onChange={(event) => setCustomAmount(event.target.value)}
+          onChange={(event) => {
+            setCustomAmount(event.target.value);
+            moment.bijWijzig();
+          }}
           className="h-12 flex-1 min-w-0 rounded-control border border-border px-3.5 text-sm font-semibold text-ink outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
         />
         <button
           type="button"
           disabled={!canSaveCustom}
           onClick={() => {
-            if (parsedCustomCents !== null) apply(parsedCustomCents);
+            if (customSoort !== null || parsedCustomCents === null) {
+              moment.bijPoging();
+              inputRef.current?.focus();
+              return;
+            }
+            apply(parsedCustomCents);
           }}
           className="flex h-12 items-center justify-center rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-track disabled:text-muted"
         >
           opslaan
         </button>
       </div>
+      <VeldFout id={`${inputId}-fout`} tekst={customMelding} alert={moment.pogingAlert} />
 
       <div className="h-px bg-border-subtle" />
 

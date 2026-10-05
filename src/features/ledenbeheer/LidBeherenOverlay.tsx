@@ -35,7 +35,9 @@ import {
 } from "@/hooks/queries/useSendMemberInvite";
 import type { LedenbeheerLid } from "@/hooks/queries/useAlleLeden";
 import { formatCents } from "@/lib/money";
-import { isValidEmailFormat } from "@/lib/email";
+import { EMAIL_ONGELDIG_TEKST, emailFout } from "@/lib/veldFouten";
+import { VeldFout } from "@/components/TekstVeld";
+import { useVeldMoment } from "@/hooks/useVeldMoment";
 import { formatDate } from "@/lib/date";
 import { RATE_LIMITED_MESSAGE } from "@/lib/authErrors";
 
@@ -249,14 +251,22 @@ export function LidBeherenOverlay({
 
   const trimmedEmail = emailInput.trim();
   const currentEmail = member.email ?? "";
-  const emailFormatValid = trimmedEmail === "" || isValidEmailFormat(trimmedEmail);
-  const canSaveEmail =
-    trimmedEmail !== currentEmail &&
-    emailFormatValid &&
-    !busy;
+  const emailMoment = useVeldMoment();
+  const emailSoort = emailFout(emailInput);
+  const emailMelding =
+    emailSoort !== null && (emailMoment.pogingGedaan || emailMoment.aangeraakt)
+      ? EMAIL_ONGELDIG_TEKST
+      : null;
+  // Een ongeldig adres schakelt de knop niet uit: een tik toont de melding.
+  const canSaveEmail = trimmedEmail !== currentEmail && !busy;
 
   async function saveEmail() {
     if (!canSaveEmail) return;
+    if (emailSoort !== null) {
+      emailMoment.bijPoging();
+      emailInputRef.current?.focus();
+      return;
+    }
     const result = await emailMutation.updateMemberEmail(
       member.id,
       trimmedEmail === "" ? null : trimmedEmail
@@ -420,8 +430,12 @@ export function LidBeherenOverlay({
             type="email"
             value={emailInput}
             readOnly={emailBusy}
+            aria-invalid={emailMelding ? true : undefined}
+            aria-describedby={emailMelding ? `${emailId}-fout` : undefined}
+            onBlur={emailMoment.bijBlur}
             onChange={(event) => {
               setEmailInput(event.target.value);
+              emailMoment.bijWijzig();
               if (emailMutation.errorCode) emailMutation.reset();
             }}
             className="h-11 flex-1 min-w-0 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink outline-none focus:border-accent"
@@ -435,6 +449,7 @@ export function LidBeherenOverlay({
             {emailBusy ? OPSLAAN_BEZIG_TEKST : "Opslaan"}
           </button>
         </div>
+        <VeldFout id={`${emailId}-fout`} tekst={emailMelding} alert={emailMoment.pogingAlert} />
       </OpslaanSectie>
 
       <OpslaanSectie

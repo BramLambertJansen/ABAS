@@ -11,6 +11,9 @@ import {
 } from "@/hooks/queries/useCreateProduct";
 import type { AssortimentProduct } from "@/hooks/queries/useAlleProducten";
 import { parseEuroToCents } from "@/lib/money";
+import { bedragFout, bedragFoutTekst } from "@/lib/veldFouten";
+import { VeldFout } from "@/components/TekstVeld";
+import { useVeldMoment } from "@/hooks/useVeldMoment";
 import { PRODUCT_CATEGORIES } from "./categories";
 
 function errorMessage(code: CreateProductErrorCode): string {
@@ -61,15 +64,23 @@ export function NieuwProductOverlay({
   }
 
   const priceCents = parseEuroToCents(priceInput);
-  const canSubmit =
-    name.trim() !== "" &&
-    category !== null &&
-    priceCents !== null &&
-    priceCents > 0 &&
-    !pending;
+  const priceInputRef = useRef<HTMLInputElement>(null);
+  const priceMoment = useVeldMoment();
+  const priceSoort = bedragFout(priceInput);
+  const priceMelding =
+    priceSoort !== null && (priceMoment.pogingGedaan || priceMoment.aangeraakt)
+      ? bedragFoutTekst(priceSoort, "prijs")
+      : null;
+  // Een ongeldige prijs schakelt de knop niet uit: een tik toont de melding.
+  const canSubmit = name.trim() !== "" && category !== null && !pending;
 
   async function submit() {
-    if (!canSubmit || category === null || priceCents === null) return;
+    if (!canSubmit || category === null) return;
+    if (priceSoort !== null || priceCents === null) {
+      priceMoment.bijPoging();
+      priceInputRef.current?.focus();
+      return;
+    }
     const product = await createProduct.createProduct(name, category, priceCents);
     if (product) {
       onCreated(product);
@@ -146,7 +157,11 @@ export function NieuwProductOverlay({
             €
           </span>
           <input
+            ref={priceInputRef}
             id={priceId}
+            aria-invalid={priceMelding ? true : undefined}
+            aria-describedby={priceMelding ? `${priceId}-fout` : undefined}
+            onBlur={priceMoment.bijBlur}
             type="text"
             inputMode="decimal"
             placeholder="0,00"
@@ -154,11 +169,13 @@ export function NieuwProductOverlay({
             readOnly={pending}
             onChange={(event) => {
               setPriceInput(event.target.value);
+              priceMoment.bijWijzig();
               wijzig();
             }}
             className="h-12 flex-1 min-w-0 bg-transparent text-sm font-semibold text-ink outline-none"
           />
         </div>
+        <VeldFout id={`${priceId}-fout`} tekst={priceMelding} alert={priceMoment.pogingAlert} />
       </div>
 
       <div className="flex gap-2.5">

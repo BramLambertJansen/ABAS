@@ -108,7 +108,7 @@ for (const crew of [["no-pin"], ["pin", "no-pin"]]) {
     await page.getByRole("tab", { name: "Verkoop" }).click();
     await page.getByRole("button", { name: /^Pils,/ }).click();
     await page.getByLabel("Zoek lid op naam").fill("Betalend");
-    await page.getByRole("button", { name: /Betalend lid/ }).click();
+    await page.getByRole("option", { name: /Betalend lid/ }).click();
     await page.getByRole("button", { name: "Tik afrekenen" }).click();
     const checkout = page.getByRole("dialog", { name: /^Afrekenen bij/ });
     if (crew.length > 1) {
@@ -120,7 +120,7 @@ for (const crew of [["no-pin"], ["pin", "no-pin"]]) {
     await checkout.getByRole("button", { name: "ja, afrekenen" }).click();
     await expect(checkout).toBeHidden();
     await page.getByLabel("Zoek lid op naam").fill("Betalend");
-    await page.getByRole("button", { name: /Betalend lid/ }).click();
+    await page.getByRole("option", { name: /Betalend lid/ }).click();
     await page.getByRole("button", { name: /opwaarderen/i }).click();
     const topup = page.getByRole("dialog", { name: /^Saldo opwaarderen bij/ });
     await topup.getByLabel("Ander bedrag").fill("5");

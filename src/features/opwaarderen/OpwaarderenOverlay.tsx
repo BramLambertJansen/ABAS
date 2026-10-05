@@ -1,12 +1,15 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
+import { VeldFout } from "@/components/TekstVeld";
+import { useVeldMoment } from "@/hooks/useVeldMoment";
 import { useHerstelFocus } from "@/hooks/useHerstelFocus";
 import { Overlay } from "@/components/Overlay";
 import { BezettingKeuze } from "@/components/BezettingKeuze";
 import { OnbekendeUitkomstMelding } from "@/components/OnbekendeUitkomstMelding";
 import { useOpslaanBlokkade } from "@/hooks/useOpslaanBlokkade";
 import { formatCents, parseEuroToCents } from "@/lib/money";
+import { bedragFout, bedragFoutTekst } from "@/lib/veldFouten";
 import { useTopUp, type TopUpErrorCode } from "@/hooks/queries/useTopUp";
 import type { MemberOption } from "@/hooks/queries/useMembers";
 import type { ShiftMember } from "@/hooks/queries/useShiftMembers";
@@ -75,12 +78,35 @@ export function OpwaarderenOverlay({
   const customAmountCents =
     customAmount.trim() === "" ? null : parseEuroToCents(customAmount);
   const amountCents = customAmount.trim() !== "" ? customAmountCents : selectedChipCents;
-  const hasValidAmount = amountCents !== null && amountCents > 0;
-  // Boven de harde grens: knop uit, inline uitleg. `top_up` weigert dit ook
+  // Veldmelding (docs/features/invoerfeedback-zoeken-filters.md): welke soort
+  // fout het bedrag heeft, zonder iets te berekenen — `parseEuroToCents`
+  // beslist de waarde. Zonder chip en zonder tekst is het veld `leeg`.
+  const customBlank = customAmount.trim() === "";
+  const veldFout =
+    !customBlank
+      ? bedragFout(customAmount, { maxCents: TOP_UP_MAX_CENTS })
+      : selectedChipCents === null
+        ? "leeg"
+        : null;
+  // Boven de harde grens: direct inline uitleg. `top_up` weigert dit ook
   // server-side met `amount_exceeds_max` (0016_top_up_maximumbedrag.sql) —
   // dit is de UX-helft, niet de afdwinging.
-  const amountTooHigh = amountCents !== null && amountCents > TOP_UP_MAX_CENTS;
-  const amountBookable = hasValidAmount && !amountTooHigh;
+  const amountTooHigh = veldFout === "tehoog";
+  const amountBookable = veldFout === null && amountCents !== null;
+  // Moment van tonen: tehoog direct; de rest na blur of een poging; "leeg"
+  // alleen na een poging. Herstel is direct (de fout volgt de invoer).
+  const { aangeraakt, pogingGedaan, pogingAlert, bijBlur, bijWijzig, bijPoging } =
+    useVeldMoment();
+  const toonFout =
+    veldFout !== null &&
+    (amountTooHigh || pogingGedaan || (aangeraakt && veldFout !== "leeg"));
+  const veldMelding =
+    !toonFout || veldFout === null
+      ? null
+      : veldFout === "tehoog"
+        ? topUpAmountTooHighMessage()
+        : bedragFoutTekst(veldFout);
+  const bedragInputRef = useRef<HTMLInputElement>(null);
   const needsConfirmation =
     amountCents !== null && amountCents > TOP_UP_CONFIRM_THRESHOLD_CENTS;
 
@@ -100,8 +126,9 @@ export function OpwaarderenOverlay({
   // niet pas na de RPC zichtbaar wordt (zelfde verdeling als de €500): `top_up`
   // weigert het ook zelf (`self_top_up_forbidden`).
   const isSelf = sessie.session !== null && member.id === sessie.session.memberId;
-  const bookDisabled =
-    !amountBookable || !effectiveServedBy || inVlucht || isSelf || uitkomstOnbekend;
+  // Een ongeldig bedrag schakelt de knop niet uit: een tik toont de melding
+  // (veldverklaring). Uit blijft alleen wat het veld niet verklaart.
+  const bookDisabled = !effectiveServedBy || inVlucht || isSelf || uitkomstOnbekend;
 
   // Elke bedragswijziging trekt een openstaande bevestiging in: anders zou
   // een bevestigd bedrag blijven staan terwijl er inmiddels een ander bedrag
@@ -109,6 +136,7 @@ export function OpwaarderenOverlay({
   function chooseChip(cents: number) {
     setSelectedChipCents(cents);
     setCustomAmount("");
+    bijWijzig();
     setConfirming(false);
   }
 
@@ -117,7 +145,15 @@ export function OpwaarderenOverlay({
   // de operator dezelfde opwaardering dubbel indienen vóórdat de eerste
   // aanroep klaar is.
   async function handleBook() {
-    if (!amountBookable || !effectiveServedBy || inVlucht || isSelf || uitkomstOnbekend) return;
+    if (!effectiveServedBy || inVlucht || isSelf || uitkomstOnbekend) return;
+
+    // Poging met een ongeldig bedrag: toon de melding en zet de focus op het veld.
+    if (!amountBookable || amountCents === null) {
+      bijPoging();
+      setConfirming(false);
+      bedragInputRef.current?.focus();
+      return;
+    }
 
     // Eerste tik op een groot bedrag boekt niet, maar vraagt na. Pas de
     // tweede tik ("ja, … boeken") komt hier voorbij.
@@ -240,6 +276,7 @@ export function OpwaarderenOverlay({
             Ander bedrag
           </label>
           <input
+            ref={bedragInputRef}
             id="opwaarderen-bedrag"
             type="text"
             inputMode="decimal"
@@ -248,10 +285,12 @@ export function OpwaarderenOverlay({
             onChange={(e) => {
               setCustomAmount(e.target.value);
               setSelectedChipCents(null);
+              bijWijzig();
               setConfirming(false);
             }}
-            aria-describedby={amountTooHigh ? amountLimitId : undefined}
-            aria-invalid={amountTooHigh || undefined}
+            onBlur={bijBlur}
+            aria-describedby={veldMelding ? amountLimitId : undefined}
+            aria-invalid={veldMelding ? true : undefined}
             className="h-12 min-w-0 flex-1 rounded-[13px] border border-border bg-white px-3.5 text-[13.5px] font-semibold text-ink outline-none placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
           />
           <button
@@ -268,15 +307,11 @@ export function OpwaarderenOverlay({
                 : "boeken"}
           </button>
         </div>
-        {amountTooHigh && (
-          <p
-            id={amountLimitId}
-            className="text-xs font-bold text-danger"
-            role="alert"
-          >
-            {topUpAmountTooHighMessage()}
-          </p>
-        )}
+        <VeldFout
+          id={amountLimitId}
+          tekst={veldMelding}
+          alert={amountTooHigh || pogingAlert}
+        />
       </div>
 
       {/* Geen min-hoogte: leeg neemt deze regel geen ruimte in (het lege
