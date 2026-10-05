@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { BarInloggen } from "@/features/bar-inloggen/BarInloggen";
 import { DienstStarten } from "@/features/dienst-starten/DienstStarten";
 import { DienstTabs } from "@/features/verkoop/DienstTabs";
+import { useFocusNaFaseFout } from "@/hooks/useFocusNaFaseFout";
 import { BarSessieProvider } from "./BarSessieProvider";
 import { useBarSessie } from "./BarSessieContext";
 import { HervatScherm } from "./HervatScherm";
@@ -29,6 +30,8 @@ function BarSchermen() {
   useEffect(() => {
     if (beheerSessie) router.replace("/beheer");
   }, [beheerSessie, router]);
+
+  useFocusNaFaseFout(sessie.fase);
 
   switch (sessie.fase) {
     case "laden":

@@ -215,6 +215,9 @@ test.describe("bar: fase fout en fail-closed", () => {
     await retry.click();
     await expect(alertOf(page).filter({ hasText: /\S/ })).toHaveCount(0);
     if (focusEis) {
+      // Eerst het herstelde scherm afwachten: tijdens `laden` is er ook geen alert.
+      await expect(page.getByText("Bezig met laden…")).toHaveCount(0);
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
       expect(await page.evaluate(() => document.activeElement === document.body)).toBe(false);
     }
   }
@@ -223,11 +226,7 @@ test.describe("bar: fase fout en fail-closed", () => {
     await faseFout(page, false);
   });
 
-  // BEKENDE BUG (T08-review): BarApp fase `fout` gebruikt een eigen knop zonder
-  // focusherstel; na een geslaagde retry staat de focus op body (spec besluit 9,
-  // "focus nooit op body"). Zodra dit is opgelost faalt `test.fail` en moet het
-  // een gewone test worden.
-  test.fail("fase fout: na een geslaagde retry staat de focus niet op body", async ({ page }) => {
+  test("fase fout: na een geslaagde retry staat de focus niet op body", async ({ page }) => {
     await faseFout(page, true);
   });
 
