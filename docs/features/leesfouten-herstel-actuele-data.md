@@ -752,7 +752,6 @@ De gemockte tests dekken dit niet; er wordt niets over beweerd.
 - Stale-while-revalidate op de bar (nu bewust fail-closed, besluit 2).
 - Verlopen-sessiemelding.
 - De module-vlag in `useFocusNaFaseFout` robuuster maken.
-- Het `PortalShellHome`-deel na #115.
 
 ### ADR
 

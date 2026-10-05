@@ -443,9 +443,9 @@ de punten waar de bouw afwijkt of iets toevoegt (de waarheid voor toekomstig wer
 
 ## Open vragen
 
-Geen over geld of beleid. Enige technische controle voor de Developer: besluit
-7 (welke supabase-js-helper retryable fetch-fouten betrouwbaar herkent); zo
-niet, dan blijft dat deel buiten de PR en wordt het gemeld.
+Geen over geld of beleid. De technische controle van besluit 7 is uitgevoerd:
+`isAuthRetryableFetchError` herkent retryable fetch-fouten betrouwbaar in de
+geïnstalleerde auth-js en is gebouwd (zie "Zoals gebouwd").
 
 ## Expliciet buiten scope
 
@@ -459,7 +459,10 @@ niet, dan blijft dat deel buiten de PR en wordt het gemeld.
   service-worker caching.
 - RPC's, RLS, migraties, schema, PIN-beleid of auth-instellingen.
 - Wijzigingen aan `PortalLogin` buiten het doorgeven van `deniedMessage`
-  (ongewijzigd).
+  (ongewijzigd). *Zoals gebouwd:* bij de bouw is hier bewust één uitzondering
+  op gemaakt: de optionele prop `meldingRef` en `tabIndex={-1}` op de
+  `role="alert"`-regel, zodat de focus bij error → denied niet op `body` valt
+  (zie "Zoals gebouwd").
 
 ## Bestanden (indicatie voor de Developer)
 
