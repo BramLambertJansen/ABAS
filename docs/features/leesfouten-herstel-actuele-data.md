@@ -1,11 +1,11 @@
 # Herstelbare leesfouten en actuele portaldata
 
-**Status: goedgekeurd (Architect namens Bram, 2026-10-05) voor het bouwklare
-deel (zie "Wat wel en niet gebouwd wordt").** Nog niet gebouwd. Bram heeft
-voor dit ticket uitdrukkelijk gezegd dat de Architect de keuzes zelf maakt
-(de "stel de vraag en wacht"-regel uit `CLAUDE.md` is hier opgeheven); de
-keuzes staan onder "Besluiten Architect" en zijn de conservatiefste
-variant waar het kon.
+**Status: deels gebouwd (PR #159, a34bed6): alles behalve het
+PortalShellHome-deel, dat wacht op #115.** Zie "Zoals gebouwd" onderaan.
+Goedgekeurd door de Architect namens Bram (2026-10-05). Bram heeft voor dit
+ticket uitdrukkelijk gezegd dat de Architect de keuzes zelf maakt (de "stel de
+vraag en wacht"-regel uit `CLAUDE.md` is hier opgeheven); de keuzes staan onder
+"Besluiten Architect" en zijn de conservatiefste variant waar het kon.
 
 Spec voor [issue #128](https://github.com/BramLambertJansen/ABAS/issues/128)
 (frontend T08 · P2, epic #121, findings F13 en F14, labels `bug`,
@@ -503,7 +503,7 @@ bar-herstelknoppen, e-mailingang) kunnen eerder.
 
 | Geval | Gedrag |
 |---|---|
-| Portal open, bardienst boekt een bestelling | Bij terugkeer naar het tabblad ververst Saldo (na 30 s of ouder) automatisch; anders via "Verversen". Label toont de nieuwe tijd. |
+| Portal open, bardienst boekt een bestelling | Bij terugkeer naar het tabblad ververst Saldo automatisch als de laatste geslaagde lezing 30 s of ouder is, of direct als er nog geen geslaagde lezing is of de laatste poging mislukte; anders via "Verversen". Label toont de nieuwe tijd. |
 | Verbinding valt weg, `online` volgt | Terugkeer ververst direct (behalve als er al een lezing loopt). |
 | Verversen mislukt, data was er | Data blijft, melding "Verversen mislukt…", knop blijft; laag-saldokaart gebruikt de laatst bekende drempel. |
 | Allereerste lezing mislukt | `LeesFout` met "Opnieuw proberen", geen verversregel (er is nog geen tijdstip). |
@@ -619,3 +619,136 @@ eerst:**
   staat: T09-presentatie (badge "Teruggedraaid", "Door:"/"Reden:", maand-
   groepen, tijdzone) en de mount-per-tab-regel blijven ongewijzigd; alleen de
   data-/statuslaag eronder en de regel boven de tabinhoud veranderen.
+
+## Zoals gebouwd
+
+PR #159 (`Part of #128`, sluit #128 niet), gemerged als `a34bed6`. Alles
+hieronder is gecontroleerd tegen de code op `main`. Afwijkingen van de spec
+staan er expliciet bij.
+
+### Onderdelen en hun plek
+
+- `src/lib/verversen.ts` (puur, getest in `test/verversen.test.ts`):
+  `moetVerversen`, `bijgewerktLabel` (plus `tijdLabel`, `verversMisluktTekst`,
+  `VERVERS_TEKSTEN`, `MIN_VERVERS_INTERVAL_MS` = 30 s), de stale-machine
+  (`LezingState`, `lezingGestart`, `lezingGeslaagd`, `lezingMislukt`,
+  `verversInfo`) en `maakRondeGuard` (laatste-request-wint). `PORTAL_TIME_ZONE`
+  is hierheen verhuisd uit `src/features/portal-dashboard/transacties.ts`, dat
+  hem nu importeert (geen re-export; de enige andere gebruiker is de test).
+- `src/hooks/queries/useStaleLezing.ts`: de ene machine achter
+  `usePortalBalance`, `usePortalTransactions` en `usePortalAppSettings`
+  (de drie portalhooks). Stale-while-revalidate: een mislukte verversing vanuit
+  `ready` houdt de data en zet `ververs.mislukt`; een mislukte eerste ronde of
+  retry is `error`. Bevat ook `VasteLeesFout`. Roept zelf geen Supabase aan.
+- `src/components/LeesFout.tsx` (foutregel `role="alert"` plus "Opnieuw
+  proberen", tone `light`/`rail`, `aria-disabled` tijdens bezig, 44px) en
+  `src/components/VerversStatus.tsx` ("Bijgewerkt om HH:mm", knop "Verversen",
+  mislukt-regel `role="status"`).
+- `src/hooks/useVerversBijTerugkeer.ts`: listeners op `visibilitychange` en
+  `online`, beslist via `moetVerversen`; geen polling.
+- `src/hooks/useFocusNaHerstel.ts`: focus naar de herstelde sectie (via
+  `useHerstelFocus`) na een fout die `ready` wordt, alleen als de focus op
+  `body` stond.
+- `src/hooks/useLeesHerstel.ts`: voor de bar-leeshooks (fail-closed, `refetch`
+  zet `loading`): houdt de fout en een `aria-disabled` knop zichtbaar tijdens
+  de retry (`toonFout`, `message`, `bezig`, `retry`) en roept
+  `useFocusNaHerstel` aan.
+- `src/hooks/useFocusNaFaseFout.ts` (nieuw, niet in de spec): aangeroepen in
+  `BarApp.tsx` (`BarSchermen`) en `Assortimentbeheer.tsx` (`BeheerSchermen`)
+  met `sessie.fase`. De sessiefase `fout` heeft daar een eigen "Opnieuw
+  proberen"-knop (geen `LeesFout`); na een geslaagde retry verdween die knop en
+  viel de focus op `body`. Het hook focust dan de `h1` van het herstelde scherm
+  (anders het eerste `main button/a/input`), alleen als de focus echt verloren
+  is; `laden` tijdens de retry telt nog als dezelfde fout.
+  `useFocusNaHerstel` kon niet hergebruikt worden: dat werkt met een
+  `status` van een leeshook en een sectie-ref, terwijl hier de fase van de
+  sessieprovider wisselt, de hele boom (en dus het ref-doel en de hook-instantie)
+  verdwijnt, en `Assortimentbeheer` na succes doorverwijst naar `/` (een
+  nieuwe `BarApp`-mount). Daarom staat `hadFout` op module-niveau en niet in
+  een `useRef`.
+- Portal: `SaldoTab` (een `VerversStatus` en een knop voor saldo, instellingen
+  en transacties; label = oudste `bijgewerktOp`) en `TransactiesTab` (alleen de
+  transacties), beide met `useVerversBijTerugkeer`, `LeesFout` voor een
+  mislukte eerste lezing en `useFocusNaHerstel`.
+- Bar-herstelknoppen (`LeesFout` via `useLeesHerstel`): `VerkoopScherm`
+  (assortiment, leden, bezetting, instellingen; `Mandje` en `LidZoeker` kregen
+  `onRetry`-props), `ActiviteitKeuze` via `DienstStarten` (met
+  `useFocusNaHerstel`), `DienstActief` (bezetting), `Transactielijst`
+  (dienst-overzicht), `LedenLijst`, `LogboekLijst`, `ProductenLijst`,
+  `ActiviteitstypesInstellingen`, `NegatieveLimietInstellingen` en
+  `LidBestellingenOverlay`. De parameter-hooks `useShiftMembers`,
+  `useShiftLedger`, `useShiftSummary` en `useMemberOrders` kregen een
+  laatste-request-wint-teller.
+- `BarInloggen`: de "Inloggen met e-mail"-link (`emailIngang`) staat bij
+  laden, bij een fout en bij de lijst (besluit 7); de namenfout gebruikt
+  `LeesFout` (tone `rail`) via `useLeesHerstel`, de `h1` is de focusdoel.
+  In de sessiefase `fout` is er bewust geen e-mailingang of uitlogknop.
+
+### Besluiten
+
+De 15 besluiten onder "Besluiten Architect" zijn namens Bram door de Architect
+genomen (2026-10-05) en zijn zo gebouwd, behalve de besluiten (of delen
+daarvan) die aan `usePortalSession` en `PortalShellHome` hangen en op #115
+wachten (zie "Niet gebouwd" hieronder):
+
+- **Besluit 1:** de foutclassificatie van `usePortalSession` is van #115 en dus
+  niet gebouwd.
+- **Besluit 6, deels:** de laatste-request-wint-guard in de portalhooks is er;
+  `key={userId}` op `PortalDashboard` niet.
+- **Besluit 14:** de achtergrondlookup die een ingelogd dashboard laat staan
+  (geen terugval naar `loading` of fout) is niet gebouwd. Zolang #115 openstaat
+  geldt dit gedrag dus nog niet; de randgevallenregel "Auth-event bij
+  tabterugkeer terwijl lookup faalt" beschrijft het beoogde, nog niet gebouwde
+  gedrag.
+
+### Niet gebouwd: wacht op #115
+
+Het `PortalShellHome`-deel: `userId` in de `signed-in`-staat plus
+`key={userId}` op `PortalDashboard`, de achtergrondlookup die niet terugvalt
+naar `loading`/fout, de `getSession`-catch, en de foutclassificatie van
+`usePortalSession`. `usePortalSession.ts` en `PortalShellHome.tsx` zijn
+onaangeroerd; #115 is de eigenaar.
+
+### Bewust buiten scope gebleven
+
+`useBeheerSession`, #78, #51, #67 en een verlopen-sessiemelding (besluit 12).
+
+### Tester en Reviewer
+
+- **Tester-bevinding:** na een geslaagde retry in sessiefase `fout` viel de
+  focus op `body`. De test liep via `Assortimentbeheer`, niet alleen `BarApp`;
+  vandaar dat `useFocusNaFaseFout` in beide schermen staat (commit `0c590bc`,
+  de eerdere `test.fail` werd een gewone test).
+- **Aangepaste test:** "tabpanel zonder focusbare inhoud is zelf een
+  tabstop" (`e2e/dialogen-tabs-landmarks.spec.ts`) houdt nu de saldo-,
+  instellingen- en transactielezing open (mock), zodat het panel nog geen
+  focusbare inhoud heeft. Met data staat er sinds T08 een "Verversen"-knop;
+  een nieuwe test dekt dat geval (panel zelf geen tabstop). Legitiem: de
+  inhoud van het panel veranderde, niet de tabregel.
+- **Reviewer-oordeel:** alleen de PR-tekst was onjuist; die is hersteld. De
+  code is akkoord bevonden.
+
+### Bekend laag risico
+
+De module-level `hadFout`-vlag in `useFocusNaFaseFout` overleeft een
+unmount. Bij een latere mount kan de focus daardoor van `body` naar de `h1`
+springen (bijvoorbeeld na uit- en inloggen zonder reload, terwijl de vlag nog
+`true` stond). Dit randgeval is niet getest.
+
+### Niet live geverifieerd
+
+Echte barboeking op client A met verversing op client B, vliegtuigmodus en
+herstel, en het gedrag van `visibilitychange`/`online` op Safari en Android.
+De gemockte tests dekken dit niet; er wordt niets over beweerd.
+
+### Backlog en follow-ups
+
+- Live e2e "bardienst boekt, lid-portal ververst".
+- Stale-while-revalidate op de bar (nu bewust fail-closed, besluit 2).
+- Verlopen-sessiemelding.
+- De module-vlag in `useFocusNaFaseFout` robuuster maken.
+- Het `PortalShellHome`-deel na #115.
+
+### ADR
+
+Geen ADR bij dit ticket (besluit 15), dus ook niets af te sluiten.
