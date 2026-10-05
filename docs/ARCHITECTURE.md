@@ -291,6 +291,25 @@ stands. Shared pieces, all additive to the T05 contract:
 Consequence: a truly hanging money request keeps its dialog blocked until
 reload. Not covered: `TweestapSheet`, manual Safari/touch/screen-reader run.
 
+**Invoerfeedback, ledenzoeker en productfilters (built and merged, #127, PR #152,
+`3a8d13e`; `docs/features/invoerfeedback-zoeken-filters.md`)**: no ADR, no
+database, RPC or policy change. Shared pieces:
+- `src/lib/veldFouten.ts`: classification only (which message fits an invalid
+  amount or e-mail). The value stays with `parseEuroToCents`; no amount is
+  computed here.
+- `src/hooks/useVeldMoment.ts`: when a field error becomes visible (blur or
+  attempt).
+- `src/components/TekstVeld.tsx`: additive `fout`/`foutAlert`/`hint` props and
+  the exported `VeldFout`. Primary buttons are no longer `disabled` on an
+  invalid amount or e-mail; the attempt shows the error.
+- `src/components/LidZoeker.tsx`: the member search as a combobox.
+- `src/hooks/useListbox.ts`: keyboard and active-option logic, shared by
+  `LidZoeker` and `Select.tsx`.
+- `src/features/verkoop/productFilter.ts` (`filterProducten`) and
+  `lidwisselWistMandje` in `src/features/verkoop/cart.ts` (one rule for
+  `chooseMember` and `Mandje`: a member switch clears a filled cart only for
+  another member, after inline confirmation).
+
 **First multi-screen bar navigation (settled, 2026-08-26)**: issue #8 is the
 first time `shells/bar` needed more than one screen behind an open shift.
 `src/features/verkoop/DienstTabs.tsx` renders the navigation (Verkoop,
