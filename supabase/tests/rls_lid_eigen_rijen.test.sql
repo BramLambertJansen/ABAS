@@ -48,7 +48,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(34);
+select plan(41);
 
 -- ── Fixtures (als superuser, vóór de rolwissel) ──────────────────────────
 
@@ -82,19 +82,25 @@ insert into auth.users (
   ('00000000-0000-0000-0000-0000000002a5', '00000000-0000-0000-0000-000000000000',
    'authenticated', 'authenticated', 'rls-beheerder@test.local',
    crypt('not-used', gen_salt('bf')), now(), now(), now(),
+   '{"provider":"email","providers":["email"]}', '{}'),
+  ('00000000-0000-0000-0000-0000000002a6', '00000000-0000-0000-0000-000000000000',
+   'authenticated', 'authenticated', 'rls-gearch-beheerder@test.local',
+   crypt('not-used', gen_salt('bf')), now(), now(), now(),
    '{"provider":"email","providers":["email"]}', '{}');
 
--- Zes leden: twee leden mét eigen account (A en B — A is de aanroeper in
+-- Zeven leden: twee leden mét eigen account (A en B — A is de aanroeper in
 -- het eerste blok, B is het lid dat onzichtbaar moet blijven), één
 -- actieve bardienst mét account, één lid zónder account, een gearchiveerde
--- bardienst (blok 4) en een actieve beheerder (blok 2b).
+-- bardienst (blok 4), een actieve beheerder (blok 2b) en een gearchiveerde
+-- beheerder (blok 5).
 insert into members (id, name, role, pin_hash, balance_cents, archived, auth_user_id) values
   ('00000000-0000-0000-0000-0000000002b0', 'RLS Lid A',     'lid',       null, 1000, false, '00000000-0000-0000-0000-0000000002a0'),
   ('00000000-0000-0000-0000-0000000002b1', 'RLS Lid B',     'lid',       null, 2000, false, '00000000-0000-0000-0000-0000000002a1'),
   ('00000000-0000-0000-0000-0000000002b2', 'RLS Bardienst', 'bardienst', crypt('1234', gen_salt('bf')), 0, false, '00000000-0000-0000-0000-0000000002a2'),
   ('00000000-0000-0000-0000-0000000002b3', 'RLS Lid Zonder Account', 'lid', null, 300, false, null),
   ('00000000-0000-0000-0000-0000000002b4', 'RLS Gearchiveerde Bardienst', 'bardienst', null, 400, true, '00000000-0000-0000-0000-0000000002a4'),
-  ('00000000-0000-0000-0000-0000000002b5', 'RLS Beheerder', 'beheerder', null, 0, false, '00000000-0000-0000-0000-0000000002a5');
+  ('00000000-0000-0000-0000-0000000002b5', 'RLS Beheerder', 'beheerder', null, 0, false, '00000000-0000-0000-0000-0000000002a5'),
+  ('00000000-0000-0000-0000-0000000002b6', 'RLS Gearchiveerde Beheerder', 'beheerder', null, 0, true, '00000000-0000-0000-0000-0000000002a6');
 
 insert into products (id, name, category, price_cents, archived) values
   ('00000000-0000-0000-0000-0000000002c0', 'RLS Test Pils', 'Bier', 250, false);
@@ -427,6 +433,90 @@ select is(
   (select count(*)::integer from orders where id = '00000000-0000-0000-0000-0000000002e0'),
   0,
   'een gearchiveerde bardienst ziet de bestelling van lid A niet meer (was: alles)'
+);
+
+reset role;
+
+-- ── Blok 5: als gearchiveerde beheerder ──────────────────────────────────
+-- De archiefcheck van caller_has_bar_role() geldt voor beide bar-rollen,
+-- niet alleen voor bardienst. Vóór 0039 viel ook een gearchiveerde
+-- beheerder in de brede tak. Hij heeft zelf geen bestellingen, dus "eigen
+-- rijen" is hier absoluut 0: geen seed-rij hoort bij …02b6.
+
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000002a6', true);
+set local role authenticated;
+
+select is(
+  (select count(*)::integer from members),
+  1,
+  'een gearchiveerde beheerder ziet precies één members-rij (de eigen)'
+);
+
+select is(
+  (select count(*)::integer from orders),
+  0,
+  'een gearchiveerde beheerder ziet geen andermans bestellingen en geen gastverkoop'
+);
+
+select is(
+  (select count(*)::integer from order_lines),
+  0,
+  'een gearchiveerde beheerder ziet geen andermans bestelregels'
+);
+
+reset role;
+
+-- ── Blok 6: als bardienst die naar rol 'lid' gaat ────────────────────────
+-- Randgeval "rolwijziging tijdens een open sessie" (spec → Randgevallen):
+-- de helper leest de rol per statement, zonder cache of JWT-claim. Dezelfde
+-- sessie (…02a2) die in blok 2 alles zag, ziet na de degradatie alleen nog
+-- de eigen rijen, ook al staat …02b2 nog in de bezetting van de open dienst
+-- …02d0: lidmaatschap van de bezetting geeft geen leestoegang (ADR 0019 →
+-- geen actieve bar-sessie, alleen rol). …02b2 heeft zelf geen bestellingen
+-- of opwaarderingen.
+
+update members set role = 'lid' where id = '00000000-0000-0000-0000-0000000002b2';
+
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000002a2', true);
+set local role authenticated;
+
+select is(
+  (select count(*)::integer from members),
+  1,
+  'een gedegradeerde bardienst ziet direct alleen nog de eigen members-rij, ook in de bezetting'
+);
+
+select is(
+  (select count(*)::integer from orders),
+  0,
+  'een gedegradeerde bardienst ziet de bestellingen die hij zelf afrondde (served_by) niet meer'
+);
+
+select is(
+  (select count(*)::integer from top_ups),
+  0,
+  'een gedegradeerde bardienst ziet geen andermans opwaarderingen meer'
+);
+
+reset role;
+
+-- ── Blok 7: als anon ─────────────────────────────────────────────────────
+-- De anon-key staat in elke client. Alle vijf de leespolicies zijn `to
+-- authenticated`, dus voor anon geldt geen enkele policy en blijft elke
+-- tabel leeg (de tabel-SELECT-grant via Supabase's default privileges
+-- bestaat wel, vandaar 0 rijen en geen 42501). Dat anon de helper niet kan
+-- uitvoeren staat generiek in rpc_execute_grants.test.sql.
+
+set local role anon;
+
+select is(
+  (select (select count(*) from members)
+        + (select count(*) from orders)
+        + (select count(*) from order_lines)
+        + (select count(*) from top_ups)
+        + (select count(*) from order_reversals))::integer,
+  0,
+  'anon leest geen enkele rij uit members/orders/order_lines/top_ups/order_reversals'
 );
 
 reset role;
