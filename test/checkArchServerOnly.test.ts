@@ -250,3 +250,72 @@ test("23: block-comment tussen keyword en binding scheidt de tokens", () => {
     "AA.tsx: reaches server-only src/lib/supabase/admin.ts via src/lib/barLogin.ts"
   );
 });
+
+test("12b: admin.ts zelf mag SUPABASE_SECRET_KEY lezen", () => {
+  const { status, stderr } = runCheckArch({
+    "src/lib/supabase/admin.ts":
+      'import "server-only";\nexport function createAdminClient() { return process.env.SUPABASE_SECRET_KEY; }\n',
+  });
+  assert.equal(status, 0, stderr);
+});
+
+test("11b: niet-letterlijke require en template literal", () => {
+  expectFailure(
+    {
+      "src/lib/x.ts": 'const p = "a";\nexport const x = require(p);\n',
+      "src/lib/w.ts": "export const w = () => import(`@/lib/barLogin`);\n",
+    },
+    "src/lib/x.ts: non-literal import()/require()",
+    "src/lib/w.ts: non-literal import()/require()"
+  );
+});
+
+test('24: "use server"-module wordt gevolgd, geen uitzondering (fail closed, ADR 0021 punt 6)', () => {
+  expectFailure(
+    {
+      "src/app/x/actions.ts": '"use server";\nimport { f } from "@/lib/barLogin";\nexport async function act() { return f(); }\n',
+      "src/features/x/P.tsx": '"use client";\nimport { act } from "@/app/x/actions";\nexport const p = act;\n',
+    },
+    "P.tsx: reaches server-only src/lib/supabase/admin.ts via src/app/x/actions.ts → src/lib/barLogin.ts"
+  );
+});
+
+test("25: regel 1 (shell-isolatie) vangt ook dynamische import en require", () => {
+  expectFailure(
+    {
+      "src/shells/bar/Q.tsx": 'export const q = () => import("@/shells/portal/Iets");\n',
+      "src/shells/portal/R.tsx": 'export const r = require("@/shells/bar/Iets");\n',
+    },
+    'src/shells/bar/Q.tsx: imports "@/shells/portal/Iets" — shells/bar must not import from shells/portal',
+    'src/shells/portal/R.tsx: imports "@/shells/bar/Iets" — shells/portal must not import from shells/bar'
+  );
+});
+
+test("26: regel 2 (features shell-onwetend) vangt ook dynamische import", () => {
+  expectFailure(
+    { "src/features/x/S.tsx": 'export const s = async () => await import("@/shells/bar/Iets");\n' },
+    'src/features/x/S.tsx: imports "@/shells/bar/Iets" — features/ must stay shell-agnostic'
+  );
+});
+
+test("27: regel 3 (@supabase alleen in src/lib/supabase) vangt ook dynamische import en require", () => {
+  expectFailure(
+    {
+      "src/lib/t.ts": 'export async function t() { return await import("@supabase/supabase-js"); }\n',
+      "src/app/x/u.ts": 'export const u = require("@supabase/ssr");\n',
+    },
+    'src/lib/t.ts: imports "@supabase/supabase-js" directly',
+    'src/app/x/u.ts: imports "@supabase/ssr" directly'
+  );
+});
+
+test("28: regel 5 (cookie-isolatie, ADR 0009) vangt ook dynamische import en require", () => {
+  expectFailure(
+    {
+      "src/app/portal/v.ts": 'export const v = require("@/lib/supabase/server");\n',
+      "src/app/x/route.ts": 'export async function GET() { await import("@/lib/supabase/portalServer"); return new Response(null); }\n',
+    },
+    'src/app/portal/v.ts: imports "@/lib/supabase/server" — portal code must use portalClient.ts/portalServer.ts',
+    'src/app/x/route.ts: imports "@/lib/supabase/portalServer" — only portal code'
+  );
+});
