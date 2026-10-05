@@ -503,7 +503,7 @@ bar-herstelknoppen, e-mailingang) kunnen eerder.
 
 | Geval | Gedrag |
 |---|---|
-| Portal open, bardienst boekt een bestelling | Bij terugkeer naar het tabblad ververst Saldo (na 30 s of ouder) automatisch; anders via "Verversen". Label toont de nieuwe tijd. |
+| Portal open, bardienst boekt een bestelling | Bij terugkeer naar het tabblad ververst Saldo automatisch als de laatste geslaagde lezing 30 s of ouder is, of direct als er nog geen geslaagde lezing is of de laatste poging mislukte; anders via "Verversen". Label toont de nieuwe tijd. |
 | Verbinding valt weg, `online` volgt | Terugkeer ververst direct (behalve als er al een lezing loopt). |
 | Verversen mislukt, data was er | Data blijft, melding "Verversen mislukt…", knop blijft; laag-saldokaart gebruikt de laatst bekende drempel. |
 | Allereerste lezing mislukt | `LeesFout` met "Opnieuw proberen", geen verversregel (er is nog geen tijdstip). |
@@ -687,9 +687,19 @@ staan er expliciet bij.
 ### Besluiten
 
 De 15 besluiten onder "Besluiten Architect" zijn namens Bram door de Architect
-genomen (2026-10-05) en zijn zo gebouwd, behalve besluit 1 (zie hieronder) en
-het `key={userId}`-deel van besluit 6 (de laatste-request-wint-guard in de
-portalhooks is er wel).
+genomen (2026-10-05) en zijn zo gebouwd, behalve de besluiten (of delen
+daarvan) die aan `usePortalSession` en `PortalShellHome` hangen en op #115
+wachten (zie "Niet gebouwd" hieronder):
+
+- **Besluit 1:** de foutclassificatie van `usePortalSession` is van #115 en dus
+  niet gebouwd.
+- **Besluit 6, deels:** de laatste-request-wint-guard in de portalhooks is er;
+  `key={userId}` op `PortalDashboard` niet.
+- **Besluit 14:** de achtergrondlookup die een ingelogd dashboard laat staan
+  (geen terugval naar `loading` of fout) is niet gebouwd. Zolang #115 openstaat
+  geldt dit gedrag dus nog niet; de randgevallenregel "Auth-event bij
+  tabterugkeer terwijl lookup faalt" beschrijft het beoogde, nog niet gebouwde
+  gedrag.
 
 ### Niet gebouwd: wacht op #115
 
