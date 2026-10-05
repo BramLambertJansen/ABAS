@@ -421,6 +421,20 @@ assumes. Read access is not tied to an active bar session: ADR 0016 left
 these RLS policies unchanged (`dienst-per-sessie.md` → Expliciet buiten
 scope).
 
+**Leespolicies zijn een allowlist (besloten 2026-10-05, nog te bouwen in
+`0039`)**: ADR [0019](adr/0019-leestoegang-is-een-allowlist-op-actieve-bar-rol.md),
+spec `docs/features/leespolicies-allowlist.md`. Vervangt de
+`not caller_is_lid() or <eigen rij>`-vorm hierboven door
+`caller_has_bar_role() or <eigen rij>` op `members`, `orders`, `order_lines`,
+`top_ups` en `order_reversals`. Brede leestoegang alleen voor een gekoppelde,
+niet-gearchiveerde bardienst/beheerder (geen actieve bar-sessie vereist; dat
+hoort bij het latere item "JWT na afmelden"). Ieder ander ziet eigen rijen, een
+account zonder gekoppeld lid ziet niets. `caller_is_lid()` vervalt.
+`using (true)` blijft alleen voor `products`, `app_settings`, `shifts`,
+`shift_members` en `activity_types`. De gate
+`supabase/tests/rls_leespolicies.test.sql` bewaakt dat er geen denylist-tak of
+nieuwe `using (true)`-tabel bijkomt.
+
 **Settled (2026-08-24)**:
 - **Single organization.** ABAS is for Aurora only — no `org_id`, no
   multi-tenant scoping. RLS policies are written against a single club's

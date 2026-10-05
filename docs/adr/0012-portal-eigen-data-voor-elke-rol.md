@@ -84,7 +84,13 @@ De bestaande portal-hooks voldoen hier al aan: `usePortalBalance.ts` en
 `usePortalAppSettings.ts` leest globale data. Die toevallige eigenschap wordt
 hiermee een regel.
 
-**3. RLS verandert niet.** Geen nieuwe of gewijzigde policy. De brede
+**3. RLS verandert niet.** *(Noot 2026-10-05: sinds
+[ADR 0019](0019-leestoegang-is-een-allowlist-op-actieve-bar-rol.md) leest
+alleen een **actieve**, niet-gearchiveerde bar-rol breed; Beslissing 2
+blijft daardoor onverminderd nodig. Het verworpen alternatief "de database
+ziet geen verschil tussen een portal- en een `/beheer`-sessie" klopt sinds
+`0027` niet meer: zie ADR 0019 → Verworpen alternatieven.)* Geen nieuwe of
+gewijzigde policy. De brede
 leestoegang van een bardienst/beheerder-sessie blijft zoals hij is, omdat de
 bar hem nodig heeft. De scheiding zit in wat de portal-code opvraagt, niet in
 wat de database zou toestaan.

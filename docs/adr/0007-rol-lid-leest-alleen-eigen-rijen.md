@@ -7,6 +7,15 @@ review, inclusief de reikwijdte (welke tabellen wel en niet). Vult ADR 0004
 aan — dat deed hetzelfde voor één PII-kolom, dit doet het voor hele rijen —
 en vervangt niets.
 
+**Deels vervangen (2026-10-05) door
+[ADR 0019](0019-leestoegang-is-een-allowlist-op-actieve-bar-rol.md):**
+Beslissing 1 ("strikt beperkend", de `not caller_is_lid()`-tak voor elke
+niet-lid-sessie) en de alinea over `archived` gelden niet meer. Brede
+leestoegang is een allowlist op een actieve bar-rol (`caller_has_bar_role()`);
+een account zonder lid ziet niets, een gearchiveerde bar-rol alleen de eigen
+rijen. Reikwijdte (punt 3), gastverkoop (punt 4) en de `SECURITY DEFINER`-
+helpers (punt 2) blijven staan.
+
 ## Context
 
 `0001_init.sql` gaf elke tabel een select-policy van de vorm
