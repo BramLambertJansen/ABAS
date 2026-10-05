@@ -1,7 +1,7 @@
 # Logboek chronologisch en eerlijk over de reikwijdte
 
-**Status: concept, wacht op akkoord van Bram.** Niet bouwen voor de open
-vragen onderaan beantwoord zijn ("pak aanbevelingen" volstaat).
+**Status: goedgekeurd door Bram.** Alle aanbevelingen uit de vragen 1-10
+zijn overgenomen ("Overnemen"); zie "Besluiten van Bram" onderaan.
 
 Spec voor [issue #130](https://github.com/BramLambertJansen/ABAS/issues/130)
 (frontend T10 · P2, epic #121, findings F19, F20, F21, F22, productbesluit
@@ -390,67 +390,32 @@ Assortiment/Leden.
   `methodLabel`.
 - Docs (Docs-rol, na bouw): `docs/features/logboek.md` bijwerken.
 
-## Open vragen voor Bram
+## Besluiten van Bram
 
-Antwoord "pak aanbevelingen" volstaat. Geen van deze raakt geld-, RPC- of
-RLS-logica; vraag 8 en 9 raken het backend-domein en zijn daarom alleen een
-noot.
+Bram heeft bij alle tien vragen de aanbeveling overgenomen ("Overnemen").
+De vraagtekst en motivatie staan hieronder ingekort; de tekstvoorstellen
+in de tabel "Teksten" zijn hiermee vastgesteld.
 
-1. **D4: gebeurtenissentijdlijn?** Een terugdraaiing wordt een eigen
-   regel op het moment van terugdraaien, de verkoop blijft staan (met
-   "Teruggedraaid") op zijn eigen moment. Alternatief: hernoemen naar
-   "boekingen en status" (één regel per bestelling, tijd = verkoop).
-   **Aanbeveling: gebeurtenissentijdlijn.** Past bij de actietekst
-   "Bestelling teruggedraaid", is de aanbeveling uit de epic, en lost F20 op
-   zonder een late reversal te verstoppen; het alternatief laat een late
-   reversal van een oude order op een oude plek staan.
-2. **Tijdzone en reikwijdte daarvan.** Vast `Europe/Amsterdam` voor het
-   Logboek en de beheer-bestellingenoverlay, geïmplementeerd in
-   `src/lib/date.ts` (de portal doet dit al). Alternatief: apparaattijd
-   (zoals nu in bar/beheer). **Aanbeveling: vast Amsterdam**, voor Logboek en
-   `LidBestellingenOverlay`; `ledger.ts` en `formatDate`/`formatTime` elders
-   (`LidBeherenOverlay`, dienst-per-sessie) in deze ticket niet wijzigen.
-   Motivatie: org-brede, gedeelde historie moet voor elke beheerder dezelfde
-   dag tonen, tests worden deterministisch, en het is wat het issue "dezelfde
-   afspraak als portal" noemt. Let op: het issue noemt ook "beheerdershistorie",
-   die nu apparaattijd gebruikt; die wordt hiermee aangepast.
-3. **Dagkop.** *"dinsdag 29 september"*, met het jaar erbij als het niet het
-   huidige jaar is, zonder "Vandaag/Gisteren". **Aanbeveling: zo**, want
-   relatieve labels veranderen bij middernacht terwijl het scherm open staat
-   en vragen extra toestanden; een volledige datum is eenduidig.
-4. **Reversalrij: bedrag tonen?** Het Logboek toont nu geen bedrag bij
-   verkopen; alleen bij opwaarderingen. Aanbeveling: **de reversalrij
-   toont "€ X teruggeboekt"** (waarde `refunded_cents`, ongewijzigd uit de
-   database, geen teken, niet opgeteld) in de detailregel, omdat een
-   terugdraaiing zonder bedrag nauwelijks controleerbaar is, en de verkoop
-   toont het bedrag niet. Alternatief: geen bedrag in beide.
-5. **Teksten reikwijdte en lege filters** (zie tabel Teksten): bevestig of
-   pas aan. **Aanbeveling: zoals voorgesteld.** Motivatie: ze zeggen wat er
-   wel en niet is (alleen drie soorten gebeurtenissen, alleen de recente
-   200/50) zonder een belofte voor later.
-6. **Aandacht-filter verandert van betekenis**: nu verkopen met een reversal,
-   straks de terugdraai-gebeurtenissen (de verkoop met "Teruggedraaid" valt
-   niet meer onder Aandacht). **Aanbeveling: ja**, anders staat dezelfde
-   gebeurtenis onder twee plekken en klopt de tijd niet.
-7. **Betaalmethode ("cash" naar "contant")**: een gedeelde helper in
-   `src/lib/betaalmethode.ts`, de portal gebruikt die ook (verplaatsing van
-   `methodLabel`, geen gedragswijziging), en ook
-   `dienst-overzicht/Transactielijst.tsx` (zelfde rauwe "cash"). Het
-   dienst-overzicht valt buiten het ticketonderwerp. **Aanbeveling: ja
-   meenemen**, een enkele regel en dezelfde bug; apart laten staan zou een
-   bekende fout laten liggen en de helper half hergebruiken.
-8. **Index op `order_reversals.created_at`** (backend-domein, niet door
-   mij beslist): de nieuwe query sorteert de reversals op `created_at`; er
-   is geen index (de primary key staat op `order_id`). De tabel is klein
-   (terugdraaien is zeldzaam), dus een scan is nu geen probleem.
-   **Aanbeveling: nu niets doen**, bij groei een apart backendticket. Alleen
-   melden zodat het een bewuste keuze is.
-9. **Echte leescheck.** Een gemockte e2e bewijst de PostgREST-embed en
-   de RLS niet. **Aanbeveling: de Tester draait de nieuwe select
-   handmatig tegen de lokale database met seed** (beheerder ziet reversals;
-   bardienst ziet de tab niet) als checkpunt in de PR, geen nieuwe
-   integratietest. Motivatie: er verandert geen policy of schema; een
-   integratietest voor één select is zwaar voor de opbrengst.
-10. **Gate voor datum-/tijdzone** (zie "Gate-signaal"): moet de Architect een
-    `check:policy`-regel voorstellen? **Aanbeveling: ja, als apart ticket
-    na T10**, niet in deze bouw.
+1. **D4: gebeurtenissentijdlijn.** Aanbeveling overgenomen: een
+   terugdraaiing is een eigen regel op het moment van terugdraaien, de
+   verkoop blijft staan met "Teruggedraaid".
+2. **Tijdzone.** Aanbeveling overgenomen: vast `Europe/Amsterdam` voor het
+   Logboek en `LidBestellingenOverlay`, in `src/lib/date.ts`; `ledger.ts` en
+   `formatDate`/`formatTime` elders blijven ongewijzigd.
+3. **Dagkop.** Aanbeveling overgenomen: "dinsdag 29 september", jaar erbij
+   als het niet het huidige jaar is, geen "Vandaag/Gisteren".
+4. **Reversalrij toont bedrag.** Aanbeveling overgenomen: "€ X
+   teruggeboekt" (`refunded_cents` ongewijzigd, geen teken, niet opgeteld).
+5. **Teksten reikwijdte en lege filters.** Aanbeveling overgenomen: zoals in
+   de tabel "Teksten".
+6. **Aandacht-filter.** Aanbeveling overgenomen: toont de
+   terugdraai-gebeurtenissen.
+7. **Betaalmethode.** Aanbeveling overgenomen: gedeelde helper
+   `src/lib/betaalmethode.ts`, ook in de portal en
+   `dienst-overzicht/Transactielijst.tsx`.
+8. **Index op `order_reversals.created_at`.** Aanbeveling overgenomen: nu
+   geen index; bij groei een apart backendticket.
+9. **Echte leescheck.** Aanbeveling overgenomen: de Tester draait de echte
+   select handmatig tegen de lokale seed, geen nieuwe integratietest.
+10. **Gate voor datum-/tijdzone.** Aanbeveling overgenomen: een
+    `check:policy`-ticket volgt apart, buiten deze PR.

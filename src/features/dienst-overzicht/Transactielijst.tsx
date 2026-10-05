@@ -6,6 +6,7 @@ import { InitialsAvatar } from "@/components/InitialsAvatar";
 import { LeesFout } from "@/components/LeesFout";
 import { useLeesHerstel } from "@/hooks/useLeesHerstel";
 import { formatCents } from "@/lib/money";
+import { methodLabel } from "@/lib/betaalmethode";
 import {
   ALL_PEOPLE,
   clockLabel,
@@ -176,7 +177,7 @@ function LedgerRow({
     ? `${entry.itemCount} ${entry.itemCount === 1 ? "item" : "items"}${
         entry.reversal ? ` · teruggedraaid · ${entry.reversal.reason}` : ""
       }`
-    : `opgewaardeerd · ${entry.method ?? ""}`;
+    : `opgewaardeerd · ${methodLabel(entry.method)}`;
 
   return (
     <li className="-mx-2.5 flex flex-none items-center gap-3.5 rounded-control border-b border-border-subtle px-2.5 py-[13px]">
