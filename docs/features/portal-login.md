@@ -197,7 +197,7 @@ Samengevat hier voor de Developer; volledige motivatie/verworpen
 alternatieven in de ADR:
 
 - `src/lib/supabase/portalClient.ts`/`portalServer.ts` gebruiken
-  `cookieOptions: { name: "sb-portal-auth-token", path: "/" }`.
+  `cookieOptions: { name: "sb-portal-v2-auth-token", path: "/" }`.
 - `src/middleware.ts`, `src/lib/supabase/client.ts`, `server.ts` blijven
   **volledig ongewijzigd**.
 - **Nieuwe, verplichte `check:arch`-regel** (Developer voegt toe aan

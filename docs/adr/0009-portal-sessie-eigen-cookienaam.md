@@ -173,11 +173,16 @@ voor precies één van de twee kiezen.
   zelf — deze aanvulling raakt uitsluitend de importregel en het ene nieuwe
   bestand dat ervan gebruikmaakt.
 
-## Wijziging (2026-10-05): `path: "/"`
+## Wijziging (2026-10-05): `path: "/"` en cookienaam `sb-portal-v2-auth-token`
 
 `path: "/portal"` brak de magic link via PKCE (`?code=`): het
 `code_verifier`-cookie bereikte `/auth/callback` niet, de uitwisseling faalde
 en de gebruiker landde weer op het inlogscherm. `portalClient.ts` en
-`portalServer.ts` gebruiken nu `path: "/"`. De isolatie zit in de cookienaam
-(zie Beslissing); de path-scoping was daar al "niet de kernfix". Bestaande
-portal-sessies vervallen eenmalig (ander cookiepad).
+`portalServer.ts` gebruiken nu `path: "/"`. De isolatie zit in de
+cookienaam (zie Beslissing); de path-scoping was daar al "niet de kernfix".
+
+Het pad is onderdeel van de identiteit van een cookie: dezelfde naam op `/`
+zou naast een bestaand `/portal`-cookie komen te staan, en `/portal` zou de
+oude (specifiekere) sessie blijven lezen. Daarom ook een nieuwe naam
+(`sb-portal-v2-auth-token`); de oude `/portal`-cookies worden genegeerd en
+verlopen vanzelf. Bestaande portal-sessies vervallen eenmalig.

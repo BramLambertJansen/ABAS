@@ -22,7 +22,7 @@ export function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
       cookieOptions: {
-        name: "sb-portal-auth-token",
+        name: "sb-portal-v2-auth-token",
         path: "/",
       },
     }
