@@ -511,26 +511,46 @@ ADR (zoals gespecificeerd).
 
 **Onderdelen**
 
-- `src/lib/veldFouten.ts`: alleen classificatie (`BedragFout`: leeg, ongeldig,
-  teveelDecimalen, negatief, nul, tehoog; e-mail via `isValidEmailFormat`). De
-  waarde zelf blijft van `parseEuroToCents` in `money.ts`; er wordt hier nooit
-  een bedrag berekend.
-- `src/hooks/useVeldMoment.ts`: het moment waarop een veldfout zichtbaar wordt
-  (blur of poging; `tehoog` en herstel direct).
-- `src/components/TekstVeld.tsx`: additieve props `fout`, `foutAlert` en `hint`,
-  plus de geexporteerde `VeldFout` (melding met `role="alert"`,
-  `aria-invalid`/`aria-describedby`). Bestaande aanroepen blijven werken.
-- `src/components/LidZoeker.tsx`: de ledenzoeker als combobox (pijltoetsen,
-  Enter, Escape eerst lijst dan tekst, laden/fout/nulresultaten, resultaatregel
-  met enkelvoud).
-- `src/hooks/useListbox.ts`: de gedeelde toetsenbord- en actieve-optielogica,
-  nu ook gebruikt door `Select.tsx`.
-- `src/features/verkoop/productFilter.ts`: `filterProducten` (zoekterm in alle
-  categorieen, categorie, resultaatregel; D3).
+- `src/lib/veldFouten.ts`: classificatie (`bedragFout` met `BedragFout`: leeg,
+  ongeldig, teveelDecimalen, negatief, nul, tehoog; `emailFout` via
+  `isValidEmailFormat`) en de gebruikerstekst die daarbij hoort voor alle
+  formulieren: `bedragFoutTekst` (per soort, `tehoog` heeft hier bewust geen
+  tekst: de grens hoort bij het scherm) en `EMAIL_ONGELDIG_TEKST`. De spec
+  noemde hiervoor oorspronkelijk `messages.ts`; die teksten staan dus in
+  `veldFouten.ts`. De waarde zelf blijft van `parseEuroToCents` in `money.ts`;
+  er wordt hier nooit een bedrag berekend.
+- `src/hooks/useVeldMoment.ts`: houdt alleen de vlaggen `aangeraakt` (blur),
+  `pogingGedaan` en `pogingAlert` (alleen direct na een poging) bij. Het
+  beslist niet zelf of een fout zichtbaar is: elke consument combineert de
+  vlaggen met zijn eigen classificatie. De directe `tehoog`-regel zit alleen
+  in `OpwaarderenOverlay` (`amountTooHigh`); direct herstel volgt uit het
+  opnieuw berekenen van de classificatie bij elke wijziging.
+- `src/components/TekstVeld.tsx`: additieve props `fout`, `foutAlert` en `hint`;
+  `TekstVeld` koppelt `aria-invalid` en `aria-describedby` zelf aan het input.
+  De geexporteerde `VeldFout` rendert alleen de melding en zet `role="alert"`
+  alleen als zijn `alert`-argument waar is; invoervelden met eigen opmaak
+  (bijvoorbeeld in `OpwaarderenOverlay`) gebruiken `VeldFout` zelf en moeten
+  `aria-invalid`/`aria-describedby` zelf koppelen. Bestaande aanroepen blijven
+  werken.
+- `src/components/LidZoeker.tsx`: de ledenzoeker als combobox. De toetsen
+  (pijltoetsen, Enter, Escape eerst lijst dan tekst) zitten in
+  `LidZoeker.handleKeyDown`; laden/fout/nulresultaten en de resultaatregel met
+  enkelvoud zitten in het component zelf (de teksten staan in
+  `LidZoeker.tsx`).
+- `src/hooks/useListbox.ts`: gedeelde state en DOM-gedrag van `LidZoeker` en
+  `Select.tsx`: id's (`aria-controls`/`aria-activedescendant`), open- en
+  actieve-optiestate, sluiten bij een klik buiten het component en de actieve
+  optie in beeld scrollen. Geen toetsenbordlogica: de toetsen blijven in
+  `LidZoeker.handleKeyDown` en `Select.handleKeyDown`.
+- `src/features/verkoop/productFilter.ts`: `filterProducten` filtert alleen op
+  zoekterm (alle categorieen) of categorie. De resultaatregel en het
+  categorieklikgedrag van D3 (klik wist de zoekterm) zitten in `Assortiment`;
+  de tekst `zoekResultaatTekst` staat in `src/features/verkoop/messages.ts`.
 - `src/features/verkoop/cart.ts`: `lidwisselWistMandje(lastMemberId, memberId,
-  aantalRegels)`, de ene regel voor `chooseMember` (wist) en `Mandje` (toont
-  eerst de inline bevestiging). `verkoop.md` blijft kloppen: "wissel" wist het
-  mandje niet, pas het kiezen van een ander lid doet dat.
+  aantalRegels)` is een zuiver predicaat (geen mutatie): de ene regel voor
+  `VerkoopScherm.chooseMember` (die het mandje daadwerkelijk wist) en `Mandje`
+  (die eerst de inline bevestiging toont). `verkoop.md` blijft kloppen:
+  "wissel" wist het mandje niet, pas het kiezen van een ander lid doet dat.
 
 **Afwijkingen en besluiten tijdens de bouw (besluit 11 t/m 15)**
 
