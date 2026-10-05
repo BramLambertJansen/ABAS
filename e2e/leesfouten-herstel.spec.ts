@@ -671,6 +671,137 @@ test.describe("portal: sessielookup (#115)", () => {
     await expect(page.getByRole("heading", { name: "Hoi Mock" })).toBeFocused();
     await focusNietOpBody(page);
   });
+
+  // ── Aanvullingen Tester (adversarieel) ────────────────────────────────
+
+  /** Houdt de eerstvolgende sessielookup vast; levert hem later af met `row`. */
+  async function houdSessielookupVast(page: Page, row: unknown) {
+    let laatDoor!: () => void;
+    const poort = new Promise<void>((resolve) => { laatDoor = resolve; });
+    let aanvragen = 0;
+    await page.route(/\/rest\/v1\/members(\?|$)/, async (route) => {
+      const url = decodeURIComponent(route.request().url());
+      if (!url.includes("auth_user_id=eq.") || url.includes("balance_cents") || aanvragen > 0) return route.fallback();
+      aanvragen++;
+      await poort;
+      return route.fulfill({
+        status: 200,
+        headers: SUPABASE_HEADERS,
+        body: JSON.stringify(route.request().headers()["accept"]?.includes("vnd.pgrst.object") ? row : [row]),
+      });
+    });
+    return { laatDoor, aanvragen: () => aanvragen };
+  }
+
+  test("uitloggen terwijl een achtergrondlookup loopt: de late respons zet niets, geen foutmelding", async ({ page }) => {
+    const staat = await openPortalGeladen(page);
+    const vast = await houdSessielookupVast(page, { name: "Mock Lid", role: "lid", archived: false });
+    await page.clock.fastForward(31_000);
+    await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange", { bubbles: true })));
+    await expect.poll(() => vast.aanvragen(), { timeout: 10_000 }).toBe(1);
+
+    await uitloggenKnop(page).click();
+    await expect(page.locator('input[type="email"]')).toBeVisible();
+    vast.laatDoor();
+    await rustig(page);
+    await expect(page.locator('input[type="email"]')).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^Hoi/ })).toHaveCount(0);
+    await expect(sessieFout(page)).toHaveCount(0);
+    await expect(nietGekoppeld(page)).toHaveCount(0);
+    expect(staat.nSessie).toBeGreaterThanOrEqual(1);
+  });
+
+  test("snelle accountwissel: een late respons van de uitgelogde gebruiker mag het dashboard van de nieuwe niet overschrijven", async ({ page }) => {
+    const staat = await openPortalGeladen(page);
+    const vast = await houdSessielookupVast(page, { name: "Mock Lid", role: "lid", archived: false });
+    await page.clock.fastForward(31_000);
+    await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange", { bubbles: true })));
+    await expect.poll(() => vast.aanvragen(), { timeout: 10_000 }).toBe(1);
+    await uitloggenKnop(page).click();
+    await expect(page.locator('input[type="email"]')).toBeVisible();
+
+    staat.gebruiker = { ...USER, id: "00000000-0000-4000-8000-000000000002", email: "tweede@aurora.local" };
+    staat.naam = "Tweede Lid";
+    staat.saldo = 2500;
+    await portalLoginMetWachtwoord(page, "tweede@aurora.local", "Aurora#2026");
+    await expect(page.getByRole("heading", { name: "Hoi Tweede" })).toBeVisible({ timeout: 15_000 });
+    vast.laatDoor();
+    await rustig(page);
+    await expect(page.getByRole("heading", { name: "Hoi Tweede" })).toBeVisible();
+    await expect(page.getByText("Mock Lid")).toHaveCount(0);
+  });
+
+  test("retry tijdens bezig: een tweede klik start geen tweede lookup", async ({ page }) => {
+    const staat = await mockPortalZonderLogin(page);
+    staat.sessie = 500;
+    await portalLoginMetWachtwoord(page, USER.email, "Aurora#2026");
+    await expect(sessieFout(page)).toBeVisible({ timeout: 15_000 });
+    let laatDoor!: () => void;
+    const poort = new Promise<void>((resolve) => { laatDoor = resolve; });
+    let n = 0;
+    await page.route(/\/rest\/v1\/members(\?|$)/, async (route) => {
+      n++;
+      await poort;
+      return antwoord(route, 500, null);
+    });
+    await retryKnop(page).click();
+    await expect(retryKnop(page)).toHaveAttribute("aria-disabled", "true");
+    await retryKnop(page).click({ force: true });
+    await retryKnop(page).press("Enter");
+    await retryKnop(page).press("Space");
+    laatDoor();
+    await expect(retryKnop(page)).toHaveAttribute("aria-disabled", "false");
+    await rustig(page);
+    expect(n).toBe(1);
+  });
+
+  test("retry levert 'geen rij' op: denied (geen foutscherm), met het loginformulier", async ({ page }) => {
+    const staat = await mockPortalZonderLogin(page);
+    staat.sessie = 500;
+    await portalLoginMetWachtwoord(page, USER.email, "Aurora#2026");
+    await expect(sessieFout(page)).toBeVisible({ timeout: 15_000 });
+    staat.sessie = "geen-rij";
+    await retryKnop(page).click();
+    await expect(nietGekoppeld(page)).toBeVisible();
+    await expect(page.locator('input[type="email"]')).toBeVisible();
+    await expect(sessieFout(page)).toHaveCount(0);
+  });
+
+  test("achtergrondlookup met netwerkfout: dashboard blijft ook zonder verbinding", async ({ page }) => {
+    const staat = await openPortalGeladen(page);
+    staat.sessie = "netwerk";
+    await achtergrondEvent(page, staat);
+    await expect(page.getByRole("heading", { name: "Hoi Mock" })).toBeVisible();
+    await expect(sessieFout(page)).toHaveCount(0);
+    await expect(nietGekoppeld(page)).toHaveCount(0);
+  });
+
+  // BEKENDE AFWIJKING van de spec (Gedrag 4: "achtergrond, fout: geen wijziging"):
+  // `refetch` vanuit signed-in (naamswijziging) loopt via getSession(); een
+  // retryable fetch-fout daar zet `foutStaat` ongeacht de huidige staat en
+  // slaat het werkende dashboard weg. `test.fail` houdt de gate groen en
+  // slaat om zodra het hersteld is (verwijder dan `test.fail`).
+  test.fail("achtergrond-refetch (naamswijziging) waarbij getSession() een netwerkfout geeft laat het dashboard staan", async ({ page }) => {
+    const staat = await openPortalGeladen(page);
+    await page.getByRole("tab", { name: "Account" }).click();
+    await page.getByRole("button", { name: /^Naam wijzigen/ }).click();
+    const dialog = page.getByRole("dialog", { name: "Naam wijzigen" });
+    await page.route(/\/rest\/v1\/rpc\/update_own_name(\?|$)/, (route) =>
+      json(route, 200, { name: "Mock Nieuw", role: "lid", archived: false, has_pin: false })
+    );
+    // De opgeslagen sessie verloopt en de token-refresh heeft geen netwerk.
+    await page.route(/\/auth\/v1\/token(\?|$)/, (route) => route.abort("failed"));
+    await page.clock.fastForward(2 * 3600_000);
+    await dialog.getByLabel("Volledige naam").fill("Mock Nieuw");
+    await dialog.getByRole("button", { name: "Opslaan" }).click();
+    for (let i = 0; i < 20; i++) {
+      await page.clock.runFor(2_000);
+      await page.waitForTimeout(100);
+    }
+    await expect(sessieFout(page)).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: /^Hoi/ })).toBeVisible();
+    expect(staat.nSessie).toBeGreaterThanOrEqual(1);
+  });
 });
 
 // Hulpfuncties voor de portal-tests die zelf het moment van inloggen bepalen.
