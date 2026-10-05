@@ -83,6 +83,13 @@ insert into auth.users (
    crypt('not-used', gen_salt('bf')), now(), now(), now(),
    '{"provider":"email","providers":["email"]}', '{}');
 
+-- De Auth-sessies van het lid en het device-account: register_bar_session
+-- eist een rij in auth.sessions (0040, ADR 0020 → Beslissing 8). Zonder die
+-- rij zou het `session_ended` geven en niet de rolcheck testen.
+insert into auth.sessions (id, user_id, created_at, updated_at) values
+  ('00000000-0000-0000-0000-0000000005f0', '00000000-0000-0000-0000-0000000005a0', now(), now()),
+  ('00000000-0000-0000-0000-0000000005f1', '00000000-0000-0000-0000-0000000005a2', now(), now());
+
 insert into members (id, name, role, pin_hash, balance_cents, archived, auth_user_id) values
   ('00000000-0000-0000-0000-0000000005b0', 'Bar-RPC Lid',       'lid',       null, 1000, false, '00000000-0000-0000-0000-0000000005a0'),
   ('00000000-0000-0000-0000-0000000005b1', 'Bar-RPC Bardienst', 'bardienst', null, 0, false, null);

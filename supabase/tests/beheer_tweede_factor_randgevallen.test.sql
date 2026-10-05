@@ -174,6 +174,15 @@ select lives_ok(
 
 -- ═══ register_bar_session('beheer'): welke factor telt ═══════════════════
 
+-- Auth-sessies voor de session_id's hieronder: register_bar_session eist een
+-- rij in auth.sessions (0040, ADR 0020 → Beslissing 8), anders zou elke
+-- aanroep `session_ended` geven en niet de factorcontrole testen.
+insert into auth.sessions (id, user_id, created_at, updated_at) values
+  ('00000000-0000-0000-0000-0000000f3e03', '00000000-0000-0000-0000-0000000f3a02', now(), now()),
+  ('00000000-0000-0000-0000-0000000f3e04', '00000000-0000-0000-0000-0000000f3a03', now(), now()),
+  ('00000000-0000-0000-0000-0000000f3e05', '00000000-0000-0000-0000-0000000f3a05', now(), now()),
+  ('00000000-0000-0000-0000-0000000f3e06', '00000000-0000-0000-0000-0000000f3a04', now(), now());
+
 select pg_temp.claims('00000000-0000-0000-0000-0000000f3a02', '00000000-0000-0000-0000-0000000f3e03', 'aal2');
 select throws_ok(
   $$ select register_bar_session('beheer') $$,

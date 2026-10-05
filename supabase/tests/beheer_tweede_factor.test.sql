@@ -86,6 +86,19 @@ begin
 end;
 $fn$;
 
+-- Auth-sessies voor elke session_id waarmee hieronder register_bar_session
+-- wordt aangeroepen: die eist een rij in auth.sessions met id = session_id
+-- en user_id = auth.uid() (0040, ADR 0020 → Beslissing 8). e2e03 is de
+-- beheersessie, e2e04 en e2e06 bar van beheerders, e2e05 bar van de
+-- bardienst; e2e01/e2e02 alleen voor de geweigerde registraties.
+insert into auth.sessions (id, user_id, created_at, updated_at) values
+  ('00000000-0000-0000-0000-0000000f2e01', '00000000-0000-0000-0000-0000000f2a02', now(), now()),
+  ('00000000-0000-0000-0000-0000000f2e02', '00000000-0000-0000-0000-0000000f2a04', now(), now()),
+  ('00000000-0000-0000-0000-0000000f2e03', '00000000-0000-0000-0000-0000000f2a01', now(), now()),
+  ('00000000-0000-0000-0000-0000000f2e04', '00000000-0000-0000-0000-0000000f2a02', now(), now()),
+  ('00000000-0000-0000-0000-0000000f2e05', '00000000-0000-0000-0000-0000000f2a03', now(), now()),
+  ('00000000-0000-0000-0000-0000000f2e06', '00000000-0000-0000-0000-0000000f2a01', now(), now());
+
 -- ═══ register_bar_session('beheer') ═══════════════════════════════════════
 
 select pg_temp.claims('00000000-0000-0000-0000-0000000f2a02', '00000000-0000-0000-0000-0000000f2e01', 'aal1');
@@ -267,13 +280,9 @@ select is(
 
 -- ═══ Het einde van een bar-sessie trekt de Auth-sessie in ═════════════════
 
--- Auth-sessies voor de bar-sessies hierboven (e2e03 beheer, e2e04 en e2e06
--- bar van beheerders, e2e05 bar van de bardienst).
-insert into auth.sessions (id, user_id, created_at, updated_at) values
-  ('00000000-0000-0000-0000-0000000f2e03', '00000000-0000-0000-0000-0000000f2a01', now(), now()),
-  ('00000000-0000-0000-0000-0000000f2e04', '00000000-0000-0000-0000-0000000f2a02', now(), now()),
-  ('00000000-0000-0000-0000-0000000f2e05', '00000000-0000-0000-0000-0000000f2a03', now(), now()),
-  ('00000000-0000-0000-0000-0000000f2e06', '00000000-0000-0000-0000-0000000f2a01', now(), now());
+-- De Auth-sessies voor de bar-sessies hierboven (e2e03 beheer, e2e04 en
+-- e2e06 bar van beheerders, e2e05 bar van de bardienst) staan al vóór de
+-- register_bar_session-tests (0040).
 
 -- uitgelogd (end_bar_session)
 select pg_temp.claims('00000000-0000-0000-0000-0000000f2a03', '00000000-0000-0000-0000-0000000f2e05', 'aal1');

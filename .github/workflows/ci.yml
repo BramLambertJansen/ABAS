@@ -85,4 +85,11 @@ jobs:
       - run: npm run check:a11y
 
       - run: npm run db:test
+
+      # Integratietest tegen de echte GoTrue van de lokale stack
+      # (integration/, docs/features/account-koppeling-bewijs.md → Tests →
+      # Integratietest, ADR 0020). Leest de env vars uit de stap "Export local
+      # Supabase env vars" hierboven; maakt eigen leden en accounts aan en
+      # ruimt ze op. Buiten `npm test`, want die draait vóór `supabase start`.
+      - run: npm run test:integration
       - run: supabase stop

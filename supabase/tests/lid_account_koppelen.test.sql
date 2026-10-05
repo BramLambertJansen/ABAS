@@ -7,9 +7,14 @@
 -- Zelfde actorpatroon als `link_invited_member_account`
 -- (supabase/tests/ledenbeheer.test.sql → "link_invited_member_account"):
 -- geen `auth.uid() -> members`-actorcheck, de "sessie" hier is die van het
--- inloggende lid zelf, geïdentificeerd via `auth.email()`
--- (`request.jwt.claim.email`, case-insensitief gematcht) en gekoppeld via
--- `auth.uid()` (`request.jwt.claim.sub`). Geen foutcodes voor deze RPC (spec:
+-- inloggende lid zelf. Sinds 0040 (ADR 0020,
+-- docs/features/account-koppeling-bewijs.md) koppelt de RPC alleen het
+-- account uit `members.invited_auth_user_id`, op het adres uit `auth.users`
+-- (case-insensitief), zonder wachtwoord, met een amr-methode uit de mailbox
+-- (hier `otp`, de portal-route) en een `session_id`-claim. Daarom heeft elk
+-- geval een eigen account; `pg_temp.link_claims` zet de claims. De
+-- randgevallen van die voorwaarden staan in account_koppeling_bewijs.test.sql.
+-- Geen foutcodes voor deze RPC (spec:
 -- "stille no-op, nooit een fout") — elk niet-happy-path-geval hieronder
 -- gebruikt daarom `lives_ok`/`is(... is null)` i.p.v. `throws_ok`.
 --
@@ -29,69 +34,111 @@ select plan(18);
 
 -- ── Fixtures ──────────────────────────────────────────────────────────
 
--- auth.users: sessies die de tests hieronder simuleren.
+-- auth.users: één account per geval, elk op het adres van zijn doellid,
+-- bevestigd en zonder wachtwoord (de staat na een geopende uitnodiging).
+--   (...380): happy path — het auth.uid() dat daadwerkelijk gekoppeld wordt.
+--   (...381): al gekoppeld aan LAK Already Linked Target.
+--   (...382)/(...383): gebonden aan de bardienst-/beheerder-rij.
+--   (...384): op een adres zonder lid, aan niets gebonden.
+--   (...385): gebonden aan het nooit-uitgenodigde lid.
+--   (...386): gebonden aan beide collision-rijen.
+--   (...387): gebonden aan een verder geldig lid, sessie zonder amr.
 insert into auth.users (
   id, instance_id, aud, role, email,
   encrypted_password, email_confirmed_at, created_at, updated_at,
   raw_app_meta_data, raw_user_meta_data
-) values
-  -- (...380): de sessie van het lid zelf, ná een geslaagde
-  -- exchangeCodeForSession()/verifyOtp() — dit is het auth.uid() dat de
-  -- happy-path-test daadwerkelijk aan een lid koppelt.
-  ('00000000-0000-0000-0000-000000000380', '00000000-0000-0000-0000-000000000000',
-   'authenticated', 'authenticated', 'lak-session-fixture@test.local',
-   crypt('not-used', gen_salt('bf')), now(), now(), now(),
-   '{"provider":"email","providers":["email"]}', '{}'),
-  -- (...381): al gekoppeld aan een ánder lid (LAK Already Linked Target
-  -- hieronder) — auth_user_id heeft een unique-constraint
-  -- (0005_assortimentbeheer.sql), dus dit moet een eigen, ongebruikt id zijn.
-  ('00000000-0000-0000-0000-000000000381', '00000000-0000-0000-0000-000000000000',
-   'authenticated', 'authenticated', 'lak-alreadylinked-fixture@test.local',
-   crypt('not-used', gen_salt('bf')), now(), now(), now(),
-   '{"provider":"email","providers":["email"]}', '{}');
+)
+select ('00000000-0000-0000-0000-00000000038' || v.n)::uuid,
+       '00000000-0000-0000-0000-000000000000',
+       'authenticated', 'authenticated', v.email,
+       '', now(), now(), now(),
+       '{"provider":"email","providers":["email"]}', '{}'
+  from (values
+    ('0', 'lak-happy@test.local'),
+    ('1', 'lak-alreadylinked@test.local'),
+    ('2', 'lak-bardienst-escalation@test.local'),
+    ('3', 'lak-beheerder-escalation@test.local'),
+    ('4', 'lak-nomatch@test.local'),
+    ('5', 'lak-neverinvited@test.local'),
+    ('6', 'lak-collision@test.local'),
+    ('7', 'lak-noamr@test.local')
+  ) as v(n, email);
 
 -- Target rijen — elk een eigen email/invited_at/auth_user_id/role-combinatie,
--- één per geval dat de spec expliciet noemt.
-insert into members (id, name, role, pin_hash, balance_cents, archived, email, invited_at, auth_user_id) values
+-- één per geval dat de spec expliciet noemt, gebonden (invited_auth_user_id)
+-- aan het account van dat geval.
+insert into members (id, name, role, pin_hash, balance_cents, archived, email, invited_at, auth_user_id,
+                     invited_auth_user_id) values
   -- Happy path: precies één match, role lid. Gemengd hoofdlettergebruik in
-  -- het opgeslagen e-mailadres, bewust anders dan de sessie-claim hieronder
-  -- (lowercase) — bewijst de case-insensitieve match. Echte pin_hash zodat de
+  -- het opgeslagen e-mailadres, bewust anders dan auth.users (lowercase) —
+  -- bewijst de case-insensitieve match. Echte pin_hash zodat de
   -- scrub-assertion niet vacuous is (zelfde reden als elders in de suite,
   -- ook al heeft een echte `lid` in de praktijk nooit een pincode,
   -- CLAUDE.md → "Dienst & bezetting").
   ('00000000-0000-0000-0000-0000000003a0', 'LAK Happy Target', 'lid',
-   crypt('1111', gen_salt('bf')), 0, false, 'Lak-Happy@Test.Local', now(), null),
+   crypt('1111', gen_salt('bf')), 0, false, 'Lak-Happy@Test.Local', now(), null,
+   '00000000-0000-0000-0000-000000000380'),
   -- Geen match, variant 1: al gekoppeld (gewone her-login van een al
   -- gekoppeld lid).
   ('00000000-0000-0000-0000-0000000003a1', 'LAK Already Linked Target', 'lid',
-   null, 0, false, 'lak-alreadylinked@test.local', now(), '00000000-0000-0000-0000-000000000381'),
+   null, 0, false, 'lak-alreadylinked@test.local', now(), '00000000-0000-0000-0000-000000000381',
+   '00000000-0000-0000-0000-000000000381'),
   -- Geen match, variant 2: nooit uitgenodigd (invited_at is null) — de
   -- "extra, goedkope verdedigingslaag" uit de RPC zelf.
   ('00000000-0000-0000-0000-0000000003a2', 'LAK Never Invited Target', 'lid',
-   null, 0, false, 'lak-neverinvited@test.local', null, null),
+   null, 0, false, 'lak-neverinvited@test.local', null, null,
+   '00000000-0000-0000-0000-000000000385'),
   -- E-mailcollision: twee lid-rijen met hetzelfde e-mailadres, allebei
-  -- eligible.
+  -- eligible en aan hetzelfde account gebonden.
   ('00000000-0000-0000-0000-0000000003a3', 'LAK Collision Target One', 'lid',
-   null, 0, false, 'lak-collision@test.local', now(), null),
+   null, 0, false, 'lak-collision@test.local', now(), null,
+   '00000000-0000-0000-0000-000000000386'),
   ('00000000-0000-0000-0000-0000000003a4', 'LAK Collision Target Two', 'lid',
-   null, 0, false, 'lak-collision@test.local', now(), null),
+   null, 0, false, 'lak-collision@test.local', now(), null,
+   '00000000-0000-0000-0000-000000000386'),
   -- KRITIEK — bevoegdheidslek: een bardienst-rij, verder in elk opzicht
-  -- eligible (unlinked, invited_at gezet), mag NOOIT gekoppeld worden door
-  -- deze RPC (harde `role = 'lid'`-filter, spec → punt 2).
+  -- eligible (unlinked, invited_at gezet, gebonden), mag NOOIT gekoppeld
+  -- worden door deze RPC (harde `role = 'lid'`-filter, spec → punt 2).
   ('00000000-0000-0000-0000-0000000003a5', 'LAK Bardienst Privilege Escalation Target', 'bardienst',
-   null, 0, false, 'lak-bardienst-escalation@test.local', now(), null),
+   null, 0, false, 'lak-bardienst-escalation@test.local', now(), null,
+   '00000000-0000-0000-0000-000000000382'),
   -- Zelfde bevoegdheidslek, nu voor beheerder — de rol met de hoogste
   -- rechten in dit domein, dus expliciet ook zijn eigen test, niet
   -- verondersteld "hetzelfde als bardienst" zonder bewijs.
   ('00000000-0000-0000-0000-0000000003a6', 'LAK Beheerder Privilege Escalation Target', 'beheerder',
-   null, 0, false, 'lak-beheerder-escalation@test.local', now(), null);
+   null, 0, false, 'lak-beheerder-escalation@test.local', now(), null,
+   '00000000-0000-0000-0000-000000000383'),
+  -- 0040: verder geldig, maar de sessie heeft geen amr-claim (test 8).
+  ('00000000-0000-0000-0000-0000000003a7', 'LAK No Amr Target', 'lid',
+   null, 0, false, 'lak-noamr@test.local', now(), null,
+   '00000000-0000-0000-0000-000000000387');
+
+-- Claims van een geslaagde portal-login (verifyOtp: amr `otp`), met
+-- session_id. `p_amr` null: geen amr-claim.
+create function pg_temp.link_claims(p_sub uuid, p_amr text default 'otp')
+returns void
+language plpgsql
+as $fn$
+begin
+  perform set_config('request.jwt.claim.sub', p_sub::text, true);
+  perform set_config(
+    'request.jwt.claims',
+    case when p_amr is null
+      then json_build_object('sub', p_sub::text, 'session_id', p_sub::text)
+      else json_build_object(
+        'sub', p_sub::text, 'session_id', p_sub::text,
+        'amr', json_build_array(json_build_object('method', p_amr, 'timestamp', 0)))
+    end::text,
+    true
+  );
+end;
+$fn$;
 
 -- ── Kritiek: bevoegdheidslek — bardienst/beheerder wordt nooit gekoppeld ──
 
 -- 1) bardienst: matcht op elk ander criterium (unlinked, invited_at gezet),
 -- maar role <> 'lid' -> stille no-op, geen koppeling.
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000380', true);
-select set_config('request.jwt.claim.email', 'lak-bardienst-escalation@test.local', true);
+select pg_temp.link_claims('00000000-0000-0000-0000-000000000382');
 select is(
   (select link_lid_member_account() is null),
   true,
@@ -105,7 +152,7 @@ select is(
 );
 
 -- 2) beheerder: dezelfde bescherming, los getest.
-select set_config('request.jwt.claim.email', 'lak-beheerder-escalation@test.local', true);
+select pg_temp.link_claims('00000000-0000-0000-0000-000000000383');
 select is(
   (select link_lid_member_account() is null),
   true,
@@ -123,11 +170,11 @@ select is(
 -- 3) exact één match (case-insensitief), auth_user_id null, invited_at
 -- gezet, role lid. Koppelt auth_user_id aan het session-uid en scrubt
 -- pin_hash in het geretourneerde resultaat.
-select set_config('request.jwt.claim.email', 'lak-happy@test.local', true);
+select pg_temp.link_claims('00000000-0000-0000-0000-000000000380');
 select lives_ok(
   $$ create temp table lak_happy_result as
      select * from link_lid_member_account() $$,
-  'link_lid_member_account succeeds for a session whose email matches exactly one eligible lid-role member'
+  'link_lid_member_account succeeds for the bound, confirmed, password-less account of exactly one eligible lid-role member'
 );
 
 select is(
@@ -156,17 +203,17 @@ select is(
 
 -- ── Geen match ────────────────────────────────────────────────────────
 
--- 4) geen match, variant 0: geen enkele rij heeft dit e-mailadres.
-select set_config('request.jwt.claim.email', 'lak-nomatch@test.local', true);
+-- 4) geen match, variant 0: geen enkel lid is aan dit account gebonden.
+select pg_temp.link_claims('00000000-0000-0000-0000-000000000384');
 select is(
   (select link_lid_member_account() is null),
   true,
-  'link_lid_member_account returns null when no member has a matching email at all'
+  'link_lid_member_account returns null when no member is bound to the account at all'
 );
 
--- 5) geen match, variant 1: e-mailadres matcht, maar auth_user_id is al
--- gezet (gewone her-login van een al gekoppeld lid).
-select set_config('request.jwt.claim.email', 'lak-alreadylinked@test.local', true);
+-- 5) geen match, variant 1: het account is al gekoppeld (gewone her-login
+-- van een al gekoppeld lid).
+select pg_temp.link_claims('00000000-0000-0000-0000-000000000381');
 select is(
   (select link_lid_member_account() is null),
   true,
@@ -181,7 +228,7 @@ select is(
 
 -- 6) geen match, variant 2: e-mailadres matcht, unlinked, maar nooit
 -- uitgenodigd (invited_at is null).
-select set_config('request.jwt.claim.email', 'lak-neverinvited@test.local', true);
+select pg_temp.link_claims('00000000-0000-0000-0000-000000000385');
 select is(
   (select link_lid_member_account() is null),
   true,
@@ -195,7 +242,7 @@ select is(
 );
 
 -- 7) meerdere matches: e-mailcollision tussen twee eligible lid-rijen.
-select set_config('request.jwt.claim.email', 'lak-collision@test.local', true);
+select pg_temp.link_claims('00000000-0000-0000-0000-000000000386');
 select is(
   (select link_lid_member_account() is null),
   true,
@@ -214,13 +261,14 @@ select is(
   'the second colliding member''s auth_user_id stays null after the no-op call'
 );
 
--- 8) geen e-mailclaim op de sessie: auth.email() resolves to null -> stille
--- no-op, geen crash (spec: "stille no-op, geen crash").
-select set_config('request.jwt.claim.email', '', true);
+-- 8) was "geen e-mailclaim": het adres komt sinds 0040 uit auth.users. Nu:
+-- een verder geldig gebonden account zonder amr-claim -> stille no-op, geen
+-- crash (spec: "stille no-op, geen crash").
+select pg_temp.link_claims('00000000-0000-0000-0000-000000000387', null);
 select is(
   (select link_lid_member_account() is null),
   true,
-  'link_lid_member_account returns null when the session has no email claim at all'
+  'link_lid_member_account returns null when the session has no amr claim at all'
 );
 
 select * from finish();

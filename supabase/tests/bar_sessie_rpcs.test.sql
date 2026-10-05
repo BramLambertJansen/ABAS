@@ -8,7 +8,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(112);
+select plan(116);
 
 -- ── Sessie-helper (dienst per sessie, ADR 0016) ────────────────────────────
 -- De bar-RPC's eisen een geregistreerde bar-sessie met een actieve koppeling
@@ -64,6 +64,11 @@ declare
   v_member uuid;
 begin
   select id into v_member from members where auth_user_id = p_auth_user;
+  -- De Auth-sessie uit het token: register_bar_session eist haar
+  -- (0040, ADR 0020 → Beslissing 8).
+  insert into auth.sessions (id, user_id, created_at, updated_at)
+  values (p_auth_user, p_auth_user, now(), now())
+  on conflict (id) do nothing;
   if v_member is not null then
     insert into bar_sessions (auth_session_id, member_id, mode)
     values (p_auth_user, v_member, p_mode)
@@ -122,6 +127,15 @@ insert into auth.mfa_factors (id, user_id, friendly_name, factor_type, status, c
 values
   (gen_random_uuid(), '00000000-0000-0000-0000-00000000e0a0', null, 'totp', 'verified', now(), now(), 'SRADMINSECRET'),
   (gen_random_uuid(), '00000000-0000-0000-0000-00000000e0a3', null, 'totp', 'verified', now(), now(), 'SRADMIN2SECRET');
+
+-- De Auth-sessies waarmee hieronder register_bar_session wordt aangeroepen:
+-- die eist een rij in auth.sessions met id = session_id-claim en user_id =
+-- auth.uid() (0040, ADR 0020 → Beslissing 8).
+insert into auth.sessions (id, user_id, created_at, updated_at) values
+  ('00000000-0000-0000-0000-00000000e0d1', '00000000-0000-0000-0000-00000000e0a1', now(), now()),
+  ('00000000-0000-0000-0000-00000000e0d2', '00000000-0000-0000-0000-00000000e0a0', now(), now()),
+  ('00000000-0000-0000-0000-00000000e0d3', '00000000-0000-0000-0000-00000000e0a0', now(), now()),
+  ('00000000-0000-0000-0000-00000000e0d9', '00000000-0000-0000-0000-00000000e0a1', now(), now());
 
 insert into activity_types (id, name, archived) values
   ('00000000-0000-0000-0000-00000000e0b0', 'SR Training', false);
@@ -197,14 +211,40 @@ select throws_ok(
   'beheer → bar in dezelfde sessie: mode_locked (modus wisselen = uitloggen, ADR 0003)'
 );
 
--- De sessie van iemand anders.
+-- De sessie van iemand anders. Sinds 0040 (ADR 0020 → Beslissing 8) houdt
+-- de Auth-sessiecontrole dit al tegen: e0d3 staat in auth.sessions op e0a0,
+-- niet op de aanroeper, dus session_ended vóór de controle op bar_sessions.
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000e0a3', true);
 select set_config('request.jwt.claims',
   '{"sub":"00000000-0000-0000-0000-00000000e0a3","session_id":"00000000-0000-0000-0000-00000000e0d3","aal":"aal2"}', true);
 select throws_ok(
   $$ select register_bar_session('beheer') $$,
+  'P0001', 'session_ended',
+  'een sessie-id dat al van een ander lid is, kan niet overgenomen worden (Auth-sessie van een ander account)'
+);
+
+-- De eigen Auth-sessie, maar de bar_sessions-rij met dat id staat op een
+-- ander lid. Langs de API kan die toestand niet ontstaan (register_bar_session
+-- zet altijd het eigen lid), maar de tak `v_session.member_id <> v_member.id`
+-- blijft de laatste verdediging. Rechtstreeks ingevoegd, langs de RPC om:
+-- e0d4 staat in auth.sessions op de aanroeper e0a3, de bar_sessions-rij op
+-- de bardienst e011.
+insert into auth.sessions (id, user_id, created_at, updated_at) values
+  ('00000000-0000-0000-0000-00000000e0d4', '00000000-0000-0000-0000-00000000e0a3', now(), now());
+insert into bar_sessions (auth_session_id, member_id, mode) values
+  ('00000000-0000-0000-0000-00000000e0d4', '00000000-0000-0000-0000-00000000e011', 'bar');
+select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000e0a3', true);
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000e0a3","session_id":"00000000-0000-0000-0000-00000000e0d4","aal":"aal2"}', true);
+select throws_ok(
+  $$ select register_bar_session('bar') $$,
   'P0001', 'no_bar_role',
-  'een sessie-id dat al van een ander lid is, kan niet overgenomen worden'
+  'eigen Auth-sessie, maar de bar-sessie met dat id staat op een ander lid: no_bar_role'
+);
+select is(
+  (select member_id from bar_sessions where auth_session_id = '00000000-0000-0000-0000-00000000e0d4'),
+  '00000000-0000-0000-0000-00000000e011'::uuid,
+  'de bar-sessie van het andere lid is niet overgenomen'
 );
 
 -- Beëindigd: niet opnieuw te registreren.
@@ -229,6 +269,21 @@ select throws_ok(
   'een gearchiveerd lid registreert geen sessie'
 );
 update members set archived = false where id = '00000000-0000-0000-0000-00000000e011';
+
+-- Een session_id-claim zonder rij in auth.sessions (uitgelogd, of verwijderd
+-- bij het koppelen van een account): geen nieuwe bar-sessie (0040, ADR 0020
+-- → Beslissing 8).
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000e0a1","session_id":"00000000-0000-0000-0000-00000000e0de"}', true);
+select throws_ok(
+  $$ select register_bar_session('bar') $$,
+  'P0001', 'session_ended',
+  'register_bar_session met een session_id zonder Auth-sessie: session_ended'
+);
+select ok(
+  not exists (select 1 from bar_sessions where auth_session_id = '00000000-0000-0000-0000-00000000e0de'),
+  'zonder Auth-sessie wordt geen bar_sessions-rij aangemaakt'
+);
 
 -- ═══ register_bar_session_server ══════════════════════════════════════════
 

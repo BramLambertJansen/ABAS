@@ -421,15 +421,16 @@ assumes. Read access is not tied to an active bar session: ADR 0016 left
 these RLS policies unchanged (`dienst-per-sessie.md` → Expliciet buiten
 scope).
 
-**Leespolicies zijn een allowlist (besloten 2026-10-05, nog te bouwen in
-`0039`)**: ADR [0019](adr/0019-leestoegang-is-een-allowlist-op-actieve-bar-rol.md),
+**Leespolicies zijn een allowlist (besloten 2026-10-05, gebouwd in `0039`,
+PR #156)**: ADR [0019](adr/0019-leestoegang-is-een-allowlist-op-actieve-bar-rol.md),
 spec `docs/features/leespolicies-allowlist.md`. Vervangt de
 `not caller_is_lid() or <eigen rij>`-vorm hierboven door
-`caller_has_bar_role() or <eigen rij>` op `members`, `orders`, `order_lines`,
+`(select caller_has_bar_role()) or <eigen rij>` (initplan: één evaluatie
+per statement) op `members`, `orders`, `order_lines`,
 `top_ups` en `order_reversals`. Brede leestoegang alleen voor een gekoppelde,
 niet-gearchiveerde bardienst/beheerder (geen actieve bar-sessie vereist; dat
 hoort bij het latere item "JWT na afmelden"). Ieder ander ziet eigen rijen, een
-account zonder gekoppeld lid ziet niets. `caller_is_lid()` vervalt.
+account zonder gekoppeld lid ziet niets. `caller_is_lid()` is gedropt.
 `using (true)` blijft alleen voor `products`, `app_settings`, `shifts`,
 `shift_members` en `activity_types`. De gate
 `supabase/tests/rls_leespolicies.test.sql` bewaakt dat er geen denylist-tak of
@@ -749,6 +750,24 @@ zonder dat er ooit een e-mailadres of portal-account bij hoort.
   eveneens nullable `members.invited_at timestamptz`-veld onderscheidt "nog
   niet uitgenodigd" van "uitgenodigd op [datum], nog geen account" in de
   UI — die tussenstaat is met deze herziening ook daadwerkelijk bereikbaar.
+- **Koppelen eist bewijs van mailbezit (ADR 0020, 2026-10-05, migratie
+  `0040`).** Een e-mailadres op een sessie is geen bewijs. De koppel-RPC's
+  koppelen alleen een sessie met een `amr`-methode uit de mailbox
+  (`invite`/`magiclink`/`otp`/`email/signup`), van precies het auth-account
+  dat `inviteUserByEmail` aanmaakte (`members.invited_auth_user_id`, gezet
+  door `mark_member_invite_sent`), met een bevestigd adres gelijk aan
+  `members.email`, en nooit voor een gearchiveerd lid. Bij het koppelen
+  worden wachtwoord en MFA-factoren gewist en eindigen de andere
+  Auth-sessies van het account (herzien 2026-10-05: GoTrue zet zelf een
+  tijdelijk wachtwoord bij het openen van een uitnodiging, dus "zonder
+  wachtwoord" eisen blokkeerde elke koppeling). Een
+  adreswijziging wist de uitnodiging. Een access token van een sessie die
+  zo (of bij afmelden/uitloggen) uit `auth.sessions` verdween, blijft voor
+  PostgREST geldig tot het verloopt; daarom eisen `register_bar_session` en
+  `set_own_pin` dat de rij in `auth.sessions` nog bestaat (ADR 0020 →
+  Beslissing 8): elke client-RPC die iets maakt dat langer leeft dan het
+  token (sessie, inloggegeven, apparaatvertrouwen) doet dat. Zie
+  `docs/features/account-koppeling-bewijs.md`.
 
 **Gebouwd (#24, 2026-09-21)**: zie hieronder, changelog-entry na
 "Ledenbeheer" — de bullets hierboven beschrijven de daadwerkelijk gebouwde

@@ -7,7 +7,15 @@
 export type FakeInviteMember = {
   user: { id: string } | null;
   actor: { id: string; role: string } | null;
-  member: { id: string; role: string; email: string | null; auth_user_id: string | null } | null;
+  member: {
+    id: string;
+    role: string;
+    email: string | null;
+    auth_user_id: string | null;
+    archived: boolean;
+  } | null;
+  /** Het auth.users-id dat de nep-`inviteUserByEmail` teruggeeft. */
+  invitedAuthUserId: string;
   /** Antwoorden per RPC-naam van de sessie-gebonden client. */
   rpc: Record<string, { data?: unknown; error?: { message: string } | null }>;
   /** Alle aanroepen, in volgorde: `rpc:<naam>` of `inviteUserByEmail`. */
@@ -20,7 +28,14 @@ function nieuw(): FakeInviteMember {
   return {
     user: { id: "u-beheerder" },
     actor: { id: "m-beheerder", role: "beheerder" },
-    member: { id: "m-doel", role: "bardienst", email: "doel@example.nl", auth_user_id: null },
+    member: {
+      id: "m-doel",
+      role: "bardienst",
+      email: "doel@example.nl",
+      auth_user_id: null,
+      archived: false,
+    },
+    invitedAuthUserId: "u-nieuw",
     rpc: {},
     calls: [],
   };

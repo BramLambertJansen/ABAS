@@ -16,8 +16,9 @@
     "check:adr": "node scripts/check-adr.mjs",
     "check:a11y": "playwright test",
     "db:test": "supabase test db",
+    "test:integration": "node --test \"integration/**/*.test.ts\"",
     "check:fast": "npm run lint && npm run typecheck && npm run test && npm run check:arch && npm run check:policy && npm run check:rls && npm run check:migrations && npm run check:adr",
-    "check:all": "npm run lint && npm run typecheck && npm run test && npm run build && npm run check:arch && npm run check:policy && npm run check:rls && npm run check:migrations && npm run check:adr && npm run check:a11y && npm run db:test",
+    "check:all": "npm run lint && npm run typecheck && npm run test && npm run build && npm run check:arch && npm run check:policy && npm run check:rls && npm run check:migrations && npm run check:adr && npm run check:a11y && npm run db:test && npm run test:integration",
     "prepare": "node .husky/install.mjs"
   },
   "dependencies": {
