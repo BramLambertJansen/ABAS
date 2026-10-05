@@ -1,8 +1,10 @@
 # Portaltransacties inhoudelijk consistent
 
-**Status: goedgekeurd (Bram, 2026-10-05), bouwklaar.** Alle tien vragen zijn
-beslist, zie "Besluiten Bram". Er zijn geen open vragen. De Developer mag
-beginnen.
+**Status: gebouwd (PR [#155](https://github.com/BramLambertJansen/ABAS/pull/155),
+`85311012`, gemerged in main).** Goedgekeurd door Bram op 2026-10-05; alle
+tien vragen waren beslist, zie "Besluiten Bram" en "Zoals gebouwd" onderaan.
+Het stuk hieronder tot "Besluiten Bram" is de spec zoals goedgekeurd; waar
+de bouw afwijkt of iets toevoegt, staat dat in "Zoals gebouwd".
 
 Spec voor [issue #129](https://github.com/BramLambertJansen/ABAS/issues/129)
 (frontend T09 · P1/P2, epic #121, findings F07 en F18, labels `bug`,
@@ -436,7 +438,7 @@ negen volgen haar.
 
 ## Open vragen
 
-Geen. Alle vragen zijn beslist; "wie" is bouwklaar omdat het veld al beschikbaar
+Beantwoord: geen open vragen meer. Alle vragen zijn beslist; "wie" is bouwklaar omdat het veld al beschikbaar
 en toegestaan is. Een eventuele latere wens om bijvoorbeeld "jij" te tonen als
 het lid zelf terugdraaide, of het kanaal alsnog te tonen, zou dit wél
 veranderen: eerste vraagt dan een `reversed_by_is_self boolean` of
@@ -450,3 +452,87 @@ een ander lid dan de naam lekt). Dat is expliciet buiten deze spec.
 Geen RPC, geen migratie, geen nieuwe hooks, geen wijziging in
 `usePortalTransactions`, `usePortalBalance` of `Tabs.tsx`, geen
 `scripts/check-arch.mjs`-wijziging (de map staat al in `PORTAL_ONLY_DIRS`).
+
+## Zoals gebouwd
+
+Gebouwd in [PR #155](https://github.com/BramLambertJansen/ABAS/pull/155)
+(`85311012`), alleen in `src/features/portal-dashboard/`. Geen backend- of
+RPC-wijziging, geen migratie, geen ADR, `usePortalTransactions` en
+`Tabs.tsx` ongewijzigd. De spec is gevolgd; er zijn geen inhoudelijke
+afwijkingen.
+
+### Onderdelen en hun plek
+
+- **`TransactieRij.tsx`**: de enige rij voor Saldo en Transacties, zonder
+  `showReversal`. Teruggedraaid: label en bedrag `text-muted line-through`,
+  badge "Teruggedraaid" (zichtbare tekst), de regels uit `reversalLines` op
+  eigen, afbrekende regels (`break-words`), bedrag `whitespace-nowrap`. Een
+  aparte `sr-only`-toevoeging bij het bedrag is er niet meer; de badge is de
+  voorleesbare status. In hetzelfde bestand staat **`TerugdraaiUitleg`**
+  (gewone tekst, `text-muted-strong`).
+- **`transacties.ts`** (pure functies): `reversalLines`, `amountSign`,
+  `showReversalExplanation(visible)`, `recentTransactions` (N =
+  `RECENT_TRANSACTIONS_LIMIT` = 5), `REVERSAL_EXPLANATION`;
+  `transactionDetail` geeft alleen nog itemomschrijving of "contant".
+- **Vaste tijdzone**: `PORTAL_TIME_ZONE = "Europe/Amsterdam"` in
+  `transacties.ts`; `dateLabel` en `monthKey` (en `monthLabel`) gebruiken
+  `Intl.DateTimeFormat` met `timeZone`. De spec liet `src/lib/date.ts` als
+  mogelijke plek open; de helper staat in `transacties.ts` en `src/lib/date.ts`
+  is niet gewijzigd.
+- **`SaldoTab.tsx`**: kop "RECENTE TRANSACTIES", knop "Alle transacties"
+  (alleen bij minstens één transactie), `TerugdraaiUitleg` onder de lijst.
+  **`TransactiesTab.tsx`**: één uitlegregel onder alle maandgroepen, op
+  basis van de gefilterde rijen.
+- **Focus na "Alle transacties"**: `PortalDashboard.tsx` krijgt `onShowAll`
+  van `SaldoTab` en zet via een ref plus effect de focus op het element met
+  `tabElementId(idBase, "transacties")`. `Tabs.tsx` is niet gewijzigd.
+
+### Besluiten 1-10
+
+Alle tien zijn zo gebouwd als beslist: (1) uitlegregel alleen bij een
+zichtbare teruggedraaide bestelling, ook na filter; (2) bedrag zonder teken;
+(3) "Door: {naam}", geen kanaal; (4) vast `Europe/Amsterdam`; (5) N = 5,
+teruggedraaide tellen mee, geen maandblok; (6) rij mag hoger worden, status
+nooit afgekapt; (7) geen tiebreaker, de client sorteert nooit; (8) knop plus
+focus op de tab; (9) badge "Teruggedraaid" en "Reden: …" in plaats van
+"TERUG"; (10) T09 vóór T08.
+
+### Wie terugdraaide
+
+`reversed_by_name` uit `list_own_transactions()` (0024), letterlijk getoond.
+Geen kanaal (`reversedVia` wordt nergens gerenderd, ook niet in attributen),
+geen "jij", geen "TERUG". Een lege of ontbrekende naam laat alleen de regel
+"Door: …" vervallen; hetzelfde voor een lege reden. Geen backend- of
+RPC-wijziging.
+
+### Tester-bevindingen
+
+Geen bugs. Extra tests voor grensgevallen: tijdzonegrens 31 dec 22:59Z (nog
+31 dec) en 23:00Z (1 jan Amsterdam), de grens bij N = 5, whitespace-reden en -naam, servervolgorde behouden, bedragen
+zonder berekening, en het kanaal nergens in de uitvoer of in attributen.
+Tests: `test/transacties.test.ts` en `e2e/portaltransacties-consistent.spec.ts`
+(gemockt, 320 en 390px, focus, tijdzone).
+
+### Reviewer-oordeel
+
+Goedgekeurd. De live-assertions in `e2e/a11y.spec.ts` zijn geverifieerd
+tegen de seed: Anna heeft één teruggedraaide bestelling (Chips, reden
+"verkeerd product getikt", teruggedraaid door Sanne Bakker) en drie
+transacties, dus binnen N = 5.
+
+### Niet gedekt
+
+- Handmatig testen op iOS Safari en Android.
+- De zomertijdwissel zelf (alleen de grenzen 22:59Z/23:00Z zijn getest).
+- De live e2e (tegen de seed) is lokaal niet draaibaar; die loopt in CI.
+
+### Backlog
+
+- `e2e/a11y.spec.ts`: `getByText("Bestelling")` is een substring-match en
+  fragiel; `{ exact: true }` overwegen.
+- De kop "RECENTE TRANSACTIES" staat als uppercase-literal in `SaldoTab.tsx`
+  (de maandkoppen gebruiken `toUpperCase()`).
+- "jij" tonen als het lid zelf terugdraaide, of het kanaal alsnog tonen,
+  vraagt een RPC-wijziging en een aanvulling op ADR 0010 (zie "Open vragen").
+- T08 (#128) en T12 (#132) raken dezelfde schermen (`SaldoTab.tsx`, contrast
+  van badge en doorgestreepte rijen, portalbreedte).

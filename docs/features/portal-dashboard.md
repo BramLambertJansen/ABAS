@@ -297,7 +297,8 @@ tabbladen, geen apart "Account"-tabblad — zie Expliciet buiten scope.
   Saldo én Transacties; zie `portaltransacties-consistent.md` voor de actuele
   tekst: badge "Teruggedraaid", "Door:" en "Reden:" op eigen regels, bedrag
   zonder teken, uitlegregel — de bullets hieronder zijn de oorspronkelijke
-  v1-weergave):
+  v1-weergave; het subtitel-`teruggedraaid · reden`-bullet en de
+  `sr-only`-toevoeging zijn vervallen, zie "Zoals gebouwd" daar):
   - label/bedrag doorgestreept (`text-muted line-through`, zelfde klasse-
     conventie als `Transactielijst.tsx`);
   - subtitel aangevuld met `· teruggedraaid · {reversal_reason}` (zelfde
@@ -348,7 +349,7 @@ tabbladen, geen apart "Account"-tabblad — zie Expliciet buiten scope.
 | Negatief saldo | Telt vanzelf mee als "laag" (`< drempel`); `formatCents` toont het negatieve bedrag correct (zie `src/lib/money.ts`'s docstring-correctie). |
 | Nieuw lid, nog geen enkele transactie | Lege staat op beide tabbladen, geen crash — zie Schermflow. |
 | `usePortalAppSettings()` nog in `"loading"` | Toon geen laag-saldo-kaart totdat de drempel echt geladen is (zelfde guard als `laag-saldo-signalering.md` → Randgevallen: een `threshold = 0`-placeholder zou ten onrechte "niet laag" concluderen). |
-| Teruggedraaide bestelling | Doorgestreept, "TERUG"-achtige subtitel-toevoeging, geen ⤺-knop — zie Schermflow. |
+| Teruggedraaide bestelling | Sinds T09: doorgestreept label en bedrag (zonder teken), badge "Teruggedraaid", "Door:" en "Reden:" op eigen regels, uitlegregel, geen ⤺-knop. Zie `portaltransacties-consistent.md`. |
 | Gastverkoop (`orders.member_id is null`) | Kan hier nooit voorkomen — zo'n bestelling hoort bij niemand (ADR 0007 → "vier eigenschappen" §4) en `list_own_transactions()` filtert altijd op de aanroeper se eigen `member_id`. |
 | Saldo/transacties wijzigen live terwijl het scherm open staat (bv. de bardienst rondt op de bar-tablet net een bestelling voor dit lid af) | Geen live-subscriptie in v1 — refetch bij opnieuw binnenkomen (focus/mount), zelfde "geen race-conditie-bescherming nodig"-afweging als `laag-saldo-signalering.md`/#29. |
 | Sessie verloopt terwijl het scherm open staat | Bestaand gedrag van `usePortalSession()` (terug naar `PortalLogin`) — dit ticket voegt daar niets aan toe. |
