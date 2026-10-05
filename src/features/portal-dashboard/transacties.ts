@@ -1,4 +1,5 @@
 import type { PortalTransaction } from "@/hooks/queries/usePortalTransactions";
+import { PORTAL_TIME_ZONE } from "../../lib/verversen.ts";
 
 /**
  * Pure logica achter het Transacties-tabblad (docs/features/
@@ -18,12 +19,6 @@ export type TransactionGroup = {
   label: string;
   items: PortalTransaction[];
 };
-
-/** Datum en maandgroep volgen altijd de Nederlandse klok, niet de tijdzone
- *  van het apparaat of de CI-runner (besluit 4, docs/features/
- *  portaltransacties-consistent.md): een boeking van 00:30 op 1 oktober
- *  hoort onder oktober, ook op een apparaat in een andere zone. */
-export const PORTAL_TIME_ZONE = "Europe/Amsterdam";
 
 const dateFormatter = new Intl.DateTimeFormat("nl-NL", {
   day: "numeric",

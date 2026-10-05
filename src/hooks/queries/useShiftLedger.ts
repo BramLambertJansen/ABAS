@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { reportClientError } from "@/lib/clientErrors";
 import { loadErrorMessage } from "@/lib/loadErrors";
@@ -64,8 +64,13 @@ export function useShiftLedger(
 ): State & { refetch: () => void } {
   const [state, setState] = useState<State>({ status: "loading" });
   const [tick, setTick] = useState(0);
+  // Laatste-request-wint: een late respons voor een oude dienst of een ander
+  // lid vervangt de data van de huidige niet (docs/features/
+  // leesfouten-herstel-actuele-data.md → Verouderde antwoorden).
+  const request = useRef(0);
 
   const load = useCallback(async () => {
+    const huidigeRequest = ++request.current;
     if (!shiftId) {
       setState({ status: "ready", entries: [] });
       return;
@@ -156,8 +161,10 @@ export function useShiftLedger(
         (a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)
       );
 
+      if (huidigeRequest !== request.current) return;
       setState({ status: "ready", entries });
     } catch (err) {
+      if (huidigeRequest !== request.current) return;
       // Never surface the raw error on a bar tablet mid-service — log it
       // for whoever's debugging, show a fixed Dutch message at the bar.
       reportClientError(createClient, "useShiftLedger", err);
@@ -170,6 +177,7 @@ export function useShiftLedger(
 
   useEffect(() => {
     let cancelled = false;
+    const requests = request;
     load().catch(() => {
       if (!cancelled) {
         setState({ status: "error", message: "Onbekende fout." });
@@ -177,6 +185,7 @@ export function useShiftLedger(
     });
     return () => {
       cancelled = true;
+      requests.current++;
     };
   }, [tick, load]);
 

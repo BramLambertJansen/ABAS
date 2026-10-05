@@ -242,6 +242,15 @@ test.describe("portal", () => {
 
   test("tabpanel zonder focusbare inhoud is zelf een tabstop", async ({ page }) => {
     await mockPortal(page);
+    // Saldo, instellingen en transacties laden (T08): zolang er nog geen data
+    // is, staat er alleen "Saldo laden…" en dus niets focusbaars in het panel.
+    // Met data staat er een verversknop (zie de volgende test).
+    for (const url of [/\/rest\/v1\/app_settings(\?|$)/, /\/rest\/v1\/rpc\/list_own_transactions(\?|$)/]) {
+      await page.route(url, () => new Promise<void>(() => {}));
+    }
+    await page.route(/\/rest\/v1\/members(\?|$)/, (route) =>
+      route.request().url().includes("balance_cents") ? new Promise<void>(() => {}) : route.fallback()
+    );
     await portalLoginMetWachtwoord(page, USER.email, "Aurora#2026");
     const saldo = page.getByRole("tab", { name: "Saldo" });
     await expect(saldo).toBeVisible({ timeout: 15_000 });
@@ -253,6 +262,19 @@ test.describe("portal", () => {
     // Met focusbare inhoud (Account) is het panel zelf geen tabstop.
     await page.getByRole("tab", { name: "Account" }).click();
     await expect(page.getByRole("tabpanel")).not.toHaveAttribute("tabindex", /.*/);
+  });
+
+  test("Saldo met data heeft een focusbare verversknop: het panel is zelf geen tabstop", async ({ page }) => {
+    await mockPortal(page);
+    await portalLoginMetWachtwoord(page, USER.email, "Aurora#2026");
+    const saldo = page.getByRole("tab", { name: "Saldo" });
+    await expect(saldo).toBeVisible({ timeout: 15_000 });
+    const verversen = page.getByRole("button", { name: "Verversen" });
+    await expect(verversen).toBeVisible();
+    await expect(page.getByRole("tabpanel")).not.toHaveAttribute("tabindex", /.*/);
+    await saldo.focus();
+    await page.keyboard.press("Tab");
+    await expect(verversen).toBeFocused();
   });
 
   test("sheet: later ingevoegde achtergrondnodes worden ook inert", async ({ page }) => {

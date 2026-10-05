@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { LeesFout } from "@/components/LeesFout";
+import { useLeesHerstel } from "@/hooks/useLeesHerstel";
 import { Overlay } from "@/components/Overlay";
 import { RoleBadge } from "@/components/RoleBadge";
 import { formatCents } from "@/lib/money";
@@ -39,6 +41,8 @@ export function LidBestellingenOverlay({
   onChanged: () => void;
 }) {
   const orders = useMemberOrders(memberId);
+  const lijstRef = useRef<HTMLDivElement>(null);
+  const herstel = useLeesHerstel(orders, lijstRef);
   const mutation = useReverseOrderAsAdmin();
   const reasonId = useId();
   const [reason, setReason] = useState("");
@@ -110,16 +114,26 @@ export function LidBestellingenOverlay({
         />
       </div>
 
-      <div className="flex max-h-[300px] flex-col gap-2 overflow-auto">
-        {orders.status === "loading" && (
+      <div
+        ref={lijstRef}
+        role="group"
+        aria-label="Bestellingen"
+        tabIndex={-1}
+        className="flex max-h-[300px] flex-col gap-2 overflow-auto"
+      >
+        {orders.status === "loading" && !herstel.toonFout && (
           <p className="py-5 text-center text-[12.5px] font-semibold text-muted" role="status">
             Bestellingen laden…
           </p>
         )}
-        {orders.status === "error" && (
-          <p className="py-5 text-center text-[12.5px] font-semibold text-danger" role="alert">
-            {orders.message}
-          </p>
+        {herstel.toonFout && (
+          <LeesFout
+            tone="light"
+            className="py-5"
+            message={herstel.message}
+            onRetry={herstel.retry}
+            bezig={herstel.bezig}
+          />
         )}
         {orders.status === "ready" && orders.orders.length === 0 && (
           <p className="py-5 text-center text-[12.5px] font-semibold text-muted">

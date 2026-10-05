@@ -323,6 +323,45 @@ database, RPC or policy change. Shared pieces:
   (which shows the inline confirmation first): a member switch clears a filled
   cart only for another member.
 
+**Recoverable read errors and current portal data (T08, #128; built in part,
+`docs/features/leesfouten-herstel-actuele-data.md`)**: no ADR (the spec's
+"ADR nodig?" says no), no RPC, RLS, migration, schema or auth change; only
+existing reads are issued more often. Shared pieces:
+- `src/lib/verversen.ts`: pure and unit-tested. `moetVerversen` (a running
+  read is never restarted; `online` always refreshes; returning to the tab only
+  when the last success is 30 s or older, the last attempt failed or nothing was
+  loaded yet), `bijgewerktLabel` ("Bijgewerkt om HH:mm", fixed `Europe/Amsterdam`;
+  `PORTAL_TIME_ZONE` moved here from `transacties.ts`), the stale-machine
+  transitions and `maakRondeGuard` (last request wins).
+- `src/hooks/queries/useStaleLezing.ts`: the one machine behind
+  `usePortalBalance`, `usePortalTransactions` and `usePortalAppSettings`
+  (stale-while-revalidate: a failed refresh from `ready` keeps the data and sets
+  `ververs.mislukt`; only a failed first round or retry is `error`; the retry
+  keeps the button mounted). Calls no Supabase itself; errors go through
+  `reportClientError` and `loadErrorMessage`.
+- `src/hooks/useVerversBijTerugkeer.ts` (listeners on `visibilitychange` and
+  `online`, never polling or Realtime), `src/components/VerversStatus.tsx`
+  (portal only, `role="status"`), `src/components/LeesFout.tsx` (error line plus
+  "Opnieuw proberen", `aria-disabled` while busy so focus stays),
+  `src/hooks/useFocusNaHerstel.ts` and `src/hooks/useLeesHerstel.ts` (focus goes
+  to the healed section after a retry, never `body`).
+- Portal: Saldo has one refresh button for balance, settings and transactions
+  (label = oldest of the three); Transactions refreshes only the transactions.
+  A tab switch always reads fresh (mount per tab, unchanged).
+- Bar: fail-closed on purpose (no stale-while-revalidate, decision 2): the read
+  screens only gained "Opnieuw proberen" and Afrekenen/Opwaarderen stay blocked
+  until the data is `ready`. `BarInloggen` shows "Inloggen met e-mail" while the
+  names load and when they fail. The parameter hooks (`useShiftMembers`,
+  `useShiftLedger`, `useShiftSummary`, `useMemberOrders`) have a last-request-wins
+  counter.
+- *Not built yet*: the `PortalShellHome` part (`userId` plus `key`, a background
+  lookup that does not fall back, an order guard and the `getSession` catch). It
+  waits for #115 (error classification of `usePortalSession`), which owns that
+  hook; `usePortalSession.ts` and `PortalShellHome.tsx` are untouched. Also out
+  of scope: `useBeheerSession`, #78, #51, #67, a session-expired message. Not
+  verified live: a real booking on the bar followed by a portal refresh,
+  flight mode, Safari/Android behaviour of `visibilitychange`/`online`.
+
 **First multi-screen bar navigation (settled, 2026-08-26)**: issue #8 is the
 first time `shells/bar` needed more than one screen behind an open shift.
 `src/features/verkoop/DienstTabs.tsx` renders the navigation (Verkoop,

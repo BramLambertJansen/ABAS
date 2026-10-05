@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/portalClient";
 import { reportClientError } from "@/lib/clientErrors";
+import type { VerversInfo } from "@/lib/verversen";
+import { useStaleLezing, VasteLeesFout } from "./useStaleLezing";
 
 /**
  * Eigen naam + `balance_cents` van de ingelogde portal-sessie, voor elke rol
@@ -28,26 +29,26 @@ type State =
   | { status: "error"; message: string }
   | { status: "ready"; balance: PortalBalance };
 
-export function usePortalBalance(): State & { refetch: () => void } {
-  const [state, setState] = useState<State>({ status: "loading" });
-  const [tick, setTick] = useState(0);
-
-  const load = useCallback(async () => {
-    setState({ status: "loading" });
-    try {
+/**
+ * Stale-while-revalidate (docs/features/leesfouten-herstel-actuele-data.md):
+ * `refetch()` laat een getoond saldo staan terwijl hij ververst en houdt het
+ * bij een mislukte verversing (`ververs.mislukt`); alleen een mislukte
+ * eerste ronde is `error`. De machine staat in `useStaleLezing`.
+ */
+export function usePortalBalance(): State & { ververs: VerversInfo; refetch: () => void } {
+  const { state, ververs, refetch } = useStaleLezing<PortalBalance>({
+    wat: "Kan het saldo niet laden.",
+    report: (err) => reportClientError(createClient, "usePortalBalance", err),
+    load: async () => {
       const supabase = createClient();
       const {
         data: { session },
       } = await supabase.auth.getSession();
 
       if (!session?.user) {
-        // Geen sessie meer — usePortalSession() vangt dit elders af en stuurt
+        // Geen sessie meer: usePortalSession() vangt dit elders af en stuurt
         // terug naar PortalLogin; hier gewoon een vaste boodschap, geen crash.
-        setState({
-          status: "error",
-          message: "Kan het saldo niet laden. Log opnieuw in.",
-        });
-        return;
+        throw new VasteLeesFout("Kan het saldo niet laden. Log opnieuw in.");
       }
 
       const { data, error } = await supabase
@@ -57,39 +58,20 @@ export function usePortalBalance(): State & { refetch: () => void } {
         .maybeSingle();
 
       if (error) throw error;
-      if (!data) {
-        setState({
-          status: "error",
-          message: "Kan het saldo niet laden. Controleer de verbinding.",
-        });
-        return;
-      }
+      if (!data) throw new VasteLeesFout("Kan het saldo niet laden. Log opnieuw in.");
 
-      setState({
-        status: "ready",
-        balance: {
-          name: data.name as string,
-          balanceCents: data.balance_cents as number,
-        },
-      });
-    } catch (err) {
-      reportClientError(createClient, "usePortalBalance", err);
-      setState({
-        status: "error",
-        message: "Kan het saldo niet laden. Controleer de verbinding.",
-      });
-    }
-  }, []);
+      return {
+        name: data.name as string,
+        balanceCents: data.balance_cents as number,
+      };
+    },
+  });
 
-  useEffect(() => {
-    let cancelled = false;
-    load().catch(() => {
-      if (!cancelled) setState({ status: "error", message: "Onbekende fout." });
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [tick, load]);
-
-  return { ...state, refetch: () => setTick((t) => t + 1) };
+  if (state.status === "ready") {
+    return { status: "ready", balance: state.data, ververs, refetch };
+  }
+  if (state.status === "error") {
+    return { status: "error", message: state.message, ververs, refetch };
+  }
+  return { status: "loading", ververs, refetch };
 }

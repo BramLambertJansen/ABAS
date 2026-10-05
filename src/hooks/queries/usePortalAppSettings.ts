@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/portalClient";
 import { reportClientError } from "@/lib/clientErrors";
+import type { VerversInfo } from "@/lib/verversen";
+import { useStaleLezing } from "./useStaleLezing";
 
 /**
  * `app_settings.low_balance_threshold_cents`, gelezen via `portalClient.ts`
@@ -22,13 +23,14 @@ type State =
   | { status: "error"; message: string }
   | { status: "ready"; settings: PortalAppSettings };
 
-export function usePortalAppSettings(): State & { refetch: () => void } {
-  const [state, setState] = useState<State>({ status: "loading" });
-  const [tick, setTick] = useState(0);
-
-  const load = useCallback(async () => {
-    setState({ status: "loading" });
-    try {
+/** Stale-while-revalidate via `useStaleLezing`: bij een mislukte verversing
+ *  blijft de laatst bekende drempel staan (docs/features/
+ *  leesfouten-herstel-actuele-data.md → Saldo-tab). */
+export function usePortalAppSettings(): State & { ververs: VerversInfo; refetch: () => void } {
+  const { state, ververs, refetch } = useStaleLezing<PortalAppSettings>({
+    wat: "Kan de instellingen niet laden.",
+    report: (err) => reportClientError(createClient, "usePortalAppSettings", err),
+    load: async () => {
       const supabase = createClient();
       const { data, error } = await supabase
         .from("app_settings")
@@ -37,30 +39,15 @@ export function usePortalAppSettings(): State & { refetch: () => void } {
 
       if (error) throw error;
 
-      setState({
-        status: "ready",
-        settings: {
-          lowBalanceThresholdCents: data.low_balance_threshold_cents as number,
-        },
-      });
-    } catch (err) {
-      reportClientError(createClient, "usePortalAppSettings", err);
-      setState({
-        status: "error",
-        message: "Kan de instellingen niet laden. Controleer de verbinding.",
-      });
-    }
-  }, []);
+      return { lowBalanceThresholdCents: data.low_balance_threshold_cents as number };
+    },
+  });
 
-  useEffect(() => {
-    let cancelled = false;
-    load().catch(() => {
-      if (!cancelled) setState({ status: "error", message: "Onbekende fout." });
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [tick, load]);
-
-  return { ...state, refetch: () => setTick((t) => t + 1) };
+  if (state.status === "ready") {
+    return { status: "ready", settings: state.data, ververs, refetch };
+  }
+  if (state.status === "error") {
+    return { status: "error", message: state.message, ververs, refetch };
+  }
+  return { status: "loading", ververs, refetch };
 }

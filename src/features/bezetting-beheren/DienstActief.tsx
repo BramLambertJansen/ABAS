@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { LeesFout } from "@/components/LeesFout";
+import { useLeesHerstel } from "@/hooks/useLeesHerstel";
 import type { OpenShift } from "@/hooks/queries/useMijnDienst";
 import { useShiftMembers } from "@/hooks/queries/useShiftMembers";
 import { useShiftSummary } from "@/hooks/queries/useShiftSummary";
@@ -47,6 +49,8 @@ export function DienstActief({
   onShiftEnded: () => void;
 }) {
   const shiftMembers = useShiftMembers(shift.id);
+  const bezettingKopRef = useRef<HTMLHeadingElement>(null);
+  const bezettingHerstel = useLeesHerstel(shiftMembers, bezettingKopRef);
   const shiftSummary = useShiftSummary(shift.id);
   const ledger = useShiftLedger(shift.id);
   const [overlayOpen, setOverlayOpen] = useState(false);
@@ -136,6 +140,7 @@ export function DienstActief({
 
         <Transactielijst
           ledger={ledger}
+          onRetry={ledger.refetch}
           showServedBy={members.length > 1}
           onReverse={setReverseEntry}
         />
@@ -174,7 +179,11 @@ export function DienstActief({
 
         <div className="flex flex-none flex-col gap-2.5">
           <div className="flex items-baseline justify-between gap-2.5">
-            <h3 className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-muted">
+            <h3
+              ref={bezettingKopRef}
+              tabIndex={-1}
+              className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-muted"
+            >
               Bezetting
             </h3>
             <button
@@ -187,15 +196,19 @@ export function DienstActief({
             </button>
           </div>
 
-          {shiftMembers.status === "loading" && (
+          {shiftMembers.status === "loading" && !bezettingHerstel.toonFout && (
             <p className="text-sm font-semibold text-muted" role="status">
               Bezetting laden…
             </p>
           )}
-          {shiftMembers.status === "error" && (
-            <p className="text-sm font-semibold text-danger" role="alert">
-              {shiftMembers.message}
-            </p>
+          {bezettingHerstel.toonFout && (
+            <LeesFout
+              tone="light"
+              className="items-start text-left"
+              message={bezettingHerstel.message}
+              onRetry={bezettingHerstel.retry}
+              bezig={bezettingHerstel.bezig}
+            />
           )}
           {shiftMembers.status === "ready" && members.length === 0 && (
             <p className="text-sm font-semibold text-muted">Nog niemand</p>

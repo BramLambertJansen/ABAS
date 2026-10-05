@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { useCallback, useRef, useState, type FormEvent } from "react";
 import { AuroraMerk } from "@/components/AuroraMerk";
+import { LeesFout } from "@/components/LeesFout";
 import { TekstVeld } from "@/components/TekstVeld";
 import { useFocusNaWissel } from "@/hooks/useFocusNaWissel";
+import { useLeesHerstel } from "@/hooks/useLeesHerstel";
 import { useBarNamen, type BarNaam } from "@/hooks/queries/useBarNamen";
 import {
   useBarLogin,
@@ -78,6 +80,8 @@ type Weergave = "pin" | "wachtwoord" | "vergeten";
 export function BarInloggen() {
   const sessie = useBarSessie();
   const namen = useBarNamen();
+  const titelRef = useRef<HTMLHeadingElement>(null);
+  const namenHerstel = useLeesHerstel(namen, titelRef);
   const login = useBarLogin();
 
   const [gekozen, setGekozen] = useState<BarNaam | null>(null);
@@ -221,6 +225,20 @@ export function BarInloggen() {
     setVergetenVerstuurd(true);
   }
 
+  // Universele voordeur voor beheer, en voor wie zijn account nog moet
+  // activeren: e-mail/wachtwoord op /beheer. Eén keer gedefinieerd en
+  // getoond bij laden, fout en de lijst zelf: een mislukte namenlijst mag de
+  // alternatieve login niet afsluiten (docs/features/
+  // leesfouten-herstel-actuele-data.md, besluit 7).
+  const emailIngang = (
+    <Link
+      href="/beheer"
+      className="flex h-12 w-full max-w-[500px] items-center justify-center rounded-[15px] border border-rail-border text-sm font-bold text-rail-muted transition-colors hover:border-accent hover:text-rail-light"
+    >
+      {STARTSCHERM.emailLink}
+    </Link>
+  );
+
   return (
     <main className="relative isolate flex min-h-screen w-full flex-col items-center justify-center gap-6 overflow-auto bg-rail px-6 py-8 font-sans text-white">
       <div
@@ -228,7 +246,13 @@ export function BarInloggen() {
         className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_0%,rgba(238,90,36,0.16),transparent_60%)]"
       />
       <AuroraMerk tone="dark">
-        <h1 className="text-[21px] font-extrabold tracking-[-0.02em]">{STARTSCHERM.titel}</h1>
+        <h1
+          ref={titelRef}
+          tabIndex={-1}
+          className="text-[21px] font-extrabold tracking-[-0.02em] outline-none"
+        >
+          {STARTSCHERM.titel}
+        </h1>
         {!gekozen && (
           <p className="text-[12.5px] font-semibold leading-normal text-rail-muted">
             {STARTSCHERM.ondertitel}
@@ -242,38 +266,32 @@ export function BarInloggen() {
         </p>
       )}
 
-      {!gekozen && namen.status === "loading" && (
-        <p className="text-sm font-semibold text-rail-muted" role="status">
-          Bardienst-lijst laden…
-        </p>
+      {!gekozen && namen.status === "loading" && !namenHerstel.toonFout && (
+        <>
+          <p className="text-sm font-semibold text-rail-muted" role="status">
+            Bardienst-lijst laden…
+          </p>
+          {emailIngang}
+        </>
       )}
 
-      {!gekozen && namen.status === "error" && (
-        <div className="flex max-w-xs flex-col items-center gap-3">
-          <p className="text-center text-sm font-semibold text-rail-error" role="alert">
-            {namen.message}
-          </p>
-          <button
-            type="button"
-            onClick={namen.refetch}
-            className="text-xs font-semibold text-rail-muted underline hover:text-rail-light"
-          >
-            Opnieuw proberen
-          </button>
-        </div>
+      {!gekozen && namenHerstel.toonFout && (
+        <>
+          <LeesFout
+            tone="rail"
+            className="max-w-xs"
+            message={namenHerstel.message}
+            onRetry={namenHerstel.retry}
+            bezig={namenHerstel.bezig}
+          />
+          {emailIngang}
+        </>
       )}
 
       {!gekozen && namen.status === "ready" && (
         <>
           <StaffPicker staff={namen.namen} onSelect={kiesNaam} />
-          {/* Universele voordeur voor beheer, en voor wie zijn account nog
-              moet activeren: e-mail/wachtwoord op /beheer. */}
-          <Link
-            href="/beheer"
-            className="flex h-12 w-full max-w-[500px] items-center justify-center rounded-[15px] border border-rail-border text-sm font-bold text-rail-muted transition-colors hover:border-accent hover:text-rail-light"
-          >
-            {STARTSCHERM.emailLink}
-          </Link>
+          {emailIngang}
         </>
       )}
 

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useBeheerSession } from "@/hooks/queries/useBeheerSession";
 import { useRegisterBarSession } from "@/hooks/queries/useRegisterBarSession";
+import { useFocusNaFaseFout } from "@/hooks/useFocusNaFaseFout";
 import { useBarMfa } from "@/hooks/queries/useBarMfa";
 import type { CodeFout } from "@/lib/mfa";
 import { BarSessieProvider } from "@/features/bar-sessie/BarSessieProvider";
@@ -29,6 +30,7 @@ function BeheerSchermen() {
   const router = useRouter();
   const [registreerFout, setRegistreerFout] = useState<string | null>(null);
   const [codeStap, setCodeStap] = useState(false);
+  useFocusNaFaseFout(sessie.fase);
 
   // De tweede factor (ADR 0017): alleen nodig voor een beheerder in de
   // modus-keuze.

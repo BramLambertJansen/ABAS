@@ -1,6 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import { LeesFout } from "@/components/LeesFout";
+import { useLeesHerstel } from "@/hooks/useLeesHerstel";
 import { useLogboek, type LogboekEntry } from "@/hooks/queries/useLogboek";
 import { InitialsAvatar } from "@/components/InitialsAvatar";
 import {
@@ -28,6 +30,8 @@ const NO_ENTRIES: LogboekEntry[] = [];
  */
 export function LogboekLijst() {
   const logboek = useLogboek();
+  const kopRef = useRef<HTMLHeadingElement>(null);
+  const herstel = useLeesHerstel(logboek, kopRef);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<LogboekFilterId>("alles");
 
@@ -41,7 +45,9 @@ export function LogboekLijst() {
   return (
     <>
       <div className="flex items-baseline gap-2.5">
-        <h1 className="text-[19px] font-extrabold tracking-[-0.02em]">Logboek</h1>
+        <h1 ref={kopRef} tabIndex={-1} className="text-[19px] font-extrabold tracking-[-0.02em]">
+          Logboek
+        </h1>
         {logboek.status === "ready" && (
           <span className="whitespace-nowrap text-[12.5px] font-bold text-muted">
             {countLabel(filtered.length, entries.length)}
@@ -98,15 +104,19 @@ export function LogboekLijst() {
       </div>
 
       <div className="flex min-h-[180px] flex-1 flex-col overflow-auto rounded-card border border-border bg-white px-1.5 py-1">
-        {logboek.status === "loading" && (
+        {logboek.status === "loading" && !herstel.toonFout && (
           <p className="py-11 text-center text-[13.5px] font-bold text-muted" role="status">
             Logboek laden…
           </p>
         )}
-        {logboek.status === "error" && (
-          <p className="py-11 text-center text-[13.5px] font-bold text-danger" role="alert">
-            {logboek.message}
-          </p>
+        {herstel.toonFout && (
+          <LeesFout
+            tone="light"
+            className="py-11"
+            message={herstel.message}
+            onRetry={herstel.retry}
+            bezig={herstel.bezig}
+          />
         )}
         {logboek.status === "ready" && emptyState && (
           <div className="flex flex-col gap-[5px] px-[30px] py-10 text-center">

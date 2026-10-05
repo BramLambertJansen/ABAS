@@ -2,6 +2,8 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { VeldFout } from "@/components/TekstVeld";
+import { LeesFout } from "@/components/LeesFout";
+import { useLeesHerstel } from "@/hooks/useLeesHerstel";
 import { useVeldMoment } from "@/hooks/useVeldMoment";
 import { useAppSettings } from "@/hooks/queries/useAppSettings";
 import {
@@ -41,6 +43,8 @@ function errorMessage(code: UpdateNegativeLimitErrorCode): string {
  */
 export function NegatieveLimietInstellingen() {
   const appSettings = useAppSettings();
+  const kopRef = useRef<HTMLHeadingElement>(null);
+  const herstel = useLeesHerstel(appSettings, kopRef);
   const mutation = useUpdateNegativeLimit();
   const [customAmount, setCustomAmount] = useState("");
   const [toast, setToast] = useState<string | null>(null);
@@ -54,18 +58,22 @@ export function NegatieveLimietInstellingen() {
     return () => clearTimeout(timer);
   }, [toast]);
 
-  if (appSettings.status === "loading") {
+  if (herstel.toonFout) {
     return (
-      <p className="text-sm font-semibold text-muted" role="status">
-        Instellingen laden…
-      </p>
+      <LeesFout
+        tone="light"
+        className="items-start text-left"
+        message={herstel.message}
+        onRetry={herstel.retry}
+        bezig={herstel.bezig}
+      />
     );
   }
 
-  if (appSettings.status === "error") {
+  if (appSettings.status !== "ready") {
     return (
-      <p className="text-sm font-semibold text-danger" role="alert">
-        {appSettings.message}
+      <p className="text-sm font-semibold text-muted" role="status">
+        Instellingen laden…
       </p>
     );
   }
@@ -105,7 +113,7 @@ export function NegatieveLimietInstellingen() {
     <div className="flex max-w-md flex-col gap-4 rounded-card border border-border bg-white p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1">
-          <h2 className="text-base font-extrabold tracking-tight">
+          <h2 ref={kopRef} tabIndex={-1} className="text-base font-extrabold tracking-tight">
             Negatief saldo toestaan
           </h2>
           <p className="text-xs font-semibold text-muted">
