@@ -1146,6 +1146,35 @@ Open vóór productie (spec → Zoals gebouwd → Open):
 
 Of dat gedaan is, staat niet in de repo.
 
+**Portaltransacties inhoudelijk consistent (gebouwd en gemerged, T09, #129, [PR #155](https://github.com/BramLambertJansen/ABAS/pull/155), `8531101`)**:
+`docs/features/portaltransacties-consistent.md` → Zoals gebouwd. Alleen
+presentatie in `src/features/portal-dashboard/`: geen migratie, geen RPC, geen
+wijziging in `usePortalTransactions`, `src/components/` of `Tabs.tsx`, geen
+ADR (ADR 0010/0012 dekken de zichtbaarheid van `reversed_by_name`).
+- *Eén rij*: `TransactieRij.tsx` is de enige rij, gebruikt door `SaldoTab`
+  ("Recente transacties") en `TransactiesTab`. De `showReversal`-vlag bestaat
+  niet meer. In hetzelfde bestand staat `TerugdraaiUitleg`, de uitlegregel
+  onder een lijst met minstens één teruggedraaide bestelling.
+- *Pure logica* in `transacties.ts` (geen React, geen berekening op
+  bedragen): `reversalLines` ("Door: {naam}" en "Reden: {reden}", elke regel
+  vervalt bij een lege waarde, het kanaal `reversedVia` komt er nooit in),
+  `amountSign` (geen teken bij teruggedraaid), `showReversalExplanation`
+  (op de getoonde rijen, dus na een filter), `recentTransactions` (eerste
+  `RECENT_TRANSACTIONS_LIMIT` = 5 van de serverlijst, sorteert nooit) en
+  `REVERSAL_EXPLANATION`. `transactionDetail` levert alleen nog de
+  itemomschrijving of "contant".
+- *Tijdzone*: `dateLabel` en `monthKey`/`monthLabel` in `transacties.ts`
+  gebruiken vast `PORTAL_TIME_ZONE` (`Europe/Amsterdam`) via `Intl.DateTimeFormat`
+  met `timeZone`, niet de zone van het apparaat of de CI-runner. Dit is een
+  lokale conventie van het portaltransacties-scherm: `src/lib/date.ts`
+  (`formatDate`, `formatTime`) volgt nog de apparaatzone en is niet
+  aangepast. Geen gate; een unittest (`test/transacties.test.ts`) bewaakt
+  de grenzen.
+- *Navigatie*: `PortalDashboard` blijft eigenaar van `tab`. "Alle
+  transacties" roept `onShowAll` aan; na de statuswissel zet een effect de
+  focus op `tabElementId(idBase, "transacties")` (bestaande export van
+  `src/components/Tabs.tsx`).
+
 ## Wat het prototype deed maar hier nog niet is besloten
 
 Alleen ter referentie — niets hiervan is in of uit scope besloten. Niet bouwen
