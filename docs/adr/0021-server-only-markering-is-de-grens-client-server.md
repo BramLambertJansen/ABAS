@@ -56,6 +56,19 @@ wel, en de fout is pas tijdens runtime zichtbaar.
    (`next/dist/compiled/server-only/empty.js`), zoals
    `test/fakes/resolve-hooks.mjs` al doet. Geen `--conditions=react-server`
    op het hele testscript: die conditie verandert ook wat `react` exporteert.
+6. **`"use server"` is geen uitzondering in de zoektocht (fail closed).**
+   Next vervangt een `"use server"`-module die clientcode importeert door een
+   action-referentie, dus strikt genomen komt zijn code niet in de bundel.
+   `check:arch` volgt hem toch, en meldt hem als hij een gemarkeerde module
+   bereikt. Bewust: de gekozen weg voor bevoorrechte serverlogica is een
+   Route Handler (ADR 0006, in de praktijk alle huidige gevallen); `src/`
+   bevat geen `"use server"`. Stoppen bij de directive zou elk bestand een
+   ontsnappingsluik geven: één regel bovenaan en de gate kijkt niet verder,
+   terwijl een Server Action bovendien een publiek aanroepbaar POST-endpoint
+   is dat buiten de bestaande route-handlerpatronen (guards, foutafhandeling)
+   valt. Wil iemand Server Actions gebruiken, dan is dat een nieuwe
+   architectuurbeslissing: ADR 0006/0021 herzien, en pas dan de zoektocht
+   aanpassen, met test.
 
 ## Gevolgen
 

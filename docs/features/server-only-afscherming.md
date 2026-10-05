@@ -251,6 +251,10 @@ Niet van toepassing.
   zoektocht vanaf `useBarAuth.ts` dat, met de keten.
 - **Test laadt een gemarkeerde module echt:** gooit meteen; oplossing in
   keuze 2.
+- **Clientmodule importeert een `"use server"`-module die een gemarkeerde
+  module bereikt:** gemeld, zoals elke andere import (ADR 0021, punt 6).
+  Geen speciale behandeling van de directive in de zoektocht en geen extra
+  test daarvoor; vandaag staat er nergens `"use server"` in `src/`.
 
 ## Testplan
 
@@ -338,5 +342,9 @@ Na de merge (Docs-rol): `CLAUDE.md` → Verificatie, rij `check:arch` (keuze
 - Een algemene regel voor alle niet-`NEXT_PUBLIC_`-env-vars in clientcode.
   Next inlinet ze niet, dus er lekt niets. Alleen `SUPABASE_SECRET_KEY`
   krijgt een regel (3c), als het secret dat RLS omzeilt.
+- Server Actions (`"use server"`) als toegestane weg naar gemarkeerde
+  modules. Bevoorrechte serverlogica loopt via Route Handlers; de gate
+  blijft Server Actions vanuit clientcode weigeren tot een ADR dat herziet
+  (ADR 0021, punt 6).
 - `tsconfig`-optie `noUncheckedSideEffectImports`. Niet nodig: met het
   package geïnstalleerd lost `import "server-only"` gewoon op.
