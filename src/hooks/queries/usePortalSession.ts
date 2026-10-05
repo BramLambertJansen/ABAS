@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { isAuthRetryableFetchError } from "@supabase/auth-js";
+import { isAuthRetryableFetchError } from "@/lib/supabase/authErrors";
 import { createClient } from "@/lib/supabase/portalClient";
 import { logLocalError, reportClientError } from "@/lib/clientErrors";
 import {
