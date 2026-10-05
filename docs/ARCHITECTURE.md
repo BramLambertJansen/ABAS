@@ -1249,7 +1249,7 @@ ADR (ADR 0010/0012 dekken de zichtbaarheid van `reversed_by_name`).
   focus op `tabElementId(idBase, "transacties")` (bestaande export van
   `src/components/Tabs.tsx`).
 
-## Server/client-grens (settled 2026-10-05)
+## Server/client-grens (settled 2026-10-05, gebouwd in PR #160)
 
 Een module die alleen op de server mag draaien, begint met
 `import "server-only";` ([ADR 0021](adr/0021-server-only-markering-is-de-grens-client-server.md),
@@ -1258,8 +1258,14 @@ Een module die alleen op de server mag draaien, begint met
 (servercookies). Elke module die er één importeert, is daarmee transitief
 server-only en krijgt geen eigen markering. `next build` faalt als zo'n module
 in een clientbundel komt. `check:arch` volgt de importgraaf vanaf elke
-clientmodule (statisch, kaal, `import()`, `require()`, met of zonder
-extensie; type-only telt niet) en meldt de keten. Types en pure regels die
+clientmodule en meldt de kortste keten. Imports herkent hij via de
+TypeScript-AST (`scripts/lib/scan.mjs`), niet via regex: statisch, kaal,
+`import()`, `require()`, met of zonder extensie; type-only (ook
+`import("a").T`) telt niet, comments en strings nooit. Een specifier lost
+eerst op naar het exacte pad. Verder faalt `check:arch` op een verplicht
+bestand zonder de markering als eerste statement, een niet-letterlijke
+`import()`/`require()` in `src/`, en `SUPABASE_SECRET_KEY` buiten
+`admin.ts`. `"use server"` is geen uitzondering (fail closed). Types en pure regels die
 clientcode nodig heeft, staan in een eigen module (`barLoginTypes.ts`,
 `productImageRules.ts`). Een nieuw secret krijgt een eigen gemarkeerde module
 en een plek in de verplichte lijst van `check:arch`.
