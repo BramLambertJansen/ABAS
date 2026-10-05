@@ -1,9 +1,17 @@
-// Shared helpers for the check:* scripts. Deliberately dependency-free
-// (regex over source text, not a real AST) — first-pass gates per
-// CLAUDE.md → Verificatie. Tighten with a real parser if these start
+// Shared helpers for the check:* scripts — first-pass gates per
+// CLAUDE.md → Verificatie. Import recognition (importRefsOf and friends)
+// walks the TypeScript AST; the other rules (check:policy, the directive
+// and secret-name checks in check:arch) still match regexes over
+// comment-stripped source. Tighten those with the parser too if they start
 // producing false positives/negatives that matter.
 import { readdirSync, readFileSync, statSync } from "node:fs";
+import { createRequire } from "node:module";
 import { join, posix, relative } from "node:path";
+
+// require(), not `import ts from "typescript"`: the ESM loader runs the
+// CommonJS export lexer over the whole ~9 MB typescript.js first (about
+// a third of check:arch's run time, which runs in the pre-commit hook).
+const ts = createRequire(import.meta.url)("typescript");
 
 const SRC_EXT = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs"]);
 const SKIP_DIRS = new Set(["node_modules", ".next", ".git"]);
@@ -30,83 +38,140 @@ export function read(root, relPath) {
 }
 
 // Import recognition (ADR 0021, docs/features/server-only-afscherming.md →
-// 3a). Runs on comment-stripped source, so example code in a docstring
-// doesn't count as an import. Recognised forms, each returned as
-// `{ spec, typeOnly }`:
+// 3a + Herziening). A walk over the TypeScript AST (`typescript` is a
+// devDependency), not a regex: comments and string contents can't produce
+// or hide an import, and every syntax form the parser accepts is covered
+// (no whitespace needed, Unicode bindings, statements without `;`).
+// Recognised forms, each returned as `{ spec, typeOnly }`:
 //   import x from "a" / import { y } from "a" / import * as z from "a"
 //   export { y } from "a" / export * from "a" / export * as z from "a"
-//   import "a"                     (bare, side-effect)
+//   import "a"                      (bare, side-effect)
+//   import x = require("a")         (TS import-equals)
 //   import("a") / await import("a") (dynamic, string literal only)
-//   require("a")                   (CommonJS, string literal only)
-//   import type { T } from "a" / export type { T } from "a"  → typeOnly
-// An inline `import { type T, f } from "a"` is NOT type-only (conservative:
-// the fix for a report is `import type`). The lookbehind keeps `foo.import(`
-// and `myrequire(` out (`import.meta` never matches: no `(`, string or `from`).
-// Bindings are Unicode identifiers (`import Ä from "a"`), and no whitespace
-// is needed before `{`, `*` or a string (`import{x}from"a"`).
+//   require("a")                    (CommonJS, a call to the identifier `require`)
+//   import type { T } from "a" / export type { T } from "a"   → typeOnly
+//   import type x = require("a")                              → typeOnly
+//   type S = import("a").S / typeof import("a")  (import type) → typeOnly
+// An inline `import { type T, f } from "a"` — also when every specifier is
+// inline `type` — is NOT type-only (conservative: the fix for a report is
+// `import type`). `foo.import(…)`, `foo.require(…)` and `require.resolve(…)`
+// are not imports. A dynamic import or `require` whose first argument is
+// not a plain string literal (variable, template literal, no argument) is
+// recorded as `nonLiteral` instead of a ref.
 //
-// The clause between the keyword and `from` follows the import/export
-// grammar instead of a free character class: an optional default binding
-// (never the keyword `import`/`export`), then `* [as x]` or one `{ … }`
-// (closed by its first `}`). That way a match can't run across a statement
-// boundary without a semicolon — e.g. `export type { Q }` followed by
-// `import { f } from "a"` on the next line must yield a runtime import of
-// "a", not a type-only one.
-const ID = String.raw`[\p{ID_Start}$_][\p{ID_Continue}$\u200C\u200D]*`;
-const NOT_AFTER = String.raw`(?<![\p{ID_Continue}$\u200C\u200D.])`;
-// After a keyword: whitespace, or none when the next token is `{`, `*` or a
-// string (`import{x}from"a"`); `importx from "a"` stays an identifier.
-const GAP = String.raw`(?:\s+|\s*(?=[{*"']))`;
-const FROM_RE = new RegExp(
-  String.raw`${NOT_AFTER}(?:import|export)${GAP}(type${GAP}(?!from(?![\p{ID_Continue}$])))?(?:(?!(?:import|export)(?![\p{ID_Continue}$]))${ID}\s*,?\s*)?(?:\*\s*(?:as\s+${ID}\s*)?|\{[^{}]*\}\s*)?from\s*["']([^"']+)["']`,
-  "gu"
-);
-const BARE_IMPORT_RE = new RegExp(String.raw`${NOT_AFTER}import\s*["']([^"']+)["']`, "gu");
-const CALL_IMPORT_RE = new RegExp(
-  String.raw`${NOT_AFTER}(?:import|require)\s*\(\s*["']([^"']+)["']\s*\)`,
-  "gu"
-);
-const ANY_CALL_RE = new RegExp(String.raw`${NOT_AFTER}(?:import|require)\s*\(`, "gu");
-const LITERAL_ARG_RE = /^\s*["'][^"'`]*["']\s*\)/;
+// `fileName` picks the parser mode (`.tsx`/`.jsx` → JSX, otherwise plain
+// TS/JS: `<T>x` is a cast there, not JSX). Without it the source is parsed
+// as TSX.
+const scriptKindOf = (fileName) => {
+  const ext = fileName.slice(fileName.lastIndexOf("."));
+  if (ext === ".tsx") return ts.ScriptKind.TSX;
+  if (ext === ".jsx") return ts.ScriptKind.JSX;
+  if (ext === ".js" || ext === ".mjs" || ext === ".cjs") return ts.ScriptKind.JS;
+  return ts.ScriptKind.TS;
+};
 
-export function importRefsOf(source) {
-  const code = stripComments(source);
+const analyses = new Map();
+
+// Parses once per (fileName, source); importRefsOf, hasNonLiteralImport and
+// startsWithServerOnly share the result.
+export function analyzeModule(source, fileName = "module.tsx") {
+  const key = `${fileName}\0${source}`;
+  const cached = analyses.get(key);
+  if (cached) return cached;
+
+  const sf = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, false, scriptKindOf(fileName));
   const refs = [];
-  let m;
-  FROM_RE.lastIndex = 0;
-  while ((m = FROM_RE.exec(code))) refs.push({ spec: m[2], typeOnly: Boolean(m[1]) });
-  BARE_IMPORT_RE.lastIndex = 0;
-  while ((m = BARE_IMPORT_RE.exec(code))) refs.push({ spec: m[1], typeOnly: false });
-  CALL_IMPORT_RE.lastIndex = 0;
-  while ((m = CALL_IMPORT_RE.exec(code))) refs.push({ spec: m[1], typeOnly: false });
-  return refs;
+  let nonLiteral = false;
+
+  const literal = (node) => (node && ts.isStringLiteral(node) ? node.text : null);
+
+  const visit = (node) => {
+    if (ts.isImportDeclaration(node)) {
+      const spec = literal(node.moduleSpecifier);
+      if (spec !== null) refs.push({ spec, typeOnly: Boolean(node.importClause?.isTypeOnly) });
+    } else if (ts.isExportDeclaration(node)) {
+      const spec = literal(node.moduleSpecifier);
+      if (spec !== null) refs.push({ spec, typeOnly: node.isTypeOnly });
+    } else if (ts.isImportEqualsDeclaration(node)) {
+      if (ts.isExternalModuleReference(node.moduleReference)) {
+        const spec = literal(node.moduleReference.expression);
+        if (spec !== null) refs.push({ spec, typeOnly: node.isTypeOnly });
+        else nonLiteral = true;
+      }
+    } else if (ts.isImportTypeNode(node)) {
+      const arg = node.argument;
+      const spec = ts.isLiteralTypeNode(arg) ? literal(arg.literal) : null;
+      if (spec !== null) refs.push({ spec, typeOnly: true });
+    } else if (
+      ts.isCallExpression(node) &&
+      (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
+        (ts.isIdentifier(node.expression) && node.expression.text === "require"))
+    ) {
+      const spec = literal(node.arguments[0]);
+      if (spec !== null) refs.push({ spec, typeOnly: false });
+      else nonLiteral = true;
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sf);
+
+  // The marker as the module's first statement: only directives
+  // (`"use strict";`) before it; comments are trivia.
+  let first = 0;
+  const stmts = sf.statements;
+  while (
+    first < stmts.length &&
+    ts.isExpressionStatement(stmts[first]) &&
+    ts.isStringLiteral(stmts[first].expression)
+  ) {
+    first++;
+  }
+  const head = stmts[first];
+  const markedFirst = Boolean(
+    head && ts.isImportDeclaration(head) && !head.importClause && literal(head.moduleSpecifier) === "server-only"
+  );
+
+  const result = { refs, nonLiteral, markedFirst };
+  analyses.set(key, result);
+  return result;
 }
 
-export function importsOf(source) {
-  return importRefsOf(source).map((r) => r.spec);
+export function importRefsOf(source, fileName) {
+  return analyzeModule(source, fileName).refs;
+}
+
+export function importsOf(source, fileName) {
+  return importRefsOf(source, fileName).map((r) => r.spec);
 }
 
 // True when the file has an `import(…)`/`require(…)` whose argument is not
 // a single string literal (variable, template literal, expression) — a
 // dependency check:arch can't follow (ADR 0021).
-export function hasNonLiteralImport(source) {
-  const code = stripComments(source);
-  let m;
-  ANY_CALL_RE.lastIndex = 0;
-  while ((m = ANY_CALL_RE.exec(code))) {
-    if (!LITERAL_ARG_RE.test(code.slice(m.index + m[0].length))) return true;
-  }
-  return false;
+export function hasNonLiteralImport(source, fileName) {
+  return analyzeModule(source, fileName).nonLiteral;
+}
+
+// True when the first statement after the directive prologue is
+// `import "server-only"` (ADR 0021, REQUIRED_SERVER_ONLY).
+export function startsWithServerOnly(source, fileName) {
+  return analyzeModule(source, fileName).markedFirst;
 }
 
 // Resolves an import specifier to a file in `files` (a Set of root-relative
 // POSIX paths as returned by walk()). `@/x` → `src/x`; a relative path is
-// resolved against `fromFile`'s directory. An explicit source extension is
-// stripped first (as is a trailing slash), then the extensions walk()
-// collects and the same set as /index.* are tried in that order. Packages
-// (no `@/`, no `.`) and unknown targets → null.
+// resolved against `fromFile`'s directory. Packages (no `@/`, no `.`) and
+// unknown targets → null. Order:
+//   - trailing slash (or `.`/`..`): a directory, only <dir>/index.* —
+//     never a sibling file with the same name;
+//   - otherwise the exact path first, so an explicit `dual.tsx` resolves to
+//     dual.tsx even when dual.ts exists (that's what Next loads);
+//   - then <path>.<ext> and <path>/index.<ext>;
+//   - an explicit source extension without an exact match is substituted:
+//     stripped and the same list tried (covers `./x.js` → x.ts).
 const RESOLVE_EXTS = [".ts", ".tsx", ".js", ".jsx", ".mjs"];
-const RESOLVE_SUFFIXES = [...RESOLVE_EXTS, ...RESOLVE_EXTS.map((e) => `/index${e}`)];
+const INDEX_SUFFIXES = RESOLVE_EXTS.map((e) => `/index${e}`);
+const RESOLVE_SUFFIXES = [...RESOLVE_EXTS, ...INDEX_SUFFIXES];
+const SOURCE_EXT_RE = /\.(tsx?|jsx?|mjs)$/;
 
 export function resolveSpec(fromFile, spec, files) {
   let base;
@@ -117,17 +182,27 @@ export function resolveSpec(fromFile, spec, files) {
   } else {
     return null;
   }
-  base = base.replace(/\/+$/, "").replace(/\.(tsx?|jsx?|mjs)$/, "");
-  for (const suffix of RESOLVE_SUFFIXES) {
-    if (files.has(base + suffix)) return base + suffix;
+  const firstOf = (stem, suffixes) => {
+    for (const suffix of suffixes) {
+      if (files.has(stem + suffix)) return stem + suffix;
+    }
+    return null;
+  };
+  if (/(^|\/)\.{0,2}$/.test(spec)) {
+    return firstOf(base.replace(/\/+$/, ""), INDEX_SUFFIXES);
   }
+  if (files.has(base)) return base;
+  const direct = firstOf(base, RESOLVE_SUFFIXES);
+  if (direct) return direct;
+  if (SOURCE_EXT_RE.test(base)) return firstOf(base.replace(SOURCE_EXT_RE, ""), RESOLVE_SUFFIXES);
   return null;
 }
 
 // Strips block and line comments so a docstring that MENTIONS a banned
 // pattern (to explain the rule, like ShellProvider.tsx does) doesn't trip
 // the same regex that looks for actual usage. Naive (doesn't understand
-// strings containing "//"), good enough for this codebase's style.
+// strings containing "//"), good enough for this codebase's style — and
+// no longer used for import recognition (see importRefsOf).
 export function stripComments(source) {
   return source
     // A space, not "": `import/**/x from "a"` must stay two tokens. No

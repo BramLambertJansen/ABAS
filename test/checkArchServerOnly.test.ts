@@ -319,3 +319,75 @@ test("28: regel 5 (cookie-isolatie, ADR 0009) vangt ook dynamische import en req
     'src/app/x/route.ts: imports "@/lib/supabase/portalServer" — only portal code'
   );
 });
+
+test("29: expliciete extensie wint van extensie-substitutie (dual.tsx naast dual.ts)", () => {
+  const dual = {
+    "src/lib/dual.ts": "export const d = 1;\n",
+    "src/lib/dual.tsx": 'import "server-only";\nexport const d = 1;\n',
+  };
+  expectFailure(
+    { ...dual, "src/features/x/AB.tsx": '"use client";\nimport { d } from "@/lib/dual.tsx";\nexport const ab = d;\n' },
+    "AB.tsx: reaches server-only src/lib/dual.tsx —"
+  );
+  // Zonder extensie kiest de resolver .ts eerst (zoals Next): die is niet gemarkeerd.
+  const { status, stderr } = runCheckArch({
+    ...dual,
+    "src/features/x/AC.tsx": '"use client";\nimport { d } from "@/lib/dual";\nexport const ac = d;\n',
+  });
+  assert.equal(status, 0, stderr);
+});
+
+test("29b: trailing slash is een map (index), geen gelijknamig bestand", () => {
+  expectFailure(
+    {
+      "src/lib/pkg.ts": "export const f = 1;\n",
+      "src/lib/pkg/index.ts": 'export { f } from "../barLogin";\n',
+      "src/features/x/AD.tsx": '"use client";\nimport { f } from "@/lib/pkg/";\nexport const ad = f;\n',
+    },
+    "AD.tsx: reaches server-only src/lib/supabase/admin.ts via src/lib/pkg/index.ts → src/lib/barLogin.ts"
+  );
+});
+
+test("29c: .js-specifier wordt nog steeds naar het .ts-bestand opgelost", () => {
+  expectFailure(
+    { "src/features/x/AE.tsx": '"use client";\nimport { f } from "@/lib/barLogin.js";\nexport const ae = f;\n' },
+    "AE.tsx: reaches server-only src/lib/supabase/admin.ts via src/lib/barLogin.ts"
+  );
+});
+
+test("30: import-type-expressie (import(\"x\").T, typeof import(\"x\")) is type-only", () => {
+  const { status, stderr } = runCheckArch({
+    "src/features/x/AF.tsx":
+      '"use client";\ntype S = import("@/lib/supabase/admin").S;\ntype M = typeof import("@/lib/barLogin");\nexport const af = (s: S, m: M) => [s, m];\n',
+  });
+  assert.equal(status, 0, stderr);
+});
+
+test('31: "//" in een string verbergt de volgende dynamische import niet', () => {
+  expectFailure(
+    {
+      "src/features/x/AG.tsx":
+        '"use client";\nconst l = "x//y"; const f = () => import("@/lib/supabase/admin");\nexport const ag = [l, f];\n',
+    },
+    "AG.tsx: reaches server-only src/lib/supabase/admin.ts"
+  );
+});
+
+test("32: import in een string of template telt niet als import", () => {
+  const { status, stderr } = runCheckArch({
+    "src/features/x/AH.tsx":
+      '"use client";\nexport const s = \'import { f } from "@/lib/barLogin"\';\nexport const t = `require("@/lib/supabase/admin")`;\n',
+  });
+  assert.equal(status, 0, stderr);
+});
+
+test("33: import x = require(...) wordt gevolgd, import type x = require(...) niet", () => {
+  expectFailure(
+    { "src/hooks/queries/useAI.ts": 'import b = require("@/lib/barLogin");\nexport const ai = b;\n' },
+    "useAI.ts: reaches server-only src/lib/supabase/admin.ts via src/lib/barLogin.ts"
+  );
+  const { status, stderr } = runCheckArch({
+    "src/hooks/queries/useAJ.ts": 'import type b = require("@/lib/barLogin");\nexport type AJ = typeof b;\n',
+  });
+  assert.equal(status, 0, stderr);
+});

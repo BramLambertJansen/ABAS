@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 // check:arch — CLAUDE.md → Verificatie: "shells geïsoleerd, features
 // shell-onwetend, Supabase-client privé". See scripts/lib/scan.mjs for
-// what this is and isn't (regex over source, not a real AST — first pass).
+// what this is and isn't (imports via the TypeScript AST, the directive and
+// secret-name checks still regex over comment-stripped source).
 import {
   walk,
   read,
   importsOf,
   importRefsOf,
   hasNonLiteralImport,
+  startsWithServerOnly,
   resolveSpec,
   stripComments,
   fail,
@@ -82,7 +84,7 @@ function isPortalOnlyFile(file) {
 
 for (const file of files) {
   const source = read(root, file);
-  const specs = importsOf(source);
+  const specs = importsOf(source, file);
 
   for (const spec of specs) {
     // 1. Shells isolated: shells/bar must not import from shells/portal,
@@ -149,11 +151,10 @@ const REQUIRED_SERVER_ONLY = [
 ];
 const SECRET_KEY_NAME = "SUPABASE_SECRET_KEY";
 const SECRET_KEY_FILE = "src/lib/supabase/admin.ts";
-// The marker as the module's first statement: only whitespace and
-// directives (`"use strict";`) before it, on comment-stripped source.
 // Reachability uses `marked` (the marker anywhere — `next build` fails on
-// that too); the REQUIRED_SERVER_ONLY check demands this stricter form.
-const SERVER_ONLY_FIRST_RE = /^\s*(?:(["'])[^"'\n]*\1\s*;?\s*)*import\s*["']server-only["']/;
+// that too); the REQUIRED_SERVER_ONLY check demands the stricter form: the
+// marker as the module's first statement, only directives (`"use strict";`)
+// before it (startsWithServerOnly, on the AST).
 
 const fileSet = new Set(files);
 // Parsed once per file: resolved runtime edges, marker, client-ness.
@@ -163,12 +164,12 @@ function infoOf(file) {
   if (i) return i;
   const source = read(root, file);
   const code = stripComments(source);
-  const refs = importRefsOf(source);
+  const refs = importRefsOf(source, file);
   i = {
     source,
     code,
     marked: refs.some((r) => !r.typeOnly && r.spec === SERVER_ONLY_SPEC),
-    markedFirst: SERVER_ONLY_FIRST_RE.test(code),
+    markedFirst: startsWithServerOnly(source, file),
     isClient: USE_CLIENT_RE.test(code) || CLIENT_ONLY_DIRS.some((d) => file.startsWith(d)),
     edges: [
       ...new Set(
@@ -194,7 +195,7 @@ for (const required of REQUIRED_SERVER_ONLY) {
 for (const file of files) {
   const { source, code, isClient } = infoOf(file);
 
-  if (hasNonLiteralImport(source)) {
+  if (hasNonLiteralImport(source, file)) {
     problems.push(`${file}: non-literal import()/require() — check:arch can't follow it (ADR 0021)`);
   }
 

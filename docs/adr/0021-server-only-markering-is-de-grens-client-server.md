@@ -83,3 +83,13 @@ wel, en de fout is pas tijdens runtime zichtbaar.
   De Developer bewijst het één keer handmatig bij de bouw (spec → Testplan).
   In CI testen we de eigen helft: dat de markeringen er staan en dat geen
   clientmodule er een bereikt.
+
+## Implementatiedetail (herzien 2026-10-05)
+
+`check:arch` herkent imports via de AST van de TypeScript-compiler, niet via
+regex over comment-vrije bron. De regex-versie miste een import na een
+string met `//` en zag `import("…").T` in een type als runtime-import.
+Type-only telt dus ook voor import-types (`import("a").T`,
+`typeof import("a")`). Een specifier met expliciete extensie lost eerst op
+naar precies dat bestand, net als in Next. Details in de spec, onder
+"Herziening".
