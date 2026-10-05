@@ -22,12 +22,13 @@
 --    6. Volgorde van de guardcodes.
 --    7-10. De guardvrije RPC's.
 --   11. close_signed_out_bar_sessions(): de cron-job.
---   12. close_bar_session_internal: de mapping naar `uitgelogd`.
+--   12. close_bar_session_internal: de mapping naar `uitgelogd`, en een
+--       sluiting door de cron-job na een normale sluiting doet niets.
 
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(90);
+select plan(93);
 
 -- ── Helper ───────────────────────────────────────────────────────────────
 
@@ -508,6 +509,32 @@ select is((select left_reason from shift_sessions where bar_session_id = '000000
   'uitgelogd', 'close_bar_session_internal: elders_uitgelogd → koppeling uitgelogd');
 select is((select left_reason from shift_sessions where bar_session_id = '00000000-0000-0000-0000-0000000041da'),
   'afgemeld', 'close_bar_session_internal: afgemeld → afgemeld (de mapping is niet te breed)');
+
+-- Gelijktijdig met een normale sluiting: de cron-job las 41da nog als open,
+-- maar end_bar_session/admin_end_bar_session sloot haar eerst. Dan roept de
+-- job close_bar_session_internal aan op een al gesloten sessie; de
+-- `ended_at is null`-voorwaarde daar (niet de filter in de job) houdt de
+-- eerste sluiting intact. ended_at teruggezet, zodat een tweede sluiting
+-- zichtbaar zou zijn (now() is binnen de transactie constant).
+update bar_sessions set ended_at = now() - interval '1 minute'
+ where id = '00000000-0000-0000-0000-0000000041da';
+select set_config('sna.da_ended_at', (select ended_at::text from bar_sessions
+  where id = '00000000-0000-0000-0000-0000000041da'), true);
+select set_config('sna.n_meldingen_f0', (select count(*)::text from admin_notifications
+  where shift_id = '00000000-0000-0000-0000-0000000041f0'), true);
+
+select close_bar_session_internal('00000000-0000-0000-0000-0000000041da', 'elders_uitgelogd');
+
+select is(
+  (select end_reason || ' ' || ended_at::text from bar_sessions where id = '00000000-0000-0000-0000-0000000041da'),
+  'afgemeld ' || current_setting('sna.da_ended_at'),
+  'close_bar_session_internal na een normale sluiting: sluitreden en tijdstip blijven die van de eerste sluiting');
+select is((select left_reason from shift_sessions where bar_session_id = '00000000-0000-0000-0000-0000000041da'),
+  'afgemeld', '... de koppeling houdt haar reden');
+select is(
+  (select count(*)::text from admin_notifications where shift_id = '00000000-0000-0000-0000-0000000041f0'),
+  current_setting('sna.n_meldingen_f0'),
+  '... en er komt geen tweede beheerdermelding');
 
 select * from finish();
 rollback;
