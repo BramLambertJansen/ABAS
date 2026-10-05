@@ -27,7 +27,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(88);
+select plan(90);
 
 -- ── Helper ───────────────────────────────────────────────────────────────
 
@@ -380,11 +380,24 @@ set local role authenticated;
 select pg_temp.als('{"sub":"00000000-0000-0000-0000-0000000041a2","session_id":"00000000-0000-0000-0000-0000000041d2"}');
 select is(my_bar_state(), '{"session": null}'::jsonb,
   'my_bar_state met een dode sessie en een open bar-sessie → {"session": null}, geen naam of rol');
--- Een al gesloten bar-sessie houdt haar sluitreden (close_bar_session_internal
--- verwijdert bij elke sluiting de Auth-sessie; de tablet toont de reden).
-select pg_temp.als('{"sub":"00000000-0000-0000-0000-0000000041a2","session_id":"00000000-0000-0000-0000-0000000041d6"}');
-select is(my_bar_state() -> 'session' ->> 'end_reason', 'uitgelogd',
-  'my_bar_state met een dode sessie en een gesloten bar-sessie → de sluitreden blijft zichtbaar');
+reset role;
+-- Een gesloten bar-sessie houdt haar sluitreden (keuze 5):
+-- close_bar_session_internal verwijdert bij elke sluiting de Auth-sessie, de
+-- tablet toont de reden. Geen dienstkoppeling: blok 11 en 12 blijven los.
+insert into auth.sessions (id, user_id, created_at, updated_at) values
+  ('00000000-0000-0000-0000-0000000041db', '00000000-0000-0000-0000-0000000041a2', now(), now());
+insert into bar_sessions (id, auth_session_id, member_id, mode) values
+  ('00000000-0000-0000-0000-0000000041db', '00000000-0000-0000-0000-0000000041db',
+   '00000000-0000-0000-0000-0000000041b2', 'bar');
+select close_bar_session_internal('00000000-0000-0000-0000-0000000041db', 'afgemeld');
+set local role authenticated;
+select pg_temp.als('{"sub":"00000000-0000-0000-0000-0000000041a2","session_id":"00000000-0000-0000-0000-0000000041db"}');
+select is(my_bar_state() -> 'session' ->> 'status', 'ended',
+  'my_bar_state met een dode sessie en een gesloten bar-sessie → status ended');
+select is(my_bar_state() -> 'session' ->> 'end_reason', 'afgemeld',
+  '... met de sluitreden (afgemeld)');
+select ok(not (my_bar_state() ?| array['shift', 'other_shift', 'notifications']),
+  '... en zonder shift, other_shift of notifications');
 reset role;
 
 -- ═══ 10. link_invited_member_account ═════════════════════════════════════

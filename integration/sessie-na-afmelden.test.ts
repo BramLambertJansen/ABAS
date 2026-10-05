@@ -155,9 +155,8 @@ test("2. wachtwoordherstel beëindigt de bar-sessie", async () => {
   const hartslag = await oud.rpc("touch_bar_session");
   assert.equal(hartslag.error?.message, "session_ended", "touch_bar_session met het tablet-token gaf geen session_ended");
 
-  const staat = await oud.rpc("my_bar_state");
-  assert.equal(staat.error, null, `my_bar_state gaf een fout: ${staat.error?.message}`);
-  assert.deepEqual(staat.data, { session: null }, "my_bar_state geeft het tablet-token meer dan een lege toestand");
+  // my_bar_state pas na de poll: de cron-job kan al tussen signOut() en hier
+  // gedraaid hebben (keuze 5). De null-tak dekt pgTAP blok 9.
 
   // De cron-job (elke minuut) sluit de bar-sessie. Wordt ze niet binnen 90 s
   // gesloten: niet afzwakken, melden.
@@ -176,4 +175,17 @@ test("2. wachtwoordherstel beëindigt de bar-sessie", async () => {
   }
   assert.ok(rij?.ended_at, "de cron-job sloot de bar-sessie niet binnen 90 s");
   assert.equal(rij?.end_reason, "elders_uitgelogd", "de bar-sessie is met een andere reden gesloten");
+
+  // Gesloten bar-sessie: de sluitreden blijft zichtbaar, zonder dienst- of beheergegevens.
+  const staat = await oud.rpc("my_bar_state");
+  assert.equal(staat.error, null, `my_bar_state gaf een fout: ${staat.error?.message}`);
+  const toestand = staat.data as Record<string, unknown> & {
+    session: { status?: string; end_reason?: string | null; left_shift_open?: boolean } | null;
+  };
+  assert.equal(toestand.session?.status, "ended", "my_bar_state geeft geen status ended");
+  assert.equal(toestand.session?.end_reason, "elders_uitgelogd", "my_bar_state geeft een andere sluitreden");
+  assert.equal(toestand.session?.left_shift_open, false, "my_bar_state meldt een open dienst");
+  for (const sleutel of ["shift", "other_shift", "notifications"]) {
+    assert.ok(!(sleutel in toestand), `my_bar_state geeft het tablet-token nog ${sleutel}`);
+  }
 });
