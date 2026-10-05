@@ -42,11 +42,11 @@ export function VerkoopScherm({ shift, draft }: { shift: OpenShift; draft: Verko
   // zijn `refetch` aan, dus mandje, gekozen lid en zoektekst (draft) blijven.
   // Afrekenen en Opwaarderen blijven geblokkeerd tot de data weer `ready` is.
   const assortimentRef = useRef<HTMLDivElement>(null);
-  // Bezetting en instellingen hebben na herstel geen eigen element (de
-  // foutregel is dan weg): de focus gaat naar de kop van het scherm.
+  // Ledenlijst, bezetting en instellingen hebben na herstel geen eigen element
+  // (de foutregel is dan weg): de focus gaat naar de kop van het scherm.
   const titelRef = useRef<HTMLHeadingElement>(null);
   const productsHerstel = useLeesHerstel(products, assortimentRef);
-  const membersHerstel = useLeesHerstel(members);
+  const membersHerstel = useLeesHerstel(members, titelRef);
   const crewHerstel = useLeesHerstel(crew, titelRef);
   const settingsHerstel = useLeesHerstel(appSettings, titelRef);
 

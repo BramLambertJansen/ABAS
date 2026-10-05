@@ -21,8 +21,18 @@ export function useLeesHerstel(
   const laatsteMelding = useRef("");
   if (hook.status === "error" && hook.message) laatsteMelding.current = hook.message;
 
+  // De retry is pas klaar als de hook na het klikken echt `loading` was en
+  // daarna `ready` of `error` werd; vóór die eerste `loading` staat de status
+  // nog op de oude `error`.
+  const zagLaden = useRef(false);
   useEffect(() => {
-    if (bezig && hook.status !== "loading") setBezig(false);
+    if (!bezig) return;
+    if (hook.status === "loading") {
+      zagLaden.current = true;
+    } else if (zagLaden.current) {
+      zagLaden.current = false;
+      setBezig(false);
+    }
   }, [bezig, hook.status]);
 
   const fallback = useRef<HTMLElement | null>(null);
@@ -42,7 +52,7 @@ export function useLeesHerstel(
   return {
     toonFout: hook.status === "error" || (bezig && hook.status === "loading"),
     message: laatsteMelding.current,
-    bezig: bezig && hook.status === "loading",
+    bezig,
     retry,
   };
 }

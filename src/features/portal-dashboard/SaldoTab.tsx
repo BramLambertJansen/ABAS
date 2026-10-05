@@ -36,6 +36,7 @@ export function SaldoTab({ onShowAll }: { onShowAll: () => void }) {
   const saldoRef = useRef<HTMLDivElement>(null);
   const transactiesRef = useRef<HTMLDivElement>(null);
   useFocusNaHerstel(balance.status, saldoRef);
+  useFocusNaHerstel(appSettings.status, saldoRef);
   useFocusNaHerstel(transactions.status, transactiesRef);
 
   const infos: VerversInfo[] = [balance.ververs, appSettings.ververs, transactions.ververs];
