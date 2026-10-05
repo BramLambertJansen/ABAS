@@ -42,8 +42,16 @@ export function read(root, relPath) {
 // An inline `import { type T, f } from "a"` is NOT type-only (conservative:
 // the fix for a report is `import type`). `(?<![\w$.])` keeps `foo.import(`,
 // `myrequire(` and `import.meta` out.
+//
+// The clause between the keyword and `from` follows the import/export
+// grammar instead of a free character class: an optional default binding
+// (never the keyword `import`/`export`), then `* [as x]` or one `{ … }`
+// (closed by its first `}`). That way a match can't run across a statement
+// boundary without a semicolon — e.g. `export type { Q }` followed by
+// `import { f } from "a"` on the next line must yield a runtime import of
+// "a", not a type-only one.
 const FROM_RE =
-  /(?<![\w$.])(?:import|export)\s+(type\s+(?!from\b))?[\w$*{}\s,]*?\s*from\s*["']([^"']+)["']/g;
+  /(?<![\w$.])(?:import|export)\s+(type\s+(?!from\b))?(?:(?!(?:import|export)\b)[\w$]+\s*,?\s*)?(?:\*\s*(?:as\s+[\w$]+\s*)?|\{[^{}]*\}\s*)?from\s*["']([^"']+)["']/g;
 const BARE_IMPORT_RE = /(?<![\w$.])import\s*["']([^"']+)["']/g;
 const CALL_IMPORT_RE = /(?<![\w$.])(?:import|require)\s*\(\s*["']([^"']+)["']\s*\)/g;
 const ANY_CALL_RE = /(?<![\w$.])(?:import|require)\s*\(/g;
@@ -82,9 +90,11 @@ export function hasNonLiteralImport(source) {
 // Resolves an import specifier to a file in `files` (a Set of root-relative
 // POSIX paths as returned by walk()). `@/x` → `src/x`; a relative path is
 // resolved against `fromFile`'s directory. An explicit source extension is
-// stripped first, then .ts/.tsx/.js/.jsx/.mjs and /index.ts(x) are tried in
-// that order. Packages (no `@/`, no `.`) and unknown targets → null.
-const RESOLVE_SUFFIXES = [".ts", ".tsx", ".js", ".jsx", ".mjs", "/index.ts", "/index.tsx"];
+// stripped first (as is a trailing slash), then the extensions walk()
+// collects and the same set as /index.* are tried in that order. Packages
+// (no `@/`, no `.`) and unknown targets → null.
+const RESOLVE_EXTS = [".ts", ".tsx", ".js", ".jsx", ".mjs"];
+const RESOLVE_SUFFIXES = [...RESOLVE_EXTS, ...RESOLVE_EXTS.map((e) => `/index${e}`)];
 
 export function resolveSpec(fromFile, spec, files) {
   let base;
@@ -95,7 +105,7 @@ export function resolveSpec(fromFile, spec, files) {
   } else {
     return null;
   }
-  base = base.replace(/\.(tsx?|jsx?|mjs)$/, "");
+  base = base.replace(/\/+$/, "").replace(/\.(tsx?|jsx?|mjs)$/, "");
   for (const suffix of RESOLVE_SUFFIXES) {
     if (files.has(base + suffix)) return base + suffix;
   }

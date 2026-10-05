@@ -120,8 +120,29 @@ test("9: verplichte markering ontbreekt", () => {
   );
 });
 
+test("9b: markering niet als eerste statement", () => {
+  expectFailure(
+    {
+      "src/lib/supabase/server.ts":
+        'export const z = 1;\nimport "server-only";\nexport async function createClient() { return 1; }\n',
+    },
+    'src/lib/supabase/server.ts: must start with import "server-only"'
+  );
+});
+
+test("9c: markering na comments en een directive telt als eerste statement", () => {
+  const { status, stderr } = runCheckArch({
+    "src/lib/supabase/server.ts":
+      '// uitleg\n/* meer uitleg */\n"use strict";\nimport "server-only";\nexport async function createClient() { return 1; }\n',
+  });
+  assert.equal(status, 0, stderr);
+});
+
 test("10: verplicht bestand ontbreekt", () => {
-  expectFailure({ "src/lib/supabase/portalServer.ts": null }, "src/lib/supabase/portalServer.ts");
+  expectFailure(
+    { "src/lib/supabase/portalServer.ts": null },
+    "src/lib/supabase/portalServer.ts: listed in REQUIRED_SERVER_ONLY but missing"
+  );
 });
 
 test("11: niet-letterlijke import", () => {
@@ -138,6 +159,61 @@ test("12: SUPABASE_SECRET_KEY buiten admin.ts", () => {
 test("13: import alleen in een comment telt niet", () => {
   const { status, stderr } = runCheckArch({
     "src/features/x/I.tsx": '"use client";\n// import { f } from "@/lib/barLogin"\nexport const i = 1;\n',
+  });
+  assert.equal(status, 0, stderr);
+});
+
+test("14: type-export zonder puntkomma slokt de volgende echte import niet op", () => {
+  expectFailure(
+    {
+      "src/features/x/J.tsx":
+        '"use client"\ntype Q = number\nexport type { Q }\nimport { f } from "@/lib/barLogin"\nexport const j = f\n',
+    },
+    "J.tsx: reaches server-only src/lib/supabase/admin.ts via src/lib/barLogin.ts"
+  );
+});
+
+test("15: type-import zonder puntkomma slokt de volgende re-export niet op", () => {
+  expectFailure(
+    {
+      "src/features/x/K.tsx":
+        '"use client"\nimport type { T } from "@/lib/barLogin"\nexport type { T }\nexport { f } from "@/lib/barLogin"\n',
+    },
+    "K.tsx: reaches server-only src/lib/supabase/admin.ts via src/lib/barLogin.ts"
+  );
+});
+
+test("16: type-export zonder puntkomma, gevolgd door side-effect-import, require en dynamische import", () => {
+  expectFailure(
+    {
+      "src/features/x/L.tsx": '"use client"\ntype Q = number\nexport type { Q }\nimport "@/lib/barLogin"\n',
+      "src/features/x/M.tsx":
+        '"use client"\ntype Q = number\nexport type { Q }\nexport const m = require("@/lib/barLogin")\n',
+      "src/features/x/N.tsx":
+        '"use client"\ntype Q = number\nexport type { Q }\nexport const n = () => import("@/lib/barLogin")\n',
+    },
+    "L.tsx: reaches",
+    "M.tsx: reaches",
+    "N.tsx: reaches"
+  );
+});
+
+test("17: map-import met trailing slash en index.js wordt gevolgd", () => {
+  expectFailure(
+    {
+      "src/lib/pkg/index.js": 'export { f } from "../barLogin";\n',
+      "src/features/x/O.tsx": '"use client";\nimport { f } from "@/lib/pkg/";\nexport const o = f;\n',
+    },
+    "O.tsx: reaches server-only src/lib/supabase/admin.ts via src/lib/pkg/index.js → src/lib/barLogin.ts"
+  );
+});
+
+test("18: Server Component en route handler mogen server.ts en barLogin importeren", () => {
+  const { status, stderr } = runCheckArch({
+    "src/app/x/page.tsx":
+      'import { createClient } from "@/lib/supabase/server";\nimport { f } from "@/lib/barLogin";\nexport default async function Page() { await createClient(); f(); return null; }\n',
+    "src/app/api/x/route.ts":
+      'import { createClient } from "@/lib/supabase/server";\nimport { f } from "@/lib/barLogin";\nexport async function POST() { await createClient(); f(); return new Response(null); }\n',
   });
   assert.equal(status, 0, stderr);
 });

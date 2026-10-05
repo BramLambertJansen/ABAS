@@ -149,6 +149,11 @@ const REQUIRED_SERVER_ONLY = [
 ];
 const SECRET_KEY_NAME = "SUPABASE_SECRET_KEY";
 const SECRET_KEY_FILE = "src/lib/supabase/admin.ts";
+// The marker as the module's first statement: only whitespace and
+// directives (`"use strict";`) before it, on comment-stripped source.
+// Reachability uses `marked` (the marker anywhere — `next build` fails on
+// that too); the REQUIRED_SERVER_ONLY check demands this stricter form.
+const SERVER_ONLY_FIRST_RE = /^\s*(?:(["'])[^"'\n]*\1\s*;?\s*)*import\s*["']server-only["']/;
 
 const fileSet = new Set(files);
 // Parsed once per file: resolved runtime edges, marker, client-ness.
@@ -163,6 +168,7 @@ function infoOf(file) {
     source,
     code,
     marked: refs.some((r) => !r.typeOnly && r.spec === SERVER_ONLY_SPEC),
+    markedFirst: SERVER_ONLY_FIRST_RE.test(code),
     isClient: USE_CLIENT_RE.test(code) || CLIENT_ONLY_DIRS.some((d) => file.startsWith(d)),
     edges: [
       ...new Set(
@@ -180,7 +186,7 @@ function infoOf(file) {
 for (const required of REQUIRED_SERVER_ONLY) {
   if (!fileSet.has(required)) {
     problems.push(`${required}: listed in REQUIRED_SERVER_ONLY but missing — update the list deliberately (ADR 0021)`);
-  } else if (!infoOf(required).marked) {
+  } else if (!infoOf(required).markedFirst) {
     problems.push(`${required}: must start with import "server-only" (ADR 0021)`);
   }
 }
