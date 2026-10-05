@@ -235,6 +235,41 @@ test.describe("portal (a11y)", () => {
   });
 
   /**
+   * docs/features/portal-sessielookup-laadfout.md (#115) → Teststrategie 11:
+   * de foutstaat van `PortalShellHome`. Echte login (Anna de Vries), alleen
+   * de sessielookup (`members` met `auth_user_id`, zonder `balance_cents`)
+   * krijgt een 500, zodat `usePortalSession` op `error` komt.
+   */
+  test("portal (/portal) sessielookup-foutstaat has no WCAG2A/AA violations", async ({ page }) => {
+    await page.route(/\/rest\/v1\/members\?/, (route) => {
+      const url = decodeURIComponent(route.request().url());
+      if (!url.includes("auth_user_id=eq.") || url.includes("balance_cents")) return route.fallback();
+      return route.fulfill({
+        status: 500,
+        contentType: "application/json",
+        headers: { "access-control-allow-origin": "*" },
+        body: JSON.stringify({ code: "PGRST301", message: "kapot", details: null, hint: null }),
+      });
+    });
+    await portalLoginMetWachtwoord(page, "anna.de.vries@aurora.local", "local-lid-dev-only");
+    const fout = page.locator('[role="alert"]:not(#__next-route-announcer__)');
+    await expect(fout).toContainText("Kan je account niet laden.", { timeout: 15_000 });
+    await expect(page.getByRole("button", { name: "Opnieuw proberen" })).toBeVisible();
+    await expect(page.getByText("Dit account is niet gekoppeld aan een lid.")).toHaveCount(0);
+    for (const knop of ["Opnieuw proberen", "Uitloggen"]) {
+      const box = await page.getByRole("button", { name: knop }).boundingBox();
+      expect(box!.height).toBeGreaterThanOrEqual(44);
+    }
+
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+
+    expect(results.violations, JSON.stringify(results.violations, null, 2))
+      .toEqual([]);
+  });
+
+  /**
    * docs/features/portal-dashboard.md (#16) → Randgevallen → "a11y": de
    * laag-saldo-variant, nog niet gedekt door het scenario hierboven (Anna
    * de Vries zit boven de €10-drempel). Piet Bakker (seeded `lid`,
