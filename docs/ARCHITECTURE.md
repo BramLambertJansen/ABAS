@@ -1181,6 +1181,21 @@ Open vóór productie (spec → Zoals gebouwd → Open):
 
 Of dat gedaan is, staat niet in de repo.
 
+## Server/client-grens (settled 2026-10-05)
+
+Een module die alleen op de server mag draaien, begint met
+`import "server-only";` ([ADR 0021](adr/0021-server-only-markering-is-de-grens-client-server.md),
+`docs/features/server-only-afscherming.md`). Verplicht voor
+`src/lib/supabase/admin.ts` (service-role), `server.ts` en `portalServer.ts`
+(servercookies). Elke module die er één importeert, is daarmee transitief
+server-only en krijgt geen eigen markering. `next build` faalt als zo'n module
+in een clientbundel komt. `check:arch` volgt de importgraaf vanaf elke
+clientmodule (statisch, kaal, `import()`, `require()`, met of zonder
+extensie; type-only telt niet) en meldt de keten. Types en pure regels die
+clientcode nodig heeft, staan in een eigen module (`barLoginTypes.ts`,
+`productImageRules.ts`). Een nieuw secret krijgt een eigen gemarkeerde module
+en een plek in de verplichte lijst van `check:arch`.
+
 ## Wat het prototype deed maar hier nog niet is besloten
 
 Alleen ter referentie — niets hiervan is in of uit scope besloten. Niet bouwen
