@@ -5,10 +5,16 @@
 -- Een `members`-rij krijgt alleen een `auth_user_id` als de sessie die
 -- koppelt (1) via een token uit de mailbox tot stand kwam (`amr`), (2) van
 -- het auth-account is dat de uitnodiging aanmaakte (`invited_auth_user_id`),
--- (3) een bevestigd adres heeft dat gelijk is aan `members.email`, (4) geen
--- wachtwoord heeft; en het lid niet gearchiveerd is. Elk negatief geval
--- hieronder bewijst twee dingen: de RPC geeft null (stille no-op, nooit een
--- fout) én `auth_user_id` blijft null.
+-- (3) een bevestigd adres heeft dat gelijk is aan `members.email`; en het lid
+-- niet gearchiveerd is. Elk negatief geval hieronder bewijst twee dingen: de
+-- RPC geeft null (stille no-op, nooit een fout) én `auth_user_id` blijft
+-- null.
+--
+-- Bij een geslaagde koppeling worden wachtwoord en MFA-factoren van het
+-- account gewist en eindigen alle andere sessies (ADR 0020 → Beslissing 3
+-- en 4): GoTrue zet bij het openen van de uitnodiging zelf een tijdelijk
+-- wachtwoord (verify.go:317-329), dus een account met wachtwoord moet
+-- kunnen koppelen (23). Een no-op raakt niets aan (5, 25, 26).
 --
 -- De belangrijkste test is 2): een bevestigd account zonder mailbewijs (de
 -- autoconfirm-wachtwoordsignup) koppelt niet. "Bevestigd" is niet genoeg.
@@ -21,7 +27,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(55);
+select plan(73);
 
 -- ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -96,15 +102,14 @@ select v.id::uuid, '00000000-0000-0000-0000-000000000000',
     ('00000000-0000-0000-0000-0000000ac001', 'akb-beheerder@test.local',  crypt('x', gen_salt('bf')), now()),
     -- 1) onbevestigd
     ('00000000-0000-0000-0000-0000000ac011', 'akb-onbevestigd@test.local', '', null),
-    -- 2) bevestigd, maar alleen een wachtwoordsessie (geen wachtwoord in
-    --    de kolom: zo bewijst de test amr en niet keuze 3)
+    -- 2) bevestigd, maar alleen een wachtwoordsessie
     ('00000000-0000-0000-0000-0000000ac012', 'akb-password@test.local',    '', now()),
     -- 3) amr ontbreekt / geen array / alleen token_refresh
     ('00000000-0000-0000-0000-0000000ac013', 'akb-amr@test.local',         '', now()),
     -- 4) het gebonden account en een tweede account op hetzelfde adres
     ('00000000-0000-0000-0000-0000000ac014', 'akb-ander@test.local',       '', now()),
     ('00000000-0000-0000-0000-0000000ac015', 'AKB-Ander@test.local',       '', now()),
-    -- 5) account met wachtwoord
+    -- 5) account met wachtwoord en factor, alleen een wachtwoordsessie
     ('00000000-0000-0000-0000-0000000ac016', 'akb-wachtwoord@test.local',  crypt('geheim', gen_salt('bf')), now()),
     -- 6) gearchiveerd lid
     ('00000000-0000-0000-0000-0000000ac017', 'akb-archief@test.local',     '', now()),
@@ -129,14 +134,41 @@ select v.id::uuid, '00000000-0000-0000-0000-000000000000',
     -- 20)-22) happy paths
     ('00000000-0000-0000-0000-0000000ac040', 'akb-happy@test.local',       '', now()),
     ('00000000-0000-0000-0000-0000000ac041', 'akb-magic@test.local',       '', now()),
-    ('00000000-0000-0000-0000-0000000ac042', 'akb-otp@test.local',         '', now())
+    ('00000000-0000-0000-0000-0000000ac042', 'akb-otp@test.local',         '', now()),
+    -- 23) gebonden account met wachtwoord (zoals GoTrue het achterlaat)
+    ('00000000-0000-0000-0000-0000000ac043', 'akb-reset@test.local',       crypt('tijdelijk', gen_salt('bf')), now()),
+    -- 24) gebonden account met wachtwoord en een verified factor
+    ('00000000-0000-0000-0000-0000000ac044', 'akb-mfa@test.local',         crypt('tijdelijk', gen_salt('bf')), now()),
+    -- 25) al gekoppeld account met wachtwoord en factor
+    ('00000000-0000-0000-0000-0000000ac045', 'akb-in-gebruik@test.local',  crypt('in-gebruik', gen_salt('bf')), now()),
+    -- 26) het gebonden account en een tweede account op hetzelfde adres,
+    --     met wachtwoord en sessies
+    ('00000000-0000-0000-0000-0000000ac046', 'akb-variant@test.local',     '', now()),
+    ('00000000-0000-0000-0000-0000000ac047', 'AKB-Variant@test.local',     crypt('van-een-ander', gen_salt('bf')), now())
   ) as v(id, email, pw, confirmed);
 
 -- De Auth-sessies van het happy-path-account: de sessie die koppelt en een
 -- tweede, van vóór de koppeling.
 insert into auth.sessions (id, user_id, created_at, updated_at) values
   ('00000000-0000-0000-0000-0000000ac050', '00000000-0000-0000-0000-0000000ac040', now(), now()),
-  ('00000000-0000-0000-0000-0000000ac051', '00000000-0000-0000-0000-0000000ac040', now(), now());
+  ('00000000-0000-0000-0000-0000000ac051', '00000000-0000-0000-0000-0000000ac040', now(), now()),
+  -- 5), 25), 26): de sessie die de RPC aanroept en een tweede.
+  ('00000000-0000-0000-0000-0000000ac052', '00000000-0000-0000-0000-0000000ac016', now(), now()),
+  ('00000000-0000-0000-0000-0000000ac053', '00000000-0000-0000-0000-0000000ac016', now(), now()),
+  ('00000000-0000-0000-0000-0000000ac054', '00000000-0000-0000-0000-0000000ac045', now(), now()),
+  ('00000000-0000-0000-0000-0000000ac055', '00000000-0000-0000-0000-0000000ac045', now(), now()),
+  ('00000000-0000-0000-0000-0000000ac056', '00000000-0000-0000-0000-0000000ac047', now(), now()),
+  ('00000000-0000-0000-0000-0000000ac057', '00000000-0000-0000-0000-0000000ac047', now(), now());
+
+-- Verified TOTP-factoren voor 5), 24) en 25).
+insert into auth.mfa_factors (id, user_id, friendly_name, factor_type, status, created_at, updated_at, secret)
+values
+  ('00000000-0000-0000-0000-0000000ac0f1', '00000000-0000-0000-0000-0000000ac016', null,
+   'totp', 'verified', now(), now(), 'AKBSECRETNOOP'),
+  ('00000000-0000-0000-0000-0000000ac0f2', '00000000-0000-0000-0000-0000000ac044', null,
+   'totp', 'verified', now(), now(), 'AKBSECRETRESET'),
+  ('00000000-0000-0000-0000-0000000ac0f3', '00000000-0000-0000-0000-0000000ac045', null,
+   'totp', 'verified', now(), now(), 'AKBSECRETINGEBRUIK');
 
 insert into members (id, name, role, pin_hash, balance_cents, archived, email, invited_at,
                      auth_user_id, invited_auth_user_id) values
@@ -187,7 +219,18 @@ insert into members (id, name, role, pin_hash, balance_cents, archived, email, i
   ('00000000-0000-0000-0000-0000000ac0c1', 'AKB Magic', 'lid', null, 0, false,
    'akb-magic@test.local', now(), null, '00000000-0000-0000-0000-0000000ac041'),
   ('00000000-0000-0000-0000-0000000ac0c2', 'AKB Otp', 'lid', null, 0, false,
-   'akb-otp@test.local', now(), null, '00000000-0000-0000-0000-0000000ac042');
+   'akb-otp@test.local', now(), null, '00000000-0000-0000-0000-0000000ac042'),
+  ('00000000-0000-0000-0000-0000000ac0c3', 'AKB Reset', 'beheerder', null, 0, false,
+   'akb-reset@test.local', now(), null, '00000000-0000-0000-0000-0000000ac043'),
+  ('00000000-0000-0000-0000-0000000ac0c4', 'AKB Mfa', 'beheerder', null, 0, false,
+   'akb-mfa@test.local', now(), null, '00000000-0000-0000-0000-0000000ac044'),
+  -- 25): ac0c5 is al aan het account gekoppeld; ac0c6 is er ook aan gebonden.
+  ('00000000-0000-0000-0000-0000000ac0c5', 'AKB In Gebruik', 'bardienst', null, 0, false,
+   'akb-in-gebruik@test.local', now(), '00000000-0000-0000-0000-0000000ac045', null),
+  ('00000000-0000-0000-0000-0000000ac0c6', 'AKB In Gebruik Twee', 'bardienst', null, 0, false,
+   'akb-in-gebruik@test.local', now(), null, '00000000-0000-0000-0000-0000000ac045'),
+  ('00000000-0000-0000-0000-0000000ac0c7', 'AKB Variant', 'beheerder', null, 0, false,
+   'akb-variant@test.local', now(), null, '00000000-0000-0000-0000-0000000ac046');
 
 -- ═══ Negatief: link_invited_member_account / link_lid_member_account ═════
 
@@ -235,12 +278,22 @@ select is((select link_invited_member_account() is null), true,
 select is((select auth_user_id from members where id = '00000000-0000-0000-0000-0000000ac094'), null,
   'het lid blijft ongekoppeld voor een account waaraan het niet gebonden is');
 
--- 5) Account met wachtwoord: gebonden, bevestigd, amr invite.
-select pg_temp.claims('00000000-0000-0000-0000-0000000ac016', '00000000-0000-0000-0000-0000000ac016', 'invite');
+-- 5) Een no-op raakt niets aan: gebonden, bevestigd account met wachtwoord,
+--    factor en een tweede sessie, maar amr password. (Was: "account met
+--    wachtwoord koppelt niet"; dat geval is nu positief, zie 23.)
+select pg_temp.claims('00000000-0000-0000-0000-0000000ac016', '00000000-0000-0000-0000-0000000ac052', 'password');
 select is((select link_invited_member_account() is null), true,
-  'een account met een wachtwoord koppelt niet, ook als het gebonden is en amr invite heeft');
+  'een gebonden account met wachtwoord en alleen amr password koppelt niet');
 select is((select auth_user_id from members where id = '00000000-0000-0000-0000-0000000ac096'), null,
-  'het lid blijft ongekoppeld voor een account met wachtwoord');
+  'het lid blijft ongekoppeld na de no-op');
+select ok(
+  (select encrypted_password = crypt('geheim', encrypted_password)
+     from auth.users where id = '00000000-0000-0000-0000-0000000ac016'),
+  'een no-op laat het wachtwoord staan');
+select ok(exists (select 1 from auth.mfa_factors where id = '00000000-0000-0000-0000-0000000ac0f1'),
+  'een no-op laat de MFA-factor staan');
+select ok(exists (select 1 from auth.sessions where id = '00000000-0000-0000-0000-0000000ac053'),
+  'een no-op laat de andere sessie staan');
 
 -- 6) Gearchiveerd lid, verder alles in orde.
 select pg_temp.claims('00000000-0000-0000-0000-0000000ac017', '00000000-0000-0000-0000-0000000ac017', 'invite');
@@ -407,6 +460,59 @@ select is((select auth_user_id from link_lid_member_account()), '00000000-0000-0
 select is((select auth_user_id from members where id = '00000000-0000-0000-0000-0000000ac0c2'),
   '00000000-0000-0000-0000-0000000ac042'::uuid,
   'de otp-koppeling staat in de tabel');
+
+-- 23) Account met wachtwoord wordt gekoppeld; het wachtwoord is daarna
+--     leeg. Het hoofdpad: GoTrue zet bij het openen van de uitnodiging zelf
+--     een tijdelijk wachtwoord (verify.go:317-329), en via token_hash is
+--     amr otp (verify.go:285).
+select pg_temp.claims('00000000-0000-0000-0000-0000000ac043', '00000000-0000-0000-0000-0000000ac043', 'otp');
+select lives_ok(
+  $$ create temp table akb_reset as select * from link_invited_member_account() $$,
+  'link_invited_member_account koppelt een gebonden account met wachtwoord en amr otp');
+select is((select auth_user_id from akb_reset), '00000000-0000-0000-0000-0000000ac043'::uuid,
+  'de teruggegeven rij heeft auth_user_id = het account met wachtwoord');
+select is((select auth_user_id from members where id = '00000000-0000-0000-0000-0000000ac0c3'),
+  '00000000-0000-0000-0000-0000000ac043'::uuid,
+  'de koppeling van het account met wachtwoord staat in de tabel');
+select is((select encrypted_password from auth.users where id = '00000000-0000-0000-0000-0000000ac043'), '',
+  'na het koppelen is het wachtwoord van het account leeg');
+
+-- 24) MFA-factoren zijn weg na het koppelen.
+select pg_temp.claims('00000000-0000-0000-0000-0000000ac044', '00000000-0000-0000-0000-0000000ac044', 'otp');
+select is((select auth_user_id from link_invited_member_account()), '00000000-0000-0000-0000-0000000ac044'::uuid,
+  'link_invited_member_account koppelt een gebonden account met een verified factor');
+select ok(not exists (select 1 from auth.mfa_factors where user_id = '00000000-0000-0000-0000-0000000ac044'),
+  'na het koppelen heeft het account geen MFA-factor meer');
+
+-- 25) Al gekoppeld account: een in gebruik zijnd wachtwoord wordt nooit
+--     gewist, ook niet als er nog een tweede lid aan gebonden is.
+select pg_temp.claims('00000000-0000-0000-0000-0000000ac045', '00000000-0000-0000-0000-0000000ac054', 'otp');
+select is((select link_invited_member_account() is null), true,
+  'een al gekoppeld account met amr otp koppelt geen tweede lid');
+select is((select auth_user_id from members where id = '00000000-0000-0000-0000-0000000ac0c6'), null,
+  'het tweede lid op het al gekoppelde account blijft ongekoppeld');
+select ok(
+  (select encrypted_password = crypt('in-gebruik', encrypted_password)
+     from auth.users where id = '00000000-0000-0000-0000-0000000ac045'),
+  'het wachtwoord van een al gekoppeld account blijft staan');
+select ok(exists (select 1 from auth.mfa_factors where id = '00000000-0000-0000-0000-0000000ac0f3'),
+  'de MFA-factor van een al gekoppeld account blijft staan');
+select ok(exists (select 1 from auth.sessions where id = '00000000-0000-0000-0000-0000000ac055'),
+  'de andere sessie van een al gekoppeld account blijft staan');
+
+-- 26) Ander account op hetzelfde adres als het gebonden account (variant van
+--     4): niets gewist.
+select pg_temp.claims('00000000-0000-0000-0000-0000000ac047', '00000000-0000-0000-0000-0000000ac056', 'magiclink');
+select is((select link_invited_member_account() is null), true,
+  'een niet-gebonden account op hetzelfde adres koppelt niet');
+select is((select auth_user_id from members where id = '00000000-0000-0000-0000-0000000ac0c7'), null,
+  'het lid blijft ongekoppeld voor het niet-gebonden account');
+select ok(
+  (select encrypted_password = crypt('van-een-ander', encrypted_password)
+     from auth.users where id = '00000000-0000-0000-0000-0000000ac047'),
+  'het wachtwoord van het niet-gebonden account blijft staan');
+select ok(exists (select 1 from auth.sessions where id = '00000000-0000-0000-0000-0000000ac057'),
+  'de andere sessie van het niet-gebonden account blijft staan');
 
 select * from finish();
 rollback;
