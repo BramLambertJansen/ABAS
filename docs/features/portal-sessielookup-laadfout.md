@@ -1,8 +1,7 @@
 # Portal-sessielookup: laadfout is geen "niet gekoppeld"
 
-**Status: spec, wacht op akkoord van Bram.** Gevalideerd tegen `main` op
-`ee8c066`. Voor de Developer bouwt: Bram keurt deze spec goed (CLAUDE.md →
-Werkstraat). De keuzes zijn door de Architect namens Bram gemaakt (zie
+**Status: goedgekeurd (Bram, gedelegeerd aan de Architect), gebouwd in #115.**
+Gevalideerd tegen `main` op `ee8c066`. De keuzes zijn door de Architect namens Bram gemaakt (zie
 "Besluiten Architect"); er zijn geen open vragen over geld of beleid.
 
 Spec voor [issue #115](https://github.com/BramLambertJansen/ABAS/issues/115)

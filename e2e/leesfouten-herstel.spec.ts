@@ -1,6 +1,7 @@
 import { test, expect, type Locator, type Page, type Route } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import {
+  SUPABASE_HEADERS,
   USER,
   alertOf,
   fakeSession,
@@ -17,13 +18,17 @@ import {
  * afdwingbaar zijn. Negatieve gevallen (fout, herstel, geen dubbele
  * oproepen) eerst. De klok loopt via `page.clock` (30 s-drempel).
  *
- * Niet in deze spec (wacht op #115): de foutstaat van `usePortalSession` en
- * het `PortalShellHome`-deel (key, achtergrondlookup, getSession-catch).
+ * De foutstaat van `usePortalSession` en het `PortalShellHome`-deel (key,
+ * achtergrondlookup, getSession-catch) staan onderaan het portal-blok
+ * (docs/features/portal-sessielookup-laadfout.md, #115).
  * Handmatig door de Tester: echte barboeking op client A en verversing op B,
- * vliegtuigmodus, Safari/Android.
+ * vliegtuigmodus, tabblad op de achtergrond met wegvallend netwerk,
+ * Safari/Android.
  */
 
 type Modus = "ok" | number | "netwerk";
+/** De sessielookup kan ook slagen zonder rij (`denied`). */
+type SessieModus = Modus | "geen-rij";
 
 async function antwoord(route: Route, modus: Modus, body: unknown) {
   if (modus === "netwerk") return route.abort("failed");
@@ -90,9 +95,18 @@ type PortalStaat = {
   rijen: Rij[];
   drempel: number;
   modus: { balance: Modus; tx: Modus; settings: Modus };
+  /** De sessielookup van `usePortalSession` (members zonder `balance_cents`). */
+  sessie: SessieModus;
+  /** Aantal sessielookups en `/auth/v1/token`-aanroepen. */
+  nSessie: number;
+  nToken: number;
   /** Aantal lezingen per bron (de sessielookup telt niet mee). */
   n: { balance: number; tx: number; settings: number };
   poort: { balance: Promise<void> | null; tx: Promise<void> | null };
+  /** Naam van het lid in de sessielookup. */
+  naam: string;
+  /** De gebruiker die `/auth/v1/token` teruggeeft en de sessielookup herkent. */
+  gebruiker: typeof USER;
 };
 
 /** Houdt de antwoorden van `bron` vast tot de teruggegeven functie wordt aangeroepen. */
@@ -113,25 +127,36 @@ async function mockPortal(page: Page): Promise<PortalStaat> {
     rijen: [...OUD],
     drempel: 1000,
     modus: { balance: "ok", tx: "ok", settings: "ok" },
+    sessie: "ok",
+    nSessie: 0,
+    nToken: 0,
     n: { balance: 0, tx: 0, settings: 0 },
     poort: { balance: null, tx: null },
+    naam: "Mock Lid",
+    gebruiker: USER,
   };
   const objectOrList = (route: Route, modus: Modus, row: unknown) => {
     const accept = route.request().headers()["accept"] ?? "";
     return antwoord(route, modus, accept.includes("vnd.pgrst.object") ? row : [row]);
   };
-  await page.route(/\/auth\/v1\/token(\?|$)/, (route) => json(route, 200, fakeSession()));
+  await page.route(/\/auth\/v1\/token(\?|$)/, (route) => {
+    staat.nToken++;
+    return json(route, 200, fakeSession({ user: staat.gebruiker }));
+  });
+  await page.route(/\/auth\/v1\/logout(\?|$)/, (route) => route.fulfill({ status: 204, headers: SUPABASE_HEADERS }));
   await page.route(/\/rest\/v1\//, (route) => json(route, 200, []));
   await page.route(/\/rest\/v1\/members(\?|$)/, async (route) => {
     const url = decodeURIComponent(route.request().url());
-    if (!url.includes(`auth_user_id=eq.${USER.id}`)) return objectOrList(route, "ok", null);
+    if (!url.includes(`auth_user_id=eq.${staat.gebruiker.id}`)) return objectOrList(route, "ok", null);
     if (url.includes("balance_cents")) {
       staat.n.balance++;
       if (staat.poort.balance) await staat.poort.balance;
       return objectOrList(route, staat.modus.balance, { name: "Mock Lid", balance_cents: staat.saldo });
     }
     // Sessielookup (usePortalSession): niet de te tellen lezing.
-    return objectOrList(route, "ok", { name: "Mock Lid", role: "lid", archived: false, has_pin: false });
+    staat.nSessie++;
+    if (staat.sessie === "geen-rij") return objectOrList(route, "ok", null);
+    return objectOrList(route, staat.sessie, { name: staat.naam, role: "lid", archived: false, has_pin: false });
   });
   await page.route(/\/rest\/v1\/app_settings(\?|$)/, (route) => {
     staat.n.settings++;
@@ -429,6 +454,222 @@ test.describe("portal: actuele data", () => {
     await expect(meldingen(page)).toHaveCount(0);
     await expect(retryKnop(page)).toHaveCount(0);
     await expect(page.getByText("niet gekoppeld")).toHaveCount(0);
+  });
+});
+
+test.describe("portal: sessielookup (#115)", () => {
+  const sessieFout = (page: Page) => alertOf(page).filter({ hasText: "Kan je account niet laden." });
+  const nietGekoppeld = (page: Page) => page.getByText("Dit account is niet gekoppeld aan een lid.");
+  const uitloggenKnop = (page: Page) => page.getByRole("button", { name: "Uitloggen" });
+
+  /** Een auth-event bij tabterugkeer; wacht tot de achtergrondlookup er is. */
+  async function achtergrondEvent(page: Page, staat: PortalStaat) {
+    const voor = staat.nSessie;
+    await page.clock.fastForward(31_000);
+    // auth-js luistert op `window`: het event moet bubbelen om daar aan te komen.
+    await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange", { bubbles: true })));
+    await expect.poll(() => staat.nSessie, { timeout: 10_000 }).toBeGreaterThan(voor);
+    await rustig(page);
+  }
+
+  test("members geeft 500: foutscherm met code en retry, geen 'niet gekoppeld' en geen loginformulier; retry herstelt zonder opnieuw in te loggen", async ({ page }) => {
+    const staat = await mockPortalZonderLogin(page);
+    staat.sessie = 500;
+    await portalLoginMetWachtwoord(page, USER.email, "Aurora#2026");
+    const fout = sessieFout(page);
+    await expect(fout).toBeVisible({ timeout: 15_000 });
+    await expect(fout).toContainText("Er ging iets mis aan de serverkant");
+    await expect(fout).toContainText("code PGRST301");
+    await expect(retryKnop(page)).toBeVisible();
+    await expect(nietGekoppeld(page)).toHaveCount(0);
+    await expect(page.locator('input[type="email"]')).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: /^Hoi/ })).toHaveCount(0);
+
+    const tokenVoor = staat.nToken;
+    staat.sessie = "ok";
+    await retryKnop(page).click();
+    await expect(page.getByRole("heading", { name: "Hoi Mock" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Hoi Mock" })).toBeFocused();
+    await focusNietOpBody(page);
+    await expect(meldingen(page)).toHaveCount(0);
+    expect(staat.nToken).toBe(tokenVoor);
+  });
+
+  test("netwerkfout bij de lookup: 'Controleer de verbinding.'; retry herstelt", async ({ page }) => {
+    const staat = await mockPortalZonderLogin(page);
+    staat.sessie = "netwerk";
+    await portalLoginMetWachtwoord(page, USER.email, "Aurora#2026");
+    const fout = sessieFout(page);
+    await expect(fout).toContainText("Controleer de verbinding.", { timeout: 15_000 });
+    await expect(fout).not.toContainText("serverkant");
+    await expect(nietGekoppeld(page)).toHaveCount(0);
+    staat.sessie = "ok";
+    await retryKnop(page).click();
+    await expect(page.getByRole("heading", { name: "Hoi Mock" })).toBeVisible();
+  });
+
+  test("een mislukte retry houdt de focus op de knop (aria-disabled tijdens de retry), zonder automatische herhaling", async ({ page }) => {
+    const staat = await mockPortalZonderLogin(page);
+    staat.sessie = 500;
+    await portalLoginMetWachtwoord(page, USER.email, "Aurora#2026");
+    await expect(sessieFout(page)).toBeVisible({ timeout: 15_000 });
+    await axeSchoon(page);
+
+    // Houd de lookup vast zodat de bezig-staat zichtbaar is.
+    let laatDoor!: () => void;
+    const poort = new Promise<void>((resolve) => { laatDoor = resolve; });
+    await page.route(/\/rest\/v1\/members(\?|$)/, async (route) => {
+      staat.nSessie++;
+      await poort;
+      return antwoord(route, 500, null);
+    });
+    const voor = staat.nSessie;
+    await retryKnop(page).click();
+    await expect(retryKnop(page)).toHaveText("Opnieuw proberen…");
+    await expect(retryKnop(page)).toHaveAttribute("aria-disabled", "true");
+    await expect(retryKnop(page)).toBeFocused();
+    laatDoor();
+    await expect(retryKnop(page)).toHaveText("Opnieuw proberen");
+    await expect(retryKnop(page)).toHaveAttribute("aria-disabled", "false");
+    await expect(retryKnop(page)).toBeFocused();
+    await expect(sessieFout(page)).toBeVisible();
+    await rustig(page);
+    expect(staat.nSessie).toBe(voor + 1);
+  });
+
+  test("lookup slaagt zonder rij: denied met de bestaande tekst en het inlogformulier", async ({ page }) => {
+    const staat = await mockPortalZonderLogin(page);
+    staat.sessie = "geen-rij";
+    await portalLoginMetWachtwoord(page, USER.email, "Aurora#2026");
+    await expect(nietGekoppeld(page)).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('input[type="email"]')).toBeVisible();
+    await expect(sessieFout(page)).toHaveCount(0);
+    await expect(retryKnop(page)).toHaveCount(0);
+  });
+
+  test("achtergrondfout: dashboard en saldo blijven staan, geen foutscherm en geen denied", async ({ page }) => {
+    const staat = await openPortalGeladen(page);
+    staat.sessie = 500;
+    await achtergrondEvent(page, staat);
+    await expect(page.getByRole("heading", { name: "Hoi Mock" })).toBeVisible();
+    await expect(page.getByRole("group", { name: "Saldo" })).toContainText("15,00");
+    await expect(sessieFout(page)).toHaveCount(0);
+    await expect(nietGekoppeld(page)).toHaveCount(0);
+  });
+
+  test("achtergrond, rij verdwenen: denied", async ({ page }) => {
+    const staat = await openPortalGeladen(page);
+    staat.sessie = "geen-rij";
+    await achtergrondEvent(page, staat);
+    await expect(nietGekoppeld(page)).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Hoi Mock" })).toHaveCount(0);
+  });
+
+  test("een lookup per sessiestart", async ({ page }) => {
+    const staat = await openPortalGeladen(page);
+    await rustig(page);
+    expect(staat.nSessie).toBe(1);
+  });
+
+  test("token-refresh faalt door het netwerk bij het openen: foutscherm met retry (niet eindeloos laden, niet het loginscherm); retry herstelt", async ({ page, context, baseURL }) => {
+    const staat = await mockPortalZonderLogin(page);
+    let refresh: "netwerk" | "ok" = "netwerk";
+    await page.route(/\/auth\/v1\/token(\?|$)/, (route) =>
+      refresh === "netwerk" ? route.abort("failed") : json(route, 200, fakeSession())
+    );
+    // Een verlopen sessie in de cookie: getSession() moet verversen.
+    const verlopen = { ...fakeSession(), expires_at: Math.floor(Date.now() / 1000) - 60 };
+    await context.addCookies([
+      {
+        name: "sb-portal-v2-auth-token",
+        value: "base64-" + Buffer.from(JSON.stringify(verlopen)).toString("base64url"),
+        url: baseURL!,
+      },
+    ]);
+    await page.goto("/portal");
+    // supabase-js herprobeert de refresh met backoff (timers, dus de nepklok
+    // moet meelopen) en geeft daarna pas de fetch-fout terug.
+    for (let i = 0; i < 20 && (await sessieFout(page).count()) === 0; i++) {
+      await page.clock.runFor(2_000);
+      await page.waitForTimeout(100);
+    }
+    await expect(sessieFout(page)).toBeVisible({ timeout: 5_000 });
+    await expect(sessieFout(page)).toContainText("Controleer de verbinding.");
+    await expect(page.getByText("Bezig met laden…")).toHaveCount(0);
+    await expect(page.locator('input[type="email"]')).toHaveCount(0);
+    expect(staat.nSessie).toBe(0);
+
+    // supabase-js geeft dezelfde mislukte refresh 60 s lang uit zijn cache
+    // terug (REFRESH_FAILURE_COOLDOWN_MS): een retry daarbinnen blijft een
+    // foutscherm, met de focus op de knop en zonder lus.
+    refresh = "ok";
+    await retryKnop(page).click();
+    await expect(sessieFout(page)).toBeVisible();
+    await expect(retryKnop(page)).toBeFocused();
+    // Daarna herstelt de sessie (auto-refresh van supabase-js) zonder opnieuw inloggen.
+    await page.clock.fastForward(61_000);
+    await expect(page.getByRole("heading", { name: "Hoi Mock" })).toBeVisible({ timeout: 15_000 });
+  });
+
+  test("token-refresh geweigerd (geen fetch-fout): gewoon het loginscherm", async ({ page, context, baseURL }) => {
+    await mockPortalZonderLogin(page);
+    await page.route(/\/auth\/v1\/token(\?|$)/, (route) =>
+      json(route, 400, { code: "refresh_token_not_found", msg: "ongeldig" })
+    );
+    const verlopen = { ...fakeSession(), expires_at: Math.floor(Date.now() / 1000) - 60 };
+    await context.addCookies([
+      {
+        name: "sb-portal-v2-auth-token",
+        value: "base64-" + Buffer.from(JSON.stringify(verlopen)).toString("base64url"),
+        url: baseURL!,
+      },
+    ]);
+    await page.goto("/portal");
+    await expect(page.locator('input[type="email"]')).toBeVisible({ timeout: 15_000 });
+    await expect(meldingen(page)).toHaveCount(0);
+    await expect(retryKnop(page)).toHaveCount(0);
+  });
+
+  test("uitloggen vanuit het foutscherm geeft het loginscherm", async ({ page }) => {
+    const staat = await mockPortalZonderLogin(page);
+    staat.sessie = 500;
+    await portalLoginMetWachtwoord(page, USER.email, "Aurora#2026");
+    await expect(sessieFout(page)).toBeVisible({ timeout: 15_000 });
+    await uitloggenKnop(page).click();
+    await expect(page.locator('input[type="email"]')).toBeVisible();
+    await expect(sessieFout(page)).toHaveCount(0);
+    await expect(nietGekoppeld(page)).toHaveCount(0);
+  });
+
+  test("identiteitswissel: na uitloggen en inloggen als iemand anders toont het dashboard niets van de eerste", async ({ page }) => {
+    const staat = await openPortalGeladen(page);
+    await uitloggenKnop(page).click();
+    await expect(page.locator('input[type="email"]')).toBeVisible();
+
+    staat.gebruiker = { ...USER, id: "00000000-0000-4000-8000-000000000002", email: "tweede@aurora.local" };
+    staat.naam = "Tweede Lid";
+    staat.saldo = 2500;
+    await portalLoginMetWachtwoord(page, "tweede@aurora.local", "Aurora#2026");
+    await expect(page.getByRole("heading", { name: "Hoi Tweede" })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("group", { name: "Saldo" })).toContainText("25,00");
+    await expect(page.getByText("Mock Lid")).toHaveCount(0);
+    await expect(page.getByText("15,00")).toHaveCount(0);
+  });
+
+  test("a11y: de foutstaat is axe-schoon, met role=alert, knoppen van 44px en de focus niet op body na herstel", async ({ page }) => {
+    const staat = await mockPortalZonderLogin(page);
+    staat.sessie = 500;
+    await portalLoginMetWachtwoord(page, USER.email, "Aurora#2026");
+    await expect(sessieFout(page)).toBeVisible({ timeout: 15_000 });
+    await axeSchoon(page);
+    for (const knop of [retryKnop(page), uitloggenKnop(page)]) {
+      const box = await knop.boundingBox();
+      expect(box!.height).toBeGreaterThanOrEqual(44);
+    }
+    staat.sessie = "ok";
+    await retryKnop(page).click();
+    await expect(page.getByRole("heading", { name: "Hoi Mock" })).toBeFocused();
+    await focusNietOpBody(page);
   });
 });
 
