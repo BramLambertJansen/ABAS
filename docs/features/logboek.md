@@ -180,10 +180,12 @@ betekenis geven voor dezelfde parameterwaarde.
   terugdraaiing de terugdraaier), `amountCents`, `itemCount`, `productNames`,
   `method`, `reversed` (verkoop later teruggedraaid) en `reversal`. Oorspronkelijk
   (#19) dezelfde velden als `LedgerEntry`
-  (`src/hooks/queries/useShiftLedger.ts`) met `servedById/servedByName`. Niet geïmporteerd van `useShiftLedger.ts` (dat zou de twee hooks
-  aan elkaar koppelen voor een toevallige gelijkenis, zelfde
+  (`src/hooks/queries/useShiftLedger.ts`) met `servedById/servedByName`; sinds
+  #130 wijkt het type daarvan af (`actorId/actorName`, `reversed`, `kind`
+  "terugdraaiing"). Niet geïmporteerd van `useShiftLedger.ts` (dat zou de twee
+  hooks aan elkaar koppelen voor een toevallige gelijkenis, zelfde
   "geen vroegtijdige extractie"-afweging als elders in deze codebase) — een
-  eigen, identiek gevormd type in `useLogboek.ts`.
+  eigen type in `useLogboek.ts`.
 - Zoeken (`auditQuery` in het ontwerp) en de vier filterchips zijn
   **client-side** over de opgehaalde (maximaal 200) gebeurtenissen — geen nieuwe server-side
   filterparameter. Consistent met hoe `ProductenLijst`/`LedenLijst` hun
@@ -268,9 +270,11 @@ dat een databron heeft:
    actief filter/zoekterm, **"{gefilterd} van {totaal} handelingen"**
    (ontwerp regel 3116–3118, enkelvoud "1 handeling" bij precies één rij).
 2. **Zoekveld**: placeholder **"Zoek op naam, product of handeling"**
-   (regel 460), client-side filter over `memberName`, `servedByName`,
-   `productNames`, en de getoonde actie-tekst (bv. "Bestelling op saldo",
-   "Saldo opgewaardeerd").
+   (regel 460), client-side filter over `memberName`, `actorName` (bij een
+   terugdraaiing de terugdraaier; de oorspronkelijke verkoper wordt niet
+   doorzocht), `productNames`, de getoonde actie-tekst (bv. "Bestelling op
+   saldo", "Saldo opgewaardeerd") en de reden van een terugdraaiing
+   (`reversal.reason`) (herzien in #130).
 3. **Vijf filterchips** (regel 2679): **Alles, Aandacht, Geld, Assortiment,
    Leden** — alle vijf zichtbaar, zoals Bram besliste. Alleen **Alles**,
    **Geld** en **Aandacht** leveren resultaten op (zie Datamodel); zie
