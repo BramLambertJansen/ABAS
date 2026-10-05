@@ -1,7 +1,10 @@
 # Logboek chronologisch en eerlijk over de reikwijdte
 
-**Status: goedgekeurd door Bram.** Alle aanbevelingen uit de vragen 1-10
-zijn overgenomen ("Overnemen"); zie "Besluiten van Bram" onderaan.
+**Status: gebouwd en gemerged (PR #166, merge 47b645d).** Alle aanbevelingen
+uit de vragen 1-10 zijn door Bram overgenomen ("Overnemen"); zie "Besluiten
+van Bram" onderaan. Waar de bouw van de spec afwijkt staat dat in "Zoals
+gebouwd" hieronder; die sectie wint van de tekst erboven (de spec is
+bewaard als het ontwerp zoals het was goedgekeurd).
 
 Spec voor [issue #130](https://github.com/BramLambertJansen/ABAS/issues/130)
 (frontend T10 · P2, epic #121, findings F19, F20, F21, F22, productbesluit
@@ -419,3 +422,146 @@ in de tabel "Teksten" zijn hiermee vastgesteld.
    select handmatig tegen de lokale seed, geen nieuwe integratietest.
 10. **Gate voor datum-/tijdzone.** Aanbeveling overgenomen: een
     `check:policy`-ticket volgt apart, buiten deze PR.
+
+## Zoals gebouwd
+
+Gebouwd in PR #166 (issue #130, T10, epic #121), merge `47b645d`. Geen
+RPC, migratie, schema- of RLS-wijziging, zoals gespecificeerd. Verschillen
+met de spec hierboven, gecontroleerd tegen de code op `main`:
+
+### Modules en grenzen
+
+- **Samenvoeglogica staat in `src/hooks/queries/logboekSamenvoegen.ts`**, niet
+  in `features/logboek/logboek.ts`. Inhoud: `logboekKey` (`${kind}:${id}`),
+  `vergelijkLogboek` en `voegLogboekSamen(bronnen, limit)` die `{ entries,
+  beperkt }` geeft (`beperkt = samengevoegd.length > limit`). Het bestand
+  importeert alleen het type `LogboekEntry` uit `useLogboek` en geen
+  Supabase, zodat Node's testrunner het kan laden.
+- **`src/hooks/queries/` importeert niets uit `src/features/`** (nagelopen:
+  geen enkele import van `@/features` of `../features` in `src/hooks`). De
+  richting is `features/logboek` naar `hooks/queries`, nooit andersom; daarom
+  woont de samenvoeging in de hook-laag en niet in `logboek.ts`, dat de hook
+  anders zou moeten importeren.
+- **`src/lib/betaalmethode.ts`** (nieuw): `methodLabel` ("cash" wordt
+  "contant", onbekende waarde ongewijzigd, `null` wordt `""`). Verplaatst uit
+  `portal-dashboard/transacties.ts`; ook gebruikt door `logboek.ts` en
+  `dienst-overzicht/Transactielijst.tsx` (was: "opgewaardeerd · cash").
+- **`src/lib/date.ts`**: nieuwe helpers `dagSleutel(iso)` ("yyyy-mm-dd"),
+  `dagKop(iso, nu)` ("dinsdag 29 september", jaar erbij als het niet het jaar
+  van `nu` is) en `klokTijd(iso)` ("HH:mm", `hourCycle: "h23"`), alle in
+  `Europe/Amsterdam`. De zone-constante is `PORTAL_TIME_ZONE` uit
+  `src/lib/verversen.ts` (niet gedupliceerd); `date.ts` importeert die met een
+  relatief pad en `.ts`-extensie voor Node's testrunner. `formatDate` en
+  `formatTime` bleven apparaatzone en ongewijzigd, net als `ledger.ts`.
+- `useMemberOrders` exporteert `MEMBER_ORDERS_LIMIT` (al zo) en levert nu
+  `beperkt`; hij haalt `MEMBER_ORDERS_LIMIT + 1` op en toont er 50.
+
+### Typen en functies (andere vorm dan geschetst)
+
+- **`LogboekEntry`** (`useLogboek.ts`) heeft `actorId` en `actorName` (de
+  `served_by` bij verkoop/opwaardering, de terugdraaier `reversed_by` bij een
+  terugdraaiing) in plaats van `servedById/servedByName`, plus
+  `reversed: boolean` (alleen verkoop: later teruggedraaid) naast
+  `reversal: LogboekReversal | null` (`reason`, `via`, `refundedCents`,
+  `originalCreatedAt`). `kind` is `"verkoop" | "opwaardering" |
+  "terugdraaiing"`.
+- **`describeRow(entry, nu)`** neemt `nu: Date` mee (voor het jaar in de
+  verwijzing naar de oorspronkelijke bestelling) en geeft `{ tag, action,
+  detail, statusLabel }`. `statusLabel` is "Teruggedraaid" bij een verkoop met
+  `reversed` (doorgehaalde actie plus zichtbare tekst in de detailregel).
+- **Reversal-detail**: `{reden} · door {terugdraaier} via bar|beheer · {bedrag}
+  teruggeboekt · Bestelling van {dagkop} {tijd} · {lid | Losse verkoop}`;
+  lege delen vallen weg (`joinDelen`).
+- **Zoeken** gebruikt `describeRow(entry, new Date(entry.createdAt))`
+  alleen voor de actietekst; zoekt op lid, actor, productnamen, actie en
+  reden.
+- **`clockLabel` is een overbodige alias** (`export const clockLabel =
+  klokTijd` in `logboek.ts`), die `LogboekLijst` nog gebruikt. De spec liet
+  hem vervallen of de zone-helper worden; opruimen naar `klokTijd` is een
+  kleine, niet-urgente nasleep.
+- **`countLabel`, `logboekEmptyState` en `reikwijdteTekst`** nemen
+  `{ beperkt, limit }` (`LogboekReikwijdte`); `LOGBOEK_LIMIT` komt uit
+  `useLogboek.ts` en de UI noemt het getal nergens los.
+
+### UI
+
+- **Reikwijdtemelding in één `<p>`**: `reikwijdteTekst` plakt bij `beperkt`
+  de tekst "Alleen de meest recente 200 handelingen. Zoeken en filteren werkt
+  alleen binnen die 200." achter "Verkopen, opwaarderingen en terugdraaiingen
+  van alle diensten." (spec: één regel; gebouwd: één alinea, geen aparte
+  element of `role`).
+- **Dagen**: `groepeerPerDag(entries, nu)` levert groepen; `LogboekLijst`
+  rendert per dag `<section aria-labelledby>` met `h2` en `ul`, met
+  `useId` in de heading-id. Rijen met `key={logboekKey(entry)}`.
+- **Reversalrij toont "door {terugdraaier}" twee keer voor een schermlezer**:
+  zichtbaar in de detailtekst en daarnaast een `sr-only` ", door
+  {actorName}" achter elke rij (ook bij verkoop en opwaardering, waar het
+  alleen sr-only was). Bij een reversal hoort een schermlezer dus "door X"
+  tweemaal. Bekende, bewust niet opgeschoonde dubbeling; de avatar heeft
+  daarnaast een `title`.
+- **Overlay `LidBestellingenOverlay`**: datum en tijd in de rij komen uit
+  `${dagKop(createdAt, new Date())} ${klokTijd(createdAt)}`, dus "dinsdag 29
+  september 14:05" (jaar alleen bij een ander jaar), niet het eerdere korte
+  `formatDate` ("29 sep 2026"). De melding bij `beperkt` staat in één `<p>`
+  boven de lijst: "Alleen de laatste 50 bestellingen van {naam} staan hier.
+  Oudere bestellingen zijn niet te zien in beheer."
+
+### Hook en leeslogica
+
+- **Drie platte selects** met elk `LOGBOEK_LIMIT + 1` rijen, zoals
+  gespecificeerd: `orders` (embed `order_reversals(order_id)` voor
+  `reversed`), `top_ups`, en `order_reversals` met `reverser:members!reversed_by(name)`
+  en `order:orders!order_id(id, created_at, member:members!member_id(name),
+  order_lines(qty, products(name)))`. De embedvorm wordt met `firstOrNull`
+  tolerant gelezen (object of array).
+- **Secundaire `.order()` vóór de limit** (Codex-review): elke bron sorteert
+  op tijd en daarna op id (`order_id` voor reversals), zodat de afkapgrens
+  bij gelijke tijdstippen deterministisch is en met `vergelijkLogboek`
+  overeenkomt. Dit stond niet in de spec.
+- **µs-precisie in de vergelijker** (Codex-review): `Date.parse` kapt op de
+  milliseconde af, dus `vergelijkLogboek` vergelijkt daarna de cijfers achter de
+  milliseconde (`subMilliseconden`, 6 cijfers) voordat de tiebreaker uit
+  besluit 5 (reversal boven eigen verkoop, dan id aflopend, dan kind) geldt.
+- **Geen "laatste request wint"** in `useLogboek`: er is geen request-teller.
+  Dit was ook voor T10 zo (de spec zei "gelijk gebleven"); de drie bronnen
+  zitten wel in één `Promise.all` binnen één `load()`. Een snelle
+  herhaalde `refetch` kan dus in theorie een oudere respons laten winnen.
+  `useMemberOrders` heeft die bescherming wel.
+- Eén mislukte bron geeft één leesfout voor het hele scherm
+  (`reportClientError`, `loadErrorMessage`), zoals gespecificeerd.
+
+### Tests
+
+`test/logboek.test.ts` (omgezet en uitgebreid), `test/logboek-adversarieel.test.ts`
+(samenvoegen, DST, embedvormen), `test/date.test.ts`, `test/betaalmethode.test.ts`;
+gemockte e2e in `e2e/logboek-chronologisch.spec.ts` en
+`e2e/logboek-embedvormen.spec.ts`; `e2e/a11y.spec.ts` uitgebreid met de
+Logboek-tab.
+
+### Niet gedaan / niet aangetoond
+
+Eerlijk over wat in deze PR niet is uitgevoerd:
+
+- **De echte `order_reversals`-embed-select** is niet tegen de lokale seed
+  of een echte database gedraaid (spec-teststrategie "Echte database",
+  vraag 9). Alleen statisch gecontroleerd tegen migraties 0020 en 0039
+  (kolommen, FK's en de leespolicy). De e2e's mocken PostgREST en bewijzen de
+  syntaxis niet. Tot een Tester dit draait is de embed ongeverifieerd tegen
+  PostgREST.
+- **Live a11y (axe) en `db:test`** zijn niet lokaal gedraaid; CI doet dat
+  (CLAUDE.md → Verificatie).
+- **Handmatig niet gedaan**: tablet 768px en 1024px (afbreken, overflow,
+  melding zonder scrollen), schermlezer, toetsenbord door chips en koppen.
+
+### Vervolg
+
+- **Gate voor datumweergave zonder `timeZone`** (besluit 10, een
+  `check:policy`-regel die `getHours`/`getFullYear`/`toLocale*String` zonder
+  `timeZone` buiten `src/lib/date.ts` weert): apart ticket, niet in deze PR.
+  `formatDate`, `formatTime` en `ledger.ts`'s `clockLabel` blijven tot dan
+  apparaatzone.
+- **Index op `order_reversals.created_at`** (vraag 8): bewust niet nu; bij
+  groei een apart backendticket.
+- `clockLabel`-alias opruimen (zie boven).
+- Epic #121: #130 sluit via de PR; #121 zelf blijft open (T11 #131 en
+  T12 #132 resteren).

@@ -474,11 +474,14 @@ afwijkingen.
   `showReversalExplanation(visible)`, `recentTransactions` (N =
   `RECENT_TRANSACTIONS_LIMIT` = 5), `REVERSAL_EXPLANATION`;
   `transactionDetail` geeft alleen nog itemomschrijving of "contant".
-- **Vaste tijdzone**: `PORTAL_TIME_ZONE = "Europe/Amsterdam"` in
-  `transacties.ts`; `dateLabel` en `monthKey` (en `monthLabel`) gebruiken
-  `Intl.DateTimeFormat` met `timeZone`. De spec liet `src/lib/date.ts` als
-  mogelijke plek open; de helper staat in `transacties.ts` en `src/lib/date.ts`
-  is niet gewijzigd.
+- **Vaste tijdzone**: `PORTAL_TIME_ZONE = "Europe/Amsterdam"` (staat in
+  `src/lib/verversen.ts`); `dateLabel` en `monthKey` (en `monthLabel`) in
+  `transacties.ts` gebruiken `Intl.DateTimeFormat` met `timeZone`. De spec liet
+  `src/lib/date.ts` als mogelijke plek open; de portalhelpers bleven in
+  `transacties.ts`. *(Bijgewerkt na #130/PR #166: `src/lib/date.ts` heeft sindsdien
+  zone-helpers `dagSleutel`, `dagKop` en `klokTijd` op dezelfde constante,
+  voor Logboek en de beheer-bestellingenoverlay; `methodLabel` woont nu in
+  `src/lib/betaalmethode.ts`. Zie `logboek-chronologisch-reikwijdte.md`.)*
 - **`SaldoTab.tsx`**: kop "RECENTE TRANSACTIES", knop "Alle transacties"
   (alleen bij minstens één transactie), `TerugdraaiUitleg` onder de lijst.
   **`TransactiesTab.tsx`**: één uitlegregel onder alle maandgroepen, op

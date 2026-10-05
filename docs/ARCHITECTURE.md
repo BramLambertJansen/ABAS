@@ -1263,14 +1263,37 @@ ADR (ADR 0010/0012 dekken de zichtbaarheid van `reversed_by_name`).
 - *Tijdzone*: `dateLabel` en `monthKey`/`monthLabel` in `transacties.ts`
   gebruiken vast `PORTAL_TIME_ZONE` (`Europe/Amsterdam`) via `Intl.DateTimeFormat`
   met `timeZone`, niet de zone van het apparaat of de CI-runner. Dit is een
-  lokale conventie van het portaltransacties-scherm: `src/lib/date.ts`
-  (`formatDate`, `formatTime`) volgt nog de apparaatzone en is niet
-  aangepast. Geen gate; een unittest (`test/transacties.test.ts`) bewaakt
-  de grenzen.
+  conventie van het portaltransacties-scherm; de constante staat in
+  `src/lib/verversen.ts`. `src/lib/date.ts` heeft sinds #130 (PR #166) ook
+  zone-helpers op diezelfde constante, zie "Datum en tijd in vaste zone"
+  hieronder; `formatDate` en `formatTime` volgen nog de apparaatzone. Geen
+  gate; een unittest (`test/transacties.test.ts`) bewaakt de grenzen.
 - *Navigatie*: `PortalDashboard` blijft eigenaar van `tab`. "Alle
   transacties" roept `onShowAll` aan; na de statuswissel zet een effect de
   focus op `tabElementId(idBase, "transacties")` (bestaande export van
   `src/components/Tabs.tsx`).
+
+## Datum en tijd in vaste zone (gebouwd, #130, PR #166)
+
+Spec: `docs/features/logboek-chronologisch-reikwijdte.md` ("Zoals gebouwd").
+
+- `src/lib/date.ts`: `dagSleutel`, `dagKop(iso, nu)` en `klokTijd` rekenen
+  vast in `Europe/Amsterdam` (`PORTAL_TIME_ZONE` uit `src/lib/verversen.ts`,
+  één constante), niet in de apparaat- of CI-zone. Gebruikers: Logboek en
+  `LidBestellingenOverlay`. `formatDate`, `formatTime` en `ledger.ts`'s
+  `clockLabel` blijven apparaatzone. Een gate die datumweergave zonder
+  `timeZone` weert bestaat nog niet (apart ticket).
+- `src/lib/betaalmethode.ts`: `methodLabel` ("cash" wordt "contant"), gedeeld
+  door portal, dienst-overzicht en Logboek.
+- Logboek-leesbron: `useLogboek` doet drie selects (`orders`, `top_ups`,
+  `order_reversals`), elk met `LOGBOEK_LIMIT + 1` rijen, en voegt samen via de
+  pure `src/hooks/queries/logboekSamenvoegen.ts`. Die staat in de hooklaag
+  omdat `src/hooks/queries/` niets uit `src/features/` importeert (alleen
+  de andere richting; het bestand importeert enkel het type `LogboekEntry`).
+  De presentatielogica (`describeRow`, daggroepen, filters) blijft in
+  `src/features/logboek/logboek.ts`. `useMemberOrders` haalt op dezelfde wijze
+  limiet + 1 op en levert `beperkt`.
+- Geen RPC, migratie of RLS-wijziging.
 
 ## Server/client-grens (settled 2026-10-05)
 
@@ -1306,7 +1329,8 @@ zonder een spec in `docs/features/<naam>.md`:
 
 Inmiddels gebouwd en dus niet meer in deze lijst: het Logboek-scherm (#19,
 PR #85, `docs/features/logboek.md` — alleen beheerder, org-breed, geld en
-aandacht, maximaal 200 rijen) en bestelling terugdraaien (zie Money &
+aandacht, maximaal 200 gebeurtenissen, sinds #130 een chronologische tijdlijn;
+zie "Datum en tijd in vaste zone") en bestelling terugdraaien (zie Money &
 attribution → Bestelling terugdraaien, `docs/features/bestelling-terugdraaien.md`).
 
 ## Design reference

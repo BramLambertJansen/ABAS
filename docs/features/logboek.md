@@ -1,8 +1,10 @@
-> **Let op (PR #166, T10):** de passages hieronder over Aandacht, de "stille
-> cap" en de lege staat ("Nog niets vastgelegd") zijn vervangen door
-> [`logboek-chronologisch-reikwijdte.md`](logboek-chronologisch-reikwijdte.md);
-> daar geldt de tekst, niet hier. De Docs-rol werkt de rest van dit document na
-> de merge bij.
+> **Status: gebouwd (#19, PR #85) en daarna herzien in #130, PR #166
+> (47b645d).** Dit document beschrijft de bouw van #19 met de latere
+> herzieningen ingevoegd waar de tekst anders onjuist zou zijn. Wat T10
+> veranderde (chronologische tijdlijn met terugdraaiing als eigen gebeurtenis,
+> daggroepen, zichtbare reikwijdte, eerlijke lege filters) en de details van de
+> bouw staan in [`logboek-chronologisch-reikwijdte.md`](logboek-chronologisch-reikwijdte.md)
+> (sectie "Zoals gebouwd"); bij verschil geldt dat document.
 
 # Logboek (filterbare audit-log)
 
@@ -153,31 +155,37 @@ betekent vandaag expliciet "geen open dienst, dus lege lijst"
 diensten" zou een bestaande, geteste hook een tweede, tegenstrijdige
 betekenis geven voor dezelfde parameterwaarde.
 
-- Twee platte `select`s (zelfde vorm als `useShiftLedger`, zonder
-  `.eq("shift_id", …)`), plus een derde voor `order_reversals` (embed op
-  `orders`, zelfde `order_reversals(reason, via, reverser:members!reversed_by(name))`
-  als `useShiftLedger` al gebruikt).
-- **Cap: de meest recente 200 boekingen, nieuwste eerst** — rechtstreeks uit
-  het ontwerp overgenomen (`this.state.auditLog...slice(0,200)`, regel 1795:
-  het ontwerp houdt zijn eigen in-memory logboek zelf al op 200 entries).
-  Geen paginering in deze eerste bouw — zelfde soort "een recente
+- *(Herzien in #130/PR #166.)* Drie platte `select`s: `orders` (met embed
+  `order_reversals(order_id)` voor de status "teruggedraaid"), `top_ups` en
+  `order_reversals` op zijn eigen `created_at`, met een embed op de
+  oorspronkelijke bestelling. Elke bron haalt de nieuwste 201 rijen op,
+  samengevoegd en gesorteerd op gebeurtenistijdstip (`src/hooks/queries/
+  logboekSamenvoegen.ts`). Oorspronkelijk (#19) waren dit twee selects plus een
+  reversal-embed op `orders`, wat een terugdraaiing op tijdstip en actor van de
+  verkoop zette en de reversal van een oude order buiten de 200 liet vallen.
+- **Cap: de meest recente 200 gebeurtenissen, nieuwste eerst** — oorspronkelijk
+  overgenomen uit het ontwerp (`this.state.auditLog...slice(0,200)`, regel
+  1795). *(Herzien: de cap is niet meer stil. Omdat elke bron 201 ophaalt weet
+  de hook exact of er meer bestaat en het scherm meldt dan "Alleen de meest
+  recente 200 handelingen".)* Geen paginering in deze eerste bouw — zelfde soort "een recente
   vergissing, geen archiefonderzoek"-afweging als `useMemberOrders()`'s
   `MEMBER_ORDERS_LIMIT = 50`. Als 200 in de praktijk te weinig blijkt (een
   drukke vereniging, een beheerder die verder terug wil), is dat een latere,
   losse uitbreiding (paginering/datumfilter), geen blokkerende vraag voor
   déze spec — vergelijkbaar met hoe `MEMBER_ORDERS_LIMIT` ook zonder
   Bram-consultatie gekozen is.
-- Type `LogboekEntry`: zelfde velden als `LedgerEntry`
-  (`src/hooks/queries/useShiftLedger.ts`) — `id`, `kind` (`"verkoop" |
-  "opwaardering"`), `createdAt`, `memberName`, `servedById`, `servedByName`,
-  `amountCents`, `itemCount`, `productNames`, `method`, `reversal` — geen
-  nieuw domeintype nodig, de rij-vorm is al precies wat dit scherm nodig
-  heeft. Niet geïmporteerd van `useShiftLedger.ts` (dat zou de twee hooks
+- Type `LogboekEntry` *(herzien in #130)*: `id`, `kind` (`"verkoop" |
+  "opwaardering" | "terugdraaiing"`), `createdAt` (tijdstip van de
+  gebeurtenis zelf), `memberName`, `actorId`, `actorName` (bij een
+  terugdraaiing de terugdraaier), `amountCents`, `itemCount`, `productNames`,
+  `method`, `reversed` (verkoop later teruggedraaid) en `reversal`. Oorspronkelijk
+  (#19) dezelfde velden als `LedgerEntry`
+  (`src/hooks/queries/useShiftLedger.ts`) met `servedById/servedByName`. Niet geïmporteerd van `useShiftLedger.ts` (dat zou de twee hooks
   aan elkaar koppelen voor een toevallige gelijkenis, zelfde
   "geen vroegtijdige extractie"-afweging als elders in deze codebase) — een
   eigen, identiek gevormd type in `useLogboek.ts`.
 - Zoeken (`auditQuery` in het ontwerp) en de vier filterchips zijn
-  **client-side** over de opgehaalde 200 rijen — geen nieuwe server-side
+  **client-side** over de opgehaalde (maximaal 200) gebeurtenissen — geen nieuwe server-side
   filterparameter. Consistent met hoe `ProductenLijst`/`LedenLijst` hun
   zoekvelden al client-side filteren over een al-opgehaalde lijst.
 
@@ -268,8 +276,11 @@ dat een databron heeft:
    **Geld** en **Aandacht** leveren resultaten op (zie Datamodel); zie
    Randgevallen voor hoe **Assortiment**/**Leden** zich gedragen zolang
    daar geen databron voor bestaat.
-   - **Geld**: elke `LogboekEntry` (verkoop + opwaardering), nieuwste eerst.
-   - **Aandacht**: alleen entries met `reversal !== null` — de enige
+   - **Geld**: elke `LogboekEntry` (verkoop, opwaardering en terugdraaiing),
+     nieuwste eerst; bewust identiek aan Alles.
+   - **Aandacht**: *(herzien in #130)* alleen de terugdraai-gebeurtenissen
+     (`kind === "terugdraaiing"`); de verkoop zelf valt er niet onder, hij toont
+     alleen "Teruggedraaid". Oorspronkelijk: verkopen met `reversal !== null`. De enige
      "vraagt om een blik"-gebeurtenis met een echte databron (zie
      Datamodel). Rij krijgt dezelfde visuele nadruk als het ontwerp voor een
      geflagde rij geeft (regel 2674–2676: linkerrand + achtergrondtint in
@@ -278,22 +289,29 @@ dat een databron heeft:
      soort niet-kleur-only-eis als `docs/features/
      negatieve-saldolimiet.md`'s statuspil).
    - **Alles**: geen filter, alle opgehaalde entries.
-4. **Rijenlijst** (regel 475–485): tijd (`HH:MM`), categorietag (**"SALDO"**
+4. **Rijenlijst** (regel 475–485; *herzien in #130*: gegroepeerd per dag met
+   een `h2`-dagkop, tijd in `Europe/Amsterdam`): tijd (`HH:MM`), categorietag (**"SALDO"**
    voor een verkoop/opwaardering, **"LET OP"** voor een teruggedraaide
    bestelling — ontwerp se `tagColors`/`flowLabels`, regel 2684), initialen-
-   avatar van wie de boeking deed (`servedByName`, hergebruik
+   avatar van wie de boeking deed (`actorName`; bij een terugdraaiing de
+   terugdraaier, hergebruik
    `InitialsAvatar`/`MemberPill`-stijl uit `src/components/` zoals andere
    lijsten al doen — niet opnieuw uitvinden), actie + detailregel (bv.
    "Bestelling op saldo" / "3 items · Jan de Vries", "Saldo opgewaardeerd" /
-   "+€25,00 · contant · Jan de Vries"), en bij een teruggedraaide bestelling
-   de reden + wie terugdraaide + via bar/beheer (dezelfde velden als
-   `LedgerEntry.reversal` al draagt).
-5. **Lege staat** (regel 3113–3114): **"Niets gevonden"** / **"Andere filter
-   of zoekterm probeert het opnieuw"** wanneer er wél entries zijn maar de
-   huidige filter/zoekterm niets oplevert; **"Nog niets vastgelegd"** /
-   **"elke handeling in de app komt hier te staan, met naam en tijd erbij"**
-   wanneer er organisatiebreed nog geen enkele boeking bestaat (nieuwe/lege
-   installatie).
+   "+€25,00 · contant · Jan de Vries"). Een terugdraaiing is een eigen rij op
+   het moment van terugdraaien met reden, "door {terugdraaier} via bar|beheer",
+   het teruggeboekte bedrag en een verwijzing naar de oorspronkelijke
+   bestelling; de verkoop zelf blijft staan met de zichtbare status
+   "Teruggedraaid".
+5. **Lege staat** (regel 3113–3114; *herzien in #130*): **"Niets gevonden"** /
+   **"Andere filter of zoekterm probeert het opnieuw"** wanneer er wél entries
+   zijn maar de huidige filter/zoekterm niets oplevert (bij een beperkt
+   resultaat: "Niets gevonden in de meest recente 200 handelingen. Oudere
+   staan niet in dit overzicht."); **"Nog niets vastgelegd"** / **"Verkopen,
+   opwaarderingen en terugdraaiingen komen hier te staan, met naam en tijd
+   erbij."** wanneer er organisatiebreed nog geen enkele gebeurtenis bestaat.
+   De oorspronkelijke tekst "elke handeling in de app komt hier te staan" is
+   vervallen: er is geen auditlogging voor assortiment en leden.
 
 ### Navigatie
 
@@ -309,11 +327,11 @@ Leden-tab.
 
 | Situatie | Gedrag |
 |---|---|
-| **Assortiment-/Leden-filter aangetikt** | Toont de "Nog niets vastgelegd"-lege-staat (regel 3113–3114 hierboven), **niet** een foutmelding — er is geen fout, er is domweg geen databron. Voegt geen aparte uitlegtekst toe die niet uit het ontwerp komt (geen "deze functie bestaat nog niet"-banner verzinnen) totdat Bram beslist hoe dit gat wordt opgelost (zie Openstaande vragen); dit is een bewust minimale, niet-misleidende leegte, geen belofte van functionaliteit die er niet is. |
-| **Organisatie heeft nog geen enkele boeking** (verse installatie) | "Nog niets vastgelegd"-lege-staat, org-breed i.p.v. per dienst. |
+| **Assortiment-/Leden-filter aangetikt** | *(Herzien in #130.)* Toont "Nog niet geregistreerd" / "Wijzigingen aan het assortiment (resp. aan leden) worden nog niet in het logboek vastgelegd.", **niet** een foutmelding en geen belofte van registratie. Oorspronkelijk (#19) de generieke "Nog niets vastgelegd"-lege-staat, die ten onrechte beloofde dat elke handeling hier zou komen. |
+| **Organisatie heeft nog geen enkele boeking** (verse installatie) | "Nog niets vastgelegd"-lege-staat (nieuwe tekst, zie Schermflow §5), org-breed i.p.v. per dienst. |
 | **Zoekterm/filter levert niets op, terwijl er wél data bestaat** | "Niets gevonden"-lege-staat. |
 | **Gastverkoop** (`orders.member_id is null`) | `memberName: null`, getoond zoals `useShiftLedger` dat al doet — geen crash, geen "onbekend lid"-verzinsel waar het schema `null` als geldige waarde kent (0001_init.sql commentaar: "guest/pin sale"). |
-| **> 200 boekingen totaal** | Alleen de meest recente 200 worden opgehaald/getoond (zie RPC's/leeshook) — geen paginering in deze eerste bouw, geen foutmelding, gewoon een stille cap. |
+| **> 200 gebeurtenissen totaal** | Alleen de meest recente 200 worden getoond, geen paginering. *(Herzien in #130: niet meer stil.)* Het scherm zegt het zichtbaar ("Alleen de meest recente 200 handelingen. Zoeken en filteren werkt alleen binnen die 200.") en de kop telt "meest recente 200 handelingen". Bij precies 200 of minder staat er geen melding. |
 | **Kan het logboek niet laden** | Vaste Nederlandse foutmelding via `loadErrorMessage` (`src/lib/loadErrors.ts`, #68), zelfde als de andere lees-hooks: bij een netwerkfout "Kan het logboek niet laden. Controleer de verbinding.", bij een serverfout "… Er ging iets mis aan de serverkant — meld dit bij de beheerder (code …)." Geen ruwe fout, geen crash. |
 | **A11y** | `/beheer`'s ingelogde staat wordt vandaag al gescand voor Assortiment/Leden/Instellingen (zie `docs/features/negatieve-saldolimiet.md` → Randgevallen voor die geschiedenis). Tester moet het bestaande scenario uitbreiden met de Logboek-tab — dezelfde soort toevoeging als bij Instellingen destijds, geen nieuw scenario-type. |
 
@@ -331,7 +349,7 @@ Leden-tab.
 - **Datumfilter/periode-selectie** — het ontwerp toont dit niet voor
   Logboek (in tegenstelling tot `Rapportages`, dat wél periodekeuzes toont,
   regel 3081); niet in deze spec.
-- **Paginering voorbij de 200-rij-cap** — zie Randgevallen; latere,
+- **Paginering voorbij de 200-gebeurtenissencap** — zie Randgevallen; latere,
   losstaande uitbreiding als 200 in de praktijk te krap blijkt.
 - **Export (CSV/Excel/PDF)** — dat is `Rapportages`/`boekhouder`-scope,
   expliciet apart genoemd in `docs/ARCHITECTURE.md` → "Wat het prototype
@@ -390,7 +408,8 @@ hier gekozen:
    gekozen zonder het terug te leggen.
 
 **Antwoord van Bram: optie 1** — bouwen zoals in deze spec, alle vijf chips
-zichtbaar, Assortiment/Leden tonen de "Nog niets vastgelegd"-lege-staat tot
+zichtbaar, Assortiment/Leden tonen een lege staat (sinds #130 "Nog niet
+geregistreerd") tot
 een eventueel vervolgticket voor een audit-tabel (optie 2) apart wordt
 aangevraagd. Geen extra architectuurbeslissing nodig voor déze spec; de
 Developer bouwt op basis hiervan.
