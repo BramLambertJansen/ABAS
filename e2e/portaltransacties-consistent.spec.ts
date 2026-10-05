@@ -199,6 +199,70 @@ test.describe("portaltransacties consistent", () => {
     await expect(page.getByText("Nog geen transacties")).toBeVisible();
   });
 
+  test("uitlegregel op Saldo alleen bij een teruggedraaide bestelling die in de vijf staat; één keer op Transacties", async ({ page }) => {
+    // Teruggedraaide staat op plek 6: niet zichtbaar op Saldo, dus geen uitlegregel daar.
+    const buitenDeVijf = [...ZEVEN.slice(1, 6), { ...TERUGGEDRAAID, id: "r8", created_at: "2026-08-18T12:00:00Z" }];
+    await openPortal(page, buitenDeVijf);
+    await expect(page.getByRole("listitem")).toHaveCount(5);
+    await expect(page.getByText("Teruggedraaid")).toHaveCount(0);
+    await expect(page.getByText(UITLEG)).toHaveCount(0);
+    await page.getByRole("tab", { name: "Transacties" }).click();
+    await expect(page.getByRole("listitem")).toHaveCount(6);
+    // Twee maandgroepen, maar de uitlegregel staat één keer onder de lijst.
+    await expect(page.getByText(UITLEG, { exact: true })).toHaveCount(1);
+  });
+
+  test("teruggedraaide bestelling als enige: actie 'Alle transacties' zichtbaar; lege/whitespace reden en naam: alleen de badge blijft", async ({ page }) => {
+    await openPortal(page, [{ ...TERUGGEDRAAID, reversal_reason: "   ", reversed_by_name: "" }]);
+    const row = terugRij(page);
+    await expect(row.getByText("Teruggedraaid", { exact: true })).toBeVisible();
+    await expect(row.getByText(/Door:|Reden:/)).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Alle transacties" })).toBeVisible();
+    await expect(page.getByText(UITLEG, { exact: true })).toBeVisible();
+  });
+
+  test("kanaal (bar/beheer) staat nergens: niet in tekst, sr-only, title, aria-label of data-attributen", async ({ page }) => {
+    await openPortal(page, [{ ...TERUGGEDRAAID, reversed_via: "beheer" }]);
+    for (const tab of ["Saldo", "Transacties"]) {
+      if (tab === "Transacties") await page.getByRole("tab", { name: tab }).click();
+      const row = terugRij(page);
+      const info = await row.evaluate((li) => {
+        const els = [li, ...Array.from(li.querySelectorAll("*"))];
+        return {
+          text: li.textContent ?? "",
+          attrs: els.flatMap((el) =>
+            Array.from(el.attributes)
+              .filter((a) => a.name !== "class" && a.name !== "style")
+              .map((a) => `${a.name}=${a.value}`)
+          ),
+        };
+      });
+      expect(info.text).not.toMatch(/beheer|\bbar\b|via|TERUG\b|\(teruggedraaid\)/i);
+      expect(info.attrs.filter((a) => /beheer|\bbar\b|via|^data-|^title=|^aria-label/i.test(a))).toEqual([]);
+    }
+  });
+
+  test("de client hersorteert niet: rijen staan in de volgorde van de server", async ({ page }) => {
+    await openPortal(page, [
+      rij("x1", { created_at: "2026-08-01T12:00:00Z", amount_cents: 111 }),
+      rij("x2", { created_at: "2026-09-01T12:00:00Z", amount_cents: 222 }),
+    ]);
+    await expect(page.getByRole("listitem")).toHaveCount(2);
+    const bedragen = await page.getByRole("listitem").locator("span.whitespace-nowrap").allTextContents();
+    expect(bedragen.map((b) => b.replace(/\s/g, ""))).toEqual(["−€1,11", "−€2,22"]);
+  });
+
+  test("het bedrag op Saldo en Transacties is exact het bedrag van de server (geen som, geen netto)", async ({ page }) => {
+    await openPortal(page, ZEVEN);
+    await expect(page.getByRole("listitem")).toHaveCount(5);
+    const saldoBedragen = await page.getByRole("listitem").locator("span.whitespace-nowrap").allTextContents();
+    expect(saldoBedragen.map((b) => b.replace(/\s/g, ""))).toEqual(["€1,50", "+€10,00", "−€5,00", "−€5,00", "−€5,00"]);
+    await page.getByRole("tab", { name: "Transacties" }).click();
+    await expect(page.getByRole("listitem")).toHaveCount(7);
+    const alle = await page.getByRole("listitem").locator("span.whitespace-nowrap").allTextContents();
+    expect(alle.slice(0, 5)).toEqual(saldoBedragen);
+  });
+
   for (const breedte of [320, 390]) {
     test(`${breedte}px: status nooit afgekapt, bedrag op één regel, geen horizontale scroll`, async ({ page }) => {
       await page.setViewportSize({ width: breedte, height: 800 });

@@ -246,3 +246,28 @@ test("dateLabel en groepering: 31 dec 23:30 UTC is 1 jan 00:30 Amsterdam (winter
     ]
   );
 });
+
+test("dateLabel en groepering: grensgevallen net vóór middernacht Amsterdam blijven in de oude maand/dag", () => {
+  assert.equal(dateLabel("2026-12-31T22:59:00Z"), "31 dec");
+  assert.equal(dateLabel("2026-12-31T23:00:00Z"), "1 jan");
+  assert.equal(dateLabel("2026-09-30T21:59:00Z"), "30 sep");
+  assert.equal(dateLabel("2026-09-30T22:00:00Z"), "1 okt");
+});
+
+test("reversalLines: reden met alleen whitespace vervalt; naam en reden worden niet bewerkt (geen trim, geen opmaak)", () => {
+  assert.deepEqual(
+    reversalLines(transaction({ reversed: true, reversalReason: "\t \n", reversedByName: "Sanne" })),
+    ["Door: Sanne"]
+  );
+  const lang = "x".repeat(200);
+  assert.deepEqual(
+    reversalLines(transaction({ reversed: true, reversalReason: lang, reversedByName: "Jan-Willem  van der Berg" })),
+    ["Door: Jan-Willem  van der Berg", `Reden: ${lang}`]
+  );
+});
+
+test("amountSign en bedrag: een teruggedraaide opwaardering-achtige rij krijgt nooit een teken; geen rekenwerk op bedragen", () => {
+  assert.equal(amountSign(transaction({ kind: "opwaardering", reversed: true })), "");
+  const list = [transaction({ id: "a", amountCents: 100 }), transaction({ id: "b", amountCents: 200, reversed: true })];
+  assert.deepEqual(recentTransactions(list).map((t) => t.amountCents), [100, 200]);
+});
