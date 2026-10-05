@@ -267,11 +267,16 @@ tabbladen, geen apart "Account"-tabblad — zie Expliciet buiten scope.
   versie. Voor nu waardeer je op bij de bar."**, aangevuld met
   **"Contant — de bardienst boekt het direct bij op je saldo."** (wireframe se
   zin, met "Tikkie of bank" verwijderd, zie "Onderzocht in /designs/" punt 2).
-- **"Deze maand"-lijst**: de meest recente transacties uit
-  `usePortalTransactions()`, client-side afgekapt tot bijvoorbeeld de laatste
-  5 — een korte "voorproefje"-lijst, niet de volledige geschiedenis (die staat
-  op het Transacties-tabblad). Elke rij: label (zie hieronder), subtitel
-  (datum · detail), bedrag met `+`/`−`-teken. Een lege lijst (nieuw lid, nog
+- **"Recente transacties"-lijst** (was "Deze maand", gewijzigd door
+  [`portaltransacties-consistent.md`](portaltransacties-consistent.md), T09):
+  de laatste 5 transacties uit `usePortalTransactions()`, over maandgrenzen
+  heen, met een knop "Alle transacties" naar het Transacties-tabblad. Een
+  korte "voorproefje"-lijst, niet de volledige geschiedenis. Elke rij is
+  dezelfde `TransactieRij` als op Transacties, óók voor een teruggedraaide
+  bestelling (voorheen werd die hier bewust als gewone uitgave getoond,
+  `showReversal={false}`: dat contract is vervallen, de vlag bestaat niet
+  meer). Elke rij: label (zie hieronder), subtitel (datum · detail), bedrag
+  met `+`/`−`-teken. Een lege lijst (nieuw lid, nog
   nooit een transactie): "Nog geen transacties" / "Elke bestelling en
   opwaardering komt hier te staan" (zelfde soort lege-staat-tekst als
   `Transactielijst.tsx` al voor de bar gebruikt).
@@ -287,8 +292,12 @@ tabbladen, geen apart "Account"-tabblad — zie Expliciet buiten scope.
   niet als een aparte categorie.
 - **Groepering per maand** (wireframe, `txnGroups`), nieuwste maand eerst,
   binnen een maand nieuwste eerst.
-- **Per rij**, zelfde velden als de "Deze maand"-lijst hierboven, plus bij een
-  teruggedraaide bestelling:
+- **Per rij**, zelfde velden als de "Recente transacties"-lijst hierboven, plus
+  bij een teruggedraaide bestelling (sinds T09 geldt de weergave hieronder op
+  Saldo én Transacties; zie `portaltransacties-consistent.md` voor de actuele
+  tekst: badge "Teruggedraaid", "Door:" en "Reden:" op eigen regels, bedrag
+  zonder teken, uitlegregel — de bullets hieronder zijn de oorspronkelijke
+  v1-weergave):
   - label/bedrag doorgestreept (`text-muted line-through`, zelfde klasse-
     conventie als `Transactielijst.tsx`);
   - subtitel aangevuld met `· teruggedraaid · {reversal_reason}` (zelfde

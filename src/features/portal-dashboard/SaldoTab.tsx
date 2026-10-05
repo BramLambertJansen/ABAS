@@ -4,20 +4,19 @@ import { usePortalAppSettings } from "@/hooks/queries/usePortalAppSettings";
 import { usePortalBalance } from "@/hooks/queries/usePortalBalance";
 import { usePortalTransactions } from "@/hooks/queries/usePortalTransactions";
 import { formatCents } from "@/lib/money";
-import { TransactieRij } from "./TransactieRij";
-
-/** Korte "voorproefje"-lijst, niet de volledige geschiedenis (die staat op
- *  het Transacties-tabblad) — spec → Schermflow §1. */
-const RECENT_TRANSACTIONS_LIMIT = 5;
+import { TerugdraaiUitleg, TransactieRij } from "./TransactieRij";
+import { recentTransactions, showReversalExplanation } from "./transacties";
 
 /**
  * Saldo-tabblad, standaard bij het openen van `PortalDashboard` — spec →
  * Schermflow §1: hero-kaart, laag-saldo-kaart (alleen strikt onder de
  * drempel, zelfde grens als `Mandje.tsx`), een altijd zichtbare, statische
  * opwaardeer-melding (geen knop/sheet, zie de spec's "Onderzocht in
- * /designs/" punt 3) en een korte "Deze maand"-lijst.
+ * /designs/" punt 3) en een korte "Recente transacties"-lijst (de laatste
+ * vijf, over maandgrenzen heen; teruggedraaide tellen mee) met een knop naar
+ * het Transacties-tabblad.
  */
-export function SaldoTab() {
+export function SaldoTab({ onShowAll }: { onShowAll: () => void }) {
   const balance = usePortalBalance();
   const appSettings = usePortalAppSettings();
   const transactions = usePortalTransactions();
@@ -34,9 +33,7 @@ export function SaldoTab() {
     balanceCents < lowBalanceThresholdCents;
 
   const recent =
-    transactions.status === "ready"
-      ? transactions.transactions.slice(0, RECENT_TRANSACTIONS_LIMIT)
-      : [];
+    transactions.status === "ready" ? recentTransactions(transactions.transactions) : [];
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-[18px] overflow-auto p-5">
@@ -88,7 +85,20 @@ export function SaldoTab() {
           </div>
 
           <div className="flex min-h-0 flex-1 flex-col gap-2">
-            <h2 className="text-[11px] font-bold tracking-[0.1em] text-muted">DEZE MAAND</h2>
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-[11px] font-bold tracking-[0.1em] text-muted">
+                RECENTE TRANSACTIES
+              </h2>
+              {transactions.status === "ready" && recent.length > 0 && (
+                <button
+                  type="button"
+                  onClick={onShowAll}
+                  className="flex h-9 flex-none items-center whitespace-nowrap rounded-[10px] px-2 text-xs font-extrabold text-accent-active underline"
+                >
+                  Alle transacties
+                </button>
+              )}
+            </div>
 
             {transactions.status === "loading" && (
               <p className="py-6 text-center text-sm font-bold text-muted" role="status">
@@ -109,11 +119,14 @@ export function SaldoTab() {
               </div>
             )}
             {transactions.status === "ready" && recent.length > 0 && (
-              <ul className="rounded-[22px] border border-border bg-white px-3">
-                {recent.map((t) => (
-                  <TransactieRij key={t.id} transaction={t} showReversal={false} />
-                ))}
-              </ul>
+              <>
+                <ul className="rounded-[22px] border border-border bg-white px-3">
+                  {recent.map((t) => (
+                    <TransactieRij key={t.id} transaction={t} />
+                  ))}
+                </ul>
+                {showReversalExplanation(recent) && <TerugdraaiUitleg />}
+              </>
             )}
           </div>
         </>

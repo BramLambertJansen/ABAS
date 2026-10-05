@@ -2,8 +2,13 @@
 
 import { useMemo, useState } from "react";
 import { usePortalTransactions } from "@/hooks/queries/usePortalTransactions";
-import { TransactieRij } from "./TransactieRij";
-import { filterTransactions, groupByMonth, type TransactionFilter } from "./transacties";
+import { TerugdraaiUitleg, TransactieRij } from "./TransactieRij";
+import {
+  filterTransactions,
+  groupByMonth,
+  showReversalExplanation,
+  type TransactionFilter,
+} from "./transacties";
 
 const FILTERS: { id: TransactionFilter; label: string }[] = [
   { id: "alles", label: "Alles" },
@@ -23,10 +28,11 @@ export function TransactiesTab() {
 
   const allTransactions =
     transactions.status === "ready" ? transactions.transactions : null;
-  const groups = useMemo(
-    () => groupByMonth(filterTransactions(allTransactions ?? [], filter)),
+  const visible = useMemo(
+    () => filterTransactions(allTransactions ?? [], filter),
     [allTransactions, filter]
   );
+  const groups = useMemo(() => groupByMonth(visible), [visible]);
   const hasAnyTransaction = (allTransactions?.length ?? 0) > 0;
 
   return (
@@ -85,11 +91,15 @@ export function TransactiesTab() {
             </h2>
             <ul className="rounded-[22px] border border-border bg-white px-3">
               {group.items.map((t) => (
-                <TransactieRij key={t.id} transaction={t} showReversal />
+                <TransactieRij key={t.id} transaction={t} />
               ))}
             </ul>
           </section>
         ))}
+
+      {transactions.status === "ready" && showReversalExplanation(visible) && (
+        <TerugdraaiUitleg />
+      )}
 
       {transactions.status === "ready" && groups.length > 0 && (
         <p className="py-1 text-center text-xs font-semibold text-muted">Einde van de lijst</p>

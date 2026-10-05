@@ -187,6 +187,13 @@ test.describe("portal (a11y)", () => {
       .getByRole("heading", { name: "Hoi Anna" })
       .waitFor({ state: "visible", timeout: 15_000 });
     await page.getByText("HUIDIG SALDO").waitFor({ state: "visible" });
+    // T09: de teruggedraaide seed-bestelling is op Saldo even zichtbaar als
+    // op Transacties (badge, wie, waarom, uitlegregel).
+    await expect(page.getByRole("heading", { name: "RECENTE TRANSACTIES" })).toBeVisible();
+    await expect(page.getByText("Teruggedraaid", { exact: true })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("Door: Sanne Bakker", { exact: true })).toBeVisible();
+    await expect(page.getByText("Reden: verkeerd product getikt", { exact: true })).toBeVisible();
+    await expect(page.getByText(/niet meer afgeschreven/)).toBeVisible();
 
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa"])
@@ -214,6 +221,10 @@ test.describe("portal (a11y)", () => {
 
     await page.getByRole("tab", { name: "Transacties" }).click();
     await page.getByText("Bestelling").first().waitFor({ state: "visible", timeout: 15_000 });
+    await expect(page.getByText("Teruggedraaid", { exact: true })).toBeVisible();
+    await expect(page.getByText("Door: Sanne Bakker", { exact: true })).toBeVisible();
+    await expect(page.getByText("Reden: verkeerd product getikt", { exact: true })).toBeVisible();
+    await expect(page.getByText(/niet meer afgeschreven/)).toBeVisible();
 
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa"])
@@ -257,7 +268,7 @@ test.describe("portal (a11y)", () => {
    * (`supabase/seed.sql`), dus dit is tegelijk de kandidaat-fixture die de
    * spec noemde ("lege-staat-fixture", zie de Developer's verslag) en de
    * laag-saldo-fixture hierboven — bewust één en dezelfde seed-rij, geen
-   * losse toggle. Scant eerst de "Deze maand"-lege-staat op het al open
+   * losse toggle. Scant eerst de "Recente transacties"-lege-staat op het al open
    * Saldo-tabblad, dan dezelfde lege-staat op het Transacties-tabblad.
    */
   test("portal (/portal) lege-transacties-staat (Piet Bakker) has no WCAG2A/AA violations", async ({

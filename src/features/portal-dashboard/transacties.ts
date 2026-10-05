@@ -19,17 +19,38 @@ export type TransactionGroup = {
   items: PortalTransaction[];
 };
 
-const dateFormatter = new Intl.DateTimeFormat("nl-NL", { day: "numeric", month: "short" });
-const monthFormatter = new Intl.DateTimeFormat("nl-NL", { month: "long", year: "numeric" });
+/** Datum en maandgroep volgen altijd de Nederlandse klok, niet de tijdzone
+ *  van het apparaat of de CI-runner (besluit 4, docs/features/
+ *  portaltransacties-consistent.md): een boeking van 00:30 op 1 oktober
+ *  hoort onder oktober, ook op een apparaat in een andere zone. */
+export const PORTAL_TIME_ZONE = "Europe/Amsterdam";
 
-/** "28 jul" in lokale tijd. */
+const dateFormatter = new Intl.DateTimeFormat("nl-NL", {
+  day: "numeric",
+  month: "short",
+  timeZone: PORTAL_TIME_ZONE,
+});
+const monthFormatter = new Intl.DateTimeFormat("nl-NL", {
+  month: "long",
+  year: "numeric",
+  timeZone: PORTAL_TIME_ZONE,
+});
+const monthPartsFormatter = new Intl.DateTimeFormat("en-US", {
+  year: "numeric",
+  month: "numeric",
+  timeZone: PORTAL_TIME_ZONE,
+});
+
+/** "28 jul" in Nederlandse tijd. */
 export function dateLabel(iso: string): string {
   return dateFormatter.format(new Date(iso));
 }
 
 function monthKey(iso: string): string {
-  const d = new Date(iso);
-  return `${d.getFullYear()}-${d.getMonth()}`;
+  const parts = monthPartsFormatter.formatToParts(new Date(iso));
+  const year = parts.find((p) => p.type === "year")?.value;
+  const month = parts.find((p) => p.type === "month")?.value;
+  return `${year}-${month}`;
 }
 
 function monthLabel(iso: string): string {
@@ -54,18 +75,55 @@ function methodLabel(method: string | null): string {
 }
 
 /** Detail-subtitel voor één rij: itemomschrijving voor een bestelling
- *  ("2× pils, 1× chips"), "contant" voor een opwaardering. `showReversal`
- *  voegt "· teruggedraaid · {reden}" toe (Transacties-tabblad); de
- *  "Deze maand"-voorproefje op het Saldo-tabblad laat dat weg (spec →
- *  Schermflow §1 noemt alleen label/subtitel/bedrag, geen
- *  teruggedraaid-weergave voor die lijst). */
-export function transactionDetail(t: PortalTransaction, showReversal: boolean): string {
+ *  ("2× pils, 1× chips"), "contant" voor een opwaardering. De status van een
+ *  teruggedraaide bestelling zit hier bewust niet in (een afgekapte string
+ *  verbergt hem op een smal scherm): die staat in `reversalLines` en de
+ *  badge van `TransactieRij`. */
+export function transactionDetail(t: PortalTransaction): string {
   if (t.kind === "opwaardering") return methodLabel(t.method);
-  const base = t.itemsDescription && t.itemsDescription.length > 0 ? t.itemsDescription : "bestelling";
-  if (showReversal && t.reversed) {
-    return `${base} · teruggedraaid · ${t.reversalReason ?? ""}`;
-  }
-  return base;
+  return t.itemsDescription && t.itemsDescription.length > 0 ? t.itemsDescription : "bestelling";
+}
+
+function hasText(value: string | null): value is string {
+  return value !== null && value.trim().length > 0;
+}
+
+/** De regels "Door: {naam}" en "Reden: {reden}" van een teruggedraaide
+ *  bestelling (besluit 3, spec → Wie terugdraaide). Letterlijk de waarde
+ *  van de server; een ontbrekende of lege waarde laat alleen die regel
+ *  vervallen. `reversedVia` (het kanaal) komt hier nooit in voor. Geen
+ *  regels voor een gewone bestelling of opwaardering. */
+export function reversalLines(t: PortalTransaction): string[] {
+  if (!t.reversed) return [];
+  const lines: string[] = [];
+  if (hasText(t.reversedByName)) lines.push(`Door: ${t.reversedByName}`);
+  if (hasText(t.reversalReason)) lines.push(`Reden: ${t.reversalReason}`);
+  return lines;
+}
+
+/** Teken voor het bedrag: een teruggedraaide bestelling krijgt er geen
+ *  (besluit 2), een opwaardering "+", een gewone bestelling "−". */
+export function amountSign(t: PortalTransaction): "" | "+ " | "− " {
+  if (t.reversed) return "";
+  return t.kind === "opwaardering" ? "+ " : "− ";
+}
+
+export const REVERSAL_EXPLANATION =
+  "Een teruggedraaide bestelling is niet meer afgeschreven; het bedrag staat al terug op je saldo.";
+
+/** De uitlegregel hoort bij de rijen die je ziet: alleen als er minstens één
+ *  teruggedraaide bestelling in staat. */
+export function showReversalExplanation(visible: PortalTransaction[]): boolean {
+  return visible.some((t) => t.reversed);
+}
+
+/** Aantal rijen in "Recente transacties" op Saldo (besluit 5). */
+export const RECENT_TRANSACTIONS_LIMIT = 5;
+
+/** De eerste N van de lijst zoals de server hem levert; teruggedraaide
+ *  bestellingen tellen mee. Sorteert nooit (besluit 7). */
+export function recentTransactions(transactions: PortalTransaction[]): PortalTransaction[] {
+  return transactions.slice(0, RECENT_TRANSACTIONS_LIMIT);
 }
 
 /** Een teruggedraaide bestelling telt hier als "Uitgaven" (spec → Schermflow
