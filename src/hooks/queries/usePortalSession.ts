@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/portalClient";
 import { logLocalError, reportClientError } from "@/lib/clientErrors";
+import { bevestigSessieOfMeldAf } from "@/lib/sessieBevestigen";
 
 /**
  * Tracks whether `/portal` has a session that resolves to a `members`-row —
@@ -25,6 +26,17 @@ import { logLocalError, reportClientError } from "@/lib/clientErrors";
  * geldt de eigen-rij-tak van de leespolicies voor iedereen, ook gearchiveerd
  * ("een gearchiveerd lid dat nog een sessie heeft moet zijn eigen historie
  * kunnen inzien") — dezelfde grens geldt hier voor de sessie-gate zelf.
+ *
+ * Een lege eigen rij is sinds ADR 0022 niet altijd "niet gekoppeld": een
+ * token van een elders beëindigde Auth-sessie (uitgelogd, wachtwoord
+ * hersteld of gewijzigd op een ander apparaat) leest niets meer. Daarom eerst
+ * de sessie bij GoTrue nagaan (`bevestigSessieOfMeldAf`); is die weg, dan
+ * lokaal afmelden en `signed-out` in plaats van `denied`
+ * (docs/features/sessie-na-afmelden.md → keuze 9).
+ *
+ * Uitloggen geldt alleen voor dit apparaat (`scope: "local"`, keuze 8),
+ * zoals op `/beheer` en de bar: een globale uitlog zou ook een lopende
+ * bar-sessie van hetzelfde lid op de tablet beëindigen.
  *
  * Cookie-isolatie (ADR 0009) maakt dit hook onbereikbaar voor de gedeelde
  * bar-tablet-device-sessie: `sb-portal-auth-token` bestaat pas na een
@@ -72,7 +84,13 @@ export function usePortalSession(): PortalSessionState & {
           if (cancelled) return;
           if (error) throw error;
           if (!data) {
-            setState({ status: "denied", message: DENIED_MESSAGE });
+            const bevestigd = await bevestigSessieOfMeldAf(supabase.auth, "usePortalSession");
+            if (cancelled) return;
+            setState(
+              bevestigd
+                ? { status: "denied", message: DENIED_MESSAGE }
+                : { status: "signed-out" },
+            );
             return;
           }
           setState({
@@ -124,7 +142,9 @@ export function usePortalSession(): PortalSessionState & {
   async function signOut() {
     try {
       const supabase = createClient();
-      await supabase.auth.signOut();
+      // Alleen dit apparaat (ADR 0022, keuze 8); wachtwoordherstel blijft
+      // bewust globaal.
+      await supabase.auth.signOut({ scope: "local" });
     } catch (err) {
       logLocalError("usePortalSession (signOut)", err);
     }
