@@ -761,7 +761,12 @@ zonder dat er ooit een e-mailadres of portal-account bij hoort.
   Auth-sessies van het account (herzien 2026-10-05: GoTrue zet zelf een
   tijdelijk wachtwoord bij het openen van een uitnodiging, dus "zonder
   wachtwoord" eisen blokkeerde elke koppeling). Een
-  adreswijziging wist de uitnodiging. Zie
+  adreswijziging wist de uitnodiging. Een access token van een sessie die
+  zo (of bij afmelden/uitloggen) uit `auth.sessions` verdween, blijft voor
+  PostgREST geldig tot het verloopt; daarom eisen `register_bar_session` en
+  `set_own_pin` dat de rij in `auth.sessions` nog bestaat (ADR 0020 →
+  Beslissing 8): elke client-RPC die iets maakt dat langer leeft dan het
+  token (sessie, inloggegeven, apparaatvertrouwen) doet dat. Zie
   `docs/features/account-koppeling-bewijs.md`.
 
 **Gebouwd (#24, 2026-09-21)**: zie hieronder, changelog-entry na

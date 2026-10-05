@@ -25,6 +25,25 @@ database niet te onderscheiden; de nieuwe Beslissing 3 vraagt dat ook niet
 meer. Details en Developer-delta:
 [spec → Herziening](../features/account-koppeling-bewijs.md#herziening-2026-10-05-na-review-van-73edbbf).
 
+## Herziening 2 (2026-10-05, na review van 3b0528c)
+
+Het Restrisico hieronder zei dat een overgebleven access token na het
+koppelen alleen PostgREST kan aanroepen "als het gekoppelde lid (aal1,
+zonder bardienst-sessie)". Onjuist. `register_bar_session(text)` (laatste
+definitie `0034:89-149`, granted aan `authenticated`) controleerde alleen
+de `session_id`-claim en het lid, niet of die Auth-sessie nog bestaat. Vóór
+de koppeling had het account geen `bar_sessions`-rij, dus ook geen
+`session_ended`. Een aanvaller met een signup-sessie (autoconfirm) kon na
+de koppeling met zijn token een bar-sessie registreren als de bardienst of
+beheerder, tot het token verloopt (geldlaag: `start_shift`, `place_order`,
+`top_up`, terugdraaien). Zelfde gat in `set_own_pin`: een PIN zetten die
+later werkt op elk apparaat waar het lid zelf met zijn wachtwoord inlogde,
+zoals de gedeelde bartablet.
+
+Gedicht met de nieuwe **Beslissing 8**. Het Restrisico is herschreven naar
+wat er echt overblijft. Developer-delta:
+[spec → Herziening 2](../features/account-koppeling-bewijs.md#herziening-2-2026-10-05-na-review-van-3b0528c).
+
 ## Context
 
 `link_invited_member_account()` (`0012`) en `link_lid_member_account()`
@@ -100,6 +119,22 @@ huidige adres. Alleen PKCE levert `recovery`/`email_change` als eigen methode
 (`token.go:256`); die staan niet in de lijst, tot een PKCE-flow ze nodig
 heeft.
 
+**8. Een client-RPC die een sessie-artefact aanmaakt of een inloggegeven
+zet, eist dat de Auth-sessie uit het token nog bestaat (Herziening 2).**
+Een access token blijft voor PostgREST geldig tot het verloopt, ook als de
+rij in `auth.sessions` al weg is (koppelen, `close_bar_session_internal`,
+uitloggen via GoTrue). Wat zo'n token blijvend kan maken, telt: een
+`bar_sessions`-rij (`register_bar_session`) en een PIN (`set_own_pin`).
+Beide eisen daarom `exists (select 1 from auth.sessions where id =
+<session_id-claim> and user_id = auth.uid())`. Een ontbrekende of lege
+`session_id`-claim telt als "bestaat niet". Elk toekomstig RPC dat iets
+aanmaakt dat langer leeft dan het token (een sessie, een inloggegeven, een
+apparaatvertrouwen), volgt dit. RPC's die alleen lezen of werken binnen een
+al geregistreerde bar-sessie (`require_session`) vallen hier niet onder: die
+zijn begrensd door de `bar_sessions`-rij, die bij elk einde via onze RPC's
+`session_ended` geeft. De algemene vraag "een token van een verwijderde
+sessie overal weigeren" blijft het aparte item "JWT na afmelden".
+
 ## Gevolgen
 
 - De callback-routes hoeven niet te veranderen: ze roepen dezelfde RPC's aan,
@@ -124,19 +159,35 @@ heeft.
   lokale Supabase-stack (spec → Tests), plus een eenmalige controle door
   Bram op het gehoste project na de merge.
 
-**Restrisico, geaccepteerd.** Beslissing 4 verwijdert de Auth-sessie, maar
-een al uitgegeven access token blijft voor PostgREST geldig tot het verloopt
-(standaard een uur). Dat speelt alleen als iemand zonder mailbezit een sessie
-op het uitgenodigde account wist te krijgen (alleen denkbaar met "Confirm
-email" uit en een GoTrue-versie die op een signup naar een bestaand,
-onbevestigd adres een sessie uitgeeft) én binnen dat uur de echte eigenaar
-koppelt. Binnen dat uur kan dat token PostgREST aanroepen als het
-gekoppelde lid (aal1, zonder bardienst-sessie); de Auth-API zelf
-(`updateUser`, verversen) hoort het te weigeren omdat de sessie weg is. Dat
-laatste bewijst de integratietest (spec → Tests, scenario 3); faalt het, dan
-komt dit restrisico terug bij Bram. Dichten voor PostgREST hoort bij het
-aparte item "JWT na afmelden" (zie ADR 0019 → Verworpen alternatieven);
-"Confirm email" aanzetten op het gehoste project sluit het pad nu al.
+**Restrisico, geaccepteerd (herschreven in Herziening 2).** Beslissing 4
+verwijdert de Auth-sessie, maar een al uitgegeven access token blijft voor
+PostgREST geldig tot het verloopt (`jwt_expiry` = een uur). Dat speelt
+alleen als iemand zonder mailbezit een sessie op het uitgenodigde account
+wist te krijgen (alleen met "Confirm email" uit, via een signup op het
+uitgenodigde adres) én binnen dat uur de echte eigenaar koppelt. Wat dat
+token binnen dat uur nog kan, na Beslissing 8:
+
+- **Niet:** een bar- of beheersessie registreren (`register_bar_session`
+  geeft `session_ended`), dus geen enkele geld-RPC, dienst- of beheer-RPC
+  (die gaan via `require_session` en vragen een `bar_sessions`-rij). Geen
+  PIN zetten (`set_own_pin` geeft `actor_not_found`). Niet koppelen (het
+  account is al gekoppeld). Via de Auth-API niets: verversen, `updateUser` en
+  `mfa.enroll` horen te falen omdat de sessie weg is (integratietest,
+  scenario 3).
+- **Wel, alleen lezend of cosmetisch:** via PostgREST lezen wat het
+  gekoppelde lid mag lezen. Voor een bardienst of beheerder is dat via de
+  leesallowlist (ADR 0019, `caller_has_bar_role`) ook de ledenlijst met
+  saldi, producten en diensten; voor een `lid` alleen de eigen rijen.
+  `update_own_name` (eigen weergavenaam), `log_client_error`,
+  `my_bar_state` (leeg).
+
+Geaccepteerd: het venster vraagt een instelling die we aanraden uit te
+zetten ("Confirm email" aan sluit het pad), duurt hooguit een uur na een
+koppeling die de aanvaller niet kan sturen, en geeft geen schrijfrecht op
+geld, sessies of inloggegevens. Dichten voor lezen hoort bij het aparte item
+"JWT na afmelden" (zie ADR 0019 → Verworpen alternatieven): dat raakt elke
+leespolicy en elke leeshook, niet deze feature. Faalt een van de
+Auth-API-controles in scenario 3, dan komt dit restrisico terug bij Bram.
 
 ## Verworpen alternatieven
 
@@ -168,6 +219,16 @@ aparte item "JWT na afmelden" (zie ADR 0019 → Verworpen alternatieven);
   `auth.users.invited_at` heeft.** GoTrue zet die kolom ook bij een
   hergebruikt account; onderscheidt niets. Met de reset doet het er niet toe
   wie het account aanmaakte.
+- **Beslissing 8 ook in `require_session` (Herziening 2).** Zou ook een
+  bar-sessie weigeren waarvan de Auth-sessie buiten onze RPC's om verdween
+  (GoTrue-uitloggen zonder `end_bar_session`). Niet nodig voor deze aanval:
+  zonder `bar_sessions`-rij komt een token niet door `require_session`, en
+  `register_bar_session` maakt er nu geen meer aan voor een verwijderde
+  sessie. Kost een `auth.sessions`-fixture in ruim twintig pgTAP-bestanden.
+  Hoort bij "JWT na afmelden".
+- **Beslissing 8 ook in `register_bar_session_server`.** Alleen
+  `service_role`; `barLogin.ts` geeft het `session_id` door uit het access
+  token dat GoTrue in dezelfde request net uitgaf. Geen pad voor een oud token.
 - **Het e-mailadres uit de JWT-claim blijven gebruiken.** Het adres komt nu
   uit `auth.users` bij `auth.uid()`: dezelfde waarde, maar geen afhankelijkheid
   van hoe een claim in de sessie terechtkwam.

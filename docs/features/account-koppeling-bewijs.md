@@ -1,12 +1,184 @@
 # Account koppelen alleen met bewijs van mailbezit
 
 **Status: goedgekeurd (2026-10-05), gebouwd in 73edbbf, herzien na review
-(2026-10-05, zie Herziening).** Bram heeft de keuzes voor deze opdracht bij
+(2026-10-05, zie Herziening), herzien na review van 3b0528c (zie
+Herziening 2).** Bram heeft de keuzes voor deze opdracht bij
 de Architect gelegd: de spec geldt als goedgekeurd zodra hij geschreven is,
 en elke keuze staat hieronder met reden. Item B van de review van
 2026-10-05. Architectuurbeslissing:
 [ADR 0020](../adr/0020-koppelen-eist-bewijs-van-mailbezit.md). Migratie
 `0040` (nog niet gemerged, mag aangepast).
+
+## Herziening 2 (2026-10-05, na review van 3b0528c)
+
+Delta voor de Developer bovenop 3b0528c. Migratie `0040` is nog niet
+gemerged en wordt aangevuld, geen nieuwe migratie. Bram heeft de keuze bij
+de Architect gelegd; deze herziening geldt als goedgekeurd.
+
+### Wat er mis was (reviewer-blocker)
+
+ADR 0020 → Restrisico zei dat een overgebleven access token na het koppelen
+alleen PostgREST kan aanroepen "als het gekoppelde lid (aal1, zonder
+bardienst-sessie)". Onjuist. `register_bar_session(text)` (laatste definitie
+`0034:89-149`, granted aan `authenticated` in `0028`) controleert de
+`session_id`-claim en het lid, niet of de rij in `auth.sessions` nog
+bestaat. Vóór de koppeling had het account geen `bar_sessions`-rij, dus geen
+`session_ended`. Aanval ("Confirm email" uit): signup op het uitgenodigde
+adres → sessie S met `amr` = `password` → wacht → het lid koppelt (stap 9
+van `0040` verwijdert S uit `auth.sessions`) → met het nog geldige token van S
+`register_bar_session('bar')` → bar-sessie als dat lid, tot het token
+verloopt. Daarna `start_shift`, `place_order`, `top_up`, terugdraaien.
+
+Bij nalezen, zelfde klasse: **`set_own_pin`** (laatste definitie `0032`).
+Met hetzelfde token zet de aanvaller een PIN op het lid. Die PIN werkt op
+elk apparaat waar het lid daarna zelf met zijn wachtwoord inlogt
+(`bar_device_members`), en de bartablet is gedeeld. Blijvend, ook na het
+verlopen van het token.
+
+### Keuze: dichten (optie a van de reviewer), in twee RPC's
+
+**`register_bar_session` en `set_own_pin` eisen dat de Auth-sessie uit het
+token nog bestaat** (nieuwe ADR 0020 → Beslissing 8): `exists (select 1
+from auth.sessions where id = v_session_id and user_id = auth.uid())`.
+Allebei maken ze iets wat langer leeft dan het token. Klein, en ook los van
+deze feature waardevol: een token waarvan de sessie al weg is (uitgelogd,
+afgemeld) kan geen nieuwe bar-sessie meer registreren.
+
+**Niet in `require_session`.** Afgewogen:
+
+- Niet nodig voor deze aanval: zonder `bar_sessions`-rij komt geen token door
+  `require_session` (`no_bar_session`), en na deze wijziging maakt
+  `register_bar_session` er geen meer aan voor een verwijderde sessie. Elk
+  einde via onze RPC's (`close_bar_session_internal`) zet `ended_at` en geeft
+  al `session_ended`.
+- Wat het extra zou dichten (een bar-sessie waarvan de Auth-sessie buiten
+  onze RPC's om verdween, bv. GoTrue-uitloggen zonder `end_bar_session`) is
+  het item "JWT na afmelden" en vraagt daar een eigen afweging.
+- Omvang: ruim twintig pgTAP-bestanden zetten een `session_id`-claim zonder
+  `auth.sessions`-rij en lopen via `require_session` (o.a. `place_order`,
+  `top_up`, `start_shift`, `end_shift`, `reverse_order`, `geld_rpcs_attributie`,
+  `admin_sessie_rpcs_guards`, `bar_sessie_guards`, `bar_sessies_rls`,
+  `resume_orphan_shift`, `shift_members`, `productafbeeldingen*`,
+  `beheer_rpcs_modus` en de beheerbestanden). Voor de twee RPC's hier zijn
+  het er vijf (zie Checklist).
+
+**Niet in `register_bar_session_server`.** Alleen `service_role`;
+`barLogin.ts` (`registreerSessie`) geeft het `session_id` door uit het access
+token dat `signInWithPassword`/`verifyOtp` in dezelfde request net uitgaf.
+Geen pad voor een oud token.
+
+### Bronnen gecontroleerd
+
+- **Lezen van `auth.sessions` vanuit `security definer` werkt.**
+  `close_bar_session_internal` (`0034:184`) doet er al een `delete` op, stap 9
+  van `0040` ook, en `promotie_beheerder.test.sql` /
+  `beheer_tweede_factor*.test.sql` lezen en schrijven de tabel in pgTAP.
+  Functie-eigenaar is `postgres`, die rechten heeft op `auth.sessions`.
+- **Een echte sessie heeft altijd een rij met `id` = de `session_id`-claim.**
+  GoTrue legt de sessie vast voordat het tokens uitgeeft; verversen en het
+  ophogen naar aal2 (`mfa.verify`) houden hetzelfde `session_id`. De client-
+  aanroep van `register_bar_session` komt uit `ModusKeuze` na een e-maillogin
+  op `/beheer` (wachtwoord of maillink): een gewone GoTrue-sessie. De
+  namenlijst (PIN/wachtwoord) gaat via `register_bar_session_server` en
+  verandert niet. Bewijs tegen de echte GoTrue: integratiescenario 1
+  (wachtwoordsessie registreert) en 3 (verwijderde sessie registreert niet),
+  zie Tests.
+- **Foutcodes zonder nieuwe tekst.** `register_bar_session` geeft
+  `session_ended`: bestaande `SessionErrorCode`, de client toont al wat bij
+  een beëindigde sessie hoort (`useRegisterBarSession.ts` →
+  `notifySessionCode`). `set_own_pin` geeft `actor_not_found`: bestaande
+  code, bestaande tekst ("… log opnieuw in", `src/lib/ownPinErrors.ts`), en
+  opnieuw inloggen is precies wat de houder van een verlopen sessie moet doen.
+  Geen TypeScript-wijziging.
+
+### Checklist Developer (t.o.v. 3b0528c)
+
+**`0040_koppelen_eist_bewijs_van_mailbezit.sql`** (zie ook Migratie →
+stappen 8 en 9)
+
+1. Kopcommentaar: een regel erbij: "`register_bar_session` en `set_own_pin`
+   eisen dat de Auth-sessie uit het token nog bestaat (ADR 0020 →
+   Beslissing 8)".
+2. Stap 9 van `link_member_account_internal`: de zin "Er zijn nog geen
+   bar_sessions (register_bar_session eist een gekoppeld lid)" vervangen door:
+   een token van een hier verwijderde sessie kan daarna geen bar-sessie
+   registreren en geen PIN zetten, omdat die twee RPC's de rij in
+   `auth.sessions` eisen (Beslissing 8).
+3. **`register_bar_session(text)`**: `create or replace`, body letterlijk uit
+   `0034:89-149`, met direct na de `if v_session_id is null then raise
+   'no_bar_session'`:
+   ```sql
+   if not exists (
+     select 1 from auth.sessions
+      where id = v_session_id and user_id = auth.uid()
+   ) then
+     raise exception 'session_ended' using errcode = 'P0001';
+   end if;
+   ```
+   Vóór de rol- en factorcontroles: een token van een verwijderde sessie
+   leert niets over het lid. Commentaar met verwijzing naar ADR 0020 →
+   Beslissing 8 en het aanvalspad. Grants ongewijzigd (`create or replace`
+   behoudt ze); herhaal ze toch expliciet zoals de wrappers.
+4. **`set_own_pin(text)`**: `create or replace`, body letterlijk uit
+   `0032`, `set search_path = public, extensions` behouden. Direct na het
+   bepalen van `v_session_id` (vóór de bestaande `wrong_mode`-check):
+   `v_session_id is null or not exists (select 1 from auth.sessions where id
+   = v_session_id and user_id = auth.uid())` → `raise exception
+   'actor_not_found'`. Een ontbrekende claim weigert dus nu ook (een echte
+   Supabase-sessie heeft er altijd een). Commentaar: waarom `actor_not_found`
+   (bestaande tekst "log opnieuw in", geen nieuwe UI). Grants herhalen.
+5. `rpc_catalogus.test.sql`: reden bij `register_bar_session` →
+   "maakt de sessie aan die de guards daarna eisen; eist een bestaande
+   Auth-sessie en controleert zelf aal2 voor beheer"; bij `set_own_pin` →
+   "portal: eigen PIN, eist een bestaande Auth-sessie, weigert een
+   bar-sessie zelf (wrong_mode)".
+
+**pgTAP**
+
+6. `account_koppeling_bewijs.test.sql`: nieuwe tests 27-31 (Tests → pgTAP)
+   en de robuuste wachtwoordvergelijking in 5, 25 en 26.
+7. `bar_sessie_rpcs.test.sql`: de claims-helper (r. ~60-84) voegt een
+   `auth.sessions`-rij toe (`id` = `user_id` = `p_auth_user`, `on conflict
+   (id) do nothing`); de losse `set_config`-blokken bij de
+   `register_bar_session`-tests (r. ~133-230) krijgen een rij voor hun
+   `session_id` met het bijbehorende `user_id`, behalve de tests die
+   `no_bar_session` verwachten (geen claim / leeg / ongeldig). Nieuwe test:
+   `session_id`-claim zonder `auth.sessions`-rij → `session_ended`, geen
+   `bar_sessions`-rij. `plan(...)` bijwerken.
+8. `bar_rpcs_lid_en_device.test.sql` (r. ~180-260): rijen in `auth.sessions`
+   voor de `session_id`'s waarmee `register_bar_session` wordt aangeroepen,
+   zodat die tests de rolcheck (`no_bar_role`) blijven testen en niet
+   `session_ended` krijgen.
+9. `beheer_tweede_factor.test.sql` en
+   `beheer_tweede_factor_randgevallen.test.sql`: de `register_bar_session`-
+   tests (r. ~89-165 resp. ~175-200) draaien vóór de bestaande
+   `insert into auth.sessions` (r. 272 resp. 291/308). Rijen voor de daar
+   gebruikte `session_id`'s eerder invoegen (`on conflict (id) do nothing` bij
+   de latere inserts, of die inserts naar voren halen als het dezelfde id's
+   zijn). De verwijdertests daarna moeten ongewijzigd slagen.
+10. `set_own_pin.test.sql`: elke aanroep krijgt claims met een `session_id`
+    waarvoor een `auth.sessions`-rij van dat account bestaat (een
+    `pg_temp`-helper zoals in `beheer_tweede_factor.test.sql:75-87`, plus de
+    rijen). Tests 11-14 (r. ~199-240) hebben al een `session_id`: rijen
+    toevoegen. Nieuwe tests: geen `session_id`-claim → `actor_not_found`;
+    `session_id` zonder rij → `actor_not_found` en `pin_hash` ongewijzigd.
+    `plan(...)` bijwerken.
+
+Draai `npm run db:test` volledig: een bestand dat ik hier mis (een
+`register_bar_session`- of `set_own_pin`-aanroep die ik niet vond), faalt
+dan met `session_ended`/`actor_not_found` en krijgt dezelfde fixture.
+
+**Integratietest** (`integration/account-koppeling.test.ts`): scenario 1 en 3
+uitbreiden (Tests → Integratietest). Gebruik voor aanroepen met het token van
+de aanvaller een aparte client met `global.headers.Authorization = Bearer
+<access token>` en `auth: { persistSession: false, autoRefreshToken: false }`,
+zodat supabase-js niet stil ververst.
+
+**Docs na de merge** (Docs-rol): rij voor `test:integration` in de tabel in
+`CLAUDE.md` → Verificatie, bv. "`test:integration` | koppelen tegen de echte
+GoTrue (tokens, `amr`, wissen van inloggegevens), tegen de lokale stack in
+CI". In `docs/ARCHITECTURE.md` → Lid-accounts staat Beslissing 8 al (door de
+Architect bijgewerkt).
 
 ## Herziening (2026-10-05, na review van 73edbbf)
 
@@ -402,8 +574,19 @@ Volgorde:
    link_member_account_internal(null)` resp. `('lid')`. Grants ongewijzigd
    (`authenticated`, niet `anon`/`public`), maar herhaal ze expliciet.
 
-Geen wijziging aan `mark_member_invite_sent`'s andere foutcodes of aan
-`check_beheer_session`.
+8. **`register_bar_session(text)`** (Herziening 2, ADR 0020 → Beslissing
+   8): `create or replace`, body uit `0034:89-149`; direct na de
+   `no_bar_session`-check op een lege claim: geen rij in `auth.sessions` met
+   `id = v_session_id and user_id = auth.uid()` → `raise 'session_ended'`.
+   Grants herhalen.
+9. **`set_own_pin(text)`** (Herziening 2): `create or replace`, body uit
+   `0032`; direct na het bepalen van `v_session_id`: claim leeg of geen rij in
+   `auth.sessions` met `id = v_session_id and user_id = auth.uid()` →
+   `raise 'actor_not_found'`. Grants herhalen.
+
+Geen wijziging aan `mark_member_invite_sent`'s andere foutcodes, aan
+`check_beheer_session`, aan `require_session` of aan
+`register_bar_session_server` (Herziening 2 → Keuze).
 
 ## RPC's
 
@@ -415,6 +598,8 @@ Geen wijziging aan `mark_member_invite_sent`'s andere foutcodes of aan
 | `link_lid_member_account()` | idem, `role = 'lid'` | idem |
 | `link_member_account_internal(text)` | nieuw | **intern** |
 | `list_members_admin()` | extra kolom | client, guard (ongewijzigd) |
+| `register_bar_session(text)` | eist een bestaande Auth-sessie, anders `session_ended` (Herziening 2) | client, guardvrij; reden bijwerken |
+| `set_own_pin(text)` | eist een bestaande Auth-sessie, anders `actor_not_found` (Herziening 2) | client, guardvrij; reden bijwerken |
 
 ## TypeScript
 
@@ -453,7 +638,7 @@ hem via `list_members_admin` (geen UI).
 | Wachtwoord-signup op het adres vóór de uitnodiging, "Confirm email" uit | Account bevestigd → `inviteUserByEmail` geeft `email_exists` → geen `invited_at` → niets koppelbaar. Bestaand gedrag; zie Buiten scope. |
 | Idem, "Confirm email" aan | Onbevestigd account met het wachtwoord van de aanvaller → GoTrue stuurt de uitnodiging naar dát account en geeft zijn id terug. Aanvaller heeft geen sessie (onbevestigd). Eigenaar opent de link → gekoppeld, **wachtwoord van de aanvaller gewist** (keuze 3). |
 | Signup op het adres ná de uitnodiging, "Confirm email" aan | GoTrue wijzigt het bestaande onbevestigde account niet (`signup.go:195`), stuurt alleen een bevestigingsmail naar het adres. Aanvaller krijgt niets. |
-| Idem, "Confirm email" uit | GoTrue bevestigt het uitgenodigde account en geeft de aanvaller een sessie met `amr` = `password` (`signup.go:228-236`, `:305-315`). Daarmee kan hij een wachtwoord zetten en een TOTP-factor inschrijven, maar niet koppelen. Opent het lid daarna de uitnodigingslink of een magic link op portal of `/beheer` → gekoppeld (werkt de uitnodigingslink niet meer omdat het account al bevestigd is, dan de magic link); wachtwoord en factor van de aanvaller weg, zijn sessie weg (keuze 4). Opnieuw uitnodigen geeft dan `email_exists`. Restrisico access token: ADR 0020. |
+| Idem, "Confirm email" uit | GoTrue bevestigt het uitgenodigde account en geeft de aanvaller een sessie met `amr` = `password` (`signup.go:228-236`, `:305-315`). Daarmee kan hij een wachtwoord zetten en een TOTP-factor inschrijven, maar niet koppelen. Opent het lid daarna de uitnodigingslink of een magic link op portal of `/beheer` → gekoppeld (werkt de uitnodigingslink niet meer omdat het account al bevestigd is, dan de magic link); wachtwoord en factor van de aanvaller weg, zijn sessie weg (keuze 4). Opnieuw uitnodigen geeft dan `email_exists`. Zijn nog geldige access token kan daarna geen bar-sessie registreren (`session_ended`) en geen PIN zetten (`actor_not_found`): Herziening 2. Wat het nog kan (lezen tot het verloopt): ADR 0020 → Restrisico. |
 | Directe PostgREST-aanroep zonder bewijs | Stille no-op, zoals elk ander niet-van-toepassing-geval. |
 | Lid zette vóór het koppelen een wachtwoord via "wachtwoord vergeten" | De herstelflow koppelt niet (de hooks roepen geen link-RPC aan). Bij de eerstvolgende koppeling via een maillink wordt dat wachtwoord gewist (keuze 3); het lid stelt het opnieuw in via de portal. |
 | Er stond vóór het koppelen een TOTP-factor op het account | Wie het ook inschreef (de Auth-API staat het elke sessie toe): bij het koppelen gewist; het lid stelt tweestap opnieuw in via de portal. |
@@ -464,6 +649,7 @@ hem via `list_members_admin` (geen UI).
 | Account al aan een ander lid gekoppeld | No-op, geen unique-violation. |
 | Uitnodiging opnieuw versturen | Zelfde onbevestigde account, zelfde id; `invited_at` schuift op. |
 | Sessie zonder `session_id`-claim | No-op (een echte Supabase-sessie heeft er altijd een). |
+| Token van een sessie die al uit `auth.sessions` verdween (bij koppelen, afmelden, uitloggen) | `register_bar_session` → `session_ended`; `set_own_pin` → `actor_not_found` (Herziening 2). Lezen via PostgREST kan tot het token verloopt (item "JWT na afmelden"). |
 | Openstaande uitnodiging van vóór `0040` | Backfill (keuze 9); lukt dat niet, dan "nog niet uitgenodigd" in Ledenbeheer. |
 
 ## Tests
@@ -494,6 +680,12 @@ Negatief (elk: `link_invited_member_account()` geeft null **en**
    **no-op raakt niets aan**: account met `encrypted_password =
    crypt(...)` en een `auth.mfa_factors`-rij, `amr` = `password` → null, en
    wachtwoord, factor en tweede sessie zijn ongewijzigd.
+   *(Herziening 2.)* Wachtwoordvergelijking in 5, 25 en 26 zo dat een
+   gewist wachtwoord een nette `not ok` geeft in plaats van een fout van
+   `crypt` op een lege salt: `case when encrypted_password = '' then false
+   else encrypted_password = crypt('<wachtwoord>', encrypted_password) end`.
+   Niet `encrypted_password <> '' and crypt(...)`: Postgres garandeert geen
+   evaluatievolgorde voor `and`, wel voor `case`.
 6. **Gearchiveerd lid niet koppelbaar**: alles in orde, `archived = true`.
 7. Geen `session_id`-claim.
 8. Adres in `auth.users` wijkt af van `members.email` (gebonden id klopt).
@@ -545,6 +737,25 @@ Positief:
 26. **Ander account met hetzelfde adres: niets gewist** (variant van 4): het
     niet-gebonden account houdt wachtwoord en sessies.
 
+Herziening 2, Beslissing 8 (eigen fixture: een uitgenodigde `bardienst` met
+koppelsessie S1 en een tweede sessie S2 op hetzelfde account, beide in
+`auth.sessions`):
+
+27. **Overgebleven token registreert geen bar-sessie**: koppelen met S1
+    (`amr` = `otp`); daarna claims met S2 (`amr` = `password`, de sessie die
+    stap 9 verwijderde) → `register_bar_session('bar')` geeft
+    `session_ended`, en er is geen `bar_sessions`-rij met `auth_session_id` =
+    S2. Dit is de reviewer-aanval.
+28. Idem met S2 → `set_own_pin('1234')` geeft `actor_not_found`; `pin_hash`
+    blijft null.
+29. **Positief**: claims met S1 → `register_bar_session('bar')` slaagt
+    (de bewijzende sessie bestaat nog).
+30. `session_id` van een bestaande `auth.sessions`-rij van een **ander**
+    account → `register_bar_session('bar')` geeft `session_ended`
+    (de `user_id`-voorwaarde).
+31. `set_own_pin` zonder `session_id`-claim (alleen `sub`) →
+    `actor_not_found`.
+
 ### Bestaande pgTAP-bestanden
 
 - `ledenbeheer.test.sql`: fixtures en aanroepen van `mark_member_invite_sent`
@@ -556,7 +767,13 @@ Positief:
   <auth-id>)`.
 - `rpc_execute_grants.test.sql:317`: `'public.mark_member_invite_sent(uuid,uuid)'`.
 - `rpc_catalogus.test.sql`: `link_member_account_internal` als `intern`;
-  reden bij de twee link-RPC's bijwerken (zie RPC's).
+  reden bij de twee link-RPC's bijwerken (zie RPC's); Herziening 2: reden bij
+  `register_bar_session` en `set_own_pin`.
+- *(Herziening 2)* `bar_sessie_rpcs.test.sql`, `bar_rpcs_lid_en_device.test.sql`,
+  `beheer_tweede_factor.test.sql`, `beheer_tweede_factor_randgevallen.test.sql`,
+  `set_own_pin.test.sql`: `auth.sessions`-rijen voor de `session_id`'s
+  waarmee `register_bar_session` of `set_own_pin` wordt aangeroepen; plus de
+  nieuwe negatieve tests. Details: Herziening 2 → Checklist, punten 7-10.
 
 ### Bronverificatie (vastgelegd bewijs, vervangt de handmatige controle)
 
@@ -604,6 +821,18 @@ Scenario's (elk met een eigen lid en adres):
    aan het lid → `verifyOtp({ type: "invite" })` → `amr` uit het access token
    bevat `otp` → `rpc("link_invited_member_account")` geeft het lid terug;
    `members.auth_user_id` = dat id. (Faalde op 73edbbf.)
+   *(Herziening 2, erbij.)* Daarna met de koppelsessie `updateUser({
+   password: P })` → geen fout. Dan een verse client: `signInWithPassword({
+   email, password: P })` slaagt en `amr` bevat `password`. Met die
+   wachtwoordsessie `rpc("register_bar_session", { p_mode: "bar" })` →
+   geen fout, en (service-role) er is een `bar_sessions`-rij met
+   `auth_session_id` = de `session_id`-claim van dat token. Dat bewijst
+   tegen de echte GoTrue dat een gewone sessie een `auth.sessions`-rij met
+   dat id heeft (Beslissing 8 blokkeert het normale pad niet), en dat het lid
+   na koppelen zelf een wachtwoord kan zetten. Opruimen: `after()`
+   verwijdert eerst (service-role) de `bar_sessions`-rijen van de aangemaakte
+   leden, dan de leden (`bar_sessions.member_id` verwijst zonder `on delete`
+   naar `members`; `0027` trekt voor `service_role` niets in).
 2. **Portal-pad voor een `lid`.** Uitgenodigd lid (`type: "invite"`, binden),
    daarna `generateLink({ type: "magiclink" })` → `verifyOtp({ type:
    "magiclink" })` → `link_lid_member_account` koppelt.
@@ -615,6 +844,24 @@ Scenario's (elk met een eigen lid en adres):
    de aanvaller faalt; `auth.getUser(<access token van de aanvaller>)` faalt
    (sessie bestaat niet meer). Slaagt die laatste toch: niet afzwakken, stop
    en meld het aan Bram (raakt ADR 0020 → Restrisico).
+   *(Herziening 2, erbij.)*
+   - **TOTP van de aanvaller.** Na `updateUser` en vóór zijn koppelpoging:
+     `aanvaller.auth.mfa.enroll({ factorType: "totp" })` → `challenge` →
+     `verify` met een code berekend uit `data.totp.secret` (RFC 6238, SHA-1,
+     30 s, 6 cijfers; ~15 regels met `node:crypto` en een base32-decoder,
+     geen nieuwe dependency). Daarna `getSession()` opnieuw lezen: het token
+     is nu aal2, zelfde `session_id`, nieuw refresh token; gebruik dát token
+     en refresh token voor de controles hierna. Controle vooraf (service-role
+     `admin.auth.admin.mfa.listFactors({ userId })`): één factor, `totp`,
+     `verified`. Na de koppeling: geen enkele factor.
+   - **Geen bar-sessie en geen PIN met het oude token.** Na de koppeling, met
+     een client die alleen het (aal2-)access token van de aanvaller als
+     `Authorization` meestuurt: `rpc("register_bar_session", { p_mode: "bar"
+     })` en `rpc(..., { p_mode: "beheer" })` geven allebei de fout
+     `session_ended`; `rpc("set_own_pin", { p_pin: "1234" })` geeft
+     `actor_not_found`. Service-role: geen `bar_sessions`-rij voor dit lid,
+     `members.pin_hash` is null. Faalt dit omdat de RPC wél slaagt: niet
+     afzwakken, stop en meld het.
 4. **Wachtwoordlogin koppelt nooit.** Uitnodigen en binden → admin
    `updateUserById(id, { password: P, email_confirm: true })` →
    `signInWithPassword({ email, password: P })` → `amr` bevat `password` →
@@ -649,7 +896,8 @@ dicht).
 
 - [ADR 0020](../adr/0020-koppelen-eist-bewijs-van-mailbezit.md) (nieuw).
 - ADR 0006 → Aanvulling: verwijzing dat de matchregel vervangen is.
-- `docs/ARCHITECTURE.md` → Lid-accounts: koppelvoorwaarden.
+- `docs/ARCHITECTURE.md` → Lid-accounts: koppelvoorwaarden; Herziening 2:
+  Beslissing 8.
 
 Voor Docs na de bouw: `lid-account-invite.md` (RPC's punt 2, Koppelmechanisme)
 en `portal-login.md` (Ledenkoppeling voor rol `lid`) krijgen een
@@ -676,6 +924,10 @@ bevestigt zelf).
 - `link_lid_member_account` weghalen (keuze 8).
 - Koppelen vanuit de wachtwoordherstel-flow (`recovery`).
 - Een access token na het verwijderen van zijn Auth-sessie ongeldig maken
-  voor PostgREST (item "JWT na afmelden").
+  voor PostgREST (item "JWT na afmelden"). Herziening 2 dicht alleen wat zo'n
+  token blijvend kan maken (bar-sessie, PIN); lezen tot het verloopt, en de
+  sessiecontrole in `require_session`, horen bij dat item.
+- `register_bar_session_server` dezelfde controle geven (alleen
+  `service_role`, krijgt een vers `session_id`; Herziening 2 → Keuze).
 - Signup op het project uitzetten: `enable_signup = false` zet ook de
   wachtwoordlogin uit (`supabase/config.toml`, commentaar bij `[auth]`).
