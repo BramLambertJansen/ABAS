@@ -776,12 +776,7 @@ test.describe("portal: sessielookup (#115)", () => {
     await expect(nietGekoppeld(page)).toHaveCount(0);
   });
 
-  // BEKENDE AFWIJKING van de spec (Gedrag 4: "achtergrond, fout: geen wijziging"):
-  // `refetch` vanuit signed-in (naamswijziging) loopt via getSession(); een
-  // retryable fetch-fout daar zet `foutStaat` ongeacht de huidige staat en
-  // slaat het werkende dashboard weg. `test.fail` houdt de gate groen en
-  // slaat om zodra het hersteld is (verwijder dan `test.fail`).
-  test.fail("achtergrond-refetch (naamswijziging) waarbij getSession() een netwerkfout geeft laat het dashboard staan", async ({ page }) => {
+  test("achtergrond-refetch (naamswijziging) waarbij getSession() een netwerkfout geeft laat het dashboard staan", async ({ page }) => {
     const staat = await openPortalGeladen(page);
     await page.getByRole("tab", { name: "Account" }).click();
     await page.getByRole("button", { name: /^Naam wijzigen/ }).click();

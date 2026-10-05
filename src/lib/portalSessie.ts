@@ -73,6 +73,14 @@ export function foutStaat(err: unknown): PortalSessionState {
   return { status: "error", message: loadErrorMessage(LOAD_ERROR_WHAT, err), bezig: false };
 }
 
+/**
+ * Een mislukte `getSession()` (netwerk/5xx): met een bevestigde sessie
+ * (`signed-in`) blijft het dashboard staan (spec Gedrag 4), anders `error`.
+ */
+export function sessieOphaalFoutStaat(huidig: PortalSessionState, err: unknown): PortalSessionState {
+  return huidig.status === "signed-in" ? huidig : foutStaat(err);
+}
+
 /** Een retry vanuit de foutstaat: de status blijft `error` (focus blijft op de knop). */
 export function metRetryBezig(huidig: PortalSessionState): PortalSessionState {
   return huidig.status === "error" ? { ...huidig, bezig: true } : huidig;

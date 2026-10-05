@@ -5,7 +5,7 @@ import { isAuthRetryableFetchError } from "@/lib/supabase/authErrors";
 import { createClient } from "@/lib/supabase/portalClient";
 import { logLocalError, reportClientError } from "@/lib/clientErrors";
 import {
-  foutStaat,
+  sessieOphaalFoutStaat,
   metRetryBezig,
   volgendeSessieStaat,
   type PortalMemberRole,
@@ -135,18 +135,27 @@ export function usePortalSession(): PortalSessionState & {
             resolve(session.user.id, session.user.email ?? "");
           } else if (error && isAuthRetryableFetchError(error)) {
             // Netwerk of 5xx bij de token-refresh: een laadfout, geen uitlog.
+            if (stateRef.current.status === "signed-in") {
+              // Achtergrond: dashboard blijft staan, fout wel rapporteren.
+              reportClientError(supabase, "usePortalSession (getSession)", error);
+              return;
+            }
             logLocalError("usePortalSession (getSession)", error);
             request++;
-            commit(foutStaat(error));
+            commit(sessieOphaalFoutStaat(stateRef.current, error));
           } else {
             signedOut();
           }
         })
         .catch((err) => {
           if (cancelled || rondeBijStart !== request) return;
+          if (stateRef.current.status === "signed-in") {
+            reportClientError(supabase, "usePortalSession (getSession)", err);
+            return;
+          }
           logLocalError("usePortalSession (getSession)", err);
           request++;
-          commit(foutStaat(err));
+          commit(sessieOphaalFoutStaat(stateRef.current, err));
         });
 
       const {

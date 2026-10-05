@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import {
   DENIED_MESSAGE,
   foutStaat,
+  sessieOphaalFoutStaat,
   isActueleRonde,
   isAchtergrondlookup,
   metRetryBezig,
@@ -86,4 +87,10 @@ test("retry vanuit error zet bezig, andere staten blijven", () => {
 test("een oudere ronde wordt genegeerd", () => {
   assert.equal(isActueleRonde(2, 2), true);
   assert.equal(isActueleRonde(1, 2), false);
+});
+
+test("mislukte getSession(): signed-in blijft staan, anders error", () => {
+  const err = new TypeError("Failed to fetch");
+  assert.equal(sessieOphaalFoutStaat(IN, err), IN);
+  assert.deepEqual(sessieOphaalFoutStaat({ status: "loading" }, err), foutStaat(err));
 });
