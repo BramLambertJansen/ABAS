@@ -18,11 +18,17 @@
 -- Foutcodes hieronder zijn letterlijk overgenomen uit
 -- 0014_pin_zelfbediening.sql, niet aangenomen: actor_not_found (regel 48),
 -- no_bar_role (regel 54), invalid_pin_format (regel 69).
+--
+-- Sinds 0040 (ADR 0020 → Beslissing 8) eist set_own_pin dat de Auth-sessie
+-- uit het token nog bestaat: een `session_id`-claim met een rij in
+-- auth.sessions van dit account. Daarom zet elke aanroep hieronder claims
+-- via pg_temp.claims, met een sessie-rij uit de fixtures; de weigering
+-- zonder claim of zonder rij staat onderaan (15, 16).
 
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(20);
+select plan(23);
 
 -- ── Fixtures ──────────────────────────────────────────────────────────
 
@@ -72,10 +78,40 @@ insert into members (id, name, role, pin_hash, balance_cents, archived, auth_use
 -- (beheerder this time, not bardienst) so the happy-path coverage below
 -- proves both roles are accepted, not just bardienst.
 
+-- Een Auth-sessie per account (id ...f3<laatste twee cijfers van het
+-- account>), plus de vaste sessie-id's van 11-14.
+insert into auth.sessions (id, user_id, created_at, updated_at) values
+  ('00000000-0000-4000-8000-00000000f310', '00000000-0000-0000-0000-000000000110', now(), now()),
+  ('00000000-0000-4000-8000-00000000f312', '00000000-0000-0000-0000-000000000112', now(), now()),
+  ('00000000-0000-4000-8000-00000000f313', '00000000-0000-0000-0000-000000000113', now(), now()),
+  ('00000000-0000-4000-8000-00000000f314', '00000000-0000-0000-0000-000000000114', now(), now()),
+  ('00000000-0000-4000-8000-00000000f315', '00000000-0000-0000-0000-000000000115', now(), now()),
+  ('00000000-0000-4000-8000-00000000f301', '00000000-0000-0000-0000-000000000114', now(), now()),
+  ('00000000-0000-4000-8000-00000000f302', '00000000-0000-0000-0000-000000000114', now(), now()),
+  ('00000000-0000-4000-8000-00000000f303', '00000000-0000-0000-0000-000000000114', now(), now()),
+  ('00000000-0000-4000-8000-00000000f304', '00000000-0000-0000-0000-000000000110', now(), now());
+
+-- Zet de JWT-claims van een Auth-sessie, zelfde vorm als
+-- beheer_tweede_factor.test.sql. `p_session` null: geen session_id-claim.
+create function pg_temp.claims(p_sub uuid, p_session uuid)
+returns void
+language plpgsql
+as $fn$
+declare
+  v_claims jsonb := jsonb_build_object('sub', p_sub::text);
+begin
+  if p_session is not null then
+    v_claims := v_claims || jsonb_build_object('session_id', p_session::text);
+  end if;
+  perform set_config('request.jwt.claim.sub', p_sub::text, true);
+  perform set_config('request.jwt.claims', v_claims::text, true);
+end;
+$fn$;
+
 -- ── actor_not_found ───────────────────────────────────────────────────────
 
 -- 1) variant A: auth.uid() matches no members row at all.
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000115', true);
+select pg_temp.claims('00000000-0000-0000-0000-000000000115', '00000000-0000-4000-8000-00000000f315');
 select throws_ok(
   $$ select set_own_pin('1234') $$,
   'P0001', 'actor_not_found',
@@ -83,7 +119,7 @@ select throws_ok(
 );
 
 -- 2) variant B: auth.uid() matches a members row, but it's archived.
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000112', true);
+select pg_temp.claims('00000000-0000-0000-0000-000000000112', '00000000-0000-4000-8000-00000000f312');
 select throws_ok(
   $$ select set_own_pin('1234') $$,
   'P0001', 'actor_not_found',
@@ -93,7 +129,7 @@ select throws_ok(
 -- ── no_bar_role ───────────────────────────────────────────────────────────
 
 -- 3) caller resolves to a real, active, linked member, but role is 'lid'.
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000113', true);
+select pg_temp.claims('00000000-0000-0000-0000-000000000113', '00000000-0000-4000-8000-00000000f313');
 select throws_ok(
   $$ select set_own_pin('1234') $$,
   'P0001', 'no_bar_role',
@@ -111,7 +147,7 @@ select is(
 
 -- From here on, act as the bardienst fixture (a valid actor for every
 -- remaining case).
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000110', true);
+select pg_temp.claims('00000000-0000-0000-0000-000000000110', '00000000-0000-4000-8000-00000000f310');
 
 -- 4) too short (not 4 digits).
 select throws_ok(
@@ -177,7 +213,7 @@ select is(
 
 -- 10) happy path for the other eligible role (beheerder, not just
 -- bardienst) — both roles must be accepted (RPC's step 2).
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000114', true);
+select pg_temp.claims('00000000-0000-0000-0000-000000000114', '00000000-0000-4000-8000-00000000f314');
 select lives_ok(
   $$ select set_own_pin('9012') $$,
   'set_own_pin succeeds for an active beheerder member with a valid 4-digit pin'
@@ -244,6 +280,33 @@ select ok(
   (select crypt('3456', pin_hash) = pin_hash from members where id = '00000000-0000-0000-0000-000000000123')
   and (select pin_hash from members where id = '00000000-0000-0000-0000-000000000120') is null,
   'na de geweigerde aanroepen is geen enkele PIN veranderd'
+);
+
+-- ── 0040: de Auth-sessie uit het token moet nog bestaan ───────────────────
+--
+-- ADR 0020 → Beslissing 8. Een token waarvan de sessie weg is (bij het
+-- koppelen van een account verwijderd, of uitgelogd) zet geen PIN: zo'n PIN
+-- zou blijven werken op elk apparaat waar het lid later met zijn wachtwoord
+-- inlogt. Bestaande code actor_not_found ("log opnieuw in").
+
+-- 15) geen session_id-claim (alleen sub), verder een geldige bardienst.
+select pg_temp.claims('00000000-0000-0000-0000-000000000110', null);
+select throws_ok(
+  $$ select set_own_pin('2222') $$,
+  'P0001', 'actor_not_found',
+  'set_own_pin zonder session_id-claim: actor_not_found'
+);
+
+-- 16) session_id zonder rij in auth.sessions (beheerder met PIN 3456).
+select pg_temp.claims('00000000-0000-0000-0000-000000000114', '00000000-0000-4000-8000-00000000f3ff');
+select throws_ok(
+  $$ select set_own_pin('2222') $$,
+  'P0001', 'actor_not_found',
+  'set_own_pin met een session_id zonder Auth-sessie: actor_not_found'
+);
+select ok(
+  (select crypt('3456', pin_hash) = pin_hash from members where id = '00000000-0000-0000-0000-000000000123'),
+  'na de geweigerde aanroep zonder Auth-sessie is de PIN ongewijzigd'
 );
 
 select * from finish();

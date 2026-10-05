@@ -79,8 +79,8 @@ insert into catalogus values
   ('list_own_transactions',     'client', 'portal: alleen eigen rijen, via caller_member_id'),
   ('log_client_error',          'client', 'foutlogging: elke sessie, geen data van anderen'),
   ('my_bar_state',              'client', 'leest de eigen bar-sessie; geen sessie = lege toestand'),
-  ('register_bar_session',      'client', 'maakt de sessie aan die de guards daarna eisen; controleert zelf aal2 voor beheer'),
-  ('set_own_pin',               'client', 'portal: eigen PIN, weigert een bar-sessie zelf (wrong_mode)'),
+  ('register_bar_session',      'client', 'maakt de sessie aan die de guards daarna eisen; eist een bestaande Auth-sessie en controleert zelf aal2 voor beheer'),
+  ('set_own_pin',               'client', 'portal: eigen PIN, eist een bestaande Auth-sessie, weigert een bar-sessie zelf (wrong_mode)'),
   ('update_own_name',           'client', 'portal: eigen naam'),
   -- server
   ('bar_login_options',         'server', null),

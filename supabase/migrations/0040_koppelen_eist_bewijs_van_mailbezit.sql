@@ -19,8 +19,12 @@
 -- publieke RPC's zijn er dunne wrappers omheen (keuze 8), met dezelfde
 -- signatuur.
 --
+-- `register_bar_session` en `set_own_pin` eisen dat de Auth-sessie uit het
+-- token nog bestaat (ADR 0020 → Beslissing 8).
+--
 -- Volgorde: kolom, backfill, list_members_admin, mark_member_invite_sent,
--- update_member_email, de helper, de wrappers.
+-- update_member_email, de helper, de wrappers, register_bar_session,
+-- set_own_pin.
 
 -- ── 1. Kolom ─────────────────────────────────────────────────────────────
 --
@@ -377,8 +381,10 @@ begin
 
   -- 9. Alle andere Auth-sessies van dit account eindigen (keuze 4): een
   --    sessie van vóór de koppeling is niet aantoonbaar van de eigenaar.
-  --    Precedent: close_bar_session_internal (0034). Er zijn nog geen
-  --    bar_sessions (register_bar_session eist een gekoppeld lid).
+  --    Precedent: close_bar_session_internal (0034). Een token van een hier
+  --    verwijderde sessie kan daarna geen bar-sessie registreren en geen PIN
+  --    zetten: register_bar_session en set_own_pin eisen de rij in
+  --    auth.sessions (ADR 0020 → Beslissing 8, sectie 8 en 9 hieronder).
   delete from auth.sessions
    where user_id = v_uid
      and id <> v_session_id;
@@ -424,3 +430,172 @@ revoke execute on function link_invited_member_account() from public, anon;
 grant execute on function link_invited_member_account() to authenticated;
 revoke execute on function link_lid_member_account() from public, anon;
 grant execute on function link_lid_member_account() to authenticated;
+
+-- ── 8. register_bar_session: eist een bestaande Auth-sessie ──────────────
+--
+-- ADR 0020 → Beslissing 8. Body uit 0034, plus één controle direct na het
+-- lezen van de `session_id`-claim: de rij in `auth.sessions` met dat id moet
+-- nog bestaan en van dit account zijn. Aanvalspad dat dit dicht: met
+-- "Confirm email" uit registreert een aanvaller het uitgenodigde adres en
+-- houdt een sessie S; het lid koppelt, stap 9 van
+-- link_member_account_internal verwijdert S, maar het access token van S is
+-- nog tot een uur geldig. Zonder deze controle registreert dat token hier
+-- een bar-sessie als het gekoppelde lid (er bestond nog geen
+-- `bar_sessions`-rij, dus geen `session_ended`), en daarmee dienst, geld en
+-- terugdraaien. Vóór de rol- en factorcontroles: een token van een
+-- verwijderde sessie leert niets over het lid. Ook los daarvan: een token
+-- waarvan de sessie al weg is (uitgelogd) maakt geen nieuwe bar-sessie meer.
+create or replace function register_bar_session(p_mode text)
+returns bar_sessions
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_session_id uuid;
+  v_member members;
+  v_session bar_sessions;
+begin
+  if p_mode is null or p_mode not in ('bar', 'beheer') then
+    raise exception 'invalid_mode' using errcode = 'P0001';
+  end if;
+
+  begin
+    v_session_id := nullif(auth.jwt() ->> 'session_id', '')::uuid;
+  exception when invalid_text_representation then
+    v_session_id := null;
+  end;
+  if v_session_id is null then
+    raise exception 'no_bar_session' using errcode = 'P0001';
+  end if;
+
+  -- 0040 (ADR 0020 → Beslissing 8): de Auth-sessie uit het token bestaat nog.
+  if not exists (
+    select 1 from auth.sessions
+     where id = v_session_id and user_id = auth.uid()
+  ) then
+    raise exception 'session_ended' using errcode = 'P0001';
+  end if;
+
+  select * into v_member from members where auth_user_id = auth.uid() and not archived;
+  if not found or v_member.role not in ('bardienst', 'beheerder') then
+    raise exception 'no_bar_role' using errcode = 'P0001';
+  end if;
+  if p_mode = 'beheer' and v_member.role <> 'beheerder' then
+    raise exception 'no_admin_role' using errcode = 'P0001';
+  end if;
+  -- 0034 (ADR 0017 → Beslissing 1): beheer komt uit "wachtwoord én factor".
+  if p_mode = 'beheer' then
+    if not member_has_verified_factor(v_member.auth_user_id) then
+      raise exception 'mfa_not_enrolled' using errcode = 'P0001';
+    end if;
+    if coalesce(auth.jwt() ->> 'aal', '') <> 'aal2' then
+      raise exception 'aal2_required' using errcode = 'P0001';
+    end if;
+  end if;
+
+  select * into v_session from bar_sessions where auth_session_id = v_session_id;
+  if found then
+    -- Anders kan een inactief gesloten sessie zich meteen opnieuw registreren.
+    if v_session.ended_at is not null then
+      raise exception 'session_ended' using errcode = 'P0001';
+    end if;
+    if v_session.member_id <> v_member.id then
+      raise exception 'no_bar_role' using errcode = 'P0001';
+    end if;
+    if v_session.mode <> p_mode then
+      raise exception 'mode_locked' using errcode = 'P0001';
+    end if;
+    return v_session;
+  end if;
+
+  insert into bar_sessions (auth_session_id, member_id, mode)
+  values (v_session_id, v_member.id, p_mode)
+  returning * into v_session;
+  return v_session;
+end;
+$$;
+
+-- `create or replace` behoudt de grants (0028); expliciet herhaald.
+revoke execute on function register_bar_session(text) from public, anon;
+grant execute on function register_bar_session(text) to authenticated;
+
+-- ── 9. set_own_pin: eist een bestaande Auth-sessie ───────────────────────
+--
+-- ADR 0020 → Beslissing 8. Body uit 0032. Zelfde aanvalspad als hierboven,
+-- maar blijvend: een PIN die het overgebleven token zet, werkt op elk
+-- apparaat waar het lid daarna zelf met zijn wachtwoord inlogt
+-- (`bar_device_members`), ook na het verlopen van het token. Daarom direct
+-- na het lezen van de claim, vóór de `wrong_mode`-check: geen claim of geen
+-- bijbehorende rij in `auth.sessions` → `actor_not_found`. Een echte
+-- Supabase-sessie heeft altijd een `session_id`. Bewust deze bestaande code:
+-- de client toont er al "… log opnieuw in" bij (src/lib/ownPinErrors.ts),
+-- precies wat de houder van een verlopen sessie moet doen. Geen nieuwe UI.
+create or replace function set_own_pin(p_pin text)
+returns members
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  v_session_id uuid;
+  v_actor members;
+  v_member members;
+begin
+  begin
+    v_session_id := nullif(auth.jwt() ->> 'session_id', '')::uuid;
+  exception when invalid_text_representation then
+    v_session_id := null;
+  end;
+
+  -- 0040 (ADR 0020 → Beslissing 8): de Auth-sessie uit het token bestaat nog.
+  if v_session_id is null or not exists (
+    select 1 from auth.sessions
+     where id = v_session_id and user_id = auth.uid()
+  ) then
+    raise exception 'actor_not_found' using errcode = 'P0001';
+  end if;
+
+  -- 0032: niet vanuit een geregistreerde bar-sessie (bar of beheer).
+  if exists (select 1 from bar_sessions where auth_session_id = v_session_id) then
+    raise exception 'wrong_mode' using errcode = 'P0001';
+  end if;
+
+  select * into v_actor
+  from members
+  where auth_user_id = auth.uid() and not archived;
+
+  if v_actor.id is null then
+    raise exception 'actor_not_found' using errcode = 'P0001';
+  end if;
+
+  -- Een lid met rol lid heeft geen bar-PIN-concept.
+  if v_actor.role not in ('bardienst', 'beheerder') then
+    raise exception 'no_bar_role' using errcode = 'P0001';
+  end if;
+
+  -- p_pin null = PIN uitzetten. Geen bevestigingsstap nodig hier (die hoort
+  -- client-side thuis): uitzetten kan nooit een lid buitensluiten.
+  if p_pin is null then
+    update members set pin_hash = null where id = v_actor.id
+      returning * into v_member;
+    v_member.pin_hash := null;
+    return v_member;
+  end if;
+
+  -- Zelfde 4-cijferige formaat als de bestaande PinPad.
+  if p_pin !~ '^[0-9]{4}$' then
+    raise exception 'invalid_pin_format' using errcode = 'P0001';
+  end if;
+
+  update members set pin_hash = crypt(p_pin, gen_salt('bf', 12)) where id = v_actor.id
+    returning * into v_member;
+
+  v_member.pin_hash := null;
+  return v_member;
+end;
+$$;
+
+-- `create or replace` behoudt de grants (0018/0032); expliciet herhaald.
+revoke execute on function set_own_pin(text) from public, anon;
+grant execute on function set_own_pin(text) to authenticated;

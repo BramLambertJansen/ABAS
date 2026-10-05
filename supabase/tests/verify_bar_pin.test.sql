@@ -120,9 +120,16 @@ reset role;
 
 -- ── De PIN via set_own_pin (portal), kostenfactor 12 ──────────────────────
 
+-- set_own_pin eist een bestaande Auth-sessie met dat session_id (0040, ADR
+-- 0020 → Beslissing 8).
+insert into auth.sessions (id, user_id, created_at, updated_at) values
+  ('00000000-0000-0000-0000-00000000b1f0', '00000000-0000-0000-0000-00000000b110', now(), now());
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000b110', true);
+select set_config('request.jwt.claims',
+  '{"sub":"00000000-0000-0000-0000-00000000b110","session_id":"00000000-0000-0000-0000-00000000b1f0"}', true);
 select set_own_pin('4821');
 select set_config('request.jwt.claim.sub', '', true);
+select set_config('request.jwt.claims', '', true);
 
 select is(
   (select substring(pin_hash from 5 for 2) from members where id = '00000000-0000-0000-0000-00000000b120'),

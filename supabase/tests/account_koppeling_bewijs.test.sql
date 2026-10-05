@@ -27,7 +27,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(73);
+select plan(83);
 
 -- ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -144,7 +144,9 @@ select v.id::uuid, '00000000-0000-0000-0000-000000000000',
     -- 26) het gebonden account en een tweede account op hetzelfde adres,
     --     met wachtwoord en sessies
     ('00000000-0000-0000-0000-0000000ac046', 'akb-variant@test.local',     '', now()),
-    ('00000000-0000-0000-0000-0000000ac047', 'AKB-Variant@test.local',     crypt('van-een-ander', gen_salt('bf')), now())
+    ('00000000-0000-0000-0000-0000000ac047', 'AKB-Variant@test.local',     crypt('van-een-ander', gen_salt('bf')), now()),
+    -- 27)-31) uitgenodigde bardienst met koppelsessie S1 en tweede sessie S2
+    ('00000000-0000-0000-0000-0000000ac048', 'akb-barsessie@test.local',   '', now())
   ) as v(id, email, pw, confirmed);
 
 -- De Auth-sessies van het happy-path-account: de sessie die koppelt en een
@@ -158,7 +160,11 @@ insert into auth.sessions (id, user_id, created_at, updated_at) values
   ('00000000-0000-0000-0000-0000000ac054', '00000000-0000-0000-0000-0000000ac045', now(), now()),
   ('00000000-0000-0000-0000-0000000ac055', '00000000-0000-0000-0000-0000000ac045', now(), now()),
   ('00000000-0000-0000-0000-0000000ac056', '00000000-0000-0000-0000-0000000ac047', now(), now()),
-  ('00000000-0000-0000-0000-0000000ac057', '00000000-0000-0000-0000-0000000ac047', now(), now());
+  ('00000000-0000-0000-0000-0000000ac057', '00000000-0000-0000-0000-0000000ac047', now(), now()),
+  -- 27)-31): S1 (koppelt) en S2 (van vóór de koppeling, bv. een signup met
+  -- "Confirm email" uit).
+  ('00000000-0000-0000-0000-0000000ac058', '00000000-0000-0000-0000-0000000ac048', now(), now()),
+  ('00000000-0000-0000-0000-0000000ac059', '00000000-0000-0000-0000-0000000ac048', now(), now());
 
 -- Verified TOTP-factoren voor 5), 24) en 25).
 insert into auth.mfa_factors (id, user_id, friendly_name, factor_type, status, created_at, updated_at, secret)
@@ -230,7 +236,9 @@ insert into members (id, name, role, pin_hash, balance_cents, archived, email, i
   ('00000000-0000-0000-0000-0000000ac0c6', 'AKB In Gebruik Twee', 'bardienst', null, 0, false,
    'akb-in-gebruik@test.local', now(), null, '00000000-0000-0000-0000-0000000ac045'),
   ('00000000-0000-0000-0000-0000000ac0c7', 'AKB Variant', 'beheerder', null, 0, false,
-   'akb-variant@test.local', now(), null, '00000000-0000-0000-0000-0000000ac046');
+   'akb-variant@test.local', now(), null, '00000000-0000-0000-0000-0000000ac046'),
+  ('00000000-0000-0000-0000-0000000ac0c8', 'AKB Barsessie', 'bardienst', null, 0, false,
+   'akb-barsessie@test.local', now(), null, '00000000-0000-0000-0000-0000000ac048');
 
 -- ═══ Negatief: link_invited_member_account / link_lid_member_account ═════
 
@@ -287,7 +295,8 @@ select is((select link_invited_member_account() is null), true,
 select is((select auth_user_id from members where id = '00000000-0000-0000-0000-0000000ac096'), null,
   'het lid blijft ongekoppeld na de no-op');
 select ok(
-  (select encrypted_password = crypt('geheim', encrypted_password)
+  (select case when encrypted_password = '' then false
+               else encrypted_password = crypt('geheim', encrypted_password) end
      from auth.users where id = '00000000-0000-0000-0000-0000000ac016'),
   'een no-op laat het wachtwoord staan');
 select ok(exists (select 1 from auth.mfa_factors where id = '00000000-0000-0000-0000-0000000ac0f1'),
@@ -492,7 +501,8 @@ select is((select link_invited_member_account() is null), true,
 select is((select auth_user_id from members where id = '00000000-0000-0000-0000-0000000ac0c6'), null,
   'het tweede lid op het al gekoppelde account blijft ongekoppeld');
 select ok(
-  (select encrypted_password = crypt('in-gebruik', encrypted_password)
+  (select case when encrypted_password = '' then false
+               else encrypted_password = crypt('in-gebruik', encrypted_password) end
      from auth.users where id = '00000000-0000-0000-0000-0000000ac045'),
   'het wachtwoord van een al gekoppeld account blijft staan');
 select ok(exists (select 1 from auth.mfa_factors where id = '00000000-0000-0000-0000-0000000ac0f3'),
@@ -508,11 +518,65 @@ select is((select link_invited_member_account() is null), true,
 select is((select auth_user_id from members where id = '00000000-0000-0000-0000-0000000ac0c7'), null,
   'het lid blijft ongekoppeld voor het niet-gebonden account');
 select ok(
-  (select encrypted_password = crypt('van-een-ander', encrypted_password)
+  (select case when encrypted_password = '' then false
+               else encrypted_password = crypt('van-een-ander', encrypted_password) end
      from auth.users where id = '00000000-0000-0000-0000-0000000ac047'),
   'het wachtwoord van het niet-gebonden account blijft staan');
 select ok(exists (select 1 from auth.sessions where id = '00000000-0000-0000-0000-0000000ac057'),
   'de andere sessie van het niet-gebonden account blijft staan');
+
+-- ═══ Herziening 2: een overgebleven token (ADR 0020 → Beslissing 8) ══════
+--
+-- Na het koppelen met S1 is S2 uit auth.sessions verwijderd (stap 9), maar
+-- het access token van S2 is nog tot een uur geldig. Het mag geen bar-sessie
+-- registreren en geen PIN zetten.
+
+select pg_temp.claims('00000000-0000-0000-0000-0000000ac048', '00000000-0000-0000-0000-0000000ac058', 'otp');
+select is((select auth_user_id from link_invited_member_account()), '00000000-0000-0000-0000-0000000ac048'::uuid,
+  'opzet 27-31: de bardienst koppelt met S1');
+
+-- 27) De reviewer-aanval: register_bar_session met het token van S2.
+select pg_temp.claims('00000000-0000-0000-0000-0000000ac048', '00000000-0000-0000-0000-0000000ac059', 'password');
+select throws_ok(
+  $$ select register_bar_session('bar') $$,
+  'P0001', 'session_ended',
+  'een token van een bij het koppelen verwijderde sessie registreert geen bar-sessie (session_ended)');
+select ok(not exists (select 1 from bar_sessions where auth_session_id = '00000000-0000-0000-0000-0000000ac059'),
+  'er is geen bar_sessions-rij voor de verwijderde sessie');
+
+-- 28) set_own_pin met het token van S2.
+select throws_ok(
+  $$ select set_own_pin('1234') $$,
+  'P0001', 'actor_not_found',
+  'een token van een bij het koppelen verwijderde sessie zet geen PIN (actor_not_found)');
+select is((select pin_hash from members where id = '00000000-0000-0000-0000-0000000ac0c8'), null,
+  'pin_hash blijft null na de geweigerde set_own_pin');
+
+-- 29) Positief: de bewijzende sessie S1 bestaat nog en registreert.
+select pg_temp.claims('00000000-0000-0000-0000-0000000ac048', '00000000-0000-0000-0000-0000000ac058', 'otp');
+select lives_ok(
+  $$ select register_bar_session('bar') $$,
+  'de bewijzende sessie registreert een bar-sessie');
+select ok(exists (select 1 from bar_sessions
+                   where auth_session_id = '00000000-0000-0000-0000-0000000ac058'
+                     and member_id = '00000000-0000-0000-0000-0000000ac0c8'),
+  'de bar-sessie van S1 staat op het gekoppelde lid');
+
+-- 30) session_id van een bestaande sessie van een ander account.
+select pg_temp.claims('00000000-0000-0000-0000-0000000ac048', '00000000-0000-0000-0000-0000000ac056', 'password');
+select throws_ok(
+  $$ select register_bar_session('bar') $$,
+  'P0001', 'session_ended',
+  'een session_id van een sessie van een ander account registreert niet (session_ended)');
+select ok(not exists (select 1 from bar_sessions where auth_session_id = '00000000-0000-0000-0000-0000000ac056'),
+  'er is geen bar_sessions-rij voor de sessie van het andere account');
+
+-- 31) set_own_pin zonder session_id-claim.
+select pg_temp.claims('00000000-0000-0000-0000-0000000ac048', null, 'otp');
+select throws_ok(
+  $$ select set_own_pin('1234') $$,
+  'P0001', 'actor_not_found',
+  'set_own_pin zonder session_id-claim weigert (actor_not_found)');
 
 select * from finish();
 rollback;

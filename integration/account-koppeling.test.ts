@@ -1,7 +1,7 @@
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
 import { execSync } from "node:child_process";
-import { randomBytes } from "node:crypto";
+import { createHmac, randomBytes } from "node:crypto";
 
 import { createClient, type Session, type SupabaseClient } from "@supabase/supabase-js";
 
@@ -25,6 +25,11 @@ import { createClient, type Session, type SupabaseClient } from "@supabase/supab
  *
  * Elk scenario maakt een eigen lid en een eigen account op een uniek adres
  * en ruimt die op het eind op; de seed blijft onaangeroerd.
+ *
+ * Herziening 2 (ADR 0020 → Beslissing 8): scenario 1 bewijst dat een gewone
+ * wachtwoordsessie een `auth.sessions`-rij met het `session_id` uit het
+ * token heeft (register_bar_session slaagt), scenario 3 dat het overgebleven
+ * token van de aanvaller geen bar-sessie registreert en geen PIN zet.
  */
 
 type Omgeving = { url: string; publishableKey: string; secretKey: string };
@@ -68,13 +73,29 @@ function gebruiker(): SupabaseClient {
   return createClient(env.url, env.publishableKey, clientOpties);
 }
 
+/** Een client die alleen een vast access token meestuurt: geen eigen
+ *  sessie, dus supabase-js ververst niets stil. Zo roept de aanvaller met
+ *  zijn overgebleven token PostgREST aan. */
+function metToken(accessToken: string): SupabaseClient {
+  return createClient(env.url, env.publishableKey, {
+    ...clientOpties,
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+  });
+}
+
 // ── Opruimen ──────────────────────────────────────────────────────────────
 
 const aangemaakteLeden: string[] = [];
 const aangemaakteAccounts: string[] = [];
 
 after(async () => {
-  // Eerst de leden: members.auth_user_id verwijst zonder `on delete` naar
+  // Eerst de bar-sessies: bar_sessions.member_id verwijst zonder `on delete`
+  // naar members (scenario 1 registreert er een).
+  if (aangemaakteLeden.length > 0) {
+    const { error } = await admin.from("bar_sessions").delete().in("member_id", aangemaakteLeden);
+    if (error) console.error("opruimen bar_sessions:", error.message);
+  }
+  // Dan de leden: members.auth_user_id verwijst zonder `on delete` naar
   // auth.users, dus een gekoppeld account is pas daarna te verwijderen.
   if (aangemaakteLeden.length > 0) {
     const { error } = await admin.from("members").delete().in("id", aangemaakteLeden);
@@ -96,16 +117,70 @@ function wachtwoord(): string {
   return `Ww-${randomBytes(12).toString("hex")}`;
 }
 
+type TokenClaims = {
+  amr?: Array<{ method?: string } | string>;
+  session_id?: string;
+  aal?: string;
+};
+
+/** De claims uit het ondertekende access token (niet geverifieerd: alleen
+ *  om te lezen wat GoTrue uitgaf). */
+function tokenClaims(session: Session): TokenClaims {
+  const payload = session.access_token.split(".")[1];
+  assert.ok(payload, "access token heeft geen payload");
+  return JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as TokenClaims;
+}
+
 /** De `amr`-methoden uit het ondertekende access token. GoTrue zet ze als
  *  `[{method, timestamp}]`; de RFC 8176-vorm (`string[]`) wordt ook gelezen,
  *  zodat een afwijkende vorm hier zichtbaar wordt in plaats van te crashen. */
 function amrMethoden(session: Session): string[] {
-  const payload = session.access_token.split(".")[1];
-  assert.ok(payload, "access token heeft geen payload");
-  const claims = JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as {
-    amr?: Array<{ method?: string } | string>;
-  };
-  return (claims.amr ?? []).map((e) => (typeof e === "string" ? e : (e.method ?? "")));
+  return (tokenClaims(session).amr ?? []).map((e) => (typeof e === "string" ? e : (e.method ?? "")));
+}
+
+function sessieId(session: Session): string {
+  const id = tokenClaims(session).session_id;
+  assert.ok(id, "access token heeft geen session_id-claim");
+  return id;
+}
+
+/** RFC 4648 base32 (zonder padding), zoals GoTrue het TOTP-geheim geeft. */
+function base32Decode(invoer: string): Buffer {
+  const alfabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  let bits = 0;
+  let waarde = 0;
+  const uit: number[] = [];
+  for (const teken of invoer.replace(/=+$/, "").toUpperCase()) {
+    const index = alfabet.indexOf(teken);
+    assert.ok(index >= 0, `ongeldig base32-teken in TOTP-geheim: ${teken}`);
+    waarde = (waarde << 5) | index;
+    bits += 5;
+    if (bits >= 8) {
+      uit.push((waarde >>> (bits - 8)) & 0xff);
+      bits -= 8;
+    }
+  }
+  return Buffer.from(uit);
+}
+
+/** TOTP volgens RFC 6238: HMAC-SHA1, stap 30 s, 6 cijfers. */
+function totpCode(geheim: string, nu: number = Date.now()): string {
+  const teller = Buffer.alloc(8);
+  teller.writeBigUInt64BE(BigInt(Math.floor(nu / 1000 / 30)));
+  const hmac = createHmac("sha1", base32Decode(geheim)).update(teller).digest();
+  const offset = hmac[hmac.length - 1]! & 0x0f;
+  const getal = (hmac.readUInt32BE(offset) & 0x7fffffff) % 1_000_000;
+  return getal.toString().padStart(6, "0");
+}
+
+/** Bar-sessies van een lid, via service-role. */
+async function barSessiesVan(memberId: string): Promise<Array<{ auth_session_id: string }>> {
+  const { data, error } = await admin
+    .from("bar_sessions")
+    .select("auth_session_id")
+    .eq("member_id", memberId);
+  assert.equal(error, null, `bar_sessions lezen faalde: ${error?.message}`);
+  return (data ?? []) as Array<{ auth_session_id: string }>;
 }
 
 /** Uitnodigen zoals src/lib/inviteMember.ts, maar via generateLink (geen
@@ -205,6 +280,37 @@ test("1. hoofdpad: uitnodiging openen via token_hash koppelt (faalde op 73edbbf)
   // De sessie die het bewijs leverde, blijft geldig.
   const { error } = await lid.auth.getUser(session.access_token);
   assert.equal(error, null, `de eigen sessie werkt niet meer na koppelen: ${error?.message}`);
+
+  // Herziening 2: het lid zet na het koppelen zelf een wachtwoord (het
+  // GoTrue-tijdelijke is gewist) ...
+  const p = wachtwoord();
+  const update = await lid.auth.updateUser({ password: p });
+  assert.equal(update.error, null, `updateUser(password) na koppelen faalde: ${update.error?.message}`);
+
+  // ... logt daarmee in, en die gewone wachtwoordsessie registreert een
+  // bar-sessie: ze heeft een auth.sessions-rij met het session_id uit het
+  // token (ADR 0020 → Beslissing 8 blokkeert het normale pad niet).
+  const bar = gebruiker();
+  const login = await bar.auth.signInWithPassword({ email, password: p });
+  assert.equal(login.error, null, `signInWithPassword na koppelen faalde: ${login.error?.message}`);
+  assert.ok(login.data.session, "signInWithPassword gaf geen sessie");
+  assert.ok(
+    amrMethoden(login.data.session).includes("password"),
+    `amr na wachtwoordlogin bevat geen password: ${JSON.stringify(amrMethoden(login.data.session))}`,
+  );
+
+  const registratie = await bar.rpc("register_bar_session", { p_mode: "bar" });
+  assert.equal(
+    registratie.error,
+    null,
+    `register_bar_session met een gewone wachtwoordsessie faalde: ${registratie.error?.message}`,
+  );
+  const sessies = await barSessiesVan(memberId);
+  assert.deepEqual(
+    sessies.map((s) => s.auth_session_id),
+    [sessieId(login.data.session)],
+    "er is geen bar_sessions-rij met auth_session_id = de session_id-claim van de wachtwoordsessie",
+  );
 });
 
 test("2. portal-pad: een uitgenodigd lid koppelt via een magic link", async () => {
@@ -242,12 +348,42 @@ test("3. aanval: signup met autoconfirm koppelt niet, en verliest alles zodra he
   const update = await aanvaller.auth.updateUser({ password: p2 });
   assert.equal(update.error, null, `updateUser(password) faalde: ${update.error?.message}`);
 
+  const { data: naUpdate } = await aanvaller.auth.getSession();
+  assert.ok(naUpdate.session, "aanvaller heeft geen sessie meer na updateUser");
+  const aal1SessieId = sessieId(naUpdate.session);
+
+  // Herziening 2: de aanvaller zet ook een eigen TOTP-factor en hoogt zijn
+  // sessie op naar aal2.
+  const enroll = await aanvaller.auth.mfa.enroll({ factorType: "totp" });
+  assert.equal(enroll.error, null, `mfa.enroll faalde: ${enroll.error?.message}`);
+  assert.ok(enroll.data && enroll.data.type === "totp", "mfa.enroll gaf geen TOTP-factor");
+  const factorId = enroll.data.id;
+  const challenge = await aanvaller.auth.mfa.challenge({ factorId });
+  assert.equal(challenge.error, null, `mfa.challenge faalde: ${challenge.error?.message}`);
+  assert.ok(challenge.data, "mfa.challenge gaf geen challenge");
+  const verify = await aanvaller.auth.mfa.verify({
+    factorId,
+    challengeId: challenge.data.id,
+    code: totpCode(enroll.data.totp.secret),
+  });
+  assert.equal(verify.error, null, `mfa.verify faalde: ${verify.error?.message}`);
+
   const { data: huidig } = await aanvaller.auth.getSession();
   const aanvallerSessie = huidig.session;
-  assert.ok(aanvallerSessie, "aanvaller heeft geen sessie meer na updateUser");
+  assert.ok(aanvallerSessie, "aanvaller heeft geen sessie meer na mfa.verify");
+  assert.equal(tokenClaims(aanvallerSessie).aal, "aal2", "het token van de aanvaller is na mfa.verify geen aal2");
+  assert.equal(sessieId(aanvallerSessie), aal1SessieId, "mfa.verify gaf een ander session_id");
   assert.ok(
     amrMethoden(aanvallerSessie).includes("password"),
     `amr van de aanvaller bevat geen password: ${JSON.stringify(amrMethoden(aanvallerSessie))}`,
+  );
+
+  const factorenVoor = await admin.auth.admin.mfa.listFactors({ userId });
+  assert.equal(factorenVoor.error, null, `listFactors faalde: ${factorenVoor.error?.message}`);
+  assert.deepEqual(
+    (factorenVoor.data?.factors ?? []).map((f) => [f.factor_type, f.status]),
+    [["totp", "verified"]],
+    "vóór de koppeling heeft het account niet precies één geverifieerde TOTP-factor",
   );
 
   assert.equal(await koppel(aanvaller, "link_invited_member_account"), null);
@@ -258,6 +394,34 @@ test("3. aanval: signup met autoconfirm koppelt niet, en verliest alles zodra he
   await verifieer(lid, await magicLinkHash(email), "magiclink");
   assert.equal(await koppel(lid, "link_invited_member_account"), memberId);
   assert.equal(await gekoppeldAccount(memberId), userId);
+
+  // Zijn TOTP-factor is weg.
+  const factorenNa = await admin.auth.admin.mfa.listFactors({ userId });
+  assert.equal(factorenNa.error, null, `listFactors faalde: ${factorenNa.error?.message}`);
+  assert.deepEqual(factorenNa.data?.factors ?? [], [], "de factor van de aanvaller bestaat nog na de koppeling");
+
+  // Herziening 2: met het overgebleven (aal2-)access token geen bar-sessie
+  // en geen PIN (ADR 0020 → Beslissing 8). Slaagt een van deze RPC's toch:
+  // niet afzwakken, melden.
+  const oudToken = metToken(aanvallerSessie.access_token);
+  for (const mode of ["bar", "beheer"] as const) {
+    const { error } = await oudToken.rpc("register_bar_session", { p_mode: mode });
+    assert.equal(
+      error?.message,
+      "session_ended",
+      `register_bar_session('${mode}') met het token van de verwijderde sessie gaf geen session_ended`,
+    );
+  }
+  const pin = await oudToken.rpc("set_own_pin", { p_pin: "1234" });
+  assert.equal(
+    pin.error?.message,
+    "actor_not_found",
+    "set_own_pin met het token van de verwijderde sessie gaf geen actor_not_found",
+  );
+  assert.deepEqual(await barSessiesVan(memberId), [], "er is een bar-sessie voor het lid aangemaakt");
+  const pinRij = await admin.from("members").select("pin_hash").eq("id", memberId).single();
+  assert.equal(pinRij.error, null, `pin_hash lezen faalde: ${pinRij.error?.message}`);
+  assert.equal((pinRij.data as { pin_hash: string | null }).pin_hash, null, "het lid heeft een PIN gekregen");
 
   // Het wachtwoord van de aanvaller is gewist.
   const login = await gebruiker().auth.signInWithPassword({ email, password: p2 });
