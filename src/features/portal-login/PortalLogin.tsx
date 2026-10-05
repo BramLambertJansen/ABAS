@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent, type RefObject } from "react";
 import { AuroraMerk } from "@/components/AuroraMerk";
 import { RATE_LIMITED_MESSAGE } from "@/lib/authErrors";
 import { usePortalLogin, type PortalLoginErrorCode } from "@/hooks/queries/usePortalLogin";
@@ -44,7 +44,14 @@ function errorMessage(code: PortalLoginErrorCode): string {
  * Suspense-grens rond `/portal` zou vereisen), en meteen uit de URL gehaald
  * zodat een latere remount de melding niet herhaalt.
  */
-export function PortalLogin({ deniedMessage }: { deniedMessage?: string }) {
+export function PortalLogin({
+  deniedMessage,
+  meldingRef,
+}: {
+  deniedMessage?: string;
+  /** Focusdoel voor de meldingsregel (na een herstelde sessielookup die `denied` oplevert). */
+  meldingRef?: RefObject<HTMLParagraphElement | null>;
+}) {
   const login = usePortalLogin();
   const resetRequest = usePortalWachtwoordHerstellen();
   const [view, setView] = useState<"login" | "forgot">("login");
@@ -146,8 +153,10 @@ export function PortalLogin({ deniedMessage }: { deniedMessage?: string }) {
 
       {deniedMessage && !magicLinkSent && !passwordChanged && view === "login" && (
         <p
+          ref={meldingRef}
+          tabIndex={-1}
           role="alert"
-          className="w-full max-w-sm rounded-2xl border border-border bg-white px-4 py-3 text-center text-sm font-bold text-danger"
+          className="w-full max-w-sm rounded-2xl border border-border bg-white px-4 py-3 text-center text-sm font-bold text-danger outline-none"
         >
           {deniedMessage}
         </p>
