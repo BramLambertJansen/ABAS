@@ -1,7 +1,8 @@
 # Portal-sessielookup: laadfout is geen "niet gekoppeld"
 
-**Status: goedgekeurd (Bram, gedelegeerd aan de Architect), gebouwd in #115.**
-Gevalideerd tegen `main` op `ee8c066`. De keuzes zijn door de Architect namens Bram gemaakt (zie
+**Status: gebouwd (PR #164, d9c86f8; issue #115, deel van epic #128).**
+Goedgekeurd door Bram (gedelegeerd aan de Architect). Zie "Zoals gebouwd" voor
+de afwijkingen van deze spec. Gevalideerd tegen `main` op `ee8c066`. De keuzes zijn door de Architect namens Bram gemaakt (zie
 "Besluiten Architect"); er zijn geen open vragen over geld of beleid.
 
 Spec voor [issue #115](https://github.com/BramLambertJansen/ABAS/issues/115)
@@ -379,6 +380,66 @@ antwoord, een zin reden. Bij twijfel is de conservatiefste optie gekozen.
     besluit 14) en `CLAUDE.md`; er is geen beslissing die een volgende
     feature zou tegenspreken. Een gate is niet nodig: de classificatie is een
     gedragsregel die de unit- en e2e-tests bewaken.
+
+## Zoals gebouwd
+
+Gebouwd in PR #164 (d9c86f8). Gedrag, teksten en beslistabel zijn zoals hierboven;
+de punten waar de bouw afwijkt of iets toevoegt (de waarheid voor toekomstig werk):
+
+- **`INITIAL_SESSION` zonder sessie wordt genegeerd** in `onAuthStateChange`
+  (alleen `SIGNED_OUT` en andere events zonder sessie geven `signed-out`).
+  `getSession()` beslist dan: `signed-out`, of bij een retryable fetch-fout `error`.
+  Zo kan `INITIAL_SESSION` een netwerkfout bij de token-refresh niet als uitlog lezen.
+- **`getSession()`-takken laten bij `signed-in` het dashboard staan.** Zowel de
+  resolvede retryable fetch-fout als de `.catch` rapporteren dan via
+  `reportClientError` en wijzigen niets; anders gaan ze naar `error` via
+  `sessieOphaalFoutStaat(huidig, err)` (pure functie in `src/lib/portalSessie.ts`,
+  naast `foutStaat` en `metRetryBezig`). Dit geldt ook voor een `refetch` vanuit
+  `signed-in` (naamswijziging) waarbij `getSession()` faalt.
+- **Retryable fetch-fout herkend met `isAuthRetryableFetchError`**, via de
+  re-export `src/lib/supabase/authErrors.ts` (pure functie uit
+  `@supabase/supabase-js`, geen client). De re-export bestaat omdat `check:arch`
+  Supabase-packages buiten `src/lib/supabase/` verbiedt. Besluit 7 is daarmee
+  betrouwbaar uitgevoerd; geen eigen heuristiek.
+- **`signOut()`-fallback.** Geeft `auth.signOut()` een `{error}` terug (auth-js
+  keert dan vóór `_removeSession()` terug: cookie blijft, geen `SIGNED_OUT`), dan
+  wist `wisPortalSessieLokaal()` (`src/lib/supabase/portalClient.ts`) de eigen
+  portalcookie en `refetch` (via `tick`) leest de sessie opnieuw: leeg geeft
+  `signed-out` zonder netwerk. Dit vervangt "uitloggen werkt zoals nu" in de
+  randgevallentabel voor het geval zonder netwerk.
+- **Focus bij `error` naar `denied`**: `PortalLogin` kreeg een `meldingRef`
+  (meldingsregel `tabIndex={-1}`, `role="alert"`); `PortalShellHome` roept
+  `useFocusNaHerstel` tweemaal aan (naar `h1` bij `signed-in`, naar de melding
+  bij `denied`). De spec noemde `useHerstelFocus`; `useFocusNaHerstel` gebruikt
+  die intern. `PortalDashboard` kreeg daarvoor een `kopRef`-prop (de `h1` is
+  `tabIndex={-1}`), meer dan de spec voorzag.
+- **Cooldown van supabase-js (60 s).** Na een mislukte token-refresh geeft
+  supabase-js dezelfde fout 60 s lang uit zijn cache terug
+  (`REFRESH_FAILURE_COOLDOWN_MS`). "Opnieuw proberen" binnen die minuut blijft
+  dus een foutscherm (focus blijft op de knop, geen lus); daarna herstelt de
+  sessie zonder opnieuw inloggen. De e2e-test dekt dit; geen app-code voor nodig.
+- **`isActueleRonde`** staat als pure functie en is unit-getest, maar de hook
+  vergelijkt de ronde inline (`ronde !== request`); de functie wordt niet door de
+  hook aangeroepen.
+- **Eén lookup per sessiestart** is bereikt met `inflight` (userId) naast de
+  `request`-teller; `commit()` houdt een `stateRef` bij voor de
+  voorgrond/achtergrond-beslissing in async code.
+- **Tests:** `test/portalSessie.test.ts` (beslistabel), `e2e/leesfouten-herstel.spec.ts`
+  (500, netwerk, retry faalt, `denied`, achtergrondfout, verdwenen rij,
+  getSession-netwerkfout met `page.clock`, uitloggen, identiteitswissel, één
+  lookup) en `e2e/a11y.spec.ts` (foutstaat van `/portal`).
+- **Niet los in e2e te forceren:** de `.catch`-tak van `getSession()` (een echt
+  afgewezen promise). De e2e-test met een netwerkfout bij de token-refresh raakt
+  de resolvede `error`-tak; de `.catch` heeft dezelfde uitkomst via
+  `sessieOphaalFoutStaat`, dat in `test/portalSessie.test.ts` is gedekt, maar de
+  tak zelf is niet end-to-end bewezen.
+- **Niet handmatig getest:** vliegtuigmodus op een echte telefoon bij het openen
+  van `/portal` met daarna online zetten en "Opnieuw proberen"; een tabblad op de
+  achtergrond terwijl het netwerk wegvalt, daarna terugkeren. De Tester-lijst
+  hierboven staat dus nog open; alleen gemockt (Playwright) bewezen.
+- **Epic #128:** met deze PR zijn de `PortalShellHome`-delen van T08 gebouwd
+  (zie `leesfouten-herstel-actuele-data.md`). Sluiten van #128 doet Bram.
+- `useBeheerSession` is, zoals besloten, onaangeroerd.
 
 ## Open vragen
 
