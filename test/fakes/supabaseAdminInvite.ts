@@ -19,7 +19,7 @@ export function createAdminClient() {
       admin: {
         async inviteUserByEmail() {
           state.calls.push("inviteUserByEmail");
-          return { data: { user: { id: "u-nieuw" } }, error: null };
+          return { data: { user: { id: state.invitedAuthUserId } }, error: null };
         },
       },
     },

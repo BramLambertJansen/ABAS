@@ -119,7 +119,7 @@ export async function sendMemberInvite(
   const admin = createAdminClient();
   const { data: member, error: memberError } = await admin
     .from("members")
-    .select("id, role, email, auth_user_id")
+    .select("id, role, email, auth_user_id, archived")
     .eq("id", memberId)
     .maybeSingle();
 
@@ -144,10 +144,14 @@ export async function sendMemberInvite(
   //    koppelt (geen `role`-filter daar, maar ook geen `role = 'lid'`-match
   //    nodig — beide RPC's draaien altijd allebei, zie
   //    src/app/auth/callback/route.ts).
+  //    Niet gearchiveerd (ADR 0020, docs/features/account-koppeling-bewijs.md
+  //    → keuze 7): de koppel-RPC's weigeren een gearchiveerd lid, dus een
+  //    mail die nooit tot een koppeling kan leiden gaat er niet uit.
   const eligible =
     (member.role === "bardienst" || member.role === "beheerder" || member.role === "lid") &&
     member.auth_user_id === null &&
-    member.email !== null;
+    member.email !== null &&
+    member.archived === false;
 
   if (!eligible) {
     return { ok: true, invited: false };
@@ -170,13 +174,16 @@ export async function sendMemberInvite(
 
   // mark_member_invite_sent via de sessie-gebonden client, nooit de
   // service-role-client — auth.uid() moet de echte beheerder-sessie zijn
-  // (RPC's punt 1, ADR 0006 → Beslissing punt 3). Geen p_auth_user_id meer
-  // (herzien, Bug 1-fix): het geretourneerde auth.users-id van
-  // inviteUserByEmail() wordt hier niet meer gebruikt — dat record-id komt
-  // terug via link_invited_member_account() bij acceptatie, niet hier.
+  // (RPC's punt 1, ADR 0006 → Beslissing punt 3). Het auth.users-id dat
+  // inviteUserByEmail() teruggaf gaat mee als `p_auth_user_id` (ADR 0020,
+  // docs/features/account-koppeling-bewijs.md → keuze 2): alleen dát account
+  // kan het lid later koppelen. Koppelen zelf gebeurt nog steeds pas bij
+  // acceptatie via link_invited_member_account(), niet hier (Bug 1-fix).
+  // Een `invite_account_mismatch` (adres gewijzigd tussen lezen en
+  // registreren) valt in `unknown`: opnieuw proberen leest het nieuwe adres.
   const { data: markData, error: markError } = await supabase.rpc(
     "mark_member_invite_sent",
-    { p_member_id: memberId }
+    { p_member_id: memberId, p_auth_user_id: authUserId }
   );
 
   if (markError) {

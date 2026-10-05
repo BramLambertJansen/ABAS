@@ -62,3 +62,32 @@ test("een lid dat geen beheerder is, komt niet eens bij de controle (actorcheck 
   assert.deepEqual(result, { ok: false, errorCode: "no_admin_role" });
   assert.deepEqual(fakeInviteMember().calls, []);
 });
+
+// ADR 0020 (docs/features/account-koppeling-bewijs.md → keuze 2): het id dat
+// inviteUserByEmail teruggeeft gaat mee naar mark_member_invite_sent. De
+// nep-RPC weigert met invite_account_mismatch als het niet klopt, dus een
+// geslaagde invite bewijst dat het juiste id meeging.
+test("de registratie krijgt het auth-id dat inviteUserByEmail teruggaf", async () => {
+  fakeInviteMember().invitedAuthUserId = "u-andere-uitnodiging";
+  const result = await sendMemberInvite("m-doel");
+  assert.deepEqual(result, { ok: true, invited: true, invitedAt: "2026-09-30T20:00:00Z" });
+});
+
+test("invite_account_mismatch uit de registratie valt in unknown", async () => {
+  fakeInviteMember().rpc.mark_member_invite_sent = {
+    error: { message: "invite_account_mismatch" },
+  };
+  const result = await sendMemberInvite("m-doel");
+  assert.deepEqual(result, { ok: false, errorCode: "unknown" });
+});
+
+// ADR 0020 → keuze 7: een gearchiveerd lid kan niet koppelen, dus er gaat
+// ook geen mail uit. No-op, zoals een lid zonder adres.
+test("gearchiveerd lid: geen invite, geen RPC", async () => {
+  const member = fakeInviteMember().member;
+  assert.ok(member);
+  member.archived = true;
+  const result = await sendMemberInvite("m-doel");
+  assert.deepEqual(result, { ok: true, invited: false });
+  assert.deepEqual(fakeInviteMember().calls, ["rpc:check_beheer_session"]);
+});

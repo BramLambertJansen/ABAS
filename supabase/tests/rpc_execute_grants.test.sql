@@ -314,7 +314,7 @@ select ok(
         'public.set_member_archived(uuid,boolean)',
         'public.set_member_role(uuid,text)',
         'public.update_member_email(uuid,text)',
-        'public.mark_member_invite_sent(uuid)',
+        'public.mark_member_invite_sent(uuid,uuid)',
         'public.list_members_admin()',
         'public.create_activity_type(text)',
         'public.update_activity_type_name(uuid,text)',

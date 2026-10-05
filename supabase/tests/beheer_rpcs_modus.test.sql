@@ -132,7 +132,7 @@ as $q$
     ('set_member_role', $s$ select set_member_role('00000000-0000-0000-0000-00000000c021', 'lid') $s$),
     ('update_member_email', $s$ select update_member_email('00000000-0000-0000-0000-00000000c021', 'a@b.nl') $s$),
     ('list_members_admin', $s$ select * from list_members_admin() $s$),
-    ('mark_member_invite_sent', $s$ select mark_member_invite_sent('00000000-0000-0000-0000-00000000c021') $s$),
+    ('mark_member_invite_sent', $s$ select mark_member_invite_sent('00000000-0000-0000-0000-00000000c021', '00000000-0000-0000-0000-00000000c010') $s$),
     ('reverse_order_as_admin', $s$ select reverse_order_as_admin('00000000-0000-0000-0000-00000000c031', 'reden') $s$),
     -- 0038: productafbeeldingen, zelfde guard als update_product_price.
     ('set_product_image', $s$ select set_product_image(gen_random_uuid(), null) $s$),
