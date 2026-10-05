@@ -20,10 +20,10 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(7);
+select plan(8);
 
 create temp table catalogus (naam text primary key, klasse text not null,
-  guardvrij_omdat text) on commit drop;
+  guardvrij_omdat text, zonder_sessie_omdat text) on commit drop;
 
 -- ── De indeling ──────────────────────────────────────────────────────────
 --
@@ -37,7 +37,12 @@ create temp table catalogus (naam text primary key, klasse text not null,
 -- `guardvrij_omdat` is alleen voor client-functies die géén `require_*`
 -- aanroepen, en zegt waarom dat mag. Een nieuwe uitzondering hoort bij
 -- review uitgelegd te worden, niet hier stilletjes bijgeschreven.
-insert into catalogus values
+--
+-- `zonder_sessie_omdat` (ADR 0022 → Beslissing 4): een guardvrije
+-- client-functie roept zelf caller_session_alive() aan (een token van een
+-- beëindigde Auth-sessie krijgt dan niets), of zegt hier waarom niet.
+-- Een functie met guard erft de sessie-eis van require_session.
+insert into catalogus (naam, klasse, guardvrij_omdat) values
   -- client, met guard
   ('add_shift_member',          'client', null),
   ('admin_end_bar_session',     'client', null),
@@ -69,19 +74,20 @@ insert into catalogus values
   ('update_member_name',        'client', null),
   ('update_negative_limit',     'client', null),
   ('update_product_price',      'client', null),
-  -- client, zonder guard
+  -- client, zonder guard (de redenen zonder sessie-eis staan hieronder)
   ('caller_has_bar_role',       'client', 'RLS-helper: zegt alleen iets over de aanroeper zelf'),
   ('caller_member_id',          'client', 'RLS-helper: zegt alleen iets over de aanroeper zelf'),
   ('caller_owns_order',         'client', 'RLS-helper: zegt alleen iets over de aanroeper zelf'),
+  ('caller_session_alive',      'client', 'RLS-helper: zegt alleen iets over de aanroeper zelf'),
   ('is_shift_member',           'client', 'RLS-helper voor shift_members'),
   ('link_invited_member_account','client','koppelt de eigen auth-user, alleen met bewijs van mailbezit (ADR 0020)'),
   ('link_lid_member_account',   'client', 'koppelt de eigen auth-user, alleen met bewijs van mailbezit (ADR 0020)'),
-  ('list_own_transactions',     'client', 'portal: alleen eigen rijen, via caller_member_id'),
+  ('list_own_transactions',     'client', 'portal: alleen eigen rijen, via caller_member_id; eist een levende Auth-sessie (ADR 0022)'),
   ('log_client_error',          'client', 'foutlogging: elke sessie, geen data van anderen'),
-  ('my_bar_state',              'client', 'leest de eigen bar-sessie; geen sessie = lege toestand'),
+  ('my_bar_state',              'client', 'leest de eigen bar-sessie; geen sessie = lege toestand; eist een levende Auth-sessie (ADR 0022)'),
   ('register_bar_session',      'client', 'maakt de sessie aan die de guards daarna eisen; eist een bestaande Auth-sessie en controleert zelf aal2 voor beheer'),
   ('set_own_pin',               'client', 'portal: eigen PIN, eist een bestaande Auth-sessie, weigert een bar-sessie zelf (wrong_mode)'),
-  ('update_own_name',           'client', 'portal: eigen naam'),
+  ('update_own_name',           'client', 'portal: eigen naam; eist een levende Auth-sessie (ADR 0022)'),
   -- server
   ('bar_login_options',         'server', null),
   ('login_throttle_release',    'server', null),
@@ -94,6 +100,7 @@ insert into catalogus values
   ('bar_pin_state',             'intern', null),
   ('close_bar_session_internal','intern', null),
   ('close_inactive_bar_sessions','intern', null),
+  ('close_signed_out_bar_sessions','intern', null),
   ('end_member_bar_sessions',   'intern', null),
   ('end_shift_internal',        'intern', null),
   ('link_member_account_internal','intern', null),
@@ -105,6 +112,16 @@ insert into catalogus values
   ('require_beheer_session',    'intern', null),
   ('require_session',           'intern', null),
   ('require_shift_session',     'intern', null);
+
+-- Guardvrije client-functies die bewust géén levende Auth-sessie eisen
+-- (ADR 0022 → Beslissing 4, spec sessie-na-afmelden → keuze 6).
+update catalogus set zonder_sessie_omdat = 'RLS-helper; de policy eist de sessie, ADR 0022'
+ where naam in ('caller_has_bar_role', 'caller_member_id', 'caller_owns_order',
+                'is_shift_member', 'caller_session_alive');
+update catalogus set zonder_sessie_omdat = 'elke zelf-aangemelde sessie kan dit al; een dood token wint niets, ADR 0022'
+ where naam = 'log_client_error';
+update catalogus set zonder_sessie_omdat = 'wrapper; link_member_account_internal eist de sessie'
+ where naam in ('link_invited_member_account', 'link_lid_member_account');
 
 create temp view functies as
   select p.oid, p.proname as naam, p.prosecdef, p.proconfig, p.prosrc
@@ -177,7 +194,24 @@ select is(
   'elke client-functie roept een require_*-guard aan, of staat met reden als guardvrij in de catalogus'
 );
 
--- ── 4) security definer zonder vaste search_path is een lek ──────────────
+-- ── 4) Elke guardvrije client-RPC eist een levende Auth-sessie ───────────
+--
+-- ADR 0022 → Beslissing 4. Leest de functietekst: een aanroep van
+-- caller_session_alive(). Wat de functie bij een dode sessie doet (fout,
+-- lege uitkomst, no-op), bewijst sessie_na_afmelden.test.sql.
+
+select is(
+  (select coalesce(array_agg(f.naam order by f.naam), '{}') from functies f
+     join catalogus c using (naam)
+    where c.klasse = 'client'
+      and c.guardvrij_omdat is not null
+      and c.zonder_sessie_omdat is null
+      and f.prosrc !~ '\mcaller_session_alive\s*\('),
+  '{}'::name[],
+  'elke guardvrije client-functie roept caller_session_alive() aan, of staat met reden als zonder sessie-eis in de catalogus (ADR 0022)'
+);
+
+-- ── 5) security definer zonder vaste search_path is een lek ──────────────
 
 select is(
   (select coalesce(array_agg(naam order by naam), '{}') from functies

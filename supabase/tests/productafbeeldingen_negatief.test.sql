@@ -52,6 +52,11 @@ begin
       values (p_auth_user, v_member, p_mode)
       on conflict (auth_session_id) do update set mode = excluded.mode;
     end if;
+    -- De eigen Auth-sessie: elke leespolicy en require_session eisen haar
+    -- (0041, ADR 0022). Een geleend sessie-id krijgt er geen.
+    insert into auth.sessions (id, user_id, created_at, updated_at)
+    values (p_auth_user, p_auth_user, now(), now())
+    on conflict (id) do nothing;
   end if;
   perform set_config('request.jwt.claim.sub', p_auth_user::text, true);
   perform set_config(
@@ -269,15 +274,16 @@ select is(
 -- ── Een geleend sessie-id ────────────────────────────────────────────────
 -- De bardienst stuurt het sessie-id van de beheer-sessie van de beheerder
 -- mee (die sessie bestaat en is actief, zie hierboven). require_session
--- controleert dat de sessie bij auth.uid() hoort.
+-- controleert dat de sessie bij auth.uid() hoort: sinds 0041 al bij de
+-- Auth-sessie (caller_session_alive, ADR 0022), dus `session_ended`.
 
 select pg_temp.act_as('00000000-0000-0000-0000-0000000ab011', 'beheer', 'aal2',
   '00000000-0000-0000-0000-0000000ab010');
 set local role authenticated;
 select throws_ok(
   $$ select set_product_image('00000000-0000-0000-0000-0000000ab030', null) $$,
-  'P0001', 'no_bar_role',
-  'een bardienst met het sessie-id van een beheerder: no_bar_role'
+  'P0001', 'session_ended',
+  'een bardienst met het sessie-id van een beheerder: session_ended'
 );
 reset role;
 

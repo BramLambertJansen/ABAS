@@ -19,11 +19,17 @@
 --   3. De vijf tabellen met namen of bedragen per lid hebben in elke
 --      leespolicy de allowlist-helper `caller_has_bar_role()`. Vangt een
 --      latere migratie die er één terugzet naar `true` of een andere vorm.
+--   4. Elke leespolicy die niet `using (true)` is, bevat de sessiehelper
+--      `caller_session_alive()` (ADR 0022 → Beslissing 2): een token van een
+--      beëindigde Auth-sessie leest niets meer. Een nieuwe tabel krijgt de
+--      vorm `using ((select caller_session_alive()) and (<expressie>))`. Dat
+--      het een conjunctie is en geen `or`-tak, bewijzen de gedragstests in
+--      sessie_na_afmelden.test.sql (blok 2).
 
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(3);
+select plan(4);
 
 select is_empty(
   $$
@@ -65,6 +71,18 @@ select set_eq(
   $$,
   array['members', 'orders', 'order_lines', 'top_ups', 'order_reversals'],
   'elke leespolicy op members/orders/order_lines/top_ups/order_reversals gaat via caller_has_bar_role() (ADR 0019)'
+);
+
+select is_empty(
+  $$
+    select tablename || '.' || policyname
+      from pg_policies
+     where schemaname = 'public'
+       and cmd in ('SELECT', 'ALL')
+       and qual <> 'true'
+       and qual not like '%caller_session_alive()%'
+  $$,
+  'elke leespolicy die niet using (true) is, eist een levende Auth-sessie via caller_session_alive() (ADR 0022)'
 );
 
 select * from finish();

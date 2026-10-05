@@ -120,6 +120,12 @@ returns void
 language plpgsql
 as $fn$
 begin
+  -- De Auth-sessie uit het token: koppelen eist haar (0041, ADR 0022).
+  -- Alleen voor een bestaand account (FK).
+  insert into auth.sessions (id, user_id, created_at, updated_at)
+  select p_sub, p_sub, now(), now()
+   where exists (select 1 from auth.users where id = p_sub)
+  on conflict (id) do nothing;
   perform set_config('request.jwt.claim.sub', p_sub::text, true);
   perform set_config(
     'request.jwt.claims',

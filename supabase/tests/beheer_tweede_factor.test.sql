@@ -362,13 +362,15 @@ select is(
 );
 
 -- Ontbreekt de Auth-sessie al (bv. al uitgelogd bij Supabase), dan is dat
--- geen fout.
+-- geen fout. Sinds 0041 kan het token van die sessie zelf niet meer
+-- uitloggen (require_session → session_ended, ADR 0022); een beheerder die
+-- de sessie afmeldt, sluit haar wel.
 insert into bar_sessions (auth_session_id, member_id, mode) values
   ('00000000-0000-0000-0000-0000000f2e09', '00000000-0000-0000-0000-0000000f2b01', 'bar');
-select pg_temp.claims('00000000-0000-0000-0000-0000000f2a01', '00000000-0000-0000-0000-0000000f2e09', 'aal1');
+select pg_temp.claims('00000000-0000-0000-0000-0000000f2a01', '00000000-0000-0000-0000-0000000f2e03', 'aal2');
 select lives_ok(
-  $$ select end_bar_session(false) $$,
-  'uitloggen zonder auth.sessions-rij is geen fout'
+  $$ select admin_end_bar_session((select id from bar_sessions where auth_session_id = '00000000-0000-0000-0000-0000000f2e09')) $$,
+  'een bar-sessie sluiten zonder auth.sessions-rij is geen fout'
 );
 
 -- ═══ Rechten ══════════════════════════════════════════════════════════════

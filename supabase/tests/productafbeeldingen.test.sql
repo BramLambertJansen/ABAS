@@ -33,6 +33,11 @@ begin
     values (p_auth_user, v_member, p_mode)
     on conflict (auth_session_id) do update set mode = excluded.mode;
   end if;
+  -- De Auth-sessie uit het token: elke leespolicy en require_session eisen
+  -- haar (0041, ADR 0022).
+  insert into auth.sessions (id, user_id, created_at, updated_at)
+  values (p_auth_user, p_auth_user, now(), now())
+  on conflict (id) do nothing;
   perform set_config('request.jwt.claim.sub', p_auth_user::text, true);
   perform set_config(
     'request.jwt.claims',
