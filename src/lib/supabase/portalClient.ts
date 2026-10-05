@@ -7,9 +7,9 @@ import { createBrowserClient } from "@supabase/ssr";
  * bar-tablet-device-sessie (of andersom) kan lezen/overschrijven. Zie ADR
  * 0009 → Beslissing voor de volledige motivatie/verworpen alternatieven.
  *
- * `path: "/portal"`: de browser stuurt dit cookie sowieso nooit mee naar een
- * bar/beheer-request, in plaats van alleen "de portal-client zoekt er
- * toevallig niet naar" (ADR 0009).
+ * `path: "/"` (ADR 0009 → Wijziging): de PKCE-`code_verifier` moet ook
+ * `/auth/callback` bereiken, buiten `/portal`. De isolatie zit in de
+ * cookienaam; bar/beheer leest alleen zijn eigen naam.
  *
  * Alleen te importeren vanuit `src/app/portal/`, `src/shells/portal/` of
  * `src/features/portal-login/` — met precies één, met bestandspad genoemde
@@ -23,7 +23,7 @@ export function createClient() {
     {
       cookieOptions: {
         name: "sb-portal-auth-token",
-        path: "/portal",
+        path: "/",
       },
     }
   );
