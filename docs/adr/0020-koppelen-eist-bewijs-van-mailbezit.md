@@ -11,6 +11,10 @@ aanvulling (geen foutcodes, stille no-op bij 0 of meer dan 1 match) blijft
 staan. Raakt [ADR 0005](0005-wachtwoord-verplicht-pin-optionele-snelkoppeling.md),
 [0008](0008-auth-maillinks-via-token-hash.md) en
 [0013](0013-accountbestaan-niet-geheim-op-auth-api.md) niet.
+**Uitgebreid door** [ADR 0022](0022-token-van-beeindigde-sessie-leest-en-schrijft-niets.md)
+(2026-10-05): Beslissing 8 geldt voortaan voor elke niet-globale leespolicy,
+`require_session` en de guardvrije client-RPC's; het Restrisico (lezen tot
+het token verloopt) vervalt daarmee zodra `0041` gebouwd is.
 
 ## Herziening (2026-10-05, na review van de bouw in 73edbbf)
 

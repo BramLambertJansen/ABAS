@@ -475,6 +475,23 @@ account zonder gekoppeld lid ziet niets. `caller_is_lid()` is gedropt.
 `supabase/tests/rls_leespolicies.test.sql` bewaakt dat er geen denylist-tak of
 nieuwe `using (true)`-tabel bijkomt.
 
+**Een token van een beëindigde sessie leest en schrijft niets (besloten
+2026-10-05, te bouwen in `0041`)**: ADR [0022](adr/0022-token-van-beeindigde-sessie-leest-en-schrijft-niets.md),
+spec `docs/features/sessie-na-afmelden.md`. Een access token blijft voor
+PostgREST geldig tot `jwt_expiry`, ook als de rij in `auth.sessions` weg is
+(afmelden, wachtwoordherstel, wachtwoordwijziging, koppelen). Eén helper,
+`caller_session_alive()` (rij in `auth.sessions` met `id` = `session_id`-claim
+en `user_id` = `auth.uid()`), staat als initplan-conjunctie vóór elke
+leespolicy die niet `using (true)` is, in `require_session` (`session_ended`)
+en in de guardvrije client-RPC's (`log_client_error` en de RLS-helpers
+bewust niet). Een cron-job (`close_signed_out_bar_sessions`, elke minuut)
+sluit bar-sessies waarvan de Auth-sessie buiten onze RPC's om verdween
+(sluitreden `elders_uitgelogd`, voor koppeling en melding `uitgelogd`). Geen
+trigger op het `auth`-schema. `jwt_expiry` blijft 3600 s. Portal-uitlog is
+`scope: local`; wachtwoordherstel blijft globaal. Gates: `rls_leespolicies`
+(helper in elke niet-globale leespolicy) en `rpc_catalogus` (guardvrij =
+helper of een reden).
+
 **Settled (2026-08-24)**:
 - **Single organization.** ABAS is for Aurora only — no `org_id`, no
   multi-tenant scoping. RLS policies are written against a single club's
