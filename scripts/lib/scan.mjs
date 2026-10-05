@@ -40,8 +40,10 @@ export function read(root, relPath) {
 //   require("a")                   (CommonJS, string literal only)
 //   import type { T } from "a" / export type { T } from "a"  → typeOnly
 // An inline `import { type T, f } from "a"` is NOT type-only (conservative:
-// the fix for a report is `import type`). `(?<![\w$.])` keeps `foo.import(`,
-// `myrequire(` and `import.meta` out.
+// the fix for a report is `import type`). The lookbehind keeps `foo.import(`
+// and `myrequire(` out (`import.meta` never matches: no `(`, string or `from`).
+// Bindings are Unicode identifiers (`import Ä from "a"`), and no whitespace
+// is needed before `{`, `*` or a string (`import{x}from"a"`).
 //
 // The clause between the keyword and `from` follows the import/export
 // grammar instead of a free character class: an optional default binding
@@ -50,11 +52,21 @@ export function read(root, relPath) {
 // boundary without a semicolon — e.g. `export type { Q }` followed by
 // `import { f } from "a"` on the next line must yield a runtime import of
 // "a", not a type-only one.
-const FROM_RE =
-  /(?<![\w$.])(?:import|export)\s+(type\s+(?!from\b))?(?:(?!(?:import|export)\b)[\w$]+\s*,?\s*)?(?:\*\s*(?:as\s+[\w$]+\s*)?|\{[^{}]*\}\s*)?from\s*["']([^"']+)["']/g;
-const BARE_IMPORT_RE = /(?<![\w$.])import\s*["']([^"']+)["']/g;
-const CALL_IMPORT_RE = /(?<![\w$.])(?:import|require)\s*\(\s*["']([^"']+)["']\s*\)/g;
-const ANY_CALL_RE = /(?<![\w$.])(?:import|require)\s*\(/g;
+const ID = String.raw`[\p{ID_Start}$_][\p{ID_Continue}$\u200C\u200D]*`;
+const NOT_AFTER = String.raw`(?<![\p{ID_Continue}$\u200C\u200D.])`;
+// After a keyword: whitespace, or none when the next token is `{`, `*` or a
+// string (`import{x}from"a"`); `importx from "a"` stays an identifier.
+const GAP = String.raw`(?:\s+|\s*(?=[{*"']))`;
+const FROM_RE = new RegExp(
+  String.raw`${NOT_AFTER}(?:import|export)${GAP}(type${GAP}(?!from(?![\p{ID_Continue}$])))?(?:(?!(?:import|export)(?![\p{ID_Continue}$]))${ID}\s*,?\s*)?(?:\*\s*(?:as\s+${ID}\s*)?|\{[^{}]*\}\s*)?from\s*["']([^"']+)["']`,
+  "gu"
+);
+const BARE_IMPORT_RE = new RegExp(String.raw`${NOT_AFTER}import\s*["']([^"']+)["']`, "gu");
+const CALL_IMPORT_RE = new RegExp(
+  String.raw`${NOT_AFTER}(?:import|require)\s*\(\s*["']([^"']+)["']\s*\)`,
+  "gu"
+);
+const ANY_CALL_RE = new RegExp(String.raw`${NOT_AFTER}(?:import|require)\s*\(`, "gu");
 const LITERAL_ARG_RE = /^\s*["'][^"'`]*["']\s*\)/;
 
 export function importRefsOf(source) {
@@ -118,7 +130,9 @@ export function resolveSpec(fromFile, spec, files) {
 // strings containing "//"), good enough for this codebase's style.
 export function stripComments(source) {
   return source
-    .replace(/\/\*[\s\S]*?\*\//g, "")
+    // A space, not "": `import/**/x from "a"` must stay two tokens. No
+    // caller relies on offsets or line numbers in the stripped text.
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
     .replace(/(^|[^:])\/\/.*$/gm, "$1");
 }
 

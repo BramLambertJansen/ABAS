@@ -217,3 +217,36 @@ test("18: Server Component en route handler mogen server.ts en barLogin importer
   });
   assert.equal(status, 0, stderr);
 });
+
+test("21: import/export zonder witruimte voor {, * of de string", () => {
+  expectFailure(
+    {
+      "src/features/x/U.tsx": '"use client";\nimport{f}from"@/lib/barLogin";\nexport const u = f;\n',
+      "src/features/x/V.tsx": '"use client";\nimport*as n from"@/lib/barLogin";\nexport const v = n;\n',
+      "src/features/x/W.tsx": '"use client";\nexport{f}from"@/lib/barLogin";\n',
+      "src/features/x/X.tsx": '"use client";\nexport*from"@/lib/barLogin";\n',
+    },
+    "U.tsx: reaches server-only src/lib/supabase/admin.ts via src/lib/barLogin.ts",
+    "V.tsx: reaches server-only src/lib/supabase/admin.ts via src/lib/barLogin.ts",
+    "W.tsx: reaches server-only src/lib/supabase/admin.ts via src/lib/barLogin.ts",
+    "X.tsx: reaches server-only src/lib/supabase/admin.ts via src/lib/barLogin.ts"
+  );
+});
+
+test("22: default- en namespace-binding met niet-ASCII identifier", () => {
+  expectFailure(
+    {
+      "src/features/x/Y.tsx": '"use client";\nimport Ä from "@/lib/barLogin";\nexport const y = Ä;\n',
+      "src/features/x/Z.tsx": '"use client";\nimport * as Ö from "@/lib/barLogin";\nexport const z = Ö;\n',
+    },
+    "Y.tsx: reaches server-only src/lib/supabase/admin.ts via src/lib/barLogin.ts",
+    "Z.tsx: reaches server-only src/lib/supabase/admin.ts via src/lib/barLogin.ts"
+  );
+});
+
+test("23: block-comment tussen keyword en binding scheidt de tokens", () => {
+  expectFailure(
+    { "src/features/x/AA.tsx": '"use client";\nimport/**/f from "@/lib/barLogin";\nexport const aa = f;\n' },
+    "AA.tsx: reaches server-only src/lib/supabase/admin.ts via src/lib/barLogin.ts"
+  );
+});
