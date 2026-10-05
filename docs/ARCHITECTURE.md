@@ -343,8 +343,16 @@ existing reads are issued more often. Shared pieces:
   `online`, never polling or Realtime), `src/components/VerversStatus.tsx`
   (portal only, `role="status"`), `src/components/LeesFout.tsx` (error line plus
   "Opnieuw proberen", `aria-disabled` while busy so focus stays),
-  `src/hooks/useFocusNaHerstel.ts` and `src/hooks/useLeesHerstel.ts` (focus goes
-  to the healed section after a retry, never `body`).
+  `src/hooks/useFocusNaHerstel.ts` (focus goes to the healed section after a
+  retry, never `body`; via `useHerstelFocus`) and `src/hooks/useLeesHerstel.ts`
+  (the bar read hooks: keeps the error and a disabled button up during the
+  retry, calls `useFocusNaHerstel`). `src/hooks/useFocusNaFaseFout.ts` is the
+  separate case for the session phase `fout` of `BarApp` and `Assortimentbeheer`,
+  which have their own retry button: it focuses the screen's `h1` after a
+  successful retry; its `hadFout` flag is module-level because
+  `Assortimentbeheer` redirects to `/` (a new mount) after success. Known low
+  risk: the flag survives an unmount, so a later mount can move focus from
+  `body` to the `h1` (untested edge case).
 - Portal: Saldo has one refresh button for balance, settings and transactions
   (label = oldest of the three); Transactions refreshes only the transactions.
   A tab switch always reads fresh (mount per tab, unchanged).
@@ -354,10 +362,10 @@ existing reads are issued more often. Shared pieces:
   names load and when they fail. The parameter hooks (`useShiftMembers`,
   `useShiftLedger`, `useShiftSummary`, `useMemberOrders`) have a last-request-wins
   counter.
-- *Not built yet*: the `PortalShellHome` part (`userId` plus `key`, a background
-  lookup that does not fall back, an order guard and the `getSession` catch). It
-  waits for #115 (error classification of `usePortalSession`), which owns that
-  hook; `usePortalSession.ts` and `PortalShellHome.tsx` are untouched. Also out
+- *Not built yet*: the `PortalShellHome` part (`userId` plus `key={userId}` on
+  `PortalDashboard`, a background lookup that does not fall back, the
+  `getSession` catch and the error classification of `usePortalSession`). It
+  waits for #115, which owns that hook; `usePortalSession.ts` and `PortalShellHome.tsx` are untouched. Also out
   of scope: `useBeheerSession`, #78, #51, #67, a session-expired message. Not
   verified live: a real booking on the bar followed by a portal refresh,
   flight mode, Safari/Android behaviour of `visibilitychange`/`online`.
