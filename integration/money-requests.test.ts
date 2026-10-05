@@ -42,6 +42,24 @@ test("concurrent real requests commit one top-up and one order; lost response re
     const orderRows = await admin.from("orders").select("id").eq("member_id", member); assert.equal(orderRows.error, null); assert.equal(orderRows.data!.length, 1);
     const balance = await admin.from("members").select("balance_cents").eq("id", member).single(); assert.equal(balance.error, null); assert.equal(balance.data!.balance_cents, 4800);
     assert.equal((await bar.rpc("top_up_once", { ...topArgs, p_amount_cents: 200 })).error?.message, "request_id_conflict");
+    const raceArgs = { ...topArgs, p_request_id: randomUUID(), p_amount_cents: 77 };
+    const [booking, cancellation] = await Promise.all([
+      bar.rpc("top_up_once", raceArgs),
+      bar.rpc("inspect_money_request", { p_request_id: raceArgs.p_request_id, p_operation: "top_up",
+        p_payload: [shift, member, 77, "cash", actor], p_cancel: true }),
+    ]);
+    assert.equal(cancellation.error, null);
+    if (cancellation.data.status === "cancelled") {
+      assert.equal(booking.error?.message, "request_cancelled");
+      assert.equal((await bar.rpc("top_up_once", raceArgs)).error?.message, "request_cancelled");
+    } else {
+      assert.equal(cancellation.data.status, "completed");
+      assert.equal(booking.error, null);
+      assert.equal(cancellation.data.result.id, booking.data.id);
+    }
+    const finalBalance = await admin.from("members").select("balance_cents").eq("id", member).single();
+    assert.equal(finalBalance.error, null);
+    assert.equal(finalBalance.data!.balance_cents, cancellation.data.status === "cancelled" ? 4800 : 4877);
   } finally {
     // Fixture records only. Receipts deliberately have no expiry and survive until
     // the disposable CI stack is removed; there is no service-role receipt grant.

@@ -42,10 +42,10 @@ async function mockCrew(page: Page, crew = ["pin", "archived", "changed-role"]) 
   }))));
   await page.route(/\/rest\/v1\/products(\?|$)/, (route) => json(route, 200, [{ id: "product", name: "Pils", category: "Bier", price_cents: 250 }]));
   await page.route(/\/rest\/v1\/app_settings(\?|$)/, (route) => json(route, 200, { negative_limit_cents: 0, low_balance_threshold_cents: 1000 }));
-  await page.route(/\/rest\/v1\/rpc\/(place_order|top_up)(\?|$)/, (route) => {
+  await page.route(/\/rest\/v1\/rpc\/(place_order_once|top_up_once)(\?|$)/, (route) => {
     const rpc = new URL(route.request().url()).pathname.split("/").at(-1)!;
     state.money.push({ rpc, body: route.request().postDataJSON() });
-    return json(route, 200, rpc === "place_order" ? { total_cents: 250 } : { amount_cents: 500 });
+    return json(route, 200, rpc === "place_order_once" ? { total_cents: 250 } : { amount_cents: 500 });
   });
   await page.route(/\/rest\/v1\/rpc\/(add|remove)_shift_member(\?|$)/, (route) => {
     const rpc = new URL(route.request().url()).pathname.split("/").at(-1)!;
@@ -131,8 +131,8 @@ for (const crew of [["no-pin"], ["pin", "no-pin"]]) {
     await topup.getByRole("button", { name: "boeken", exact: true }).click();
     await expect(topup).toBeHidden();
     expect(state.money).toEqual([
-      { rpc: "place_order", body: { p_shift_id: SHIFT, p_member_id: "payer", p_lines: [{ product_id: "product", qty: 1 }], p_served_by: "no-pin" } },
-      { rpc: "top_up", body: { p_shift_id: SHIFT, p_member_id: "payer", p_amount_cents: 500, p_method: "cash", p_served_by: "no-pin" } },
+      { rpc: "place_order_once", body: { p_request_id: expect.stringMatching(/^[a-f0-9-]{36}$/i), p_shift_id: SHIFT, p_member_id: "payer", p_lines: [{ product_id: "product", qty: 1 }], p_served_by: "no-pin" } },
+      { rpc: "top_up_once", body: { p_request_id: expect.stringMatching(/^[a-f0-9-]{36}$/i), p_shift_id: SHIFT, p_member_id: "payer", p_amount_cents: 500, p_method: "cash", p_served_by: "no-pin" } },
     ]);
   });
 }

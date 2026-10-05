@@ -1,7 +1,7 @@
 -- Transactional receipts and negative authorization tests, ADR 0023.
 create extension if not exists pgtap with schema extensions;
 begin;
-select plan(28);
+select plan(36);
 create function pg_temp.act_as_bar(p_member uuid, p_shift uuid default null, p_session uuid default null)
 returns void
 language plpgsql
@@ -117,5 +117,15 @@ select throws_ok($test$select top_up_once('00000000-0000-4000-8000-000000009201'
 set local role service_role;
 select throws_ok('select * from money_requests', '42501', null, 'service role has no receipt table grant');
 reset role;
+select pg_temp.act_as_bar('00000000-0000-4000-8000-000000009101', '00000000-0000-4000-8000-000000009110', '00000000-0000-4000-8000-000000009140');
+select is((inspect_money_request('00000000-0000-4000-8000-000000009201', 'top_up', jsonb_build_array('00000000-0000-4000-8000-000000009110', '00000000-0000-4000-8000-000000009102', 100, 'cash', '00000000-0000-4000-8000-000000009101'), false))->>'status', 'completed', 'new session can inspect old completed request');
+select is((inspect_money_request('00000000-0000-4000-8000-000000009206', 'top_up', jsonb_build_array('00000000-0000-4000-8000-000000009110', '00000000-0000-4000-8000-000000009102', 100, 'cash', '00000000-0000-4000-8000-000000009101'), false))->>'status', 'missing', 'absent receipt is not evidence of failure');
+select is((select count(*) from money_requests where request_id = '00000000-0000-4000-8000-000000009206'), 0::bigint, 'read-only missing lookup creates no receipt');
+select is((inspect_money_request('00000000-0000-4000-8000-000000009206', 'top_up', jsonb_build_array('00000000-0000-4000-8000-000000009110', '00000000-0000-4000-8000-000000009102', 100, 'cash', '00000000-0000-4000-8000-000000009101'), true))->>'status', 'cancelled', 'explicit cancellation records terminal proof');
+select throws_ok($test$select top_up_once('00000000-0000-4000-8000-000000009206', '00000000-0000-4000-8000-000000009110', '00000000-0000-4000-8000-000000009102', 100, 'cash', '00000000-0000-4000-8000-000000009101')$test$, 'P0001', 'request_cancelled', 'late request cannot book after cancellation');
+select is((select count(*) from top_ups where member_id = '00000000-0000-4000-8000-000000009102'), 3::bigint, 'cancellation did not add a financial row');
+select is((inspect_money_request('00000000-0000-4000-8000-000000009201', 'top_up', jsonb_build_array('00000000-0000-4000-8000-000000009110', '00000000-0000-4000-8000-000000009102', 100, 'cash', '00000000-0000-4000-8000-000000009101'), true))->>'status', 'completed', 'cancelling an already booked request returns success, never reverses money');
+select pg_temp.act_as_bar('00000000-0000-4000-8000-000000009103', '00000000-0000-4000-8000-000000009110');
+select throws_ok($test$select inspect_money_request('00000000-0000-4000-8000-000000009206', 'top_up', jsonb_build_array('00000000-0000-4000-8000-000000009110', '00000000-0000-4000-8000-000000009102', 100, 'cash', '00000000-0000-4000-8000-000000009101'), false)$test$, 'P0001', 'request_id_conflict', 'other actor cannot inspect cancellation proof');
 select * from finish();
 rollback;

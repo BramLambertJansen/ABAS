@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { pendingMoneyRequests, runMoneyRequest, type MoneyOperation } from "@/lib/moneyRequest";
+import { pendingMoneyRequests, runMoneyRequest, inspectPendingMoneyRequest, type MoneyOperation } from "@/lib/moneyRequest";
 import { isSessionErrorCode, notifySessionCode } from "@/lib/barSessie";
 import { reportClientError } from "@/lib/clientErrors";
 
@@ -26,14 +26,21 @@ export function usePendingMoneyRequests() {
     return () => { mounted = false; window.removeEventListener("focus", onFocus); window.removeEventListener("storage", onFocus); };
   }, []);
 
-  async function recover(operation: MoneyOperation): Promise<boolean> {
+  async function recover(operation: MoneyOperation, cancel = false): Promise<boolean> {
     if (busy) return false;
     const intent = pending.find((item) => item.operation === operation);
     if (!intent) return false;
     setBusy(true); setError("");
     try {
       const client = createClient();
-      const result = await runMoneyRequest(client, operation, intent.args);
+      const inspection = await inspectPendingMoneyRequest(client, operation, cancel);
+      const status = (inspection.data as { status?: string } | null)?.status;
+      if (!inspection.error && (status === "completed" || status === "cancelled")) return true;
+      if (!inspection.error && status !== "missing") {
+        setError("De eerdere actie kon niet worden bevestigd. De sleutel blijft bewaard.");
+        return false;
+      }
+      const result = inspection.error || cancel ? inspection : await runMoneyRequest(client, operation, intent.args);
       if (result.error) {
         if (isSessionErrorCode(result.error.message)) notifySessionCode(result.error.message);
         else if (result.error.code !== "P0001") reportClientError(client, "usePendingMoneyRequests", result.error);

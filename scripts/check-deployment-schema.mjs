@@ -10,6 +10,7 @@ export const REQUIRED_COLUMNS = {
   members: ["invited_auth_user_id"],
 };
 export const REQUIRED_RPCS = {
+  inspect_money_request: ["p_request_id", "p_operation", "p_payload", "p_cancel"],
   place_order_once: ["p_request_id", "p_shift_id", "p_member_id", "p_lines", "p_served_by"],
   top_up_once: ["p_request_id", "p_shift_id", "p_member_id", "p_amount_cents", "p_method", "p_served_by"],
   create_member_once: ["p_request_id", "p_name", "p_starting_balance_cents", "p_email"],

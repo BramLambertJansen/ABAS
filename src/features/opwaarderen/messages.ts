@@ -57,6 +57,8 @@ export function topUpErrorMessage(code: TopUpErrorCode): string {
     case "request_id_conflict":
     case "invalid_request_id":
       return PENDING_REQUEST_MESSAGE;
+    case "request_cancelled":
+      return "Deze eerdere actie is definitief geannuleerd. Er is niets geboekt onder deze sleutel.";
     case "request_storage_unavailable":
       return REQUEST_STORAGE_MESSAGE;
     case "self_top_up_forbidden":

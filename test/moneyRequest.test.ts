@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { runMoneyRequest, type IntentEnvironment } from "../src/lib/moneyRequest.ts";
+import { runMoneyRequest, inspectPendingMoneyRequest, type IntentEnvironment } from "../src/lib/moneyRequest.ts";
 
 function fixture() {
   const storage = new Map<string, string>();
@@ -73,5 +73,59 @@ test("overlapping requests acquire the same intent before either response arrive
   await new Promise((resolve) => setTimeout(resolve, 0));
   release(); await Promise.all([one, two]);
   assert.equal(f.calls[0].p_request_id, f.calls[1].p_request_id);
+  assert.equal(f.storage.size, 0);
+});
+
+test("missing receipt never releases intent; confirmed cancellation releases the exact key", async () => {
+  const f = fixture();
+  await runMoneyRequest(f.client, "top_up", args, f.environment);
+  f.response({ data: { status: "missing" }, error: null });
+  await inspectPendingMoneyRequest(f.client, "top_up", false, f.environment);
+  assert.equal(f.storage.size, 1);
+  assert.equal(f.calls[1].name, "inspect_money_request");
+  assert.equal(f.calls[1].p_request_id, f.calls[0].p_request_id);
+  assert.deepEqual(f.calls[1].p_payload, [null, "member", 100, null, null]);
+  f.response({ data: { status: "cancelled" }, error: null });
+  await inspectPendingMoneyRequest(f.client, "top_up", true, f.environment);
+  assert.equal(f.calls[2].p_cancel, true);
+  assert.equal(f.storage.size, 0);
+});
+test("lookup of completed booking releases intent, session or transport errors preserve it", async () => {
+  const f = fixture();
+  await runMoneyRequest(f.client, "top_up", args, f.environment);
+  f.response({ data: null, error: { message: "session_ended", code: "P0001" } });
+  await inspectPendingMoneyRequest(f.client, "top_up", false, f.environment);
+  assert.equal(f.storage.size, 1);
+  f.response({ data: { status: "completed", result: { id: "original" } }, error: null });
+  const result = await inspectPendingMoneyRequest(f.client, "top_up", false, f.environment);
+  assert.deepEqual(result.data, { status: "completed", result: { id: "original" } });
+  assert.equal(f.storage.size, 0);
+});
+
+test("a retry queued behind cancellation keeps the original key instead of silently creating a new action", async () => {
+  const f = fixture();
+  await runMoneyRequest(f.client, "top_up", args, f.environment);
+  const original = f.calls[0].p_request_id;
+  let tail = Promise.resolve();
+  f.environment.lock = async (_name, work) => {
+    const before = tail;
+    let release!: () => void;
+    tail = new Promise<void>((resolve) => { release = resolve; });
+    await before;
+    try { return await work(); } finally { release(); }
+  };
+  let finish!: () => void;
+  const wait = new Promise<void>((resolve) => { finish = resolve; });
+  f.client.rpc = async (name, body) => {
+    f.calls.push({ name, ...body });
+    if (name === "inspect_money_request") { await wait; return { data: { status: "cancelled" }, error: null }; }
+    return { data: null, error: { message: "request_cancelled", code: "P0001" } };
+  };
+  const cancel = inspectPendingMoneyRequest(f.client, "top_up", true, f.environment);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  const retry = runMoneyRequest(f.client, "top_up", args, f.environment);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  finish(); await Promise.all([cancel, retry]);
+  assert.equal(f.calls[2].p_request_id, original);
   assert.equal(f.storage.size, 0);
 });

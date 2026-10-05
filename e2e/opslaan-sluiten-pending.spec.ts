@@ -36,6 +36,7 @@ const ONBEKEND = "De uitkomst is onbekend. Controleer eerst het saldo of de tran
 
 test("Nieuw lid: verloren antwoord blijft na herladen met dezelfde sleutel herstelbaar", async ({ page }) => {
   await mockBeheerder(page);
+  await page.route(/\/rest\/v1\/rpc\/inspect_money_request(\?|$)/, (route) => json(route, 200, { status: "missing" }));
   const keys: string[] = [];
   await page.route(/\/rest\/v1\/rpc\/create_member_once(\?|$)/, async (route) => {
     keys.push(route.request().postDataJSON().p_request_id);
@@ -54,6 +55,31 @@ test("Nieuw lid: verloren antwoord blijft na herladen met dezelfde sleutel herst
   expect(keys[0]).toMatch(/^[a-f0-9-]{36}$/i);
   expect(keys[1]).toBe(keys[0]);
   await expect(page.getByRole("button", { name: "Eerdere nieuw lid veilig afronden" })).toHaveCount(0);
+});
+
+test("Nieuw lid: definitieve annulering beëindigt een bewaarde onbekende actie zonder nieuwe boeking", async ({ page }) => {
+  await mockBeheerder(page);
+  let originalKey = "", cancelledKey = "", calls = 0;
+  await page.route(/\/rest\/v1\/rpc\/create_member_once(\?|$)/, (route) => {
+    originalKey = route.request().postDataJSON().p_request_id; calls++;
+    return route.abort("failed");
+  });
+  await page.route(/\/rest\/v1\/rpc\/inspect_money_request(\?|$)/, (route) => {
+    const body = route.request().postDataJSON();
+    expect(body.p_cancel).toBe(true); cancelledKey = body.p_request_id;
+    return json(route, 200, { status: "cancelled" });
+  });
+  await naarBeheer(page, "Leden");
+  await page.getByRole("button", { name: /nieuw lid/i }).click();
+  const dialog = page.getByRole("dialog", { name: "Nieuw lid" });
+  await dialog.getByLabel("Naam", { exact: true }).fill("Joris de Vries");
+  await dialog.getByRole("button", { name: "Toevoegen", exact: true }).click();
+  await expect(dialog.getByText(ONBEKEND)).toBeVisible();
+  await page.reload();
+  await page.getByRole("button", { name: "Eerdere nieuw lid definitief annuleren" }).click();
+  await expect.poll(() => cancelledKey).toBe(originalKey);
+  await expect(page.getByRole("button", { name: "Eerdere nieuw lid definitief annuleren" })).toHaveCount(0);
+  expect(calls).toBe(1);
 });
 
 /** Houdt een RPC-antwoord vast tot `laatDoor()`; telt de aanroepen. */

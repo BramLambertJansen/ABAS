@@ -47,6 +47,7 @@ insert into catalogus values
   ('create_activity_type',      'client', null),
   ('create_member',             'client', null),
   ('create_member_once',        'client', null),
+  ('inspect_money_request',     'client', null),
   ('place_order_once',          'client', null),
   ('top_up_once',               'client', null),
   ('create_product',            'client', null),

@@ -7,6 +7,7 @@ create table money_requests (
   operation text not null check (operation in ('place_order', 'top_up', 'create_member')),
   payload_hash text not null,
   result jsonb not null,
+  outcome text not null default 'completed' check (outcome in ('completed', 'cancelled')),
   created_at timestamptz not null default now()
 );
 alter table money_requests enable row level security;
@@ -27,9 +28,45 @@ begin
     or v_receipt.payload_hash <> encode(sha256(convert_to(p_payload::text, 'UTF8')), 'hex') then
     raise exception 'request_id_conflict' using errcode = 'P0001';
   end if;
+  if v_receipt.outcome = 'cancelled' then
+    raise exception 'request_cancelled' using errcode = 'P0001';
+  end if;
   return v_receipt.result;
 end;
 $$;
+-- Read-only lookup, or an explicit tombstone. Both serialize with bookings.
+-- No old shift guard: this does not create a financial mutation and allows
+-- the owner to resolve a receipt after that shift/session has ended.
+create function inspect_money_request(p_request_id uuid, p_operation text, p_payload jsonb, p_cancel boolean default false)
+returns jsonb language plpgsql security definer set search_path = public as $$
+declare v_result jsonb; v_session bar_sessions;
+begin
+  v_session := require_session(array['bar', 'beheer'], true);
+  if v_session.mode = 'beheer' or p_operation = 'create_member' then
+    perform require_beheer_session();
+  end if;
+  if p_operation not in ('place_order', 'top_up', 'create_member') or p_operation is null
+    or jsonb_typeof(p_payload) is distinct from 'array' then
+    raise exception 'invalid_request_id' using errcode = 'P0001';
+  end if;
+  begin
+    v_result := read_money_request(p_request_id, p_operation, p_payload);
+  exception when raise_exception then
+    if sqlerrm = 'request_cancelled' then return jsonb_build_object('status', 'cancelled'); end if;
+    raise;
+  end;
+  if v_result is not null then return jsonb_build_object('status', 'completed', 'result', v_result); end if;
+  if coalesce(p_cancel, false) then
+    insert into money_requests(request_id, actor_id, operation, payload_hash, result, outcome)
+    values (p_request_id, auth.uid(), p_operation,
+      encode(sha256(convert_to(p_payload::text, 'UTF8')), 'hex'), '{}'::jsonb, 'cancelled');
+    return jsonb_build_object('status', 'cancelled');
+  end if;
+  return jsonb_build_object('status', 'missing'); -- Not permission to forget/rekey.
+end;
+$$;
+revoke execute on function inspect_money_request(uuid, text, jsonb, boolean) from public, anon;
+grant execute on function inspect_money_request(uuid, text, jsonb, boolean) to authenticated, service_role;
 
 create function remember_money_request(p_request_id uuid, p_operation text, p_payload jsonb, p_result jsonb)
 returns void language sql security definer set search_path = public as $$

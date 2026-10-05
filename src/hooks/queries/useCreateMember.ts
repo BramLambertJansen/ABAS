@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { runMoneyRequest, isMoneyRequestError, type MoneyRequestErrorCode } from "@/lib/moneyRequest";
+import { isSessionErrorCode, notifySessionCode, type SessionErrorCode } from "@/lib/barSessie";
 import { reportClientError } from "@/lib/clientErrors";
 import type { LedenbeheerLid } from "./useAlleLeden";
 
@@ -12,6 +13,7 @@ import type { LedenbeheerLid } from "./useAlleLeden";
  *  patroon als useCreateProduct.ts. `invalid_email` — nieuw, zie
  *  docs/features/ledenbeheer-email.md → RPC's. */
 export type CreateMemberErrorCode =
+  | SessionErrorCode
   | MoneyRequestErrorCode
   | "invalid_name"
   | "invalid_starting_balance"
@@ -26,6 +28,7 @@ type State =
   | { status: "error"; code: CreateMemberErrorCode };
 
 function toErrorCode(message: string | undefined): CreateMemberErrorCode {
+  if (isSessionErrorCode(message)) { notifySessionCode(message); return message; }
   if (isMoneyRequestError(message)) return message;
   if (
     message === "invalid_name" ||

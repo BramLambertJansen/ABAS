@@ -32,3 +32,13 @@ Ontbrekende responses blokkeren gewijzigde invoer totdat de oorspronkelijke
 actie met dezelfde invoer is afgehandeld. Geen automatische nieuwe boeking na
 inloggen. SQL-, concurrency- en clienttests bewaken precies één mutatie en
 weigering van conflicten. Productie volgt pas na volledige CI en review.
+
+## Aanvulling, goedgekeurd op 2026-10-05
+
+Een beëindigde oude sessie kan niet meer boeken. `inspect_money_request` laat
+de eigenaar via een nieuwe bevoegde sessie zijn eerdere resultaat opvragen.
+Een ontbrekend resultaat geeft geen toestemming om de UUID te vergeten. Een
+expliciete annulering schrijft onder de boekingslock een tombstone als er nog
+geen boeking bestaat. Een late request met dezelfde sleutel wordt geweigerd.
+Bestaande successen blijven successen: deze annulering is geen terugboeking.
+Alleen serverbewijs van succes of annulering beëindigt de pending intent.

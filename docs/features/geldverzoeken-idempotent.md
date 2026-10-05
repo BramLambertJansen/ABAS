@@ -93,3 +93,22 @@ ververst na bevestiging het scherm. Mounten en inloggen doen geen boeking.
 De browser-hersteltest controleert een verloren antwoord en gelijkblijvende UUID.
 Wrappers hebben ook EXECUTE voor service_role voor OpenAPI-contractcontrole,
 met dezelfde verplichte sessieguards. Tabel en interne helpers blijven privé.
+
+## Herstel na een beëindigde sessie — goedgekeurd op 2026-10-05
+
+`inspect_money_request` controleert de huidige bevoegde sessie en de originele
+actor/operatie/parameterhash. Een bestaand succes kan ook na het eindigen van
+de oude sessie worden opgevraagd. `missing` bewijst geen mislukking: een
+netwerkverzoek kan nog onderweg zijn; de client bewaart de sleutel.
+
+Een bewuste klik op definitief annuleren legt onder dezelfde transactielock
+een annuleringsbewijs vast als er nog geen boeking bestaat. Late verzoeken
+met die UUID geven daarna `request_cancelled`. Is er al geboekt, dan komt
+het bestaande resultaat terug; annuleren boekt nooit geld terug en wist geen
+historie. Een gewone gefaalde boeking bewaart nog steeds geen receipt.
+Succes- en annuleringsbewijzen verlopen niet automatisch.
+
+De actieve sessie toont zowel veilig afronden als definitief annuleren.
+Beide controleren eerst het serverbewijs en wissen browseropslag uitsluitend
+na een bevestigd succes of bevestigde annulering. Er is geen automatische
+boekings- of annuleringsaanroep bij mount, herladen of inloggen.
