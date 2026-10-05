@@ -164,6 +164,13 @@ bucket publiek mag zijn. Eerste toepassing:
 
 ## Aanvulling (2026-09-21) — zelfbediening-koppeling op basis van e-mail, geen admin-call
 
+> **Matchregel vervangen door [ADR 0020](0020-koppelen-eist-bewijs-van-mailbezit.md)
+> (2026-10-05):** matchen op `auth.email()` is geen bewijs van mailbezit.
+> Koppelen eist nu een `amr`-methode uit de mailbox, binding aan het
+> invite-auth-user-id, een bevestigd adres zonder wachtwoord en een
+> niet-gearchiveerd lid. "Geen foutcodes, stille no-op bij 0 of meer dan 1
+> match" hieronder blijft staan.
+
 Gevonden bij een herziening van `docs/features/lid-account-invite.md` naar
 aanleiding van een geautomatiseerde PR-review (Bug 1, P1): de oorspronkelijke
 `mark_member_invited(p_member_id, p_auth_user_id)` zette `auth_user_id` al

@@ -750,6 +750,16 @@ zonder dat er ooit een e-mailadres of portal-account bij hoort.
   eveneens nullable `members.invited_at timestamptz`-veld onderscheidt "nog
   niet uitgenodigd" van "uitgenodigd op [datum], nog geen account" in de
   UI — die tussenstaat is met deze herziening ook daadwerkelijk bereikbaar.
+- **Koppelen eist bewijs van mailbezit (ADR 0020, 2026-10-05, migratie
+  `0040`).** Een e-mailadres op een sessie is geen bewijs. De koppel-RPC's
+  koppelen alleen een sessie met een `amr`-methode uit de mailbox
+  (`invite`/`magiclink`/`otp`/`email/signup`), van precies het auth-account
+  dat `inviteUserByEmail` aanmaakte (`members.invited_auth_user_id`, gezet
+  door `mark_member_invite_sent`), met een bevestigd adres gelijk aan
+  `members.email`, zonder wachtwoord, en nooit voor een gearchiveerd lid.
+  Bij het koppelen eindigen de andere Auth-sessies van het account. Een
+  adreswijziging wist de uitnodiging. Zie
+  `docs/features/account-koppeling-bewijs.md`.
 
 **Gebouwd (#24, 2026-09-21)**: zie hieronder, changelog-entry na
 "Ledenbeheer" — de bullets hierboven beschrijven de daadwerkelijk gebouwde
