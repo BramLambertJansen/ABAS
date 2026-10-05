@@ -7,11 +7,8 @@ import { cookies } from "next/headers";
  * Same `cookieOptions` as `portalClient.ts`; same import restriction (see
  * that file's header and `scripts/check-arch.mjs`).
  *
- * `path: "/portal"` on the cookie is independent of which route *sets* it —
- * `src/app/auth/callback/route.ts` (outside `/portal`) is allowed to call
- * this and still have the browser store/scope the cookie correctly, because
- * `Set-Cookie`'s `path` attribute governs which *requests* carry the cookie
- * back, not which route wrote it (ADR 0009 → Aanvulling).
+ * `path: "/"` (ADR 0009 → Wijziging) so `/auth/callback` (outside `/portal`)
+ * receives the PKCE `code_verifier` cookie and can exchange the code.
  */
 export async function createClient() {
   const cookieStore = await cookies();
@@ -21,8 +18,8 @@ export async function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
       cookieOptions: {
-        name: "sb-portal-auth-token",
-        path: "/portal",
+        name: "sb-portal-v2-auth-token",
+        path: "/",
       },
       cookies: {
         getAll() {
