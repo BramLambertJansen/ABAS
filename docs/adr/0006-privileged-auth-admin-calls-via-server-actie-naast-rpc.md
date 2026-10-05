@@ -82,6 +82,10 @@ vandaag geen gate die dat specifiek afdwingt (`check:arch` verbiedt alleen
 geïmporteerd wordt), dus dit is een discipline-eis voor de Developer/
 Reviewer, geen script-garantie. Zie "Signaal voor een mogelijke toekomstige
 gate" hieronder.
+**(Aanvulling 2026-10-05):** achterhaald. Sinds
+[ADR 0021](0021-server-only-markering-is-de-grens-client-server.md) begint
+`admin.ts` met `import "server-only"` (de build faalt bij elke import vanuit
+clientcode, ook indirect) en controleert `check:arch` dat transitief.
 
 **De uitvoering (de daadwerkelijke `inviteUserByEmail`-aanroep, plus alles
 eromheen) is een server-only entrypoint — Server Action of Route Handler,
@@ -245,6 +249,9 @@ route toch altijd naar hetzelfde vervolgscherm redirect.
   specifieke regel ("`admin.ts` mag alleen geïmporteerd worden vanuit een
   server-only bestand"), in plaats van opnieuw op reviewdiscipline te
   vertrouwen.
+  **(Ingelost 2026-10-05, [ADR 0021](0021-server-only-markering-is-de-grens-client-server.md)):**
+  `server-only`-markering plus een transitieve `check:arch`-regel, zie
+  `docs/features/server-only-afscherming.md`.
 - `db:test` (pgTAP) kan de RPC-kant van elke toekomstige actie die dit
   patroon volgt blijven dekken (actorcheck, guards), maar niet de
   `auth.admin.*`-aanroep zelf — dat blijft een gat dat alleen handmatige

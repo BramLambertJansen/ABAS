@@ -7,10 +7,12 @@
  * zelf ongewijzigd en zonder database getest kan worden. `next/server`
  * heeft geen exports-map; Node vindt alleen `next/server.js`.
  *
- * Ook gebruikt door test/tabletKoppeling.test.ts: `server-only` is geen
- * eigen dependency, Next.js lost het tijdens de build zelf op (server-lagen
- * → een lege module, clientcode → een buildfout). Node kent die alias niet;
- * hier wijst hij naar dezelfde lege module die Next.js server-side gebruikt.
+ * `server-only` (ADR 0021): het package zelf wijst buiten Next naar een
+ * module die gooit, zodat een test die per ongeluk een gemarkeerde module
+ * echt laadt hard faalt. Laadt een test zo'n module bewust, dan wijst deze
+ * mapping `server-only` naar dezelfde lege module die Next.js server-side
+ * gebruikt. Geen huidige test heeft dat nodig; de mapping blijft als vangnet
+ * (docs/features/server-only-afscherming.md → keuze 2).
  */
 const FAKES = {
   "@/lib/supabase/server": new URL("./supabaseServer.ts", import.meta.url).href,

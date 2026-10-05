@@ -17,7 +17,7 @@ te schrijven.
 CI draait `npm run check:all` op elke PR en moet groen zijn vóór merge; CI
 draait alleen op PR's, dus open bij de eerste push meteen een PR. De
 pre-commit hook draait `check:fast` (alles zonder database); `build`,
-`check:a11y` en `db:test` laten we aan CI over.
+`check:a11y`, `db:test` en `test:integration` laten we aan CI over.
 
 | Gate | Bewaakt |
 |---|---|
@@ -27,6 +27,7 @@ pre-commit hook draait `check:fast` (alles zonder database); `build`,
 | `check:a11y` | WCAG-AA (axe-core, elk shell-entrypoint) + `eslint-plugin-jsx-a11y`, `lint` faalt op warnings |
 | `test` | de pure client-logica (`src/lib/money.ts`, mandjelogica), contrast van de accent-tokens |
 | `db:test` | de negatieve tests zelf, tegen een echte database; plus `rpc_catalogus`: elke functie in `public` ingedeeld als client/server/intern met de bijpassende rechten, elke client-RPC via een `require_*`-guard, `search_path` op elke security definer; plus `rls_leespolicies`: leespolicies zijn een allowlist (geen `not caller_…`-tak, `using (true)` alleen op de vaste globale tabellen) |
+| `test:integration` | koppel- en sessiegedrag tegen de echte GoTrue (`amr` uit maillinks, wissen van inloggegevens bij koppelen, geen bar-sessie of PIN met een token van een verwijderde sessie) |
 
 Reviewwerk, geen gate: dat de client nooit een bedrag berekent (niet
 betrouwbaar uit broncode te lezen). Dat `served_by` tegen de bezetting

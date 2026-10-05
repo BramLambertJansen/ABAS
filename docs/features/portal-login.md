@@ -1,5 +1,14 @@
 # Portal-login (magic link + wachtwoord)
 
+> **Bijgewerkt door [`account-koppeling-bewijs.md`](account-koppeling-bewijs.md)
+> (ADR 0020, migratie `0040`, gemerged in [PR #157](https://github.com/BramLambertJansen/ABAS/pull/157),
+> 2026-10-05):** "Ledenkoppeling voor rol `lid`" hieronder is achterhaald
+> wat de koppelregel betreft. `link_lid_member_account()` is een wrapper om
+> `link_member_account_internal('lid')`, met dezelfde voorwaarden als
+> `link_invited_member_account` (mailbewijs via `amr`, gebonden aan het
+> uitgenodigde account, bevestigd adres, niet gearchiveerd) plus
+> `role = 'lid'`. Signatuur en callback-route ongewijzigd.
+
 > **Aangevuld door [`beheer-tweede-factor.md`](beheer-tweede-factor.md)
 > (ADR 0017, gemerged in [PR #120](https://github.com/BramLambertJansen/ABAS/pull/120), 2026-10-01):** heeft het account een tweede
 > factor, dan vraagt `/portal/wachtwoord-herstellen` na "Wachtwoord opslaan"

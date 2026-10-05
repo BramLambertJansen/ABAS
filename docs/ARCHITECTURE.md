@@ -789,8 +789,8 @@ zonder dat er ooit een e-mailadres of portal-account bij hoort.
   eveneens nullable `members.invited_at timestamptz`-veld onderscheidt "nog
   niet uitgenodigd" van "uitgenodigd op [datum], nog geen account" in de
   UI — die tussenstaat is met deze herziening ook daadwerkelijk bereikbaar.
-- **Koppelen eist bewijs van mailbezit (ADR 0020, 2026-10-05, migratie
-  `0040`).** Een e-mailadres op een sessie is geen bewijs. De koppel-RPC's
+- **Koppelen eist bewijs van mailbezit (ADR 0020, 2026-10-05, gebouwd in
+  `0040`, PR #157).** Een e-mailadres op een sessie is geen bewijs. De koppel-RPC's
   koppelen alleen een sessie met een `amr`-methode uit de mailbox
   (`invite`/`magiclink`/`otp`/`email/signup`), van precies het auth-account
   dat `inviteUserByEmail` aanmaakte (`members.invited_auth_user_id`, gezet
@@ -805,8 +805,10 @@ zonder dat er ooit een e-mailadres of portal-account bij hoort.
   PostgREST geldig tot het verloopt; daarom eisen `register_bar_session` en
   `set_own_pin` dat de rij in `auth.sessions` nog bestaat (ADR 0020 →
   Beslissing 8): elke client-RPC die iets maakt dat langer leeft dan het
-  token (sessie, inloggegeven, apparaatvertrouwen) doet dat. Zie
-  `docs/features/account-koppeling-bewijs.md`.
+  token (sessie, inloggegeven, apparaatvertrouwen) doet dat. Koppel- en
+  sessiegedrag is tegen de echte GoTrue bewezen in
+  `integration/account-koppeling.test.ts` (`npm run test:integration`, CI).
+  Zie `docs/features/account-koppeling-bewijs.md`.
 
 **Gebouwd (#24, 2026-09-21)**: zie hieronder, changelog-entry na
 "Ledenbeheer" — de bullets hierboven beschrijven de daadwerkelijk gebouwde
@@ -1246,6 +1248,21 @@ ADR (ADR 0010/0012 dekken de zichtbaarheid van `reversed_by_name`).
   transacties" roept `onShowAll` aan; na de statuswissel zet een effect de
   focus op `tabElementId(idBase, "transacties")` (bestaande export van
   `src/components/Tabs.tsx`).
+
+## Server/client-grens (settled 2026-10-05)
+
+Een module die alleen op de server mag draaien, begint met
+`import "server-only";` ([ADR 0021](adr/0021-server-only-markering-is-de-grens-client-server.md),
+`docs/features/server-only-afscherming.md`). Verplicht voor
+`src/lib/supabase/admin.ts` (service-role), `server.ts` en `portalServer.ts`
+(servercookies). Elke module die er één importeert, is daarmee transitief
+server-only en krijgt geen eigen markering. `next build` faalt als zo'n module
+in een clientbundel komt. `check:arch` volgt de importgraaf vanaf elke
+clientmodule (statisch, kaal, `import()`, `require()`, met of zonder
+extensie; type-only telt niet) en meldt de keten. Types en pure regels die
+clientcode nodig heeft, staan in een eigen module (`barLoginTypes.ts`,
+`productImageRules.ts`). Een nieuw secret krijgt een eigen gemarkeerde module
+en een plek in de verplichte lijst van `check:arch`.
 
 ## Wat het prototype deed maar hier nog niet is besloten
 
