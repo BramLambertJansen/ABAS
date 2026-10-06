@@ -9,7 +9,7 @@ import { AccountTab } from "@/features/portal-profiel/AccountTab";
 type Tab = "saldo" | "transacties" | "account";
 
 const portalTabClass = (selected: boolean) =>
-  `flex h-10 flex-1 items-center justify-center rounded-xl text-sm font-bold transition-colors ${
+  `flex min-h-10 min-w-fit max-w-full flex-1 items-center justify-center rounded-xl px-2 py-2 text-sm font-bold transition-colors ${
     selected ? "bg-white text-ink shadow-sm" : "text-muted-strong"
   }`;
 
@@ -72,8 +72,8 @@ export function PortalDashboard({
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-[560px] flex-col bg-canvas sm:border-x sm:border-border font-sans text-ink antialiased">
-      <header className="flex flex-none items-center justify-between gap-3 border-b border-border bg-white px-5 py-4">
-        <div className="flex min-w-0 flex-col">
+      <header className="flex flex-none flex-wrap items-center justify-between gap-3 border-b border-border bg-white px-5 py-4">
+        <div className="flex min-w-0 basis-[7rem] flex-1 flex-col">
           <h1
             ref={kopRef}
             tabIndex={-1}
@@ -103,7 +103,7 @@ export function PortalDashboard({
         selected={tab}
         onSelect={(key) => setTab(key as Tab)}
         items={PORTAL_TABS}
-        className="mx-5 mt-4 flex flex-none gap-1 rounded-2xl bg-track p-1"
+        className="mx-5 mt-4 flex flex-none flex-wrap gap-1 rounded-2xl bg-track p-1"
       />
 
       {tab === "saldo" && (

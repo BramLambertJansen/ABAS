@@ -1,0 +1,515 @@
+[
+  {
+    "fixtureProvenance": {
+      "dataKind": "synthetic browser fixtures only",
+      "personalAndFinancialData": "Names, email addresses, balances and transactions are invented test data; no production records.",
+      "source": [
+        "e2e/helpers/supabaseMock.ts (USER and fakeSession)",
+        "e2e/helpers/frontendReview.ts (reviewFixture)",
+        "docs/audits/2026-10-06-componenten-tokens/tools/screen-audit.cjs (PRODUCTS and TRANSACTIONS mocks)",
+        "docs/audits/2026-10-06-componenten-tokens/tools/interaction-audit.cjs (local route mocks)"
+      ],
+      "networkIsolation": "Local app only; unmocked external browser requests aborted."
+    },
+    "id": "01-product-opslag",
+    "file": "screenshots/01-product-opslag.png",
+    "note": "Productdetail: per sectie Opslaan en een vaste Sluiten-knop.",
+    "url": "http://127.0.0.1:3100/beheer",
+    "snapshot": "- alert\n- main:\n  - tablist \"Beheer-navigatie\":\n    - tab \"Assortiment\" [selected]\n    - tab \"Leden\"\n    - tab \"Instellingen\"\n    - tab \"Diensten\"\n    - tab \"Logboek\"\n  - text: Ingelogd als Femke Bos BEHEER\n  - button \"Uitloggen\"\n  - tabpanel \"Assortiment\":\n    - heading \"Assortiment\" [level=1]\n    - button \"nieuw product\"\n    - status\n    - text: Zoek product op naam of categorie\n    - searchbox \"Zoek product op naam of categorie\"\n    - group \"Status\":\n      - button \"Actief 1\" [pressed]\n      - button \"Uit assortiment 0\"\n    - paragraph: 1 van 1 producten\n    - list:\n      - listitem:\n        - button \"Pils Bier · € 2,50\"\n    - dialog \"Product beheren\":\n      - heading \"Product beheren\" [level=2]\n      - paragraph: Wijzigingen aan Pils.\n      - text: Pils Bier Afbeelding JPG, PNG of WebP, maximaal 4 MB\n      - group \"Afbeelding\":\n        - button \"Afbeelding kiezen\"\n      - text: Huidige prijs € 2,50 Prijs wijzigen geldt vanaf de volgende tik — eerdere bestellingen blijven ongewijzigd Nieuwe prijs\n      - textbox \"Nieuwe prijs\":\n        - /placeholder: 0,00\n      - button \"Opslaan\"\n      - button \"Uit assortiment halen Het product verdwijnt van het verkoopscherm. Verkoophistorie blijft bestaan. Terugzetten kan onder ‘Uit assortiment’.\"\n      - button \"Sluiten\"\n      - status",
+    "focus": {
+      "tag": "DIV",
+      "text": "Product beherenWijzigingen aan Pils.PPilsBierAfbeeldingJPG, PNG of WebP, maximaal 4 MBAfbeelding kie",
+      "label": null
+    },
+    "calls": 0,
+    "health": "Goed",
+    "auditNote": "De acties staan per sectie; Sluiten is onderaan. De vaste detailkop uit lidbeheer is hier bewust niet toegepast.",
+    "visuallyInspected": true
+  },
+  {
+    "fixtureProvenance": {
+      "dataKind": "synthetic browser fixtures only",
+      "personalAndFinancialData": "Names, email addresses, balances and transactions are invented test data; no production records.",
+      "source": [
+        "e2e/helpers/supabaseMock.ts (USER and fakeSession)",
+        "e2e/helpers/frontendReview.ts (reviewFixture)",
+        "docs/audits/2026-10-06-componenten-tokens/tools/screen-audit.cjs (PRODUCTS and TRANSACTIONS mocks)",
+        "docs/audits/2026-10-06-componenten-tokens/tools/interaction-audit.cjs (local route mocks)"
+      ],
+      "networkIsolation": "Local app only; unmocked external browser requests aborted."
+    },
+    "id": "02-product-onopgeslagen",
+    "file": "screenshots/02-product-onopgeslagen.png",
+    "note": "Gewijzigde prijs: geen aparte Niet opgeslagen-status.",
+    "url": "http://127.0.0.1:3100/beheer",
+    "snapshot": "- alert\n- main:\n  - tablist \"Beheer-navigatie\":\n    - tab \"Assortiment\" [selected]\n    - tab \"Leden\"\n    - tab \"Instellingen\"\n    - tab \"Diensten\"\n    - tab \"Logboek\"\n  - text: Ingelogd als Femke Bos BEHEER\n  - button \"Uitloggen\"\n  - tabpanel \"Assortiment\":\n    - heading \"Assortiment\" [level=1]\n    - button \"nieuw product\"\n    - status\n    - text: Zoek product op naam of categorie\n    - searchbox \"Zoek product op naam of categorie\"\n    - group \"Status\":\n      - button \"Actief 1\" [pressed]\n      - button \"Uit assortiment 0\"\n    - paragraph: 1 van 1 producten\n    - list:\n      - listitem:\n        - button \"Pils Bier · € 2,50\"\n    - dialog \"Product beheren\":\n      - heading \"Product beheren\" [level=2]\n      - paragraph: Wijzigingen aan Pils.\n      - text: Pils Bier Afbeelding JPG, PNG of WebP, maximaal 4 MB\n      - group \"Afbeelding\":\n        - button \"Afbeelding kiezen\"\n      - text: Huidige prijs € 2,50 Prijs wijzigen geldt vanaf de volgende tik — eerdere bestellingen blijven ongewijzigd Nieuwe prijs\n      - textbox \"Nieuwe prijs\":\n        - /placeholder: 0,00\n        - text: 2,75\n      - button \"Opslaan\"\n      - button \"Uit assortiment halen Het product verdwijnt van het verkoopscherm. Verkoophistorie blijft bestaan. Terugzetten kan onder ‘Uit assortiment’.\"\n      - button \"Sluiten\"\n      - status",
+    "focus": {
+      "tag": "INPUT",
+      "text": "",
+      "label": null
+    },
+    "calls": 0,
+    "health": "Verbeteren — U04",
+    "auditNote": "De afwijkende prijs is zichtbaar in het veld, maar er is geen tekstuele Niet opgeslagen-status.",
+    "visuallyInspected": true
+  },
+  {
+    "fixtureProvenance": {
+      "dataKind": "synthetic browser fixtures only",
+      "personalAndFinancialData": "Names, email addresses, balances and transactions are invented test data; no production records.",
+      "source": [
+        "e2e/helpers/supabaseMock.ts (USER and fakeSession)",
+        "e2e/helpers/frontendReview.ts (reviewFixture)",
+        "docs/audits/2026-10-06-componenten-tokens/tools/screen-audit.cjs (PRODUCTS and TRANSACTIONS mocks)",
+        "docs/audits/2026-10-06-componenten-tokens/tools/interaction-audit.cjs (local route mocks)"
+      ],
+      "networkIsolation": "Local app only; unmocked external browser requests aborted."
+    },
+    "id": "03-escape-bevestiging",
+    "file": "screenshots/03-escape-bevestiging.png",
+    "note": "Escape vraagt eerst om Weggooien of Terug; huidige invoer blijft.",
+    "url": "http://127.0.0.1:3100/beheer",
+    "snapshot": "- alert\n- main:\n  - tablist \"Beheer-navigatie\":\n    - tab \"Assortiment\" [selected]\n    - tab \"Leden\"\n    - tab \"Instellingen\"\n    - tab \"Diensten\"\n    - tab \"Logboek\"\n  - text: Ingelogd als Femke Bos BEHEER\n  - button \"Uitloggen\"\n  - tabpanel \"Assortiment\":\n    - heading \"Assortiment\" [level=1]\n    - button \"nieuw product\"\n    - status\n    - text: Zoek product op naam of categorie\n    - searchbox \"Zoek product op naam of categorie\"\n    - group \"Status\":\n      - button \"Actief 1\" [pressed]\n      - button \"Uit assortiment 0\"\n    - paragraph: 1 van 1 producten\n    - list:\n      - listitem:\n        - button \"Pils Bier · € 2,50\"\n    - dialog \"Product beheren\":\n      - heading \"Product beheren\" [level=2]\n      - paragraph: Wijzigingen aan Pils.\n      - text: Pils Bier Afbeelding JPG, PNG of WebP, maximaal 4 MB\n      - group \"Afbeelding\":\n        - button \"Afbeelding kiezen\"\n      - text: Huidige prijs € 2,50 Prijs wijzigen geldt vanaf de volgende tik — eerdere bestellingen blijven ongewijzigd Nieuwe prijs\n      - textbox \"Nieuwe prijs\":\n        - /placeholder: 0,00\n        - text: 2,75\n      - button \"Opslaan\"\n      - button \"Uit assortiment halen Het product verdwijnt van het verkoopscherm. Verkoophistorie blijft bestaan. Terugzetten kan onder ‘Uit assortiment’.\"\n      - button \"Sluiten\"\n      - group \"Niet-opgeslagen wijziging weggooien?\":\n        - paragraph: Niet-opgeslagen wijziging weggooien?\n        - button \"Weggooien\"\n        - button \"Terug\"\n      - status",
+    "focus": {
+      "tag": "BUTTON",
+      "text": "Terug",
+      "label": null
+    },
+    "calls": 0,
+    "health": "Goed binnen huidig besluit — U06",
+    "auditNote": "De invoer blijft staan en de inline vraag krijgt veilige focus op Terug.",
+    "visuallyInspected": true
+  },
+  {
+    "fixtureProvenance": {
+      "dataKind": "synthetic browser fixtures only",
+      "personalAndFinancialData": "Names, email addresses, balances and transactions are invented test data; no production records.",
+      "source": [
+        "e2e/helpers/supabaseMock.ts (USER and fakeSession)",
+        "e2e/helpers/frontendReview.ts (reviewFixture)",
+        "docs/audits/2026-10-06-componenten-tokens/tools/screen-audit.cjs (PRODUCTS and TRANSACTIONS mocks)",
+        "docs/audits/2026-10-06-componenten-tokens/tools/interaction-audit.cjs (local route mocks)"
+      ],
+      "networkIsolation": "Local app only; unmocked external browser requests aborted."
+    },
+    "id": "04-sluiten-direct",
+    "file": "screenshots/04-sluiten-direct.png",
+    "note": "Sluiten verwijdert dezelfde onopgeslagen invoer zonder bevestiging.",
+    "url": "http://127.0.0.1:3100/beheer",
+    "snapshot": "- alert\n- main:\n  - tablist \"Beheer-navigatie\":\n    - tab \"Assortiment\" [selected]\n    - tab \"Leden\"\n    - tab \"Instellingen\"\n    - tab \"Diensten\"\n    - tab \"Logboek\"\n  - text: Ingelogd als Femke Bos BEHEER\n  - button \"Uitloggen\"\n  - tabpanel \"Assortiment\":\n    - heading \"Assortiment\" [level=1]\n    - button \"nieuw product\"\n    - status\n    - text: Zoek product op naam of categorie\n    - searchbox \"Zoek product op naam of categorie\"\n    - group \"Status\":\n      - button \"Actief 1\" [pressed]\n      - button \"Uit assortiment 0\"\n    - paragraph: 1 van 1 producten\n    - list:\n      - listitem:\n        - button \"Pils Bier · € 2,50\"",
+    "focus": {
+      "tag": "BUTTON",
+      "text": "PPilsBier · € 2,50",
+      "label": null
+    },
+    "calls": 0,
+    "health": "UX-keuze — U06",
+    "auditNote": "Dezelfde invoer verdwijnt zonder vraag; dit volgt de bestaande T06-afspraak.",
+    "visuallyInspected": true
+  },
+  {
+    "fixtureProvenance": {
+      "dataKind": "synthetic browser fixtures only",
+      "personalAndFinancialData": "Names, email addresses, balances and transactions are invented test data; no production records.",
+      "source": [
+        "e2e/helpers/supabaseMock.ts (USER and fakeSession)",
+        "e2e/helpers/frontendReview.ts (reviewFixture)",
+        "docs/audits/2026-10-06-componenten-tokens/tools/screen-audit.cjs (PRODUCTS and TRANSACTIONS mocks)",
+        "docs/audits/2026-10-06-componenten-tokens/tools/interaction-audit.cjs (local route mocks)"
+      ],
+      "networkIsolation": "Local app only; unmocked external browser requests aborted."
+    },
+    "id": "05-product-pending",
+    "file": "screenshots/05-product-pending.png",
+    "note": "Opslaan blokkeert het veld, Sluiten en andere secties; Escape geeft statusuitleg.",
+    "url": "http://127.0.0.1:3100/beheer",
+    "snapshot": "- alert\n- main:\n  - tablist \"Beheer-navigatie\":\n    - tab \"Assortiment\" [selected]\n    - tab \"Leden\"\n    - tab \"Instellingen\"\n    - tab \"Diensten\"\n    - tab \"Logboek\"\n  - text: Ingelogd als Femke Bos BEHEER\n  - button \"Uitloggen\"\n  - tabpanel \"Assortiment\":\n    - heading \"Assortiment\" [level=1]\n    - button \"nieuw product\"\n    - status\n    - text: Zoek product op naam of categorie\n    - searchbox \"Zoek product op naam of categorie\"\n    - group \"Status\":\n      - button \"Actief 1\" [pressed]\n      - button \"Uit assortiment 0\"\n    - paragraph: 1 van 1 producten\n    - list:\n      - listitem:\n        - button \"Pils Bier · € 2,50\"\n    - dialog \"Product beheren\":\n      - heading \"Product beheren\" [level=2]\n      - paragraph: Wijzigingen aan Pils.\n      - text: Pils Bier Afbeelding JPG, PNG of WebP, maximaal 4 MB\n      - group \"Afbeelding\":\n        - button \"Afbeelding kiezen\" [disabled]\n      - paragraph: wacht tot de lopende wijziging klaar is\n      - text: Huidige prijs € 2,50 Prijs wijzigen geldt vanaf de volgende tik — eerdere bestellingen blijven ongewijzigd Nieuwe prijs\n      - textbox \"Nieuwe prijs\":\n        - /placeholder: 0,00\n        - text: 2,75\n      - button \"Opslaan…\" [disabled]\n      - button \"Uit assortiment halen Het product verdwijnt van het verkoopscherm. Verkoophistorie blijft bestaan. Terugzetten kan onder ‘Uit assortiment’.\" [disabled]\n      - paragraph: wacht tot de lopende wijziging klaar is\n      - button \"Sluiten\" [disabled]\n      - status: Even wachten, de actie wordt nog verwerkt.",
+    "focus": {
+      "tag": "DIV",
+      "text": "Product beherenWijzigingen aan Pils.PPilsBierAfbeeldingJPG, PNG of WebP, maximaal 4 MBAfbeelding kie",
+      "label": null
+    },
+    "calls": 1,
+    "health": "Goed",
+    "auditNote": "Veld, actie en sluiten zijn geblokkeerd; Escape geeft verwerkingsuitleg en de focus blijft binnen de dialoog.",
+    "visuallyInspected": true
+  },
+  {
+    "fixtureProvenance": {
+      "dataKind": "synthetic browser fixtures only",
+      "personalAndFinancialData": "Names, email addresses, balances and transactions are invented test data; no production records.",
+      "source": [
+        "e2e/helpers/supabaseMock.ts (USER and fakeSession)",
+        "e2e/helpers/frontendReview.ts (reviewFixture)",
+        "docs/audits/2026-10-06-componenten-tokens/tools/screen-audit.cjs (PRODUCTS and TRANSACTIONS mocks)",
+        "docs/audits/2026-10-06-componenten-tokens/tools/interaction-audit.cjs (local route mocks)"
+      ],
+      "networkIsolation": "Local app only; unmocked external browser requests aborted."
+    },
+    "id": "06-product-opgeslagen",
+    "file": "screenshots/06-product-opgeslagen.png",
+    "note": "Na bevestigde prijsopslag is de huidige prijs €2,75; de gewiste input toont meteen Vul een prijs in. en aria-invalid. Geen aparte Opgeslagen-status.",
+    "url": "http://127.0.0.1:3100/beheer",
+    "snapshot": "- alert\n- main:\n  - tablist \"Beheer-navigatie\":\n    - tab \"Assortiment\" [selected]\n    - tab \"Leden\"\n    - tab \"Instellingen\"\n    - tab \"Diensten\"\n    - tab \"Logboek\"\n  - text: Ingelogd als Femke Bos BEHEER\n  - button \"Uitloggen\"\n  - tabpanel \"Assortiment\":\n    - heading \"Assortiment\" [level=1]\n    - button \"nieuw product\"\n    - status\n    - text: Zoek product op naam of categorie\n    - searchbox \"Zoek product op naam of categorie\"\n    - group \"Status\":\n      - button \"Actief 1\" [pressed]\n      - button \"Uit assortiment 0\"\n    - paragraph: 1 van 1 producten\n    - list:\n      - listitem:\n        - button \"Pils Bier · € 2,50\"\n    - dialog \"Product beheren\":\n      - heading \"Product beheren\" [level=2]\n      - paragraph: Wijzigingen aan Pils.\n      - text: Pils Bier Afbeelding JPG, PNG of WebP, maximaal 4 MB\n      - group \"Afbeelding\":\n        - button \"Afbeelding kiezen\"\n      - text: Huidige prijs € 2,75 Prijs wijzigen geldt vanaf de volgende tik — eerdere bestellingen blijven ongewijzigd Nieuwe prijs\n      - textbox \"Nieuwe prijs\" [invalid]:\n        - /placeholder: 0,00\n      - button \"Opslaan\"\n      - paragraph: Vul een prijs in.\n      - button \"Uit assortiment halen Het product verdwijnt van het verkoopscherm. Verkoophistorie blijft bestaan. Terugzetten kan onder ‘Uit assortiment’.\"\n      - button \"Sluiten\"\n      - status",
+    "focus": {
+      "tag": "INPUT",
+      "text": "",
+      "label": null
+    },
+    "calls": 1,
+    "health": "Fout — U01; statusverschil U04",
+    "auditNote": "De huidige prijs is €2,75, maar het gewiste veld toont Vul een prijs in. en is aria-invalid. Dit is na een bevestigde succesresponse.",
+    "visuallyInspected": true
+  },
+  {
+    "fixtureProvenance": {
+      "dataKind": "synthetic browser fixtures only",
+      "personalAndFinancialData": "Names, email addresses, balances and transactions are invented test data; no production records.",
+      "source": [
+        "e2e/helpers/supabaseMock.ts (USER and fakeSession)",
+        "e2e/helpers/frontendReview.ts (reviewFixture)",
+        "docs/audits/2026-10-06-componenten-tokens/tools/screen-audit.cjs (PRODUCTS and TRANSACTIONS mocks)",
+        "docs/audits/2026-10-06-componenten-tokens/tools/interaction-audit.cjs (local route mocks)"
+      ],
+      "networkIsolation": "Local app only; unmocked external browser requests aborted."
+    },
+    "id": "07-product-opslagfout",
+    "file": "screenshots/07-product-opslagfout.png",
+    "note": "Fout blijft bij de prijssectie; Product beheren toont geen aparte opslagstatus.",
+    "url": "http://127.0.0.1:3100/beheer",
+    "snapshot": "- alert\n- main:\n  - tablist \"Beheer-navigatie\":\n    - tab \"Assortiment\" [selected]\n    - tab \"Leden\"\n    - tab \"Instellingen\"\n    - tab \"Diensten\"\n    - tab \"Logboek\"\n  - text: Ingelogd als Femke Bos BEHEER\n  - button \"Uitloggen\"\n  - tabpanel \"Assortiment\":\n    - heading \"Assortiment\" [level=1]\n    - button \"nieuw product\"\n    - status\n    - text: Zoek product op naam of categorie\n    - searchbox \"Zoek product op naam of categorie\"\n    - group \"Status\":\n      - button \"Actief 1\" [pressed]\n      - button \"Uit assortiment 0\"\n    - paragraph: 1 van 1 producten\n    - list:\n      - listitem:\n        - button \"Pils Bier · € 2,50\"\n    - dialog \"Product beheren\":\n      - heading \"Product beheren\" [level=2]\n      - paragraph: Wijzigingen aan Pils.\n      - text: Pils Bier Afbeelding JPG, PNG of WebP, maximaal 4 MB\n      - group \"Afbeelding\":\n        - button \"Afbeelding kiezen\"\n      - text: Huidige prijs € 2,75 Prijs wijzigen geldt vanaf de volgende tik — eerdere bestellingen blijven ongewijzigd Nieuwe prijs\n      - textbox \"Nieuwe prijs\":\n        - /placeholder: 0,00\n        - text: 3,00\n      - button \"Opslaan\"\n      - alert: vul een geldige prijs in, groter dan €0,00\n      - button \"Uit assortiment halen Het product verdwijnt van het verkoopscherm. Verkoophistorie blijft bestaan. Terugzetten kan onder ‘Uit assortiment’.\"\n      - button \"Sluiten\"\n      - status",
+    "focus": {
+      "tag": "INPUT",
+      "text": "",
+      "label": null
+    },
+    "calls": 1,
+    "health": "Grotendeels goed",
+    "auditNote": "De fout blijft bij de prijsactie en de invoer €3,00 blijft staan. De serverafwijzing is geforceerd; dit zegt niets over de geldigheid van €3,00 in productie.",
+    "visuallyInspected": true
+  },
+  {
+    "fixtureProvenance": {
+      "dataKind": "synthetic browser fixtures only",
+      "personalAndFinancialData": "Names, email addresses, balances and transactions are invented test data; no production records.",
+      "source": [
+        "e2e/helpers/supabaseMock.ts (USER and fakeSession)",
+        "e2e/helpers/frontendReview.ts (reviewFixture)",
+        "docs/audits/2026-10-06-componenten-tokens/tools/screen-audit.cjs (PRODUCTS and TRANSACTIONS mocks)",
+        "docs/audits/2026-10-06-componenten-tokens/tools/interaction-audit.cjs (local route mocks)"
+      ],
+      "networkIsolation": "Local app only; unmocked external browser requests aborted."
+    },
+    "id": "08-laatste-type-bevestiging",
+    "file": "screenshots/08-laatste-type-bevestiging.png",
+    "note": "Bij het laatste actieve type: expliciete consequentie, veilige Annuleren en hersteloptie.",
+    "url": "http://127.0.0.1:3100/beheer",
+    "snapshot": "- alert\n- main:\n  - tablist \"Beheer-navigatie\":\n    - tab \"Assortiment\"\n    - tab \"Leden\"\n    - tab \"Instellingen\" [selected]\n    - tab \"Diensten\"\n    - tab \"Logboek\"\n  - text: Ingelogd als Femke Bos BEHEER\n  - button \"Uitloggen\"\n  - tabpanel \"Instellingen\":\n    - heading \"Negatief saldo toestaan\" [level=2]\n    - paragraph: Tot dit bedrag mag een lid in het rood staan. Erboven blokkeert de bar bestellen — het lid moet eerst opwaarderen.\n    - text: actief\n    - status\n    - text: € 10,00 huidige limiet Wat dit betekent\n    - paragraph: Een lid met €0 op de rekening kan nog voor € 10,00 bestellen. Daarna weigert de kassa tot er is opgewaardeerd.\n    - text: Snel instellen\n    - group \"Snel instellen\":\n      - button \"geen\"\n      - button \"€ 10,00\" [pressed]\n      - button \"€ 25,00\"\n      - button \"€ 50,00\"\n    - alert\n    - text: Ander bedrag\n    - textbox \"Ander bedrag\":\n      - /placeholder: ander bedrag\n    - button \"opslaan\" [disabled]\n    - paragraph: Geldt voor alle leden.\n    - heading \"Activiteitstypes\" [level=2]\n    - paragraph: Elke dienst wordt gestart voor één van deze activiteiten. Bewerk of archiveer een type, of voeg een nieuwe toe.\n    - alert\n    - list:\n      - listitem:\n        - text: Repetitie\n        - button \"Repetitie bewerken\": bewerken\n        - button \"Repetitie archiveren\": archiveren\n        - group \"Dit is het laatste actieve activiteitstype. Zonder actief type kan niemand een dienst starten.\":\n          - paragraph: Dit is het laatste actieve activiteitstype. Zonder actief type kan niemand een dienst starten.\n          - button \"Annuleren\"\n          - button \"Eerst een type toevoegen\"\n          - button \"Toch archiveren\"\n    - text: Nieuw activiteittype\n    - textbox \"Nieuw activiteittype\":\n      - /placeholder: bijv. Repetitie\n    - button \"toevoegen\" [disabled]",
+    "focus": {
+      "tag": "H2",
+      "text": "Negatief saldo toestaan",
+      "label": null
+    },
+    "calls": 1,
+    "health": "Goed",
+    "auditNote": "De concrete consequentie en alternatieven staan direct bij Repetitie. Deze stap verstuurt nog geen archivering.",
+    "visuallyInspected": true
+  },
+  {
+    "fixtureProvenance": {
+      "dataKind": "synthetic browser fixtures only",
+      "personalAndFinancialData": "Names, email addresses, balances and transactions are invented test data; no production records.",
+      "source": [
+        "e2e/helpers/supabaseMock.ts (USER and fakeSession)",
+        "e2e/helpers/frontendReview.ts (reviewFixture)",
+        "docs/audits/2026-10-06-componenten-tokens/tools/screen-audit.cjs (PRODUCTS and TRANSACTIONS mocks)",
+        "docs/audits/2026-10-06-componenten-tokens/tools/interaction-audit.cjs (local route mocks)"
+      ],
+      "networkIsolation": "Local app only; unmocked external browser requests aborted."
+    },
+    "id": "09-portal-lege-naam",
+    "file": "screenshots/09-portal-lege-naam.png",
+    "note": "Lege naam: Opslaan aria-disabled; geen veldmelding verklaart de lege invoer.",
+    "url": "http://127.0.0.1:3100/portal",
+    "snapshot": "- alert\n- main:\n  - heading \"Hoi Femke\" [level=1]\n  - text: Ingelogd als femke.bos@aurora.local.\n  - button \"Uitloggen\"\n  - tablist \"Portaal-navigatie\":\n    - tab \"Saldo\"\n    - tab \"Transacties\"\n    - tab \"Account\" [selected]\n  - tabpanel \"Account\":\n    - heading \"Account\" [level=2]\n    - text: Femke Bos femke.bos@aurora.local\n    - heading \"GEGEVENS\" [level=3]\n    - list:\n      - listitem:\n        - button \"Naam wijzigen Femke Bos\"\n      - listitem:\n        - button \"Wachtwoord wijzigen\"\n      - listitem:\n        - button \"Pincode voor de bar-tablet niet ingesteld\"\n      - listitem: Tweestapsverificatie Aan Nodig om in beheer te komen. Je gebruikt een app zoals Google Authenticator of Microsoft Authenticator.\n    - dialog \"Naam wijzigen\":\n      - heading \"Naam wijzigen\" [level=2]\n      - paragraph: Zo staat je naam op de bar-tablet en in het dienstoverzicht.\n      - text: Volledige naam\n      - textbox \"Volledige naam\"\n      - alert\n      - button \"Annuleren\"\n      - button \"Opslaan\" [disabled]\n      - status\n    - status",
+    "focus": {
+      "tag": "BUTTON",
+      "text": "Opslaan",
+      "label": null
+    },
+    "calls": 1,
+    "health": "Verbeteren — U02",
+    "auditNote": "Opslaan is aria-disabled en focusbaar, maar na verlaten van het veld verschijnt geen verklaring bij de verplichte naam.",
+    "visuallyInspected": true
+  },
+  {
+    "fixtureProvenance": {
+      "dataKind": "synthetic browser fixtures only",
+      "personalAndFinancialData": "Names, email addresses, balances and transactions are invented test data; no production records.",
+      "source": [
+        "e2e/helpers/supabaseMock.ts (USER and fakeSession)",
+        "e2e/helpers/frontendReview.ts (reviewFixture)",
+        "docs/audits/2026-10-06-componenten-tokens/tools/screen-audit.cjs (PRODUCTS and TRANSACTIONS mocks)",
+        "docs/audits/2026-10-06-componenten-tokens/tools/interaction-audit.cjs (local route mocks)"
+      ],
+      "networkIsolation": "Local app only; unmocked external browser requests aborted."
+    },
+    "id": "10-portal-pending",
+    "file": "screenshots/10-portal-pending.png",
+    "note": "Naam-sheet gebruikt hetzelfde pendinglabel; actie blijft focusbaar met aria-disabled.",
+    "url": "http://127.0.0.1:3100/portal",
+    "snapshot": "- alert\n- main:\n  - heading \"Hoi Femke\" [level=1]\n  - text: Ingelogd als femke.bos@aurora.local.\n  - button \"Uitloggen\"\n  - tablist \"Portaal-navigatie\":\n    - tab \"Saldo\"\n    - tab \"Transacties\"\n    - tab \"Account\" [selected]\n  - tabpanel \"Account\":\n    - heading \"Account\" [level=2]\n    - text: Femke Bos femke.bos@aurora.local\n    - heading \"GEGEVENS\" [level=3]\n    - list:\n      - listitem:\n        - button \"Naam wijzigen Femke Bos\"\n      - listitem:\n        - button \"Wachtwoord wijzigen\"\n      - listitem:\n        - button \"Pincode voor de bar-tablet niet ingesteld\"\n      - listitem: Tweestapsverificatie Aan Nodig om in beheer te komen. Je gebruikt een app zoals Google Authenticator of Microsoft Authenticator.\n    - dialog \"Naam wijzigen\":\n      - heading \"Naam wijzigen\" [level=2]\n      - paragraph: Zo staat je naam op de bar-tablet en in het dienstoverzicht.\n      - text: Volledige naam\n      - textbox \"Volledige naam\": Femke Voorbeeld\n      - alert\n      - button \"Annuleren\" [disabled]\n      - button \"Opslaan…\" [disabled]\n      - status\n    - status",
+    "focus": {
+      "tag": "BUTTON",
+      "text": "Opslaan…",
+      "label": null
+    },
+    "calls": 2,
+    "health": "Goed",
+    "auditNote": "Opslaan… en geblokkeerd annuleren maken pending duidelijk; de submitknop behoudt focus.",
+    "visuallyInspected": true
+  },
+  {
+    "fixtureProvenance": {
+      "dataKind": "synthetic browser fixtures only",
+      "personalAndFinancialData": "Names, email addresses, balances and transactions are invented test data; no production records.",
+      "source": [
+        "e2e/helpers/supabaseMock.ts (USER and fakeSession)",
+        "e2e/helpers/frontendReview.ts (reviewFixture)",
+        "docs/audits/2026-10-06-componenten-tokens/tools/screen-audit.cjs (PRODUCTS and TRANSACTIONS mocks)",
+        "docs/audits/2026-10-06-componenten-tokens/tools/interaction-audit.cjs (local route mocks)"
+      ],
+      "networkIsolation": "Local app only; unmocked external browser requests aborted."
+    },
+    "id": "11-portal-opgeslagen",
+    "file": "screenshots/11-portal-opgeslagen.png",
+    "note": "Na succes sluit de naam-sheet met een melding in Account.",
+    "url": "http://127.0.0.1:3100/portal",
+    "snapshot": "- alert\n- main:\n  - heading \"Hoi Femke\" [level=1]\n  - text: Ingelogd als femke.bos@aurora.local.\n  - button \"Uitloggen\"\n  - tablist \"Portaal-navigatie\":\n    - tab \"Saldo\"\n    - tab \"Transacties\"\n    - tab \"Account\" [selected]\n  - tabpanel \"Account\":\n    - heading \"Account\" [level=2]\n    - text: Femke Bos femke.bos@aurora.local\n    - heading \"GEGEVENS\" [level=3]\n    - list:\n      - listitem:\n        - button \"Naam wijzigen Femke Bos\"\n      - listitem:\n        - button \"Wachtwoord wijzigen\"\n      - listitem:\n        - button \"Pincode voor de bar-tablet niet ingesteld\"\n      - listitem: Tweestapsverificatie Aan Nodig om in beheer te komen. Je gebruikt een app zoals Google Authenticator of Microsoft Authenticator.\n    - status:\n      - paragraph: Naam bijgewerkt",
+    "focus": {
+      "tag": "BUTTON",
+      "text": "Naam wijzigenFemke Bos›",
+      "label": null
+    },
+    "calls": 2,
+    "health": "Goed",
+    "auditNote": "De sheet sluit met Naam bijgewerkt en focus keert terug naar de Naam wijzigen-rij. De oude profielnaam komt uit een vaste fixture.",
+    "visuallyInspected": true
+  },
+  {
+    "fixtureProvenance": {
+      "dataKind": "synthetic browser fixtures only",
+      "personalAndFinancialData": "Names, email addresses, balances and transactions are invented test data; no production records.",
+      "source": [
+        "e2e/helpers/supabaseMock.ts (USER and fakeSession)",
+        "e2e/helpers/frontendReview.ts (reviewFixture)",
+        "docs/audits/2026-10-06-componenten-tokens/tools/screen-audit.cjs (PRODUCTS and TRANSACTIONS mocks)",
+        "docs/audits/2026-10-06-componenten-tokens/tools/interaction-audit.cjs (local route mocks)"
+      ],
+      "networkIsolation": "Local app only; unmocked external browser requests aborted."
+    },
+    "id": "12-account-leesfout",
+    "file": "screenshots/12-account-leesfout.png",
+    "note": "Account toont een eigen leesfout en retryknop buiten LeesFout.",
+    "url": "http://127.0.0.1:3100/portal",
+    "snapshot": "- alert\n- main:\n  - heading \"Hoi Femke\" [level=1]\n  - text: Ingelogd als femke.bos@aurora.local.\n  - button \"Uitloggen\"\n  - tablist \"Portaal-navigatie\":\n    - tab \"Saldo\"\n    - tab \"Transacties\"\n    - tab \"Account\" [selected]\n  - tabpanel \"Account\":\n    - heading \"Account\" [level=2]\n    - alert: Kan je gegevens niet laden. Er ging iets mis aan de serverkant — meld dit bij de beheerder.\n    - button \"Opnieuw proberen\"\n    - status",
+    "focus": {
+      "tag": "BUTTON",
+      "text": "Account",
+      "label": null
+    },
+    "calls": 2,
+    "health": "Verbeteren — U03",
+    "auditNote": "De fout en retry zijn duidelijk, maar deze eigen markup gebruikt het gedeelde herstelpatroon niet.",
+    "visuallyInspected": true
+  },
+  {
+    "fixtureProvenance": {
+      "dataKind": "synthetic browser fixtures only",
+      "personalAndFinancialData": "Names, email addresses, balances and transactions are invented test data; no production records.",
+      "source": [
+        "e2e/helpers/supabaseMock.ts (USER and fakeSession)",
+        "e2e/helpers/frontendReview.ts (reviewFixture)",
+        "docs/audits/2026-10-06-componenten-tokens/tools/screen-audit.cjs (PRODUCTS and TRANSACTIONS mocks)",
+        "docs/audits/2026-10-06-componenten-tokens/tools/interaction-audit.cjs (local route mocks)"
+      ],
+      "networkIsolation": "Local app only; unmocked external browser requests aborted."
+    },
+    "id": "13-account-retry-pending",
+    "file": "screenshots/13-account-retry-pending.png",
+    "note": "Tijdens retry verdwijnt de knop en valt focus op body.",
+    "url": "http://127.0.0.1:3100/portal",
+    "snapshot": "- alert\n- main:\n  - heading \"Hoi Femke\" [level=1]\n  - text: Ingelogd als femke.bos@aurora.local.\n  - button \"Uitloggen\"\n  - tablist \"Portaal-navigatie\":\n    - tab \"Saldo\"\n    - tab \"Transacties\"\n    - tab \"Account\" [selected]\n  - tabpanel \"Account\":\n    - heading \"Account\" [level=2]\n    - status: Gegevens laden…\n    - status",
+    "focus": {
+      "tag": "BODY",
+      "text": null,
+      "label": null
+    },
+    "calls": 2,
+    "health": "Fout — U03",
+    "auditNote": "De retryknop verdwijnt; actieve focus wordt BODY. Laden is bewust vastgehouden om deze toestand te onderzoeken.",
+    "visuallyInspected": true
+  },
+  {
+    "fixtureProvenance": {
+      "dataKind": "synthetic browser fixtures only",
+      "personalAndFinancialData": "Names, email addresses, balances and transactions are invented test data; no production records.",
+      "source": [
+        "e2e/helpers/supabaseMock.ts (USER and fakeSession)",
+        "e2e/helpers/frontendReview.ts (reviewFixture)",
+        "docs/audits/2026-10-06-componenten-tokens/tools/screen-audit.cjs (PRODUCTS and TRANSACTIONS mocks)",
+        "docs/audits/2026-10-06-componenten-tokens/tools/interaction-audit.cjs (local route mocks)"
+      ],
+      "networkIsolation": "Local app only; unmocked external browser requests aborted."
+    },
+    "id": "14-account-retry-fout",
+    "file": "screenshots/14-account-retry-fout.png",
+    "note": "Na een opnieuw mislukte retry komt de knop terug; focus blijft op body.",
+    "url": "http://127.0.0.1:3100/portal",
+    "snapshot": "- alert\n- main:\n  - heading \"Hoi Femke\" [level=1]\n  - text: Ingelogd als femke.bos@aurora.local.\n  - button \"Uitloggen\"\n  - tablist \"Portaal-navigatie\":\n    - tab \"Saldo\"\n    - tab \"Transacties\"\n    - tab \"Account\" [selected]\n  - tabpanel \"Account\":\n    - heading \"Account\" [level=2]\n    - alert: Kan je gegevens niet laden. Er ging iets mis aan de serverkant — meld dit bij de beheerder.\n    - button \"Opnieuw proberen\"\n    - status",
+    "focus": {
+      "tag": "BODY",
+      "text": null,
+      "label": null
+    },
+    "calls": 2,
+    "health": "Fout — U03",
+    "auditNote": "De knop verschijnt opnieuw, maar focus blijft op BODY. De gebruiker moet de herstelactie opnieuw vinden.",
+    "visuallyInspected": true
+  },
+  {
+    "fixtureProvenance": {
+      "dataKind": "synthetic browser fixtures only",
+      "personalAndFinancialData": "Names, email addresses, balances and transactions are invented test data; no production records.",
+      "source": [
+        "e2e/helpers/supabaseMock.ts (USER and fakeSession)",
+        "e2e/helpers/frontendReview.ts (reviewFixture)",
+        "docs/audits/2026-10-06-componenten-tokens/tools/screen-audit.cjs (PRODUCTS and TRANSACTIONS mocks)",
+        "docs/audits/2026-10-06-componenten-tokens/tools/interaction-audit.cjs (local route mocks)"
+      ],
+      "networkIsolation": "Local app only; unmocked external browser requests aborted."
+    },
+    "id": "15-geld-uitkomst-onbekend",
+    "file": "screenshots/15-geld-uitkomst-onbekend.png",
+    "note": "Nieuw lid na verloren antwoord: waarschuwing en Ik heb gecontroleerd.",
+    "url": "http://127.0.0.1:3100/beheer",
+    "snapshot": "- alert\n- main:\n  - tablist \"Beheer-navigatie\":\n    - tab \"Assortiment\"\n    - tab \"Leden\" [selected]\n    - tab \"Instellingen\"\n    - tab \"Diensten\"\n    - tab \"Logboek\"\n  - text: Ingelogd als Femke Bos BEHEER\n  - button \"Uitloggen\"\n  - tabpanel \"Leden\":\n    - heading \"Leden\" [level=1]\n    - button \"nieuw lid\"\n    - status\n    - text: Zoek lid op naam\n    - searchbox \"Zoek lid op naam\"\n    - group \"Status\":\n      - button \"Actief 1\" [pressed]\n      - button \"Saldo laag 0\"\n      - button \"Archief 0\"\n    - paragraph: 1 van 1 leden\n    - list:\n      - listitem:\n        - button \"Joris de Vries € 15,00\"\n    - dialog \"Nieuw lid\":\n      - heading \"Nieuw lid\" [level=2]\n      - alert: De uitkomst is onbekend. Controleer eerst het saldo of de transacties voordat je opnieuw probeert.\n      - button \"Ik heb gecontroleerd\"\n      - text: Naam\n      - textbox \"Naam\": Joris Voorbeeld\n      - text: Startsaldo (optioneel)\n      - textbox \"Startsaldo (optioneel)\":\n        - /placeholder: 0,00\n      - text: Contactadres (optioneel)\n      - textbox \"Contactadres (optioneel)\"\n      - paragraph: Hierheen stuurt ABAS de uitnodiging. Dit is niet automatisch het adres waarmee het lid inlogt.\n      - button \"Annuleren\"\n      - button \"Toevoegen\" [disabled]\n      - status",
+    "focus": {
+      "tag": "INPUT",
+      "text": "",
+      "label": null
+    },
+    "calls": 3,
+    "health": "Verbeteren — U05",
+    "auditNote": "Invoer blijft staan en Toevoegen is geblokkeerd. De melding vraagt handmatige controle, terwijl de bewaarde actie ook serverherstel ondersteunt.",
+    "visuallyInspected": true
+  },
+  {
+    "fixtureProvenance": {
+      "dataKind": "synthetic browser fixtures only",
+      "personalAndFinancialData": "Names, email addresses, balances and transactions are invented test data; no production records.",
+      "source": [
+        "e2e/helpers/supabaseMock.ts (USER and fakeSession)",
+        "e2e/helpers/frontendReview.ts (reviewFixture)",
+        "docs/audits/2026-10-06-componenten-tokens/tools/screen-audit.cjs (PRODUCTS and TRANSACTIONS mocks)",
+        "docs/audits/2026-10-06-componenten-tokens/tools/interaction-audit.cjs (local route mocks)"
+      ],
+      "networkIsolation": "Local app only; unmocked external browser requests aborted."
+    },
+    "id": "16-geld-herstel-na-herladen",
+    "file": "screenshots/16-geld-herstel-na-herladen.png",
+    "note": "Na herladen: serverherstel of definitief annuleren, met uitleg dat annuleren geen boeking terugdraait.",
+    "url": "http://127.0.0.1:3100/beheer",
+    "snapshot": "- alert\n- region \"Eerdere geldacties\":\n  - status: Een eerdere actie heeft nog geen bevestigde uitkomst.\n  - paragraph: Is de actie al verwerkt, dan blijft die bestaan. Annuleren draait geen boeking terug.\n  - button \"Eerdere nieuw lid veilig afronden\"\n  - button \"Eerdere nieuw lid definitief annuleren\"\n- main:\n  - tablist \"Beheer-navigatie\":\n    - tab \"Assortiment\" [selected]\n    - tab \"Leden\"\n    - tab \"Instellingen\"\n    - tab \"Diensten\"\n    - tab \"Logboek\"\n  - text: Ingelogd als Femke Bos BEHEER\n  - button \"Uitloggen\"\n  - tabpanel \"Assortiment\":\n    - heading \"Assortiment\" [level=1]\n    - button \"nieuw product\"\n    - status\n    - text: Zoek product op naam of categorie\n    - searchbox \"Zoek product op naam of categorie\"\n    - group \"Status\":\n      - button \"Actief 1\" [pressed]\n      - button \"Uit assortiment 0\"\n    - paragraph: 1 van 1 producten\n    - list:\n      - listitem:\n        - button \"Pils Bier · € 2,50\"",
+    "focus": {
+      "tag": "BODY",
+      "text": null,
+      "label": null
+    },
+    "calls": 3,
+    "health": "Goede basis; presentatie verbeteren — U05",
+    "auditNote": "Expliciet afronden/annuleren en de juiste uitleg verschijnen. Herladen start geen tweede aanmaakactie; de oorspronkelijke naam/het bedrag ontbreken in de banner.",
+    "visuallyInspected": true
+  },
+  {
+    "fixtureProvenance": {
+      "dataKind": "synthetic browser fixtures only",
+      "personalAndFinancialData": "Names, email addresses, balances and transactions are invented test data; no production records.",
+      "source": [
+        "e2e/helpers/supabaseMock.ts (USER and fakeSession)",
+        "e2e/helpers/frontendReview.ts (reviewFixture)",
+        "docs/audits/2026-10-06-componenten-tokens/tools/screen-audit.cjs (PRODUCTS and TRANSACTIONS mocks)",
+        "docs/audits/2026-10-06-componenten-tokens/tools/interaction-audit.cjs (local route mocks)"
+      ],
+      "networkIsolation": "Local app only; unmocked external browser requests aborted."
+    },
+    "id": "17-lid-onopgeslagen",
+    "file": "screenshots/17-lid-onopgeslagen.png",
+    "note": "Lid beheren toont per gewijzigde sectie Niet opgeslagen; contrast met Product beheren.",
+    "url": "http://127.0.0.1:3100/beheer",
+    "snapshot": "- alert\n- main:\n  - tablist \"Beheer-navigatie\":\n    - tab \"Assortiment\"\n    - tab \"Leden\" [selected]\n    - tab \"Instellingen\"\n    - tab \"Diensten\"\n    - tab \"Logboek\"\n  - text: Ingelogd als Femke Bos BEHEER\n  - button \"Uitloggen\"\n  - tabpanel \"Leden\":\n    - heading \"Leden\" [level=1]\n    - button \"nieuw lid\"\n    - status\n    - text: Zoek lid op naam\n    - searchbox \"Zoek lid op naam\"\n    - group \"Status\":\n      - button \"Actief 1\" [pressed]\n      - button \"Saldo laag 0\"\n      - button \"Archief 0\"\n    - paragraph: 1 van 1 leden\n    - list:\n      - listitem:\n        - button \"Joris de Vries € 15,00\"\n    - dialog \"Lid beheren\":\n      - heading \"Lid beheren\" [level=2]\n      - button \"Sluiten\"\n      - paragraph: Wijzigingen aan Joris de Vries.\n      - text: Saldo € 15,00\n      - group \"Profiel\":\n        - heading \"Profiel\" [level=3]\n        - group \"Naam wijzigen\":\n          - text: Naam wijzigen\n          - status: Niet opgeslagen\n          - text: Naam\n          - textbox \"Naam\": Joris Voorbeeld\n          - button \"Opslaan\"\n        - group \"Contactadres wijzigen\":\n          - text: Contactadres\n          - status\n          - text: Contactadres\n          - textbox \"Contactadres\"\n          - button \"Opslaan\" [disabled]\n          - paragraph: Hierheen stuurt ABAS de uitnodiging. Dit is niet automatisch het adres waarmee het lid inlogt.\n          - paragraph: Dit lid heeft al een account. Een ander adres hier verandert het inlogadres niet; het lid blijft inloggen met het adres van het account (zichtbaar onder Mijn account in de portal).\n          - paragraph: Zonder contactadres kan er geen uitnodiging worden gestuurd.\n      - group \"Toegang\":\n        - heading \"Toegang\" [level=3]\n        - group \"Rechten wijzigen\":\n          - text: Barrechten bardienst staat achter de bar, beheerder beheert de vereniging\n          - status\n          - text: Barrechten\n          - combobox \"Barrechten\":\n            - option \"Lid\" [selected]\n            - option \"Bardienst\"\n            - option \"Beheerder\"\n          - button \"Opslaan\" [disabled]\n        - group \"Inloggegevens\":\n          - text: Inloggegevens\n          - status\n          - text: Wachtwoordaccount account gekoppeld\n      - group \"Bestellingen\":\n        - heading \"Bestellingen\" [level=3]\n        - button \"Bestelling terugdraaien het bedrag gaat terug naar het saldo, met een reden\"\n      - group \"Archief\":\n        - heading \"Archief\" [level=3]\n        - group \"Archiveren\":\n          - status\n          - button \"Lid archiveren Het lid verdwijnt uit de verkoopzoeker. Saldo en bestellingen blijven bewaard. Terugzetten kan onder ‘Archief’ in de ledenlijst.\"\n      - status",
+    "focus": {
+      "tag": "INPUT",
+      "text": "",
+      "label": null
+    },
+    "calls": 3,
+    "health": "Goed",
+    "auditNote": "Niet opgeslagen staat bij de juiste sectie; dit is het voorbeeld voor U04.",
+    "visuallyInspected": true
+  },
+  {
+    "fixtureProvenance": {
+      "dataKind": "synthetic browser fixtures only",
+      "personalAndFinancialData": "Names, email addresses, balances and transactions are invented test data; no production records.",
+      "source": [
+        "e2e/helpers/supabaseMock.ts (USER and fakeSession)",
+        "e2e/helpers/frontendReview.ts (reviewFixture)",
+        "docs/audits/2026-10-06-componenten-tokens/tools/screen-audit.cjs (PRODUCTS and TRANSACTIONS mocks)",
+        "docs/audits/2026-10-06-componenten-tokens/tools/interaction-audit.cjs (local route mocks)"
+      ],
+      "networkIsolation": "Local app only; unmocked external browser requests aborted."
+    },
+    "id": "18-lid-opgeslagen",
+    "file": "screenshots/18-lid-opgeslagen.png",
+    "note": "Lid beheren bevestigt succes per sectie met Opgeslagen en behoudt focus bij de naam.",
+    "url": "http://127.0.0.1:3100/beheer",
+    "snapshot": "- alert\n- main:\n  - tablist \"Beheer-navigatie\":\n    - tab \"Assortiment\"\n    - tab \"Leden\" [selected]\n    - tab \"Instellingen\"\n    - tab \"Diensten\"\n    - tab \"Logboek\"\n  - text: Ingelogd als Femke Bos BEHEER\n  - button \"Uitloggen\"\n  - tabpanel \"Leden\":\n    - heading \"Leden\" [level=1]\n    - button \"nieuw lid\"\n    - status\n    - text: Zoek lid op naam\n    - searchbox \"Zoek lid op naam\"\n    - group \"Status\":\n      - button \"Actief 1\" [pressed]\n      - button \"Saldo laag 0\"\n      - button \"Archief 0\"\n    - paragraph: 1 van 1 leden\n    - list:\n      - listitem:\n        - button \"Joris de Vries € 15,00\"\n    - dialog \"Lid beheren\":\n      - heading \"Lid beheren\" [level=2]\n      - button \"Sluiten\"\n      - paragraph: Wijzigingen aan Joris Voorbeeld.\n      - text: Saldo € 15,00\n      - group \"Profiel\":\n        - heading \"Profiel\" [level=3]\n        - group \"Naam wijzigen\":\n          - text: Naam wijzigen\n          - status: Opgeslagen\n          - text: Naam\n          - textbox \"Naam\": Joris Voorbeeld\n          - button \"Opslaan\" [disabled]\n        - group \"Contactadres wijzigen\":\n          - text: Contactadres\n          - status\n          - text: Contactadres\n          - textbox \"Contactadres\"\n          - button \"Opslaan\" [disabled]\n          - paragraph: Hierheen stuurt ABAS de uitnodiging. Dit is niet automatisch het adres waarmee het lid inlogt.\n          - paragraph: Dit lid heeft al een account. Een ander adres hier verandert het inlogadres niet; het lid blijft inloggen met het adres van het account (zichtbaar onder Mijn account in de portal).\n          - paragraph: Zonder contactadres kan er geen uitnodiging worden gestuurd.\n      - group \"Toegang\":\n        - heading \"Toegang\" [level=3]\n        - group \"Rechten wijzigen\":\n          - text: Barrechten bardienst staat achter de bar, beheerder beheert de vereniging\n          - status\n          - text: Barrechten\n          - combobox \"Barrechten\":\n            - option \"Lid\" [selected]\n            - option \"Bardienst\"\n            - option \"Beheerder\"\n          - button \"Opslaan\" [disabled]\n        - group \"Inloggegevens\":\n          - text: Inloggegevens\n          - status\n          - text: Wachtwoordaccount account gekoppeld\n      - group \"Bestellingen\":\n        - heading \"Bestellingen\" [level=3]\n        - button \"Bestelling terugdraaien het bedrag gaat terug naar het saldo, met een reden\"\n      - group \"Archief\":\n        - heading \"Archief\" [level=3]\n        - group \"Archiveren\":\n          - status\n          - button \"Lid archiveren Het lid verdwijnt uit de verkoopzoeker. Saldo en bestellingen blijven bewaard. Terugzetten kan onder ‘Archief’ in de ledenlijst.\"\n      - status",
+    "focus": {
+      "tag": "INPUT",
+      "text": "",
+      "label": null
+    },
+    "calls": 3,
+    "health": "Goed",
+    "auditNote": "Opgeslagen verschijnt bij de naam; het veld behoudt focus. De achtergrondlijst is een vaste fixture.",
+    "visuallyInspected": true
+  },
+  {
+    "fixtureProvenance": {
+      "dataKind": "synthetic browser fixtures only",
+      "personalAndFinancialData": "Names, email addresses, balances and transactions are invented test data; no production records.",
+      "source": [
+        "e2e/helpers/supabaseMock.ts (USER and fakeSession)",
+        "e2e/helpers/frontendReview.ts (reviewFixture)",
+        "docs/audits/2026-10-06-componenten-tokens/tools/screen-audit.cjs (PRODUCTS and TRANSACTIONS mocks)",
+        "docs/audits/2026-10-06-componenten-tokens/tools/interaction-audit.cjs (local route mocks)"
+      ],
+      "networkIsolation": "Local app only; unmocked external browser requests aborted."
+    },
+    "id": "19-lid-veldvalidatie",
+    "file": "screenshots/19-lid-veldvalidatie.png",
+    "note": "Ongeldig contactadres geeft een lokale veldmelding en focus op het veld, zonder opslagverzoek.",
+    "url": "http://127.0.0.1:3100/beheer",
+    "snapshot": "- alert\n- main:\n  - tablist \"Beheer-navigatie\":\n    - tab \"Assortiment\"\n    - tab \"Leden\" [selected]\n    - tab \"Instellingen\"\n    - tab \"Diensten\"\n    - tab \"Logboek\"\n  - text: Ingelogd als Femke Bos BEHEER\n  - button \"Uitloggen\"\n  - tabpanel \"Leden\":\n    - heading \"Leden\" [level=1]\n    - button \"nieuw lid\"\n    - status\n    - text: Zoek lid op naam\n    - searchbox \"Zoek lid op naam\"\n    - group \"Status\":\n      - button \"Actief 1\" [pressed]\n      - button \"Saldo laag 0\"\n      - button \"Archief 0\"\n    - paragraph: 1 van 1 leden\n    - list:\n      - listitem:\n        - button \"Joris de Vries € 15,00\"\n    - dialog \"Lid beheren\":\n      - heading \"Lid beheren\" [level=2]\n      - button \"Sluiten\"\n      - paragraph: Wijzigingen aan Joris Voorbeeld.\n      - text: Saldo € 15,00\n      - group \"Profiel\":\n        - heading \"Profiel\" [level=3]\n        - group \"Naam wijzigen\":\n          - text: Naam wijzigen\n          - status: Opgeslagen\n          - text: Naam\n          - textbox \"Naam\": Joris Voorbeeld\n          - button \"Opslaan\" [disabled]\n        - group \"Contactadres wijzigen\":\n          - text: Contactadres\n          - status: Niet opgeslagen\n          - text: Contactadres\n          - textbox \"Contactadres\" [invalid]: ongeldig\n          - button \"Opslaan\"\n          - paragraph: Hierheen stuurt ABAS de uitnodiging. Dit is niet automatisch het adres waarmee het lid inlogt.\n          - paragraph: Dit lid heeft al een account. Een ander adres hier verandert het inlogadres niet; het lid blijft inloggen met het adres van het account (zichtbaar onder Mijn account in de portal).\n          - paragraph: Zonder contactadres kan er geen uitnodiging worden gestuurd.\n          - alert: Dit lijkt geen e-mailadres. Controleer het adres, bijvoorbeeld naam@voorbeeld.nl.\n      - group \"Toegang\":\n        - heading \"Toegang\" [level=3]\n        - group \"Rechten wijzigen\":\n          - text: Barrechten bardienst staat achter de bar, beheerder beheert de vereniging\n          - status\n          - text: Barrechten\n          - combobox \"Barrechten\":\n            - option \"Lid\" [selected]\n            - option \"Bardienst\"\n            - option \"Beheerder\"\n          - button \"Opslaan\" [disabled]\n        - group \"Inloggegevens\":\n          - text: Inloggegevens\n          - status\n          - text: Wachtwoordaccount account gekoppeld\n      - group \"Bestellingen\":\n        - heading \"Bestellingen\" [level=3]\n        - button \"Bestelling terugdraaien het bedrag gaat terug naar het saldo, met een reden\"\n      - group \"Archief\":\n        - heading \"Archief\" [level=3]\n        - group \"Archiveren\":\n          - status\n          - button \"Lid archiveren Het lid verdwijnt uit de verkoopzoeker. Saldo en bestellingen blijven bewaard. Terugzetten kan onder ‘Archief’ in de ledenlijst.\"\n      - status",
+    "focus": {
+      "tag": "INPUT",
+      "text": "",
+      "label": null
+    },
+    "calls": 3,
+    "health": "Goed",
+    "auditNote": "De gekoppelde veldmelding legt de fout uit en focus keert terug naar Contactadres. De validatie vindt lokaal vóór de mutatie plaats.",
+    "visuallyInspected": true
+  }
+]

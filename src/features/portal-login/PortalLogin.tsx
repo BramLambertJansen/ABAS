@@ -1,5 +1,8 @@
 "use client";
 
+import { KNOP_ACCENT_DONKER } from "@/components/knopStijlen";
+
+import { TekstVeld } from "@/components/TekstVeld";
 import { useEffect, useId, useRef, useState, type FormEvent, type RefObject } from "react";
 import { AuroraMerk } from "@/components/AuroraMerk";
 import { RATE_LIMITED_MESSAGE } from "@/lib/authErrors";
@@ -203,25 +206,18 @@ export function PortalLogin({
               </p>
             </div>
 
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor={emailId} className="text-xs font-bold text-muted">
-                E-mailadres
-              </label>
-              <input
+            <TekstVeld tone="light" label="E-mailadres"
                 id={emailId}
                 type="email"
                 autoComplete="email"
                 required
                 value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                className="h-[54px] rounded-2xl border border-border bg-white px-4 text-sm font-semibold text-ink outline-none focus:border-accent"
-              />
-            </div>
+                onChange={(event) => setEmail(event.target.value)} />
 
             <button
               type="submit"
               aria-disabled={resetRequest.status === "pending"}
-              className="flex h-[54px] w-full items-center justify-center rounded-2xl bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+              className={`flex h-[54px] w-full items-center justify-center rounded-2xl text-sm font-bold ${KNOP_ACCENT_DONKER}`}
             >
               Stuur herstellink
             </button>
@@ -266,21 +262,14 @@ export function PortalLogin({
             {login.errorCode ? errorMessage(login.errorCode) : ""}
           </p>
 
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor={emailId} className="text-xs font-bold text-muted">
-              E-mailadres
-            </label>
-            <input
-              ref={emailRef}
+          <TekstVeld tone="light" label="E-mailadres"
+              inputRef={emailRef}
               id={emailId}
               type="email"
               autoComplete="email"
               required
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              className="h-[54px] rounded-2xl border border-border bg-white px-4 text-sm font-semibold text-ink outline-none focus:border-accent"
-            />
-          </div>
+              onChange={(event) => setEmail(event.target.value)} />
 
           <fieldset className="flex flex-col gap-2">
             <legend id={methodLegendId} className="text-xs font-bold text-muted">
@@ -329,19 +318,13 @@ export function PortalLogin({
           </fieldset>
 
           {method === "password" && (
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor={passwordId} className="text-xs font-bold text-muted">
-                Wachtwoord
-              </label>
-              <input
+            <TekstVeld tone="light" label="Wachtwoord"
                 id={passwordId}
                 type="password"
                 autoComplete="current-password"
                 required
                 value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                className="h-[54px] rounded-2xl border border-border bg-white px-4 text-sm font-semibold text-ink outline-none focus:border-accent"
-              />
+                onChange={(event) => setPassword(event.target.value)}>
               <button
                 type="button"
                 onClick={openForgot}
@@ -349,7 +332,7 @@ export function PortalLogin({
               >
                 Wachtwoord vergeten?
               </button>
-            </div>
+            </TekstVeld>
           )}
 
           {/* aria-disabled, niet disabled: een disabled knop verliest de
@@ -357,7 +340,7 @@ export function PortalLogin({
           <button
             type="submit"
             aria-disabled={loginPending}
-            className="flex h-[54px] w-full items-center justify-center rounded-2xl bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+            className={`flex h-[54px] w-full items-center justify-center rounded-2xl text-sm font-bold ${KNOP_ACCENT_DONKER}`}
           >
             {method === "magic_link" ? "Stuur mij een inloglink" : "Inloggen"}
           </button>

@@ -162,7 +162,7 @@ export function Select({
         aria-label={label}
         // `hidden` als klasse, niet als attribuut: `flex` zou het attribuut
         // overschrijven.
-        className={`absolute inset-x-0 top-[calc(100%+6px)] z-10 ${open ? "flex" : "hidden"} max-h-60 flex-col gap-0.5 overflow-auto rounded-card border border-rail-border bg-rail-card p-1.5 shadow-[0_22px_48px_-16px_rgba(0,0,0,0.7)]`}
+        className={`absolute inset-x-0 top-[calc(100%+6px)] z-10 ${open ? "flex" : "hidden"} max-h-60 flex-col gap-0.5 overflow-auto rounded-card border border-rail-border bg-rail-card p-1.5 shadow-rail-dropdown`}
       >
         {options.map((option, index) => {
           const isSelected = index === selectedIndex;

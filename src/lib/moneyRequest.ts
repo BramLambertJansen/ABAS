@@ -81,7 +81,7 @@ function validMoneyResult(operation: MoneyOperation, data: unknown): boolean {
  * receipt by itself proves nothing about a delayed request. Explicit cancellation
  * creates a server tombstone that also rejects those delayed requests. */
 export async function inspectPendingMoneyRequest(client: Client, operation: MoneyOperation, cancel = false,
-  environment?: IntentEnvironment): Promise<RpcResult> {
+  environment?: IntentEnvironment, expectedRequestId?: string): Promise<RpcResult> {
   const { data, error } = await client.auth.getSession();
   if (error || !data.session?.user.id) return { data: null, error: { message: "no_bar_session", code: "P0001" } };
   const context = environment ?? browserEnvironment();
@@ -89,6 +89,7 @@ export async function inspectPendingMoneyRequest(client: Client, operation: Mone
   return context.lock(key, async () => {
     const intent = readIntent(context, key);
     if (!intent) return { data: null, error: null };
+    if (expectedRequestId && intent.id !== expectedRequestId) return { data: null, error: { message: "pending_request", code: "P0001" } };
     const args = JSON.parse(intent.payload) as Record<string, unknown>;
     const result = await client.rpc("inspect_money_request", { p_request_id: intent.id, p_operation: operation,
       p_payload: PAYLOAD_KEYS[operation].map((name) => args[name] ?? null), p_cancel: cancel });

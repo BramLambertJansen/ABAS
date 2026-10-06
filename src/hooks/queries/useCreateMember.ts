@@ -75,7 +75,25 @@ export function useCreateMember() {
         return null;
       }
       setState({ status: "idle" });
-      const member = data as Record<string, unknown>;
+      return memberFromRpc(data as Record<string, unknown>);
+    } catch (err) {
+      const code = toErrorCode(err instanceof Error ? err.message : undefined);
+      if (code === "unknown") reportClientError(createClient, "useCreateMember", err);
+      setState({ status: "error", code });
+      return null;
+    }
+  }
+
+  return {
+    status: state.status,
+    errorCode: state.status === "error" ? state.code : null,
+    createMember,
+    reset: () => setState({ status: "idle" }),
+  };
+}
+
+/** Shared mapping for normal creation and a confirmed recovery receipt. */
+export function memberFromRpc(member: Record<string, unknown>): LedenbeheerLid {
       return {
         id: member.id as string,
         name: member.name as string,
@@ -98,18 +116,4 @@ export function useCreateMember() {
         // zelfde reden als hasAccount/hasPin hierboven.
         invitedAt: member.invited_at as string | null,
       };
-    } catch (err) {
-      const code = toErrorCode(err instanceof Error ? err.message : undefined);
-      if (code === "unknown") reportClientError(createClient, "useCreateMember", err);
-      setState({ status: "error", code });
-      return null;
-    }
-  }
-
-  return {
-    status: state.status,
-    errorCode: state.status === "error" ? state.code : null,
-    createMember,
-    reset: () => setState({ status: "idle" }),
-  };
 }

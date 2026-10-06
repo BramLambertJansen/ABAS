@@ -1,0 +1,542 @@
+{
+  "fixtureProvenance": {
+    "dataKind": "synthetic browser fixtures only",
+    "personalAndFinancialData": "Names, email addresses, balances and transactions are invented test data; no production records.",
+    "source": [
+      "e2e/helpers/supabaseMock.ts (USER and fakeSession)",
+      "e2e/helpers/frontendReview.ts (reviewFixture)",
+      "docs/audits/2026-10-06-componenten-tokens/tools/screen-audit.cjs (PRODUCTS and TRANSACTIONS mocks)",
+      "docs/audits/2026-10-06-componenten-tokens/tools/interaction-audit.cjs (local route mocks)"
+    ],
+    "networkIsolation": "Local app only; unmocked external browser requests aborted."
+  },
+  "id": "40-portal-wachtwoord-labels",
+  "file": "screenshots/40-portal-wachtwoord-labels.png",
+  "note": "Wachtwoordsheet op 390×500: labels, leesbare eisen, aria-describedby en afgeschermde achtergrond; geen wijziging verstuurd.",
+  "url": "http://127.0.0.1:3100/portal",
+  "snapshot": "- alert\n- main:\n  - heading \"Hoi Femke\" [level=1]\n  - text: Ingelogd als femke.bos@aurora.local.\n  - button \"Uitloggen\"\n  - tablist \"Portaal-navigatie\":\n    - tab \"Saldo\"\n    - tab \"Transacties\"\n    - tab \"Account\" [selected]\n  - tabpanel \"Account\":\n    - heading \"Account\" [level=2]\n    - text: Femke Bos femke.bos@aurora.local\n    - heading \"GEGEVENS\" [level=3]\n    - list:\n      - listitem:\n        - button \"Naam wijzigen Femke Bos\"\n      - listitem:\n        - button \"Wachtwoord wijzigen\"\n      - listitem:\n        - button \"Pincode voor de bar-tablet niet ingesteld\"\n      - listitem: Tweestapsverificatie Aan Nodig om in beheer te komen. Je gebruikt een app zoals Google Authenticator of Microsoft Authenticator.\n    - dialog \"Wachtwoord wijzigen\":\n      - heading \"Wachtwoord wijzigen\" [level=2]\n      - paragraph: Dit is ook je wachtwoord voor beheer op de bar-tablet.\n      - text: Nieuw wachtwoord\n      - textbox \"Nieuw wachtwoord\"\n      - list:\n        - listitem: \"nog niet: minstens 8 tekens\"\n        - listitem: \"nog niet: een kleine letter\"\n        - listitem: \"nog niet: een hoofdletter\"\n        - listitem: \"nog niet: een cijfer\"\n        - listitem: \"nog niet: een leesteken, zoals ! ? # of @\"\n      - text: Herhaal wachtwoord\n      - textbox \"Herhaal wachtwoord\"\n      - alert\n      - button \"Annuleren\"\n      - button \"Wijzigen\" [disabled]\n      - status\n    - status",
+  "focus": {
+    "tag": "INPUT",
+    "text": "",
+    "label": null
+  },
+  "metrics": {
+    "viewport": {
+      "width": 390,
+      "height": 500
+    },
+    "document": {
+      "scrollWidth": 390,
+      "clientWidth": 390,
+      "scrollHeight": 673
+    },
+    "horizontalOverflow": [],
+    "controls": [
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "label": null,
+        "text": "Uitloggen",
+        "x": 281.59,
+        "y": 16,
+        "width": 88.41,
+        "height": 44,
+        "fontSize": "12px",
+        "color": "rgb(115, 109, 102)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "outline": "rgb(115, 109, 102) none 3px",
+        "overflowX": "visible"
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "label": null,
+        "text": "Saldo",
+        "x": 24,
+        "y": 97,
+        "width": 111.33,
+        "height": 40,
+        "fontSize": "14px",
+        "color": "rgb(92, 89, 82)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "outline": "rgb(92, 89, 82) none 3px",
+        "overflowX": "visible"
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "label": null,
+        "text": "Transacties",
+        "x": 139.33,
+        "y": 97,
+        "width": 111.34,
+        "height": 40,
+        "fontSize": "14px",
+        "color": "rgb(92, 89, 82)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "outline": "rgb(92, 89, 82) none 3px",
+        "overflowX": "visible"
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "label": null,
+        "text": "Account",
+        "x": 254.67,
+        "y": 97,
+        "width": 111.33,
+        "height": 40,
+        "fontSize": "14px",
+        "color": "rgb(27, 30, 35)",
+        "bg": "rgb(255, 255, 255)",
+        "outline": "rgb(27, 30, 35) none 3px",
+        "overflowX": "visible"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "label": null,
+        "text": "Naam wijzigen\nFemke Bos\n›",
+        "x": 21,
+        "y": 341.5,
+        "width": 348,
+        "height": 64.75,
+        "fontSize": "16px",
+        "color": "rgb(27, 30, 35)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "outline": "rgb(27, 30, 35) none 3px",
+        "overflowX": "visible"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "label": null,
+        "text": "Wachtwoord wijzigen\n›",
+        "x": 21,
+        "y": 407.25,
+        "width": 348,
+        "height": 60,
+        "fontSize": "16px",
+        "color": "rgb(27, 30, 35)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "outline": "rgb(27, 30, 35) none 3px",
+        "overflowX": "visible"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "label": null,
+        "text": "Pincode voor de bar-tablet\nniet ingesteld\n›",
+        "x": 21,
+        "y": 468.25,
+        "width": 348,
+        "height": 64.75,
+        "fontSize": "16px",
+        "color": "rgb(27, 30, 35)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "outline": "rgb(27, 30, 35) none 3px",
+        "overflowX": "visible"
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "label": null,
+        "text": "",
+        "x": 22,
+        "y": 196,
+        "width": 346,
+        "height": 48,
+        "fontSize": "14px",
+        "color": "rgb(27, 30, 35)",
+        "bg": "rgb(255, 255, 255)",
+        "outline": "rgb(238, 90, 36) solid 2px",
+        "overflowX": "clip"
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "label": null,
+        "text": "",
+        "x": 22,
+        "y": 378,
+        "width": 346,
+        "height": 48,
+        "fontSize": "14px",
+        "color": "rgb(27, 30, 35)",
+        "bg": "rgb(255, 255, 255)",
+        "outline": "rgba(0, 0, 0, 0) solid 2px",
+        "overflowX": "clip"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "label": null,
+        "text": "Annuleren",
+        "x": 22,
+        "y": 440,
+        "width": 169,
+        "height": 52,
+        "fontSize": "14px",
+        "color": "rgb(27, 30, 35)",
+        "bg": "rgb(255, 255, 255)",
+        "outline": "rgb(27, 30, 35) none 3px",
+        "overflowX": "visible"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "label": null,
+        "text": "Wijzigen",
+        "x": 201,
+        "y": 440,
+        "width": 167,
+        "height": 52,
+        "fontSize": "14px",
+        "color": "rgb(22, 24, 28)",
+        "bg": "rgb(238, 90, 36)",
+        "outline": "rgb(22, 24, 28) none 3px",
+        "overflowX": "visible"
+      }
+    ],
+    "smallControls": [
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "label": null,
+        "text": "Saldo",
+        "x": 24,
+        "y": 97,
+        "width": 111.33,
+        "height": 40,
+        "fontSize": "14px",
+        "color": "rgb(92, 89, 82)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "outline": "rgb(92, 89, 82) none 3px",
+        "overflowX": "visible"
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "label": null,
+        "text": "Transacties",
+        "x": 139.33,
+        "y": 97,
+        "width": 111.34,
+        "height": 40,
+        "fontSize": "14px",
+        "color": "rgb(92, 89, 82)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "outline": "rgb(92, 89, 82) none 3px",
+        "overflowX": "visible"
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "label": null,
+        "text": "Account",
+        "x": 254.67,
+        "y": 97,
+        "width": 111.33,
+        "height": 40,
+        "fontSize": "14px",
+        "color": "rgb(27, 30, 35)",
+        "bg": "rgb(255, 255, 255)",
+        "outline": "rgb(27, 30, 35) none 3px",
+        "overflowX": "visible"
+      }
+    ],
+    "headings": [
+      {
+        "tag": "H1",
+        "role": null,
+        "label": null,
+        "text": "Hoi Femke",
+        "x": 20,
+        "y": 24,
+        "width": 86.53,
+        "height": 28,
+        "fontSize": "18px",
+        "color": "rgb(27, 30, 35)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "outline": "rgb(27, 30, 35) none 3px",
+        "overflowX": "hidden"
+      },
+      {
+        "tag": "H2",
+        "role": null,
+        "label": null,
+        "text": "Account",
+        "x": 20,
+        "y": 161,
+        "width": 350,
+        "height": 33,
+        "fontSize": "22px",
+        "color": "rgb(27, 30, 35)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "outline": "rgb(27, 30, 35) none 3px",
+        "overflowX": "visible"
+      },
+      {
+        "tag": "H3",
+        "role": null,
+        "label": null,
+        "text": "GEGEVENS",
+        "x": 20,
+        "y": 316,
+        "width": 350,
+        "height": 16.5,
+        "fontSize": "11px",
+        "color": "rgb(115, 109, 102)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "outline": "rgb(115, 109, 102) none 3px",
+        "overflowX": "visible"
+      },
+      {
+        "tag": "H2",
+        "role": null,
+        "label": null,
+        "text": "Wachtwoord wijzigen",
+        "x": 22,
+        "y": 82,
+        "width": 346,
+        "height": 28.5,
+        "fontSize": "19px",
+        "color": "rgb(27, 30, 35)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "outline": "rgba(0, 0, 0, 0) solid 2px",
+        "overflowX": "visible"
+      }
+    ],
+    "focus": {
+      "tag": "INPUT",
+      "label": null,
+      "text": ""
+    },
+    "dialogScroll": [
+      {
+        "tag": "DIV",
+        "role": "dialog",
+        "label": null,
+        "text": "Wachtwoord wijzigen\n\nDit is ook je wachtwoord voor beheer op de bar-tablet.\n\nNieuw wachtwoord\n○ \nnog niet:\nminstens 8 te",
+        "x": 0,
+        "y": 60,
+        "width": 390,
+        "height": 440,
+        "fontSize": "16px",
+        "color": "rgb(27, 30, 35)",
+        "bg": "rgb(250, 247, 243)",
+        "outline": "rgb(27, 30, 35) none 3px",
+        "overflowX": "auto",
+        "scrollHeight": 460,
+        "clientHeight": 440
+      }
+    ],
+    "reducedMotion": true
+  },
+  "axe": {
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "tags": [
+          "cat.color",
+          "wcag2aa",
+          "wcag143",
+          "TTv5",
+          "TT13.c",
+          "EN-301-549",
+          "EN-9.1.4.3",
+          "ACT",
+          "RGAAv4",
+          "RGAA-3.2.1"
+        ],
+        "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=playwright",
+        "nodes": [
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "messageKey": "nonBmp"
+                },
+                "relatedNodes": [],
+                "impact": "serious",
+                "message": "Element content contains only non-text characters"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span aria-hidden=\"true\">○ </span>",
+            "target": [
+              "li:nth-child(1) > span[aria-hidden=\"true\"]"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "messageKey": "nonBmp"
+                },
+                "relatedNodes": [],
+                "impact": "serious",
+                "message": "Element content contains only non-text characters"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span aria-hidden=\"true\">○ </span>",
+            "target": [
+              "li:nth-child(2) > span[aria-hidden=\"true\"]"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "messageKey": "nonBmp"
+                },
+                "relatedNodes": [],
+                "impact": "serious",
+                "message": "Element content contains only non-text characters"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span aria-hidden=\"true\">○ </span>",
+            "target": [
+              "li:nth-child(3) > span[aria-hidden=\"true\"]"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "messageKey": "nonBmp"
+                },
+                "relatedNodes": [],
+                "impact": "serious",
+                "message": "Element content contains only non-text characters"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span aria-hidden=\"true\">○ </span>",
+            "target": [
+              "li:nth-child(4) > span[aria-hidden=\"true\"]"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "messageKey": "nonBmp"
+                },
+                "relatedNodes": [],
+                "impact": "serious",
+                "message": "Element content contains only non-text characters"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span aria-hidden=\"true\">○ </span>",
+            "target": [
+              "li:nth-child(5) > span[aria-hidden=\"true\"]"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element content contains only non-text characters"
+          }
+        ]
+      }
+    ],
+    "passes": [
+      "aria-allowed-attr",
+      "aria-conditional-attr",
+      "aria-deprecated-role",
+      "aria-hidden-body",
+      "aria-hidden-focus",
+      "aria-prohibited-attr",
+      "aria-required-attr",
+      "aria-roles",
+      "aria-valid-attr-value",
+      "aria-valid-attr",
+      "autocomplete-valid",
+      "avoid-inline-spacing",
+      "button-name",
+      "color-contrast",
+      "document-title",
+      "duplicate-id-aria",
+      "form-field-multiple-labels",
+      "html-has-lang",
+      "html-lang-valid",
+      "label",
+      "list",
+      "listitem",
+      "meta-viewport",
+      "nested-interactive",
+      "target-size"
+    ],
+    "inapplicable": [
+      "area-alt",
+      "aria-braille-equivalent",
+      "aria-command-name",
+      "aria-input-field-name",
+      "aria-meter-name",
+      "aria-progressbar-name",
+      "aria-required-children",
+      "aria-required-parent",
+      "aria-tab-name",
+      "aria-toggle-field-name",
+      "aria-tooltip-name",
+      "blink",
+      "bypass",
+      "definition-list",
+      "dlitem",
+      "frame-focusable-content",
+      "frame-title-unique",
+      "frame-title",
+      "html-xml-lang-mismatch",
+      "image-alt",
+      "input-button-name",
+      "input-image-alt",
+      "link-in-text-block",
+      "link-name",
+      "marquee",
+      "meta-refresh",
+      "object-alt",
+      "role-img-alt",
+      "scrollable-region-focusable",
+      "select-name",
+      "server-side-image-map",
+      "summary-name",
+      "svg-img-alt",
+      "td-headers-attr",
+      "th-has-data-cells",
+      "valid-lang",
+      "video-caption",
+      "no-autoplay-audio"
+    ],
+    "testEngine": {
+      "name": "axe-core",
+      "version": "4.13.0"
+    }
+  },
+  "screenshotMode": "viewport",
+  "visuallyInspected": true,
+  "health": "Goed",
+  "auditNote": "Eisen zijn tekstueel en via describedby gekoppeld; achtergrond inert; geen wachtwoord ingevoerd of gewijzigd."
+}

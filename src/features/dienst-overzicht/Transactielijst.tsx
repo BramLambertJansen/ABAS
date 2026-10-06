@@ -102,7 +102,7 @@ export function Transactielijst({
         className="flex min-h-[180px] flex-[1_1_auto] flex-col overflow-auto rounded-card border border-border bg-white px-4 pb-1.5"
       >
         {ledger.status === "loading" && !herstel.toonFout && (
-          <p className="py-11 text-center text-[13.5px] font-bold text-muted" role="status">
+          <p className="py-11 text-center text-detail font-bold text-muted" role="status">
             Boekingen laden…
           </p>
         )}
@@ -117,7 +117,7 @@ export function Transactielijst({
         )}
         {ledger.status === "ready" && groups.length === 0 && (
           <div className="flex flex-col gap-[5px] px-[34px] py-11 text-center">
-            <span className="text-[13.5px] font-extrabold text-muted">
+            <span className="text-detail font-extrabold text-muted">
               {trimmedQuery
                 ? `Niets gevonden voor “${trimmedQuery}”`
                 : "Nog niets geboekt deze dienst"}
@@ -181,7 +181,7 @@ function LedgerRow({
 
   return (
     <li className="-mx-2.5 flex flex-none items-center gap-3.5 rounded-control border-b border-border-subtle px-2.5 py-[13px]">
-      <span className="min-w-[42px] flex-none text-[12.5px] font-bold text-muted">
+      <span className="min-w-[42px] flex-none text-metadata font-bold text-muted">
         {clockLabel(entry.createdAt)}
       </span>
       <span
@@ -298,7 +298,7 @@ function PersonFilter({
           dark ? "border-ink bg-ink text-white" : "border-border bg-white text-ink"
         }`}
       >
-        <span className="whitespace-nowrap text-[13.5px] font-bold">{active.name}</span>
+        <span className="whitespace-nowrap text-detail font-bold">{active.name}</span>
         <span
           className={`flex-none rounded-full px-[7px] py-0.5 text-[11px] font-extrabold ${
             dark ? "bg-white/[0.16] text-white" : "bg-border-subtle text-muted-strong"
@@ -318,7 +318,7 @@ function PersonFilter({
       {open && (
         <ul
           id={listId}
-          className="absolute right-0 top-12 z-[21] flex min-w-[200px] origin-top-right flex-col gap-0.5 rounded-card border border-border bg-white p-1.5 shadow-[0_16px_40px_rgba(27,30,35,0.14)]"
+          className="absolute right-0 top-12 z-[21] flex min-w-[200px] origin-top-right flex-col gap-0.5 rounded-card border border-border bg-white p-1.5 shadow-menu"
         >
           {options.map((option) => {
             const selected = option.id === activeId;
@@ -328,7 +328,7 @@ function PersonFilter({
                   type="button"
                   aria-pressed={selected}
                   onClick={() => choose(option.id)}
-                  className={`flex h-[42px] w-full items-center gap-2.5 rounded-[11px] px-[13px] text-left text-[13.5px] font-bold transition-colors ${
+                  className={`flex h-[42px] w-full items-center gap-2.5 rounded-[11px] px-[13px] text-left text-detail font-bold transition-colors ${
                     selected ? "bg-ink text-white" : "text-ink hover:bg-canvas"
                   }`}
                 >

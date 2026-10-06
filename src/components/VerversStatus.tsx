@@ -36,7 +36,7 @@ export function VerversStatus({
       : label;
 
   return (
-    <div className="flex flex-none items-center justify-between gap-3">
+    <div className="flex flex-none flex-wrap items-center justify-between gap-3">
       <p role="status" className={`text-xs font-semibold ${mislukt && !bezig ? "text-danger" : "text-muted"}`}>
         {regel}
       </p>
@@ -46,7 +46,7 @@ export function VerversStatus({
         onClick={() => {
           if (!bezig) onVerversen();
         }}
-        className="flex h-11 flex-none items-center whitespace-nowrap rounded-control border border-border bg-white px-4 text-xs font-extrabold text-ink transition-colors hover:border-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-disabled:cursor-not-allowed aria-disabled:opacity-60"
+        className="flex min-h-11 max-w-full flex-none items-center rounded-control border border-border bg-white px-4 text-xs font-extrabold text-ink transition-colors hover:border-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-disabled:cursor-not-allowed aria-disabled:opacity-60"
       >
         {VERVERS_TEKSTEN.verversen}
       </button>

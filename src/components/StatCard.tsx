@@ -17,12 +17,8 @@
  * hardcoded here — "saldo ..." wording is call-site copy, this component
  * only owns the wrapper and typography.
  *
- * `variant: "metric"` — no real consumer yet on this branch. An unmerged
- * one (issue #12, DienstAfsluitenOverlay.tsx) has two 3-line cards
- * (uppercase tiny label / big value / optional one-line footnote, e.g.
- * "Omzet deze dienst" / a bedrag / "N bestelling(en)") that reuse the same
- * `bg-canvas p-3` wrapper with structurally different typography from
- * "member". This variant is shaped to fit that without building #12 here.
+ * `variant: "metric"` wordt gebruikt door `DienstAfsluitenOverlay` voor
+ * omzet en aantallen; `member` door AfrekenenOverlay/TerugdraaienOverlay.
  */
 export function StatCard(
   props:

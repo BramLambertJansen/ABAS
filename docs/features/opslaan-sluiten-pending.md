@@ -3,12 +3,28 @@
 **Status: gebouwd** (PR [#142](https://github.com/BramLambertJansen/ABAS/pull/142),
 gemerged 2026-10-02, `cf93611`; issue #126, T06). Het document hieronder is de
 spec zoals goedgekeurd; "Zoals gebouwd" direct hieronder beschrijft wat er
-daadwerkelijk staat en waar het afwijkt of nog openligt. Bij tegenspraak geldt
-"Zoals gebouwd". De spec is goedgekeurd door Bram (2026-10-02): aanbevelingen
+daadwerkelijk staat en waar het afwijkt of nog openligt. Bij tegenspraak geldt de actuele
+aanvulling; de oorspronkelijke bouwbeschrijving blijft historie. De spec is goedgekeurd door Bram (2026-10-02): aanbevelingen
 bij A, B, C, D en E, en een time-out van 30 seconden voor een hangend verzoek,
 alleen voor beheerdialogen zonder geld (besluit 1).
 
-## Zoals gebouwd
+## Actuele aanvulling — frontendreview 6 oktober 2026
+
+Bram heeft bij U06 gekozen: **alle sluitacties vragen bevestiging bij
+onopgeslagen wijzigingen**. Escape, backdrop, de detailheader en expliciete
+Sluiten/Annuleren gebruiken dezelfde Overlay-controller. Gebruik
+`OverlaySluitKnop` voor featureknoppen; `SheetKnoppen` gebruikt die al. Terug
+bewaart de invoer en herstelt focus. Ongewijzigd sluit direct, pending wint en
+succescallbacks sluiten na bevestigde opslag zonder weggooivraag. Dit vervangt
+de oorspronkelijke keuze B, optie 3, in de historische tekst hieronder.
+
+Financiële retries gebruiken inmiddels receipts en annulering met dezelfde
+sleutel: `OnbekendeUitkomstMelding` en `EerdereGeldActie` delen de expliciete
+controle-/afrond-/annuleerweergave. “Ik heb gecontroleerd” heft geen blokkade
+meer op. Zie [frontendopvolging](frontend-review-opvolging.md) en
+[financiële idempotentie](geldverzoeken-idempotent.md) voor het actuele contract.
+
+## Zoals gebouwd bij PR #142 (historie)
 
 **Gedeelde onderdelen** (zie ook `docs/ARCHITECTURE.md`):
 

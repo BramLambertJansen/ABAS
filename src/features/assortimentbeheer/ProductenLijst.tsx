@@ -64,7 +64,7 @@ export function ProductenLijst() {
   return (
     <>
       <div className="flex items-center justify-between gap-3">
-        <h1 ref={kopRef} tabIndex={-1} className="text-[19px] font-extrabold tracking-[-0.02em]">
+        <h1 ref={kopRef} tabIndex={-1} className="text-dialog-title font-extrabold tracking-[-0.02em]">
           Assortiment
         </h1>
         <button

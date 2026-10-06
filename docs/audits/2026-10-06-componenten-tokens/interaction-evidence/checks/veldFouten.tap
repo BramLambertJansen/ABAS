@@ -1,0 +1,13 @@
+✔ bedragFout: elke soort (1.069279ms)
+✔ bedragFout: geldige invoer geeft null, ook op de grens en met spaties (0.154446ms)
+✔ bedragFout: optioneel en nul toegestaan (0.125888ms)
+✔ emailFout (0.244856ms)
+✔ teksten: goedgekeurde formuleringen (0.217454ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7.621167

@@ -221,3 +221,21 @@ test("stale recovery cannot use a newer action's key", async () => {
   assert.equal(f.calls.length, 3);
   assert.equal(f.storage.size, 1);
 });
+
+test("stale herstelweergave kan een nieuwere sleutel niet controleren of annuleren", async () => {
+  const f = fixture();
+  await runMoneyRequest(f.client, "top_up", args, f.environment);
+  const oldId = f.calls[0].p_request_id as string;
+  f.response({ data: { id: "booking", amount_cents: 100 }, error: null });
+  await runMoneyRequest(f.client, "top_up", args, f.environment);
+  f.response({ data: null, error: { message: "network" } });
+  await runMoneyRequest(f.client, "top_up", { ...args, p_amount_cents: 200 }, f.environment);
+  const saved = [...f.storage.values()];
+  const count = f.calls.length;
+  for (const cancel of [false, true]) {
+    const result = await inspectPendingMoneyRequest(f.client, "top_up", cancel, f.environment, oldId);
+    assert.equal(result.error?.message, "pending_request");
+    assert.equal(f.calls.length, count);
+    assert.deepEqual([...f.storage.values()], saved);
+  }
+});

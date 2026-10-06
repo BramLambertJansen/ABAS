@@ -1,7 +1,9 @@
 "use client";
 
+import { KNOP_ACCENT_DONKER, KNOP_RAND } from "@/components/knopStijlen";
+
 import { useId, useRef, useState } from "react";
-import { Overlay } from "@/components/Overlay";
+import { Overlay, OverlaySluitKnop } from "@/components/Overlay";
 import { useOpslaanBlokkade } from "@/hooks/useOpslaanBlokkade";
 import { useHerstelFocus } from "@/hooks/useHerstelFocus";
 import { ONBEKENDE_UITKOMST_TEKST, OPSLAAN_BEZIG_TEKST, isNieuwOnopgeslagen } from "@/lib/opslaan";
@@ -12,7 +14,7 @@ import {
 import type { AssortimentProduct } from "@/hooks/queries/useAlleProducten";
 import { parseEuroToCents } from "@/lib/money";
 import { bedragFout, bedragFoutTekst } from "@/lib/veldFouten";
-import { VeldFout } from "@/components/TekstVeld";
+import { TekstVeld, VeldFout } from "@/components/TekstVeld";
 import { useVeldMoment } from "@/hooks/useVeldMoment";
 import { PRODUCT_CATEGORIES } from "./categories";
 
@@ -106,11 +108,8 @@ export function NieuwProductOverlay({
       </p>
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor={nameId} className="text-xs font-bold text-muted">
-          Naam
-        </label>
-        <input
-          ref={nameInputRef}
+        <TekstVeld label="Naam" tone="light" maat="48"
+          inputRef={nameInputRef}
           id={nameId}
           type="text"
           value={name}
@@ -118,9 +117,7 @@ export function NieuwProductOverlay({
           onChange={(event) => {
             setName(event.target.value);
             wijzig();
-          }}
-          className="h-12 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink outline-none focus:border-accent"
-        />
+          }} />
       </div>
 
       <fieldset className="flex flex-col gap-2">
@@ -149,15 +146,8 @@ export function NieuwProductOverlay({
       </fieldset>
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor={priceId} className="text-xs font-bold text-muted">
-          Prijs
-        </label>
-        <div className="flex items-center gap-2 rounded-control border border-border bg-white px-3.5 focus-within:border-accent">
-          <span aria-hidden="true" className="text-sm font-bold text-muted">
-            €
-          </span>
-          <input
-            ref={priceInputRef}
+        <TekstVeld label="Prijs" tone="light" maat="48" prefix="€"
+            inputRef={priceInputRef}
             id={priceId}
             aria-invalid={priceMelding ? true : undefined}
             aria-describedby={priceMelding ? `${priceId}-fout` : undefined}
@@ -172,26 +162,22 @@ export function NieuwProductOverlay({
               priceMoment.bijWijzig();
               wijzig();
             }}
-            className="h-12 flex-1 min-w-0 bg-transparent text-sm font-semibold text-ink outline-none"
-          />
-        </div>
+           />
         <VeldFout id={`${priceId}-fout`} tekst={priceMelding} alert={priceMoment.pogingAlert} />
       </div>
 
       <div className="flex gap-2.5">
-        <button
-          type="button"
+        <OverlaySluitKnop
           disabled={closeBlocked}
-          onClick={onClose}
-          className="flex h-11 flex-1 items-center justify-center rounded-control border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
+          className={`flex h-11 flex-1 items-center justify-center rounded-control text-sm font-bold ${KNOP_RAND}`}
         >
           Annuleren
-        </button>
+        </OverlaySluitKnop>
         <button
           type="button"
           disabled={!canSubmit}
           onClick={submit}
-          className="flex h-11 flex-1 items-center justify-center rounded-control bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:bg-track disabled:text-muted"
+          className={`flex h-11 flex-1 items-center justify-center rounded-control text-sm font-bold ${KNOP_ACCENT_DONKER}`}
         >
           {pending ? OPSLAAN_BEZIG_TEKST : "Toevoegen"}
         </button>

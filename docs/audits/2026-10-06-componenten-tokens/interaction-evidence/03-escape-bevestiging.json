@@ -1,0 +1,27 @@
+{
+  "fixtureProvenance": {
+    "dataKind": "synthetic browser fixtures only",
+    "personalAndFinancialData": "Names, email addresses, balances and transactions are invented test data; no production records.",
+    "source": [
+      "e2e/helpers/supabaseMock.ts (USER and fakeSession)",
+      "e2e/helpers/frontendReview.ts (reviewFixture)",
+      "docs/audits/2026-10-06-componenten-tokens/tools/screen-audit.cjs (PRODUCTS and TRANSACTIONS mocks)",
+      "docs/audits/2026-10-06-componenten-tokens/tools/interaction-audit.cjs (local route mocks)"
+    ],
+    "networkIsolation": "Local app only; unmocked external browser requests aborted."
+  },
+  "id": "03-escape-bevestiging",
+  "file": "screenshots/03-escape-bevestiging.png",
+  "note": "Escape vraagt eerst om Weggooien of Terug; huidige invoer blijft.",
+  "url": "http://127.0.0.1:3100/beheer",
+  "snapshot": "- alert\n- main:\n  - tablist \"Beheer-navigatie\":\n    - tab \"Assortiment\" [selected]\n    - tab \"Leden\"\n    - tab \"Instellingen\"\n    - tab \"Diensten\"\n    - tab \"Logboek\"\n  - text: Ingelogd als Femke Bos BEHEER\n  - button \"Uitloggen\"\n  - tabpanel \"Assortiment\":\n    - heading \"Assortiment\" [level=1]\n    - button \"nieuw product\"\n    - status\n    - text: Zoek product op naam of categorie\n    - searchbox \"Zoek product op naam of categorie\"\n    - group \"Status\":\n      - button \"Actief 1\" [pressed]\n      - button \"Uit assortiment 0\"\n    - paragraph: 1 van 1 producten\n    - list:\n      - listitem:\n        - button \"Pils Bier · € 2,50\"\n    - dialog \"Product beheren\":\n      - heading \"Product beheren\" [level=2]\n      - paragraph: Wijzigingen aan Pils.\n      - text: Pils Bier Afbeelding JPG, PNG of WebP, maximaal 4 MB\n      - group \"Afbeelding\":\n        - button \"Afbeelding kiezen\"\n      - text: Huidige prijs € 2,50 Prijs wijzigen geldt vanaf de volgende tik — eerdere bestellingen blijven ongewijzigd Nieuwe prijs\n      - textbox \"Nieuwe prijs\":\n        - /placeholder: 0,00\n        - text: 2,75\n      - button \"Opslaan\"\n      - button \"Uit assortiment halen Het product verdwijnt van het verkoopscherm. Verkoophistorie blijft bestaan. Terugzetten kan onder ‘Uit assortiment’.\"\n      - button \"Sluiten\"\n      - group \"Niet-opgeslagen wijziging weggooien?\":\n        - paragraph: Niet-opgeslagen wijziging weggooien?\n        - button \"Weggooien\"\n        - button \"Terug\"\n      - status",
+  "focus": {
+    "tag": "BUTTON",
+    "text": "Terug",
+    "label": null
+  },
+  "calls": 0,
+  "health": "Goed binnen huidig besluit — U06",
+  "auditNote": "De invoer blijft staan en de inline vraag krijgt veilige focus op Terug.",
+  "visuallyInspected": true
+}

@@ -1,7 +1,9 @@
 "use client";
 
+import { KNOP_RAND, KNOP_ACCENT_DONKER } from "@/components/knopStijlen";
+
 import { useId, useRef, useState } from "react";
-import { Overlay } from "@/components/Overlay";
+import { Overlay, OverlaySluitKnop } from "@/components/Overlay";
 import { OpslaanSectie } from "@/components/OpslaanSectie";
 import { ProductAfbeelding } from "@/components/ProductAfbeelding";
 import { useOpslaanBlokkade } from "@/hooks/useOpslaanBlokkade";
@@ -11,6 +13,7 @@ import {
   OPSLAAN_BEZIG_TEKST,
   isBezig,
   isPrijsOnopgeslagen,
+  sectieStatus,
 } from "@/lib/opslaan";
 import {
   useUpdateProductPrice,
@@ -27,7 +30,7 @@ import {
 import type { AssortimentProduct } from "@/hooks/queries/useAlleProducten";
 import { formatCents, parseEuroToCents } from "@/lib/money";
 import { bedragFout, bedragFoutTekst } from "@/lib/veldFouten";
-import { VeldFout } from "@/components/TekstVeld";
+import { TekstVeld, VeldFout } from "@/components/TekstVeld";
 import { useVeldMoment } from "@/hooks/useVeldMoment";
 import { SESSION_CODE_INLINE_MESSAGE, isSessionErrorCode } from "@/lib/barSessie";
 import {
@@ -110,6 +113,9 @@ export function ProductBeherenOverlay({
 }) {
   const [product, setProduct] = useState(initialProduct);
   const [priceInput, setPriceInput] = useState("");
+  const [prijsGelukt, setPrijsGelukt] = useState(false);
+  const [afbeeldingGelukt, setAfbeeldingGelukt] = useState<string | null>(null);
+  const [archiefGelukt, setArchiefGelukt] = useState(false);
   const priceMutation = useUpdateProductPrice();
   const archiveMutation = useSetProductArchived();
   const imageMutation = useProductAfbeelding();
@@ -153,6 +159,7 @@ export function ProductBeherenOverlay({
       priceInputRef.current?.focus();
       return;
     }
+    setPrijsGelukt(false);
     const updated = await priceMutation.updateProductPrice(
       product.id,
       parsedPriceCents
@@ -161,6 +168,8 @@ export function ProductBeherenOverlay({
       // Alleen wat deze actie wijzigde; de rest van het lokale product blijft.
       setProduct((current) => ({ ...current, priceCents: updated.priceCents }));
       setPriceInput("");
+      priceMoment.reset();
+      setPrijsGelukt(true);
       onChanged();
     }
     herstelFocus(priceInputRef.current);
@@ -173,6 +182,7 @@ export function ProductBeherenOverlay({
 
   async function onImageChosen(file: File | undefined) {
     // Een nieuwe keuze wist de vorige melding (voorcontrole of server).
+    setAfbeeldingGelukt(null);
     setImagePrecheck(null);
     imageMutation.reset();
     if (!file || busy) return;
@@ -185,6 +195,7 @@ export function ProductBeherenOverlay({
     const result = await imageMutation.upload(product.id, file);
     if (result) {
       setProduct((current) => ({ ...current, imageUrl: result.imageUrl }));
+      setAfbeeldingGelukt("Afbeelding opgeslagen");
       onChanged();
     }
     herstelFocus(chooseButtonRef.current);
@@ -192,10 +203,12 @@ export function ProductBeherenOverlay({
 
   async function removeImage() {
     if (busy) return;
+    setAfbeeldingGelukt(null);
     setImagePrecheck(null);
     const result = await imageMutation.remove(product.id);
     if (result) {
       setProduct((current) => ({ ...current, imageUrl: result.imageUrl }));
+      setAfbeeldingGelukt("Afbeelding verwijderd");
       onChanged();
     }
     // De knop "Verwijderen" is na succes weg; "Afbeelding kiezen" bestaat
@@ -207,12 +220,14 @@ export function ProductBeherenOverlay({
 
   async function toggleArchived() {
     if (busy) return;
+    setArchiefGelukt(false);
     const updated = await archiveMutation.setProductArchived(
       product.id,
       !product.archived
     );
     if (updated) {
       setProduct((current) => ({ ...current, archived: updated.archived }));
+      setArchiefGelukt(true);
       onChanged();
     }
     herstelFocus(archiveButtonRef.current);
@@ -235,7 +250,7 @@ export function ProductBeherenOverlay({
       <div className="flex items-center gap-[13px]">
         <ProductAfbeelding imageUrl={product.imageUrl} name={product.name} size="detail" />
         <div className="flex min-w-0 flex-col gap-1">
-          <span className="truncate text-[17px] font-extrabold tracking-[-0.015em] text-ink">
+          <span className="truncate text-section-title font-extrabold tracking-[-0.015em] text-ink">
             {product.name}
           </span>
           <span className="text-[11.5px] font-semibold text-muted">{product.category}</span>
@@ -243,6 +258,9 @@ export function ProductBeherenOverlay({
       </div>
 
       <OpslaanSectie
+        label="Productafbeelding"
+        status={sectieStatus({ onopgeslagen: false, gelukt: afbeeldingGelukt !== null, fout: !!imageErrorCode })}
+        statusTekst={afbeeldingGelukt ?? undefined}
         pending={imageBusy}
         wachtOpAnder={priceBusy || archiveBusy}
         fout={imageErrorCode ? imageErrorMessage(imageErrorCode) || null : null}
@@ -315,6 +333,9 @@ export function ProductBeherenOverlay({
       </div>
 
       <OpslaanSectie
+        label="Prijs wijzigen"
+        status={sectieStatus({ onopgeslagen: unsaved, gelukt: prijsGelukt, fout: !!priceMutation.errorCode || !!priceMelding })}
+        statusTekst="Prijs opgeslagen"
         pending={priceBusy}
         wachtOpAnder={archiveBusy || imageBusy}
         fout={priceMutation.errorCode ? priceErrorMessage(priceMutation.errorCode) : null}
@@ -326,15 +347,8 @@ export function ProductBeherenOverlay({
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <label htmlFor={priceId} className="sr-only">
-            Nieuwe prijs
-          </label>
-          <div className="flex flex-1 items-center gap-2 rounded-control border border-border bg-white px-3.5 focus-within:border-accent">
-            <span aria-hidden="true" className="text-sm font-bold text-muted">
-              €
-            </span>
-            <input
-              ref={priceInputRef}
+          <TekstVeld label="Nieuwe prijs" tone="light" maat="44" prefix="€" labelVerborgen className="flex-1"
+              inputRef={priceInputRef}
               id={priceId}
               aria-invalid={priceMelding ? true : undefined}
               aria-describedby={priceMelding ? `${priceId}-fout` : undefined}
@@ -345,18 +359,16 @@ export function ProductBeherenOverlay({
               value={priceInput}
               readOnly={priceBusy}
               onChange={(event) => {
+                setPrijsGelukt(false);
                 setPriceInput(event.target.value);
                 priceMoment.bijWijzig();
                 if (priceMutation.errorCode) priceMutation.reset();
-              }}
-              className="h-11 flex-1 min-w-0 bg-transparent text-sm font-semibold text-ink outline-none"
-            />
-          </div>
+              }} />
           <button
             type="button"
             disabled={!canSavePrice}
             onClick={savePrice}
-            className="flex h-11 items-center justify-center rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:bg-track disabled:text-muted"
+            className={`flex h-11 items-center justify-center rounded-control px-4 text-sm font-bold ${KNOP_ACCENT_DONKER}`}
           >
             {priceBusy ? OPSLAAN_BEZIG_TEKST : "Opslaan"}
           </button>
@@ -365,6 +377,9 @@ export function ProductBeherenOverlay({
       </OpslaanSectie>
 
       <OpslaanSectie
+        label="Assortimentstatus"
+        status={sectieStatus({ onopgeslagen: false, gelukt: archiefGelukt, fout: !!archiveMutation.errorCode })}
+        statusTekst={product.archived ? "Uit assortiment gehaald" : "Terug in assortiment gezet"}
         chrome={false}
         pending={archiveBusy}
         wachtOpAnder={priceBusy || imageBusy}
@@ -397,14 +412,12 @@ export function ProductBeherenOverlay({
       </button>
       </OpslaanSectie>
 
-      <button
-        type="button"
+      <OverlaySluitKnop
         disabled={closeBlocked}
-        onClick={onClose}
-        className="flex h-11 w-full items-center justify-center rounded-control border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
+        className={`flex h-11 w-full items-center justify-center rounded-control text-sm font-bold ${KNOP_RAND}`}
       >
         Sluiten
-      </button>
+      </OverlaySluitKnop>
     </Overlay>
   );
 }

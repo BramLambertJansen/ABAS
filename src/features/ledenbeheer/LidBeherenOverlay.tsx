@@ -1,6 +1,9 @@
 "use client";
 
+import { KNOP_ACCENT_DONKER } from "@/components/knopStijlen";
+
 import { useId, useRef, useState } from "react";
+import { NAAM_VERPLICHT_TEKST } from "@/lib/veldFouten";
 import { Overlay } from "@/components/Overlay";
 import { OpslaanSectie } from "@/components/OpslaanSectie";
 import { useOpslaanBlokkade } from "@/hooks/useOpslaanBlokkade";
@@ -37,7 +40,7 @@ import {
 import type { LedenbeheerLid } from "@/hooks/queries/useAlleLeden";
 import { formatCents } from "@/lib/money";
 import { EMAIL_ONGELDIG_TEKST, emailFout } from "@/lib/veldFouten";
-import { VeldFout } from "@/components/TekstVeld";
+import { TekstVeld, VeldFout } from "@/components/TekstVeld";
 import { useVeldMoment } from "@/hooks/useVeldMoment";
 import { formatDate } from "@/lib/date";
 import { RATE_LIMITED_MESSAGE } from "@/lib/authErrors";
@@ -238,12 +241,15 @@ export function LidBeherenOverlay({
     isTekstOnopgeslagen(emailInput, member.email ?? "") ||
     isKeuzeOnopgeslagen(roleValue, member.role);
 
+  const naamMoment = useVeldMoment();
   const trimmedName = nameInput.trim();
+  const naamMelding = !trimmedName && (naamMoment.aangeraakt || naamMoment.pogingGedaan) ? NAAM_VERPLICHT_TEKST : null;
   const canSaveName =
-    trimmedName !== "" && trimmedName !== member.name && !busy;
+    trimmedName !== member.name && !busy;
 
   async function saveName() {
     if (!canSaveName) return;
+    if (!trimmedName) { naamMoment.bijPoging(); nameInputRef.current?.focus(); return; }
     setGelukt((g) => ({ ...g, naam: false }));
     const updated = await nameMutation.updateMemberName(member.id, trimmedName);
     if (updated) {
@@ -435,31 +441,32 @@ export function LidBeherenOverlay({
           kop={<span className="text-sm font-bold text-ink">Naam wijzigen</span>}
         >
           <div className="flex items-center gap-2">
-            <label htmlFor={nameId} className="sr-only">
-              Naam
-            </label>
-            <input
-              ref={nameInputRef}
+            <TekstVeld label="Naam" labelVerborgen tone="light" maat="44" className="flex-1"
+              inputRef={nameInputRef}
               id={nameId}
+              required
+              aria-invalid={naamMelding ? true : undefined}
+              aria-describedby={naamMelding ? `${nameId}-fout` : undefined}
+              onBlur={naamMoment.bijBlur}
               type="text"
               value={nameInput}
               readOnly={nameBusy}
               onChange={(event) => {
+                naamMoment.bijWijzig();
                 setNameInput(event.target.value);
                 setGelukt((g) => ({ ...g, naam: false }));
                 if (nameMutation.errorCode) nameMutation.reset();
-              }}
-              className="h-11 flex-1 min-w-0 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink outline-none focus:border-accent"
-            />
+              }} />
             <button
               type="button"
               disabled={!canSaveName}
               onClick={saveName}
-              className="flex h-11 items-center justify-center rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:bg-track disabled:text-muted"
+              className={`flex h-11 items-center justify-center rounded-control px-4 text-sm font-bold ${KNOP_ACCENT_DONKER}`}
             >
               {nameBusy ? OPSLAAN_BEZIG_TEKST : "Opslaan"}
             </button>
           </div>
+          <VeldFout id={`${nameId}-fout`} tekst={naamMelding} alert={naamMoment.pogingAlert} />
         </OpslaanSectie>
 
         <OpslaanSectie
@@ -472,11 +479,8 @@ export function LidBeherenOverlay({
           kop={<span className="text-sm font-bold text-ink">{CONTACTADRES_LABEL}</span>}
         >
           <div className="flex items-center gap-2">
-            <label htmlFor={emailId} className="sr-only">
-              {CONTACTADRES_LABEL}
-            </label>
-            <input
-              ref={emailInputRef}
+            <TekstVeld label={CONTACTADRES_LABEL} labelVerborgen tone="light" maat="44" className="flex-1"
+              inputRef={emailInputRef}
               id={emailId}
               type="email"
               value={emailInput}
@@ -489,14 +493,12 @@ export function LidBeherenOverlay({
                 setGelukt((g) => ({ ...g, email: false }));
                 emailMoment.bijWijzig();
                 if (emailMutation.errorCode) emailMutation.reset();
-              }}
-              className="h-11 flex-1 min-w-0 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink outline-none focus:border-accent"
-            />
+              }} />
             <button
               type="button"
               disabled={!canSaveEmail}
               onClick={saveEmail}
-              className="flex h-11 items-center justify-center rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:bg-track disabled:text-muted"
+              className={`flex h-11 items-center justify-center rounded-control px-4 text-sm font-bold ${KNOP_ACCENT_DONKER}`}
             >
               {emailBusy ? OPSLAAN_BEZIG_TEKST : "Opslaan"}
             </button>
@@ -557,7 +559,7 @@ export function LidBeherenOverlay({
               type="button"
               disabled={!canSaveRole}
               onClick={saveRole}
-              className="flex h-11 items-center justify-center rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:bg-track disabled:text-muted"
+              className={`flex h-11 items-center justify-center rounded-control px-4 text-sm font-bold ${KNOP_ACCENT_DONKER}`}
             >
               {roleBusy ? OPSLAAN_BEZIG_TEKST : "Opslaan"}
             </button>
@@ -616,7 +618,7 @@ export function LidBeherenOverlay({
                 type="button"
                 disabled={member.hasAccount || busy}
                 onClick={sendInvite}
-                className="flex h-11 w-full items-center justify-center rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:bg-track disabled:text-muted"
+                className={`flex h-11 w-full items-center justify-center rounded-control px-4 text-sm font-bold ${KNOP_ACCENT_DONKER}`}
               >
                 {inviteBusy
                   ? OPSLAAN_BEZIG_TEKST

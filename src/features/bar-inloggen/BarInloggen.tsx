@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useRef, useState, type FormEvent } from "react";
+import { StartScherm } from "@/components/StartScherm";
 import { AuroraMerk } from "@/components/AuroraMerk";
 import { LeesFout } from "@/components/LeesFout";
 import { TekstVeld } from "@/components/TekstVeld";
@@ -240,11 +241,7 @@ export function BarInloggen() {
   );
 
   return (
-    <main className="relative isolate flex min-h-screen w-full flex-col items-center justify-center gap-6 overflow-auto bg-rail px-6 py-8 font-sans text-white">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_0%,rgba(238,90,36,0.16),transparent_60%)]"
-      />
+    <StartScherm>
       <AuroraMerk tone="dark">
         <h1
           ref={titelRef}
@@ -254,7 +251,7 @@ export function BarInloggen() {
           {STARTSCHERM.titel}
         </h1>
         {!gekozen && (
-          <p className="text-[12.5px] font-semibold leading-normal text-rail-muted">
+          <p className="text-metadata font-semibold leading-normal text-rail-muted">
             {STARTSCHERM.ondertitel}
           </p>
         )}
@@ -440,6 +437,6 @@ export function BarInloggen() {
           </button>
         </form>
       )}
-    </main>
+    </StartScherm>
   );
 }

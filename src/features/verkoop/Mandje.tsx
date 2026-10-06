@@ -89,13 +89,17 @@ export function Mandje({
   const vraagId = useId();
   const lidNaamRef = useRef<HTMLParagraphElement>(null);
   const focusOpLid = useRef(false);
+  const focusOpZoeker = useRef(false);
 
-  // Na "Wissen en kiezen" verdwijnen bevestiging en zoeker; de focus gaat naar
+  // Na lidselectie verdwijnen bevestiging en zoeker; de focus gaat naar
   // de naam in het lidkaartje (niet naar body).
   useEffect(() => {
     if (selectedMember && focusOpLid.current) {
       focusOpLid.current = false;
       lidNaamRef.current?.focus();
+    } else if (!selectedMember && focusOpZoeker.current) {
+      focusOpZoeker.current = false;
+      document.getElementById("verkoop-member-search")?.focus();
     }
   }, [selectedMember]);
 
@@ -120,6 +124,7 @@ export function Mandje({
       if (member) setBevestig({ id, name: member.name });
       return;
     }
+    focusOpLid.current = true;
     onSelectMember(id);
     setMemberQuery("");
   }
@@ -129,6 +134,7 @@ export function Mandje({
     const { id } = bevestig;
     // De bevestiging sluit bij de eerste tik: een dubbele tik wisselt één keer.
     setBevestig(null);
+    focusOpLid.current = true;
     focusOpLid.current = true;
     onSelectMember(id);
     setMemberQuery("");
@@ -180,14 +186,14 @@ export function Mandje({
               type="button"
               disabled={topupDisabled}
               onClick={onOpenTopup}
-              className="flex h-11 flex-1 items-center justify-center rounded-[11px] border border-border text-[12.5px] font-bold text-ink transition-colors hover:border-accent hover:text-accent-active disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-11 flex-1 items-center justify-center rounded-[11px] border border-border text-metadata font-bold text-ink transition-colors hover:border-accent hover:text-accent-active disabled:cursor-not-allowed disabled:opacity-50"
             >
               saldo opwaarderen
             </button>
             <button
               type="button"
-              onClick={onClearMember}
-              className="flex h-11 flex-none items-center justify-center rounded-[11px] border border-border px-4 text-[12.5px] font-bold text-muted transition-colors hover:border-ink hover:text-ink"
+              onClick={() => { focusOpZoeker.current = true; onClearMember(); }}
+              className="flex h-11 flex-none items-center justify-center rounded-[11px] border border-border px-4 text-metadata font-bold text-muted transition-colors hover:border-ink hover:text-ink"
             >
               wissel
             </button>
@@ -217,7 +223,7 @@ export function Mandje({
               aria-labelledby={vraagId}
               className="flex flex-none flex-col gap-2 rounded-control bg-warning-bg px-[13px] py-[11px] text-warning-fg"
             >
-              <p id={vraagId} className="text-[12.5px] font-bold">
+              <p id={vraagId} className="text-metadata font-bold">
                 {lidwisselBevestigVraag(bevestig.name)}
               </p>
               <div className="flex gap-2">
@@ -306,7 +312,7 @@ export function Mandje({
                   type="button"
                   onClick={() => onDec(line.productId)}
                   aria-label={`Eén ${line.name} minder`}
-                  className="flex h-11 w-11 items-center justify-center rounded-[10px] border border-border bg-white pb-0.5 text-[19px] font-bold leading-none text-muted transition-colors hover:border-accent hover:text-accent-active"
+                  className="flex h-11 w-11 items-center justify-center rounded-[10px] border border-border bg-white pb-0.5 text-dialog-title font-bold leading-none text-muted transition-colors hover:border-accent hover:text-accent-active"
                 >
                   −
                 </button>
@@ -317,7 +323,7 @@ export function Mandje({
                   type="button"
                   onClick={() => onInc(line.productId)}
                   aria-label={`Eén ${line.name} meer`}
-                  className="flex h-11 w-11 items-center justify-center rounded-[10px] border border-border bg-white pb-0.5 text-[19px] font-bold leading-none text-muted transition-colors hover:border-accent hover:text-accent-active"
+                  className="flex h-11 w-11 items-center justify-center rounded-[10px] border border-border bg-white pb-0.5 text-dialog-title font-bold leading-none text-muted transition-colors hover:border-accent hover:text-accent-active"
                 >
                   +
                 </button>
@@ -342,13 +348,13 @@ export function Mandje({
 
       <div className="flex flex-none flex-col gap-[7px]">
         <div className="flex items-baseline justify-between">
-          <span className="text-[17px] font-extrabold tracking-[-0.015em] text-ink">Totaal</span>
+          <span className="text-section-title font-extrabold tracking-[-0.015em] text-ink">Totaal</span>
           <span className="text-[23px] font-extrabold tracking-[-0.03em] text-ink">
             {formatCents(subtotalCents)}
           </span>
         </div>
         {selectedMember && balanceAfterCents !== null && (
-          <div className="flex justify-between text-[12.5px] font-semibold text-muted">
+          <div className="flex justify-between text-metadata font-semibold text-muted">
             <span>Saldo na afrekenen</span>
             <span className={balanceAfterCents < 0 ? "text-danger" : undefined}>
               {formatCents(balanceAfterCents)}
@@ -359,7 +365,7 @@ export function Mandje({
 
       {insufficientFunds && (
         <div
-          className="flex flex-none items-center gap-2.5 rounded-control bg-warning-bg px-[13px] py-[11px] text-[12.5px] font-bold text-warning-fg"
+          className="flex flex-none items-center gap-2.5 rounded-control bg-warning-bg px-[13px] py-[11px] text-metadata font-bold text-warning-fg"
           role="alert"
         >
           <span className="flex-1">{insufficientBalanceMessage(shortfallCents)}</span>
@@ -384,13 +390,13 @@ export function Mandje({
         type="button"
         disabled={checkoutDisabled}
         onClick={onOpenCheckout}
-        className={`flex h-[54px] flex-none items-center justify-center gap-2.5 rounded-card text-[15.5px] font-extrabold tracking-[-0.01em] shadow-[0_12px_26px_-12px_rgba(238,90,36,1)] disabled:shadow-none ${KNOP_ACCENT_WIT}`}
+        className={`flex h-[54px] flex-none items-center justify-center gap-2.5 rounded-card text-[15.5px] font-extrabold tracking-[-0.01em] shadow-checkout disabled:shadow-none ${KNOP_ACCENT_WIT}`}
       >
         <span>
           Tik afrekenen
           {cartLines.length > 0 && ` · ${formatCents(subtotalCents)}`}
         </span>
-        <span aria-hidden="true" className="text-[17px]">
+        <span aria-hidden="true" className="text-section-title">
           →
         </span>
       </button>

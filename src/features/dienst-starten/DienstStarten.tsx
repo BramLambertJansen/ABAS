@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useLeesHerstel } from "@/hooks/useLeesHerstel";
+import { StartScherm } from "@/components/StartScherm";
 import { AuroraMerk } from "@/components/AuroraMerk";
 import {
   useActiviteitTypes,
@@ -87,11 +88,7 @@ export function DienstStarten() {
   }
 
   return (
-    <main className="relative isolate flex min-h-screen w-full flex-col items-center justify-center gap-6 overflow-auto bg-rail px-6 py-8 font-sans text-white">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_0%,rgba(238,90,36,0.16),transparent_60%)]"
-      />
+    <StartScherm>
 
       <div className="absolute right-6 top-5 flex items-center gap-3">
         <span className="text-xs font-semibold text-rail-muted">{ingelogdAls(session.memberName)}</span>
@@ -130,6 +127,6 @@ export function DienstStarten() {
           onSelect={kiesActiviteit}
         />
       )}
-    </main>
+    </StartScherm>
   );
 }

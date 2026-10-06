@@ -1,7 +1,9 @@
 "use client";
 
-import { useId, useState, type FormEvent } from "react";
+import { useId, useRef, useState, type FormEvent } from "react";
 import { Overlay } from "@/components/Overlay";
+import { useVeldMoment } from "@/hooks/useVeldMoment";
+import { NAAM_VERPLICHT_TEKST } from "@/lib/veldFouten";
 import { TekstVeld } from "@/components/TekstVeld";
 import {
   usePortalUpdateOwnName,
@@ -52,12 +54,16 @@ export function NaamWijzigenSheet({
   const { closeBlocked, timedOut } = useOpslaanBlokkade(pending);
   const unsaved = isTekstOnopgeslagen(name, currentName);
 
+  const naamRef = useRef<HTMLInputElement>(null);
+  const naamMoment = useVeldMoment();
   const trimmed = name.trim();
-  const disabled = trimmed === "" || trimmed === currentName || mutation.status === "pending";
+  const naamMelding = !trimmed && (naamMoment.aangeraakt || naamMoment.pogingGedaan) ? NAAM_VERPLICHT_TEKST : null;
+  const disabled = trimmed === currentName || mutation.status === "pending";
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (disabled) return;
+    if (!trimmed) { naamMoment.bijPoging(); naamRef.current?.focus(); return; }
     const result = await mutation.updateOwnName(trimmed);
     if (result.ok) {
       onSaved();
@@ -79,6 +85,10 @@ export function NaamWijzigenSheet({
       <form onSubmit={submit} className="flex flex-col gap-[14px]" noValidate>
         <TekstVeld
           label="Volledige naam"
+          inputRef={naamRef}
+          fout={naamMelding}
+          foutAlert={naamMoment.pogingAlert}
+          onBlur={naamMoment.bijBlur}
           tone="light"
           type="text"
           autoComplete="name"
@@ -87,6 +97,7 @@ export function NaamWijzigenSheet({
           value={name}
           onChange={(event) => {
             setName(event.target.value);
+            naamMoment.bijWijzig();
             if (mutation.errorCode) mutation.reset();
           }}
           aria-invalid={mutation.errorCode === "invalid_name"}
@@ -100,7 +111,6 @@ export function NaamWijzigenSheet({
         <SheetKnoppen
           submitLabel={pending ? OPSLAAN_BEZIG_TEKST : "Opslaan"}
           disabled={disabled}
-          onCancel={onClose}
           cancelDisabled={closeBlocked}
         />
       </form>

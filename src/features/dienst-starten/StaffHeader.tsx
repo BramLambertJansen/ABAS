@@ -8,7 +8,7 @@ export function StaffHeader({ name }: { name: string }) {
   return (
     <div className="flex flex-col items-center gap-2">
       <InitialsAvatar name={name} size="lg" />
-      <p className="whitespace-nowrap text-[13.5px] font-bold text-rail-light">{name}</p>
+      <p className="whitespace-nowrap text-detail font-bold text-rail-light">{name}</p>
     </div>
   );
 }

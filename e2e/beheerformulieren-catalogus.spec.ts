@@ -202,8 +202,10 @@ for (const viewport of [
 
     await axe(page);
 
-    // De eigen Sluiten-knop sluit direct.
+    // Ook de vaste Sluiten-knop vraagt vóór het weggooien.
     await sluiten.click();
+    await expect(vraag).toBeInViewport();
+    await dialog.getByRole("button", { name: "Weggooien", exact: true }).click();
     await expect(dialog).toHaveCount(0);
   });
 }
@@ -473,7 +475,7 @@ test("Activiteitstypes: laatste actieve archiveren toont eerst de waarschuwing, 
   await archiveer.click();
   await blok.getByRole("button", { name: "Eerst een type toevoegen" }).click();
   await expect(blok).toHaveCount(0);
-  await expect(page.getByLabel("Nieuw activiteittype")).toBeFocused();
+  await expect(page.getByLabel("Nieuw activiteitstype")).toBeFocused();
   expect(mock.calls.archiveType).toHaveLength(0);
 
   // Toch archiveren: nu pas de RPC, daarna de vaste melding.

@@ -53,17 +53,17 @@ export function LogboekLijst() {
   return (
     <>
       <div className="flex items-baseline gap-2.5">
-        <h1 ref={kopRef} tabIndex={-1} className="text-[19px] font-extrabold tracking-[-0.02em]">
+        <h1 ref={kopRef} tabIndex={-1} className="text-dialog-title font-extrabold tracking-[-0.02em]">
           Logboek
         </h1>
         {logboek.status === "ready" && (
-          <span className="whitespace-nowrap text-[12.5px] font-bold text-muted">
+          <span className="whitespace-nowrap text-metadata font-bold text-muted">
             {countLabel(filtered.length, entries.length, reikwijdte)}
           </span>
         )}
       </div>
       {logboek.status === "ready" && (
-        <p className="text-[12.5px] font-semibold text-muted">{reikwijdteTekst(reikwijdte)}</p>
+        <p className="text-metadata font-semibold text-muted">{reikwijdteTekst(reikwijdte)}</p>
       )}
 
       <div className="flex flex-none flex-wrap items-center gap-2.5">
@@ -88,7 +88,7 @@ export function LogboekLijst() {
             placeholder="Zoek op naam, product of handeling"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="h-11 w-full rounded-[12px] border border-border bg-white pl-[42px] pr-4 text-[13.5px] font-medium text-ink focus-visible:outline-none placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/[0.12]"
+            className="h-11 w-full rounded-[12px] border border-border bg-white pl-[42px] pr-4 text-detail font-medium text-ink focus-visible:outline-none placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/[0.12]"
           />
         </div>
         <div
@@ -116,7 +116,7 @@ export function LogboekLijst() {
 
       <div className="flex min-h-[180px] flex-1 flex-col overflow-auto rounded-card border border-border bg-white px-1.5 py-1">
         {logboek.status === "loading" && !herstel.toonFout && (
-          <p className="py-11 text-center text-[13.5px] font-bold text-muted" role="status">
+          <p className="py-11 text-center text-detail font-bold text-muted" role="status">
             Logboek laden…
           </p>
         )}
@@ -131,7 +131,7 @@ export function LogboekLijst() {
         )}
         {logboek.status === "ready" && emptyState && (
           <div className="flex flex-col gap-[5px] px-[30px] py-10 text-center">
-            <span className="text-[13.5px] font-extrabold text-muted-strong">
+            <span className="text-detail font-extrabold text-muted-strong">
               {emptyState.title}
             </span>
             <span className="text-xs font-semibold text-muted">{emptyState.hint}</span>
@@ -171,7 +171,7 @@ function LogboekRow({ entry, nu }: { entry: LogboekEntry; nu: Date }) {
         flagged ? "border-l-[3px] border-l-danger bg-accent-soft" : "border-l-[3px] border-l-transparent"
       }`}
     >
-      <span className="min-w-[42px] flex-none text-[12.5px] font-bold text-muted">
+      <span className="min-w-[42px] flex-none text-metadata font-bold text-muted">
         {clockLabel(entry.createdAt)}
       </span>
       <span
@@ -189,7 +189,7 @@ function LogboekRow({ entry, nu }: { entry: LogboekEntry; nu: Date }) {
       </span>
       <div className="flex min-w-0 flex-1 flex-col gap-px">
         <span
-          className={`truncate text-[13.5px] ${flagged ? "font-extrabold text-danger" : "font-bold text-ink"} ${
+          className={`truncate text-detail ${flagged ? "font-extrabold text-danger" : "font-bold text-ink"} ${
             statusLabel ? "line-through" : ""
           }`}
         >

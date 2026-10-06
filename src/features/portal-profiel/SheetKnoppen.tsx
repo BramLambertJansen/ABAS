@@ -1,5 +1,8 @@
 "use client";
 
+import { KNOP_RAND, KNOP_ACCENT_DONKER } from "@/components/knopStijlen";
+import { OverlaySluitKnop } from "@/components/Overlay";
+
 /**
  * Annuleren + primaire actie onderaan elke profiel-sheet (prototype
  * designs/Lid App.dc.html: twee knoppen naast elkaar, 52px hoog). De
@@ -11,29 +14,25 @@
 export function SheetKnoppen({
   submitLabel,
   disabled,
-  onCancel,
   cancelDisabled = false,
 }: {
   submitLabel: string;
   disabled: boolean;
-  onCancel: () => void;
   /** Tijdens een lopende opslag (`closeBlocked`) sluit ook Annuleren niet. */
   cancelDisabled?: boolean;
 }) {
   return (
     <div className="flex gap-[10px]">
-      <button
-        type="button"
+      <OverlaySluitKnop
         disabled={cancelDisabled}
-        onClick={onCancel}
-        className="flex h-[52px] flex-1 items-center justify-center rounded-2xl border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
+        className={`flex h-[52px] flex-1 items-center justify-center rounded-2xl text-sm font-bold ${KNOP_RAND}`}
       >
         Annuleren
-      </button>
+      </OverlaySluitKnop>
       <button
         type="submit"
         aria-disabled={disabled}
-        className="flex h-[52px] flex-1 items-center justify-center rounded-2xl bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+        className={`flex h-[52px] flex-1 items-center justify-center rounded-2xl text-sm font-bold ${KNOP_ACCENT_DONKER}`}
       >
         {submitLabel}
       </button>

@@ -18,12 +18,12 @@ export const WEGGOOIEN_VRAAG = "Niet-opgeslagen wijziging weggooien?";
 export const WEGGOOIEN_KNOP = "Weggooien";
 export const WEGGOOIEN_TERUG_KNOP = "Terug";
 
-/** Bij een geldverzoek (afrekenen, opwaarderen, nieuw lid met startsaldo)
- *  waarvan de uitkomst onbekend is. Bewust geen "probeer het opnieuw", en
- *  geen belofte dat dubbel boeken is uitgesloten: er is geen
- *  idempotentiesleutel (vraag C, optie 3 is een apart ticket). */
+/** Onbekende financiële uitkomst: expliciet herstel met dezelfde bewaarde
+ * UUID. Een ontbrekende receipt sluit een vertraagd verzoek niet uit;
+ * alleen een bevestigde receipt of annuleringsbewijs geeft zekerheid. */
 export const ONBEKENDE_UITKOMST_GELD_TEKST =
-  "De uitkomst is onbekend. Controleer eerst het saldo of de transacties voordat je opnieuw probeert.";
+  "De uitkomst is onbekend. Controleer het eerdere resultaat, rond dezelfde actie veilig af of annuleer de onbevestigde actie definitief.";
+/** Historische tekst uit T06; huidige geldacties gebruiken serverherstel. */
 export const GECONTROLEERD_KNOP = "Ik heb gecontroleerd";
 
 /** Zelfde situatie bij een beheeractie zonder geld (time-out). */

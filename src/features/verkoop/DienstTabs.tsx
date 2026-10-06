@@ -112,7 +112,7 @@ export function DienstTabs({
         >
           <div
             aria-hidden="true"
-            className="flex h-[42px] w-[42px] items-center justify-center rounded-[13px] bg-accent text-[19px] font-extrabold tracking-tight text-white shadow-[0_6px_16px_-4px_rgba(238,90,36,0.7)]"
+            className="flex h-[42px] w-[42px] items-center justify-center rounded-[13px] bg-accent text-dialog-title font-extrabold tracking-tight text-white shadow-brand-compact"
           >
             A
           </div>

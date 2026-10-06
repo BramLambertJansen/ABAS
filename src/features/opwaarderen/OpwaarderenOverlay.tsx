@@ -117,11 +117,9 @@ export function OpwaarderenOverlay({
   // Geld: geen time-out, de blokkade blijft tot het verzoek klaar is.
   const { closeBlocked } = useOpslaanBlokkade(pending, { metTimeout: false });
   // Een tweede geldopdracht blijft geblokkeerd zolang de eerste kan slagen.
-  const inVlucht = pending;
-  // Onbekende uitkomst (netwerk, onbekende fout): pas weer boeken
-  // nadat de gebruiker bewust "Ik heb gecontroleerd" koos (besluit C).
-  const [gecontroleerd, setGecontroleerd] = useState(false);
-  const uitkomstOnbekend = submitErrorCode === "unknown" && !gecontroleerd;
+  // Herstel is expliciet en blijft gekoppeld aan de oorspronkelijke sleutel.
+  const uitkomstOnbekend = submitErrorCode === "unknown";
+  const inVlucht = pending || uitkomstOnbekend;
   // A4 (besloten, alle standen): nooit een opwaardering naar het lid van de
   // ingelogde sessie. De regel staat er al vóór het boeken, zodat de weigering
   // niet pas na de RPC zichtbaar wordt (zelfde verdeling als de €500): `top_up`
@@ -135,6 +133,7 @@ export function OpwaarderenOverlay({
   // een bevestigd bedrag blijven staan terwijl er inmiddels een ander bedrag
   // geboekt zou worden — precies de vergissing die deze stap moet vangen.
   function chooseChip(cents: number) {
+    if (inVlucht) return;
     setSelectedChipCents(cents);
     setCustomAmount("");
     bijWijzig();
@@ -164,7 +163,6 @@ export function OpwaarderenOverlay({
       return;
     }
 
-    setGecontroleerd(false);
     const result = await topUpMutation.topUp(
       shiftId,
       member.id,
@@ -241,6 +239,7 @@ export function OpwaarderenOverlay({
           crew={crew}
           selectedId={servedBy}
           onSelect={setServedBy}
+          disabled={inVlucht}
         />
       )}
 
@@ -249,6 +248,7 @@ export function OpwaarderenOverlay({
           <button
             key={cents}
             type="button"
+            disabled={inVlucht}
             aria-pressed={chipSelected(cents)}
             onClick={() => chooseChip(cents)}
             className={`flex h-12 items-center justify-center rounded-[13px] border text-sm font-extrabold transition-colors ${
@@ -283,6 +283,7 @@ export function OpwaarderenOverlay({
             inputMode="decimal"
             placeholder="ander bedrag"
             value={customAmount}
+            readOnly={inVlucht}
             onChange={(e) => {
               setCustomAmount(e.target.value);
               setSelectedChipCents(null);
@@ -292,14 +293,14 @@ export function OpwaarderenOverlay({
             onBlur={bijBlur}
             aria-describedby={veldMelding ? amountLimitId : undefined}
             aria-invalid={veldMelding ? true : undefined}
-            className="h-12 min-w-0 flex-1 rounded-[13px] border border-border bg-white px-3.5 text-[13.5px] font-semibold text-ink focus-visible:outline-none placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
+            className="h-12 min-w-0 flex-1 rounded-[13px] border border-border bg-white px-3.5 text-detail font-semibold text-ink focus-visible:outline-none placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
           />
           <button
             type="button"
             ref={knopRef}
             disabled={bookDisabled}
             onClick={handleBook}
-            className={`flex h-12 flex-none items-center justify-center rounded-[13px] px-[18px] text-[13.5px] font-extrabold ${KNOP_ACCENT_WIT}`}
+            className={`flex h-12 flex-none items-center justify-center rounded-[13px] px-[18px] text-detail font-extrabold ${KNOP_ACCENT_WIT}`}
           >
             {pending
               ? "bezig…"
@@ -319,16 +320,11 @@ export function OpwaarderenOverlay({
           vlak onder de titel in de vorige versie). */}
       {uitkomstOnbekend ? (
         <OnbekendeUitkomstMelding
-          hangend={pending}
-          onGecontroleerd={() => {
-            setGecontroleerd(true);
-            setSubmitErrorCode(null);
-            onRefetchMembers();
-            herstelFocus(
-              knopRef.current?.disabled
-                ? knopRef.current.closest<HTMLElement>('[role="dialog"]')
-                : knopRef.current
-            );
+          operation="top_up"
+          context={`Opwaardering voor ${member.name} · ${formatCents(amountCents ?? 0)}`}
+          onResolved={(resolution) => {
+            if (resolution.status === "completed") onSuccess(Number(resolution.result.amount_cents));
+            else { setSubmitErrorCode("request_cancelled"); onRefetchMembers(); herstelFocus(knopRef.current); }
           }}
         />
       ) : (

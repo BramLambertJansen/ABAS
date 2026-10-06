@@ -26,8 +26,8 @@ export function TransactieRij({ transaction }: { transaction: PortalTransaction 
   const lines = reversalLines(transaction);
 
   return (
-    <li className="flex items-start gap-3 border-b border-border-subtle py-3.5 last:border-b-0">
-      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+    <li className="flex flex-wrap items-start gap-3 border-b border-border-subtle py-3.5 last:border-b-0">
+      <div className="flex min-w-0 basis-[10rem] flex-1 flex-col gap-0.5">
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span
             className={`break-words text-sm font-bold ${reversed ? "text-muted line-through" : "text-ink"}`}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { StartScherm } from "@/components/StartScherm";
 import { AuroraMerk } from "@/components/AuroraMerk";
 import { CodeInvoer } from "@/components/CodeInvoer";
 import { BEHEERDER_INGREEP } from "@/features/bar-sessie/teksten";
@@ -68,11 +69,7 @@ export function ModusKeuze({
     code ? codeKopRef.current : beheerTegelRef.current
   );
   return (
-    <main className="relative isolate flex min-h-screen w-full flex-col items-center justify-center gap-6 overflow-auto bg-rail px-6 py-8 font-sans text-white">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_0%,rgba(238,90,36,0.16),transparent_60%)]"
-      />
+    <StartScherm>
       <AuroraMerk tone="dark">
         <h1 className="text-[21px] font-extrabold tracking-[-0.02em]">Welkom, {name}</h1>
       </AuroraMerk>
@@ -108,7 +105,7 @@ export function ModusKeuze({
             type="button"
             disabled={pending}
             onClick={onChooseBar}
-            className="flex flex-1 flex-col items-center gap-2.5 rounded-[18px] border border-rail-border bg-rail-card px-[18px] py-6 text-center transition-colors hover:border-accent hover:bg-[#23262d] disabled:opacity-50"
+            className="flex flex-1 flex-col items-center gap-2.5 rounded-[18px] border border-rail-border bg-rail-card px-[18px] py-6 text-center transition-colors hover:border-accent hover:bg-rail-hover disabled:opacity-50"
           >
             <svg width="22" height="22" viewBox="0 0 19 19" fill="none" aria-hidden="true" className="text-rail-light">
               <rect x="5.2" y="2.6" width="8.6" height="13.8" rx="2.6" stroke="currentColor" strokeWidth="1.6" />
@@ -133,7 +130,7 @@ export function ModusKeuze({
                 onChooseBeheer();
               }}
               className={`flex flex-1 flex-col items-center gap-2.5 rounded-[18px] border border-rail-border bg-rail-card px-[18px] py-6 text-center transition-colors ${
-                beheerUit ? "cursor-not-allowed" : "hover:border-accent hover:bg-[#23262d]"
+                beheerUit ? "cursor-not-allowed" : "hover:border-accent hover:bg-rail-hover"
               }`}
             >
               <svg width="22" height="22" viewBox="0 0 19 19" fill="none" aria-hidden="true" className="text-rail-light">
@@ -162,6 +159,6 @@ export function ModusKeuze({
       >
         Uitloggen
       </button>
-    </main>
+    </StartScherm>
   );
 }

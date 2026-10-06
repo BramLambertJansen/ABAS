@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { LeesFout } from "@/components/LeesFout";
+import { useLeesHerstel } from "@/hooks/useLeesHerstel";
 import { InitialsAvatar } from "@/components/InitialsAvatar";
 import { usePortalProfiel } from "@/hooks/queries/usePortalProfiel";
 import { usePortalTweestap } from "@/hooks/queries/usePortalTweestap";
@@ -46,6 +48,8 @@ export function AccountTab({
   onProfileChanged: () => void;
 }) {
   const profiel = usePortalProfiel();
+  const kopRef = useRef<HTMLHeadingElement>(null);
+  const herstel = useLeesHerstel(profiel, kopRef);
   const isBeheerder =
     profiel.status === "ready" && profiel.profiel.role === "beheerder" && !profiel.profiel.archived;
   const tweestap = usePortalTweestap(isBeheerder);
@@ -66,27 +70,17 @@ export function AccountTab({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-auto p-5">
-      <h2 className="text-[22px] font-extrabold tracking-tight text-ink">Account</h2>
+      <h2 ref={kopRef} tabIndex={-1} className="outline-none text-[22px] font-extrabold tracking-tight text-ink">Account</h2>
 
-      {profiel.status === "loading" && (
+      {profiel.status === "loading" && !herstel.toonFout && (
         <p className="py-8 text-center text-sm font-bold text-muted" role="status">
           Gegevens laden…
         </p>
       )}
 
-      {profiel.status === "error" && (
-        <div className="flex flex-col items-center gap-3 py-8 text-center">
-          <p className="text-sm font-bold text-danger" role="alert">
-            {profiel.message}
-          </p>
-          <button
-            type="button"
-            onClick={profiel.refetch}
-            className="flex h-10 items-center rounded-control border border-border bg-white px-4 text-sm font-bold text-ink transition-colors hover:border-ink"
-          >
-            Opnieuw proberen
-          </button>
-        </div>
+      {herstel.toonFout && (
+        <LeesFout tone="light" className="py-8" message={herstel.message}
+          onRetry={herstel.retry} bezig={herstel.bezig} />
       )}
 
       {profiel.status === "ready" && (
@@ -97,7 +91,7 @@ export function AccountTab({
               <span className="truncate text-sm font-extrabold tracking-tight text-ink">
                 {profiel.profiel.name}
               </span>
-              <span className="truncate text-[12.5px] font-medium text-muted">{email}</span>
+              <span className="truncate text-metadata font-medium text-muted">{email}</span>
             </div>
           </div>
 
@@ -197,9 +191,9 @@ function AccountRij({
       >
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="text-sm font-bold text-ink">{title}</span>
-          {hint && <span className="truncate text-[12.5px] font-medium text-muted">{hint}</span>}
+          {hint && <span className="truncate text-metadata font-medium text-muted">{hint}</span>}
         </span>
-        <span aria-hidden="true" className="flex-none text-[17px] font-bold text-muted">
+        <span aria-hidden="true" className="flex-none text-section-title font-bold text-muted">
           ›
         </span>
       </button>
@@ -213,10 +207,10 @@ function TweestapRij({ aan, onClick }: { aan: boolean; onClick: () => void }) {
   const inhoud = (
     <span className="flex min-w-0 flex-1 flex-col gap-0.5">
       <span className="text-sm font-bold text-ink">{TWEESTAP_TEKSTEN.rij}</span>
-      <span className="text-[12.5px] font-medium text-muted">
+      <span className="text-metadata font-medium text-muted">
         {aan ? TWEESTAP_TEKSTEN.aan : TWEESTAP_TEKSTEN.uit}
       </span>
-      <span className="text-[12.5px] font-medium leading-snug text-muted">{TWEESTAP_TEKSTEN.rijUitleg}</span>
+      <span className="text-metadata font-medium leading-snug text-muted">{TWEESTAP_TEKSTEN.rijUitleg}</span>
     </span>
   );
   if (aan) {
@@ -234,7 +228,7 @@ function TweestapRij({ aan, onClick }: { aan: boolean; onClick: () => void }) {
         className="flex min-h-[60px] w-full items-center gap-3.5 px-4 py-3 text-left transition-colors hover:bg-canvas focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
       >
         {inhoud}
-        <span aria-hidden="true" className="flex-none text-[17px] font-bold text-muted">
+        <span aria-hidden="true" className="flex-none text-section-title font-bold text-muted">
           ›
         </span>
       </button>

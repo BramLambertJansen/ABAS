@@ -88,10 +88,8 @@ test.describe("focus en tekstgrootte (390px)", () => {
     expect(stijl.c).toBe("rgb(238, 90, 36)");
   });
 
-  // BEKENDE BEVINDING (geen T12-regressie, ook op main): bij 200% tekst steekt de
-  // tabbalk (`h-10 flex-1`-knoppen in PortalDashboard) 25px buiten 390px. Zet
-  // om naar `test(` zodra dat is opgelost.
-  test.fixme("tekstgrootte 200%: geen horizontale overflow, Uitloggen blijft bereikbaar", async ({ page }) => {
+  // R01 herstelt de tabbalk/header; de eerdere bekende bevinding is nu een regressiegate.
+  test("tekstgrootte 200%: geen horizontale overflow, Uitloggen blijft bereikbaar", async ({ page }) => {
     await openPortal(page, "Alexandra Wilhelmina van der Meulen-Schuurmans");
     await page.evaluate(() => {
       document.documentElement.style.fontSize = "32px";

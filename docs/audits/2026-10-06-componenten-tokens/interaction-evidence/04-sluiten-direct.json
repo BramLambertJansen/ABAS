@@ -1,0 +1,27 @@
+{
+  "fixtureProvenance": {
+    "dataKind": "synthetic browser fixtures only",
+    "personalAndFinancialData": "Names, email addresses, balances and transactions are invented test data; no production records.",
+    "source": [
+      "e2e/helpers/supabaseMock.ts (USER and fakeSession)",
+      "e2e/helpers/frontendReview.ts (reviewFixture)",
+      "docs/audits/2026-10-06-componenten-tokens/tools/screen-audit.cjs (PRODUCTS and TRANSACTIONS mocks)",
+      "docs/audits/2026-10-06-componenten-tokens/tools/interaction-audit.cjs (local route mocks)"
+    ],
+    "networkIsolation": "Local app only; unmocked external browser requests aborted."
+  },
+  "id": "04-sluiten-direct",
+  "file": "screenshots/04-sluiten-direct.png",
+  "note": "Sluiten verwijdert dezelfde onopgeslagen invoer zonder bevestiging.",
+  "url": "http://127.0.0.1:3100/beheer",
+  "snapshot": "- alert\n- main:\n  - tablist \"Beheer-navigatie\":\n    - tab \"Assortiment\" [selected]\n    - tab \"Leden\"\n    - tab \"Instellingen\"\n    - tab \"Diensten\"\n    - tab \"Logboek\"\n  - text: Ingelogd als Femke Bos BEHEER\n  - button \"Uitloggen\"\n  - tabpanel \"Assortiment\":\n    - heading \"Assortiment\" [level=1]\n    - button \"nieuw product\"\n    - status\n    - text: Zoek product op naam of categorie\n    - searchbox \"Zoek product op naam of categorie\"\n    - group \"Status\":\n      - button \"Actief 1\" [pressed]\n      - button \"Uit assortiment 0\"\n    - paragraph: 1 van 1 producten\n    - list:\n      - listitem:\n        - button \"Pils Bier · € 2,50\"",
+  "focus": {
+    "tag": "BUTTON",
+    "text": "PPilsBier · € 2,50",
+    "label": null
+  },
+  "calls": 0,
+  "health": "UX-keuze — U06",
+  "auditNote": "Dezelfde invoer verdwijnt zonder vraag; dit volgt de bestaande T06-afspraak.",
+  "visuallyInspected": true
+}

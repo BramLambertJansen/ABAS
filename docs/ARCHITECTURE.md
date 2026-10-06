@@ -15,6 +15,24 @@ Living document — decisions land here first (see `CLAUDE.md` → Werkstraat).
 `CLAUDE.md` stays the short, gate-complementing summary; this is where the
 detail behind it lives.
 
+## Frontendpatronen — reviewopvolging 2026-10-06
+
+De [componentcatalogus](../src/components/README.md) beschrijft de actuele
+bouwblokken, tokens en uitzonderingen. Gewone invoer/prefixvelden delen
+`TekstVeld`; donkere startschermen delen `StartScherm`. Typografierollen en
+elevatie staan in Tailwind, met behoud van bestaande maten. Onder 700 CSS-px
+stapelt de kassalayout zodat producten en mandje bij layoutvergroting bereikbaar
+blijven; tablet/desktop blijft de ondersteunde barvorm.
+
+Bram koos bij U06 dat alle sluitacties van de zeven bestaande onopgeslagen
+formulieren dezelfde inline weggooivraag tonen. `OverlaySluitKnop`, de
+detailheader en `SheetKnoppen` gebruiken de Overlay-controller; pending wint
+en een bevestigde opslag sluit via de succescallback. Dit vervangt T06's
+oorspronkelijke uitzondering voor expliciet Sluiten/Annuleren. Onbekende
+financiële uitkomsten en bewaarde acties delen `GeldActieHerstel`, dat alleen
+na een bewuste klik inspecteert/afrondt/annuleert met de oorspronkelijke UUID
+en invoer. Zie [scope en verificatie](features/frontend-review-opvolging.md).
+
 ## Bronmateriaal
 
 The current design source is a Claude Design click-prototype (`dc-runtime`

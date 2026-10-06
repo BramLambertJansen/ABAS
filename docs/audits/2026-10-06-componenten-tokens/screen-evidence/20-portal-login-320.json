@@ -1,0 +1,231 @@
+{
+  "fixtureProvenance": {
+    "dataKind": "synthetic browser fixtures only",
+    "personalAndFinancialData": "Names, email addresses, balances and transactions are invented test data; no production records.",
+    "source": [
+      "e2e/helpers/supabaseMock.ts (USER and fakeSession)",
+      "e2e/helpers/frontendReview.ts (reviewFixture)",
+      "docs/audits/2026-10-06-componenten-tokens/tools/screen-audit.cjs (PRODUCTS and TRANSACTIONS mocks)",
+      "docs/audits/2026-10-06-componenten-tokens/tools/interaction-audit.cjs (local route mocks)"
+    ],
+    "networkIsolation": "Local app only; unmocked external browser requests aborted."
+  },
+  "id": "20-portal-login-320",
+  "file": "screenshots/20-portal-login-320.png",
+  "note": "Portal-login op 320 CSS-px; zichtbare labels, keuze inlogmethode en primaire actie.",
+  "url": "http://127.0.0.1:3100/portal",
+  "snapshot": "- main:\n  - text: A AURORA MUZIEKVERENIGING\n  - heading \"Jouw barsaldo\" [level=1]\n  - alert\n  - text: E-mailadres\n  - textbox \"E-mailadres\"\n  - group \"Inlogmethode\":\n    - text: Inlogmethode\n    - group \"Inlogmethode\":\n      - radio \"Magic link\" [checked]\n      - text: Magic link\n      - radio \"Wachtwoord\"\n      - text: Wachtwoord\n  - button \"Stuur mij een inloglink\"\n- alert",
+  "focus": {
+    "tag": "BODY",
+    "text": null,
+    "label": null
+  },
+  "metrics": {
+    "viewport": {
+      "width": 320,
+      "height": 844
+    },
+    "document": {
+      "scrollWidth": 320,
+      "clientWidth": 320,
+      "scrollHeight": 844
+    },
+    "horizontalOverflow": [],
+    "controls": [
+      {
+        "tag": "INPUT",
+        "role": null,
+        "label": null,
+        "text": "",
+        "x": 49,
+        "y": 402.88,
+        "width": 222,
+        "height": 54,
+        "fontSize": "14px",
+        "color": "rgb(27, 30, 35)",
+        "bg": "rgb(255, 255, 255)",
+        "outline": "rgba(0, 0, 0, 0) solid 2px",
+        "overflowX": "clip"
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "label": null,
+        "text": "",
+        "x": 105,
+        "y": 510.38,
+        "width": 1,
+        "height": 1,
+        "fontSize": "12px",
+        "color": "rgb(27, 30, 35)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "outline": "rgb(27, 30, 35) none 3px",
+        "overflowX": "hidden"
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "label": null,
+        "text": "",
+        "x": 214,
+        "y": 510.38,
+        "width": 1,
+        "height": 1,
+        "fontSize": "12px",
+        "color": "rgb(92, 89, 82)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "outline": "rgb(92, 89, 82) none 3px",
+        "overflowX": "hidden"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "label": null,
+        "text": "Stuur mij een inloglink",
+        "x": 49,
+        "y": 548.88,
+        "width": 222,
+        "height": 54,
+        "fontSize": "14px",
+        "color": "rgb(22, 24, 28)",
+        "bg": "rgb(238, 90, 36)",
+        "outline": "rgb(22, 24, 28) none 3px",
+        "overflowX": "visible"
+      }
+    ],
+    "smallControls": [
+      {
+        "tag": "INPUT",
+        "role": null,
+        "label": null,
+        "text": "",
+        "x": 105,
+        "y": 510.38,
+        "width": 1,
+        "height": 1,
+        "fontSize": "12px",
+        "color": "rgb(27, 30, 35)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "outline": "rgb(27, 30, 35) none 3px",
+        "overflowX": "hidden"
+      },
+      {
+        "tag": "INPUT",
+        "role": null,
+        "label": null,
+        "text": "",
+        "x": 214,
+        "y": 510.38,
+        "width": 1,
+        "height": 1,
+        "fontSize": "12px",
+        "color": "rgb(92, 89, 82)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "outline": "rgb(92, 89, 82) none 3px",
+        "overflowX": "hidden"
+      }
+    ],
+    "headings": [
+      {
+        "tag": "H1",
+        "role": null,
+        "label": null,
+        "text": "Jouw barsaldo",
+        "x": 92.58,
+        "y": 303.88,
+        "width": 134.84,
+        "height": 28,
+        "fontSize": "20px",
+        "color": "rgb(27, 30, 35)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "outline": "rgb(27, 30, 35) none 3px",
+        "overflowX": "visible"
+      }
+    ],
+    "focus": {
+      "tag": "BODY",
+      "label": null,
+      "text": null
+    },
+    "dialogScroll": [],
+    "reducedMotion": true
+  },
+  "axe": {
+    "violations": [],
+    "incomplete": [],
+    "passes": [
+      "aria-allowed-attr",
+      "aria-conditional-attr",
+      "aria-deprecated-role",
+      "aria-hidden-body",
+      "aria-prohibited-attr",
+      "aria-required-attr",
+      "aria-roles",
+      "aria-valid-attr-value",
+      "aria-valid-attr",
+      "autocomplete-valid",
+      "avoid-inline-spacing",
+      "button-name",
+      "color-contrast",
+      "document-title",
+      "duplicate-id-aria",
+      "form-field-multiple-labels",
+      "html-has-lang",
+      "html-lang-valid",
+      "label",
+      "meta-viewport",
+      "nested-interactive",
+      "target-size"
+    ],
+    "inapplicable": [
+      "area-alt",
+      "aria-braille-equivalent",
+      "aria-command-name",
+      "aria-hidden-focus",
+      "aria-input-field-name",
+      "aria-meter-name",
+      "aria-progressbar-name",
+      "aria-required-children",
+      "aria-required-parent",
+      "aria-tab-name",
+      "aria-toggle-field-name",
+      "aria-tooltip-name",
+      "blink",
+      "bypass",
+      "definition-list",
+      "dlitem",
+      "frame-focusable-content",
+      "frame-title-unique",
+      "frame-title",
+      "html-xml-lang-mismatch",
+      "image-alt",
+      "input-button-name",
+      "input-image-alt",
+      "link-in-text-block",
+      "link-name",
+      "list",
+      "listitem",
+      "marquee",
+      "meta-refresh",
+      "object-alt",
+      "role-img-alt",
+      "scrollable-region-focusable",
+      "select-name",
+      "server-side-image-map",
+      "summary-name",
+      "svg-img-alt",
+      "td-headers-attr",
+      "th-has-data-cells",
+      "valid-lang",
+      "video-caption",
+      "no-autoplay-audio"
+    ],
+    "testEngine": {
+      "name": "axe-core",
+      "version": "4.13.0"
+    }
+  },
+  "visuallyInspected": true,
+  "health": "Goed",
+  "auditNote": "Labels en primaire actie passen; geen horizontale overflow."
+}

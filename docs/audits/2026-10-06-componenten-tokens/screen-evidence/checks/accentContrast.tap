@@ -1,0 +1,24 @@
+✔ donkere tekst (text-rail) op accent haalt AA (1.135012ms)
+✔ donkere tekst (text-rail) op accent-hover haalt AA (#66) (0.128756ms)
+✔ witte tekst op accent-active haalt AA (0.129118ms)
+✔ de oude accent-hover (#d94d1a) zou deze test laten falen (0.097967ms)
+✔ text-success op track, wit en canvas haalt AA (#88) (0.23388ms)
+✔ de oude success (#157f4a) zou op track falen (0.118207ms)
+✔ witte tekst op accent-pressed (hover/ingedrukt) haalt AA (T12) (0.144449ms)
+✔ aanpalende paren: text-accent-active op wit en canvas, text-danger op accent-soft (0.435295ms)
+✔ alle klasse-literals in src/ met bg-<token> + text-<token|white> halen AA in rust, hover, active en focus (60.281196ms)
+✔ de scan zou het oude geval (bg-accent-active text-white hover:bg-accent) hebben gevangen (4.576526ms)
+✔ knopStijlen: wit nooit op hover/accent, donker nooit met text-white (0.29008ms)
+✔ taal: 'cash' wordt 'contant' (F27) (0.104955ms)
+✔ taal: geen 'Invite' of 'Annuleer' in UI-tekst (JSX-tekst en stringliteralen) (5.820667ms)
+✔ scan: wit op hover/accent en wit op accent-hover worden gevangen, donker op accent-hover niet (0.16464ms)
+✔ Manrope: woff2 is geldig, licentie staat erbij en er is geen extern fontverzoek in de broncode (5.044239ms)
+✔ kleurparen binnen één JSX-element mogen niet over meerdere literals verdeeld zijn: wit op bg-accent/accent-hover (6.97005ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 96.141683
