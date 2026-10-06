@@ -81,7 +81,7 @@ export function Transactielijst({
             placeholder="Zoek op naam of product"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="h-[52px] w-full rounded-[14px] border border-border bg-white pl-[42px] pr-[18px] text-[14.5px] font-semibold text-ink outline-none placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/[0.12]"
+            className="h-[52px] w-full rounded-[14px] border border-border bg-white pl-[42px] pr-[18px] text-[14.5px] font-semibold text-ink focus-visible:outline-none placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/[0.12]"
           />
         </div>
         {people.length > 0 && (

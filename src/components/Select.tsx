@@ -119,10 +119,10 @@ export function Select({
   }
 
   const triggerBorder = open
-    ? "border-accent ring-[3px] ring-accent/20"
+    ? "border-accent ring-[3px] ring-accent/20 focus-visible:outline-none"
     : invalid
       ? "border-rail-error"
-      : "border-rail-border hover:border-rail-muted focus-visible:border-accent focus-visible:ring-[3px] focus-visible:ring-accent/20";
+      : "border-rail-border hover:border-rail-muted focus-visible:outline-none focus-visible:border-accent focus-visible:ring-[3px] focus-visible:ring-accent/20";
 
   return (
     <div ref={rootRef} className="relative w-full">
@@ -138,7 +138,7 @@ export function Select({
         disabled={disabled}
         onClick={() => (open ? setOpen(false) : openMenu())}
         onKeyDown={handleKeyDown}
-        className={`flex h-12 w-full items-center gap-2.5 rounded-control border bg-rail-card px-3.5 text-left text-sm font-bold outline-none transition-[border-color,box-shadow] duration-150 disabled:opacity-50 ${triggerBorder}`}
+        className={`flex h-12 w-full items-center gap-2.5 rounded-control border bg-rail-card px-3.5 text-left text-sm font-bold transition-[border-color,box-shadow] duration-150 disabled:opacity-50 ${triggerBorder}`}
       >
         <span
           className={`min-w-0 flex-1 truncate ${

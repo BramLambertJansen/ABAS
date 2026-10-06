@@ -23,6 +23,7 @@ import {
   topUpConfirmQuestion,
   topUpErrorMessage,
 } from "./messages";
+import { KNOP_ACCENT_WIT } from "@/components/knopStijlen";
 
 /**
  * Opwaardeer-overlay (modal, `src/components/Overlay.tsx` — de derde
@@ -291,14 +292,14 @@ export function OpwaarderenOverlay({
             onBlur={bijBlur}
             aria-describedby={veldMelding ? amountLimitId : undefined}
             aria-invalid={veldMelding ? true : undefined}
-            className="h-12 min-w-0 flex-1 rounded-[13px] border border-border bg-white px-3.5 text-[13.5px] font-semibold text-ink outline-none placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
+            className="h-12 min-w-0 flex-1 rounded-[13px] border border-border bg-white px-3.5 text-[13.5px] font-semibold text-ink focus-visible:outline-none placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
           />
           <button
             type="button"
             ref={knopRef}
             disabled={bookDisabled}
             onClick={handleBook}
-            className="flex h-12 flex-none items-center justify-center rounded-[13px] bg-accent-active px-[18px] text-[13.5px] font-extrabold text-white transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:bg-track disabled:text-muted"
+            className={`flex h-12 flex-none items-center justify-center rounded-[13px] px-[18px] text-[13.5px] font-extrabold ${KNOP_ACCENT_WIT}`}
           >
             {pending
               ? "bezig…"

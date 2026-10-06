@@ -621,8 +621,8 @@ export function LidBeherenOverlay({
                 {inviteBusy
                   ? OPSLAAN_BEZIG_TEKST
                   : member.invitedAt === null
-                    ? "Invite versturen"
-                    : "Invite opnieuw versturen"}
+                    ? "Uitnodiging versturen"
+                    : "Uitnodiging opnieuw versturen"}
               </button>
               <span className="text-xs font-medium text-muted">
                 {member.hasAccount

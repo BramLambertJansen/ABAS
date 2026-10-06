@@ -7,6 +7,7 @@ import { DienstAfsluitenOverlay } from "@/features/dienst-afsluiten/DienstAfslui
 import { useBarSessie } from "./BarSessieContext";
 import { OvernemenOverlay } from "./OvernemenOverlay";
 import { ADMIN_MELDING, adminMeldingReden, adminMeldingUitleg } from "./teksten";
+import { KNOP_ACCENT_WIT, KNOP_RAND } from "@/components/knopStijlen";
 
 /**
  * De melding "Dienst zonder apparaat" voor beheerders, in de app
@@ -59,7 +60,7 @@ export function AdminMeldingen({
               <button
                 type="button"
                 onClick={() => setOvernemen(melding)}
-                className="flex h-10 flex-1 items-center justify-center rounded-xl bg-accent-active text-[13px] font-bold text-white transition-colors hover:bg-accent"
+                className={`flex h-10 flex-1 items-center justify-center rounded-xl text-[13px] font-bold ${KNOP_ACCENT_WIT}`}
               >
                 {ADMIN_MELDING.overnemen}
               </button>
@@ -67,7 +68,7 @@ export function AdminMeldingen({
             <button
               type="button"
               onClick={() => setAfsluiten(melding)}
-              className="flex h-10 flex-1 items-center justify-center rounded-xl border border-border bg-white text-[13px] font-bold text-ink transition-colors hover:border-ink"
+              className={`flex h-10 flex-1 items-center justify-center rounded-xl text-[13px] font-bold ${KNOP_RAND}`}
             >
               {ADMIN_MELDING.afsluiten}
             </button>

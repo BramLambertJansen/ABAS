@@ -210,7 +210,7 @@ export function NegatieveLimietInstellingen() {
             setCustomAmount(event.target.value);
             moment.bijWijzig();
           }}
-          className="h-12 flex-1 min-w-0 rounded-control border border-border px-3.5 text-sm font-semibold text-ink outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
+          className="h-12 flex-1 min-w-0 rounded-control border border-border px-3.5 text-sm font-semibold text-ink focus-visible:outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
         />
         <button
           type="button"

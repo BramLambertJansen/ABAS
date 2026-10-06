@@ -44,7 +44,7 @@ export default function PortalShellHome() {
 
   if (session.status === "loading") {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center gap-3 bg-canvas p-6 text-center">
+      <main className="mx-auto flex min-h-screen w-full max-w-[560px] flex-col items-center justify-center gap-3 bg-canvas p-6 text-center sm:border-x sm:border-border">
         <p className="text-sm font-medium text-muted" role="status">
           Bezig met laden…
         </p>
@@ -54,7 +54,7 @@ export default function PortalShellHome() {
 
   if (session.status === "error") {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center gap-3 bg-canvas p-6 text-center">
+      <main className="mx-auto flex min-h-screen w-full max-w-[560px] flex-col items-center justify-center gap-3 bg-canvas p-6 text-center sm:border-x sm:border-border">
         <LeesFout
           tone="light"
           message={session.message}

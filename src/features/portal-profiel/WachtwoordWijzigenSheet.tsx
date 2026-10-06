@@ -85,7 +85,7 @@ export function WachtwoordWijzigenSheet({
             onClick={onClose}
             className="flex h-[52px] w-full items-center justify-center rounded-2xl border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink"
           >
-            Annuleer
+            Annuleren
           </button>
         </div>
       )}

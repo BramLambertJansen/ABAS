@@ -19,6 +19,7 @@ import { SESSION_CODE_INLINE_MESSAGE, isSessionErrorCode } from "@/lib/barSessie
 import { InitialsAvatar } from "@/components/InitialsAvatar";
 import { RoleBadge } from "@/components/RoleBadge";
 import { TekstVeld } from "@/components/TekstVeld";
+import { KNOP_ACCENT_WIT } from "@/components/knopStijlen";
 
 function addErrorMessage(code: AddShiftMemberErrorCode): string {
   // De zes sessiecodes (dienst-per-sessie) krijgen één centrale melding.
@@ -233,7 +234,7 @@ export function BezettingOverlay({
         type="button"
         disabled={closeBlocked}
         onClick={onClose}
-        className="flex h-11 w-full items-center justify-center rounded-2xl bg-accent-active text-sm font-bold text-white transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+        className={`flex h-11 w-full items-center justify-center rounded-2xl text-sm font-bold ${KNOP_ACCENT_WIT}`}
       >
         Klaar
       </button>

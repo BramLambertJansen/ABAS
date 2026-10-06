@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { sendMemberInvite } from "@/lib/inviteMember";
 
 /**
- * Route Handler achter de "Invite (opnieuw) versturen"-knop
+ * Route Handler achter de "Uitnodiging (opnieuw) versturen"-knop
  * (LidBeherenOverlay.tsx -> useSendMemberInvite.ts) — docs/features/
  * lid-account-invite.md → RPC's punt 2, ADR 0006. Server-only entrypoint:
  * geen `supabase.from()/.rpc()`/`.auth.admin.*`-aanroep hier zelf

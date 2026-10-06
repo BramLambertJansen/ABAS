@@ -3,6 +3,7 @@
 import { Overlay } from "@/components/Overlay";
 import type { SessieMelding } from "./BarSessieContext";
 import { MELDING_MANDJE, MELDING_OK, SESSIE_MELDINGEN } from "./teksten";
+import { KNOP_ACCENT_WIT } from "@/components/knopStijlen";
 
 /**
  * De melding bij een gesloten sessie of een dienst die is overgenomen of
@@ -28,7 +29,7 @@ export function SessieMeldingOverlay({
       <button
         type="button"
         onClick={onClose}
-        className="flex h-[50px] items-center justify-center rounded-2xl bg-accent-active text-sm font-bold text-white transition-colors hover:bg-accent"
+        className={`flex h-[50px] items-center justify-center rounded-2xl text-sm font-bold ${KNOP_ACCENT_WIT}`}
       >
         {MELDING_OK}
       </button>
