@@ -1,6 +1,6 @@
 # Pending-E2E voor de overige `closeBlocked`-overlays
 
-**Status: spec, wacht op akkoord van Bram.** Zie "Vragen voor Bram".
+**Status: akkoord van Bram (2026-10-06): alle zeven aanbevelingen uit "Vragen voor Bram" overgenomen.**
 
 Spec voor [issue #140](https://github.com/BramLambertJansen/ABAS/issues/140),
 vervolg op #125 (PR #139, `docs/features/dialogen-tabs-landmarks.md` →
@@ -288,6 +288,8 @@ Opwaarderen (al gedekt); de refactor van de drie bestaande lokale
 `UitloggenKnop`-keuzedialoog.
 
 ## Vragen voor Bram
+
+_Besloten op 2026-10-06: alle zeven aanbevelingen overgenomen._
 
 1. **Helpers verplaatsen of dupliceren?** `houdVast`, `mockKassa`/`kiesLid` en
    `dialogFocusState` staan nu lokaal in twee bestaande specs. Aanbeveling:
