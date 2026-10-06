@@ -72,3 +72,17 @@ startsaldoveld in een testfixture. Dat veld is aangevuld. De nieuwe volledige
 CI moet ook vier extra tests voor ingetrokken Auth-sessies en de browsers bewijzen.
 De actuele dependency-audit telt ook twee matige dev-toolmeldingen via
 postcss-selector-parser naast de zeven hoge meldingen via braces.
+
+## Eindreview — 2026-10-06
+
+Volledige CI op 8c0600f1 is groen: 798 unittests, 1.688 pgTAP-asserties,
+7 GoTrue/HTTP-integratietests en 441 browsertests. De laatste reviewcorrecties
+voegen vrije navigatie bij de herstelmelding en het bijhouden van onbevestigde
+pogingen toe. Hiervoor slagen lokaal 802 tests, alle statische gates en de
+25 financiële browsertests, inclusief axe en herstel met Enter. De actuele
+head moet ook volledig groen zijn voordat een merge kan worden goedgekeurd.
+
+Read-only hercontrole bevestigt nog steeds productieversie 0040, nul actieve
+barsessies en geen financiële receipt-tabel. Productie-uitrol blijft wachten
+op een herstelbare backup en activering van de releasegate. De opdracht
+voor backups bleef beperkt tot voorbereiding; er is geen export gemaakt.

@@ -63,6 +63,18 @@ test("unavailable or corrupted persistence blocks requests before transmission",
   await assert.rejects(runMoneyRequest(f.client, "top_up", args, f.environment), /request_storage_unavailable/);
   assert.equal(f.calls.length, 0);
 });
+test("guards before receipt lookup cannot discard an earlier unknown booking", async () => {
+  for (const message of ["shift_not_open", "served_by_not_on_shift", "self_top_up_forbidden", "actor_not_found", "invalid_request_id", "future_guard"]) {
+    const f = fixture();
+    await runMoneyRequest(f.client, "top_up", args, f.environment);
+    f.response({ data: null, error: { message, code: "P0001" } });
+    await runMoneyRequest(f.client, "top_up", args, f.environment);
+    assert.equal(f.storage.size, 1, message);
+    assert.equal(f.calls[0].p_request_id, f.calls[1].p_request_id);
+    const changed = await runMoneyRequest(f.client, "top_up", { ...args, p_amount_cents: 200 }, f.environment);
+    assert.equal(changed.error?.message, "pending_request", message);
+  }
+});
 test("overlapping requests acquire the same intent before either response arrives", async () => {
   const f = fixture();
   let release!: () => void;
@@ -136,4 +148,46 @@ test("a malformed success response cannot discard an unresolved intent", async (
   const result = await runMoneyRequest(f.client, "top_up", args, f.environment);
   assert.equal(result.error?.message, "invalid_money_response");
   assert.equal(f.storage.size, 1);
+});
+
+test("a rejected retry cannot prove the outcome of an earlier lost response", async () => {
+  const f = fixture();
+  await runMoneyRequest(f.client, "top_up", args, f.environment);
+  f.response({ data: null, error: { message: "invalid_amount", code: "P0001" } });
+  await runMoneyRequest(f.client, "top_up", args, f.environment);
+  assert.equal(f.storage.size, 1);
+  assert.equal(f.calls[0].p_request_id, f.calls[1].p_request_id);
+});
+
+test("one rejected request cannot release the key while another request is in flight", async () => {
+  const f = fixture();
+  let finishFirst!: () => void, finishSecond!: () => void;
+  const first = new Promise<void>((resolve) => { finishFirst = resolve; });
+  const second = new Promise<void>((resolve) => { finishSecond = resolve; });
+  f.client.rpc = async (name, args) => {
+    const index = f.calls.length; f.calls.push({ name, ...args });
+    await (index === 0 ? first : second);
+    return index === 0 ? { data: null, error: { message: "invalid_amount", code: "P0001" } } :
+      { data: { amount_cents: 100 }, error: null };
+  };
+  const one = runMoneyRequest(f.client, "top_up", args, f.environment);
+  const two = runMoneyRequest(f.client, "top_up", args, f.environment);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  finishFirst(); await one;
+  assert.equal(f.storage.size, 1);
+  finishSecond(); await two;
+  assert.equal(f.storage.size, 0);
+});
+
+test("legacy v1 pending requests also require terminal server proof", async () => {
+  const f = fixture();
+  f.storage.set("abas:money:v1:actor-one:top_up", JSON.stringify({
+    id: "00000000-0000-4000-8000-000000000001", payload: JSON.stringify(args),
+  }));
+  f.response({ data: null, error: { message: "invalid_amount", code: "P0001" } });
+  await runMoneyRequest(f.client, "top_up", args, f.environment);
+  assert.equal(f.storage.size, 1);
+  f.response({ data: { status: "cancelled" }, error: null });
+  await inspectPendingMoneyRequest(f.client, "top_up", true, f.environment);
+  assert.equal(f.storage.size, 0);
 });

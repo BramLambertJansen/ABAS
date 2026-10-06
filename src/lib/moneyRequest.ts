@@ -1,5 +1,4 @@
 /** Pending financial intent survives remount/reload. Server receipts decide money. */
-import { isSessionErrorCode } from "./barSessie.ts";
 
 export const PENDING_REQUEST_MESSAGE =
   "Een eerdere actie heeft nog geen bevestigde uitkomst. Rond die eerst af met dezelfde invoer; controleer zo nodig het logboek.";
@@ -19,10 +18,18 @@ export type IntentEnvironment = {
   uuid(): string;
   lock<T>(name: string, work: () => Promise<T>): Promise<T>;
 };
-type Intent = { id: string; payload: string };
+type Intent = { id: string; payload: string; attempts: string[] };
 export type MoneyOperation = "place_order" | "top_up" | "create_member";
 export const MONEY_OPERATIONS: MoneyOperation[] = ["place_order", "top_up", "create_member"];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// These business validations run after receipt lookup. Session, shift,
+// attribution and actor guards run before it and cannot prove that an
+// earlier request did not commit. Unknown future errors also retain the key.
+const TRANSACTION_REJECTIONS = new Set([
+  "empty_order", "invalid_qty", "product_not_available", "member_not_found",
+  "insufficient_balance", "invalid_amount", "amount_exceeds_max",
+  "invalid_name", "invalid_starting_balance", "invalid_email", "request_cancelled",
+]);
 
 function browserEnvironment(): IntentEnvironment {
   try {
@@ -38,7 +45,11 @@ function readIntent(environment: IntentEnvironment, key: string): Intent | null 
     if (raw === null) return null;
     const intent = JSON.parse(raw) as Intent;
     if (!UUID.test(intent.id) || typeof intent.payload !== "string") throw new Error();
-    return intent;
+    if (intent.attempts !== undefined && (!Array.isArray(intent.attempts) ||
+      intent.attempts.some((attempt) => typeof attempt !== "string" || !attempt))) throw new Error();
+    // Older v1 intents have an unknown outcome. A later rejected retry
+    // cannot establish whether those older requests committed.
+    return { ...intent, attempts: intent.attempts ?? ["legacy-unknown"] };
   } catch { throw new Error("request_storage_unavailable"); }
 }
 
@@ -108,25 +119,34 @@ export async function runMoneyRequest(client: Client, operation: "place_order" |
   // A click queued behind inspection/cancellation belongs to the intent it
   // observed, even if another tab confirms and clears that intent meanwhile.
   const observed = readIntent(context, key);
-  const intent = await context.lock(key, async () => {
+  const acquired = await context.lock(key, async () => {
     const payload = JSON.stringify(args);
     const pending = readIntent(context, key) ?? observed;
     if (pending && pending.payload !== payload) return null;
-    const intent = pending ?? { id: context.uuid(), payload };
+    const intent = pending ?? { id: context.uuid(), payload, attempts: [] };
     if (!UUID.test(intent.id)) throw new Error("request_storage_unavailable");
+    const attempt = context.uuid();
+    intent.attempts = [...intent.attempts, attempt];
     writeIntent(context, key, intent); // Before any network side effect.
-    return intent;
+    return { intent, attempt };
   });
-  if (!intent) return { data: null, error: { message: "pending_request", code: "P0001" } };
+  if (!acquired) return { data: null, error: { message: "pending_request", code: "P0001" } };
+  const { intent, attempt } = acquired;
   const result = await client.rpc(`${operation}_once`, { ...args, p_request_id: intent.id });
   if (!result.error && !validMoneyResult(operation, result.data)) return { data: null, error: { message: "invalid_money_response" } };
-  const definiteRejection = result.error?.code === "P0001" &&
-    !isSessionErrorCode(result.error.message) && result.error.message !== "request_id_conflict";
-  if ((!result.error && result.data != null) || definiteRejection) {
+  const definiteRejection = result.error?.code === "P0001" && TRANSACTION_REJECTIONS.has(result.error.message);
+  if ((!result.error && result.data != null) || result.error?.code === "P0001") {
     await context.lock(key, async () => {
-      if (readIntent(context, key)?.id !== intent.id) return;
-      try { context.storage.removeItem(key); }
-      catch { /* A stale key safely replays the result; it never books twice. */ }
+      const current = readIntent(context, key);
+      if (current?.id !== intent.id) return;
+      const remaining = current.attempts.filter((id) => id !== attempt);
+      const terminal = (!result.error && result.data != null) || result.error?.message === "request_cancelled";
+      if (terminal || (definiteRejection && !remaining.length)) {
+        try { context.storage.removeItem(key); }
+        catch { /* A stale key safely replays the result; it never books twice. */ }
+      } else {
+        writeIntent(context, key, { ...current, attempts: remaining });
+      }
     });
   }
   return result;

@@ -50,7 +50,20 @@ test("Nieuw lid: verloren antwoord blijft na herladen met dezelfde sleutel herst
   await dialog.getByRole("button", { name: "Toevoegen", exact: true }).click();
   await expect(dialog.getByText(ONBEKEND)).toBeVisible();
   await page.reload();
-  await page.getByRole("button", { name: "Eerdere nieuw lid veilig afronden" }).click();
+  const recovery = page.getByRole("button", { name: "Eerdere nieuw lid veilig afronden" });
+  await expect(recovery).toBeVisible();
+  expect(keys).toHaveLength(1); // Reload does not automatically book again.
+  const notice = await page.getByRole("region", { name: "Eerdere geldacties" }).boundingBox();
+  const navigation = await page.getByRole("tab", { name: "Assortiment", exact: true }).boundingBox();
+  expect(notice).not.toBeNull();
+  expect(navigation).not.toBeNull();
+  expect(notice!.y + notice!.height).toBeLessThanOrEqual(navigation!.y);
+  const scan = await new AxeBuilder({ page }).include('[aria-label="Eerdere geldacties"]').analyze();
+  expect(scan.violations).toEqual([]);
+  await recovery.focus();
+  await expect(recovery).toBeFocused();
+  await page.screenshot({ path: process.env.ABAS_REVIEW_SCREENSHOT ?? test.info().outputPath("financial-recovery.png") });
+  await recovery.press("Enter");
   await expect.poll(() => keys.length).toBe(2);
   expect(keys[0]).toMatch(/^[a-f0-9-]{36}$/i);
   expect(keys[1]).toBe(keys[0]);

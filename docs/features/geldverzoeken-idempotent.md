@@ -112,3 +112,17 @@ De actieve sessie toont zowel veilig afronden als definitief annuleren.
 Beide controleren eerst het serverbewijs en wissen browseropslag uitsluitend
 na een bevestigd succes of bevestigde annulering. Er is geen automatische
 boekings- of annuleringsaanroep bij mount, herladen of inloggen.
+
+## Verificatie van browserherstel
+
+De pending intent houdt bij welke verzoeken nog lopen of een onbekende
+uitkomst hebben. Een afgewezen retry bewijst niet dat zo'n eerder verzoek
+mislukt is en mag diens sleutel niet wissen. Pas een geldig succesresultaat
+of serverbevestigde annulering sluit alle pogingen onder de sleutel af.
+Een gewone bevestigde validatiefout kan de intent vrijgeven als er geen
+onbevestigde pogingen meer zijn. Oudere v1-intents blijven als onbekend
+bewaard tot een terminale bevestiging.
+
+De herstelmelding neemt eigen ruimte boven de app in, zodat navigatie en
+focus niet door een zwevende melding worden bedekt. De browsertest bewaakt
+de vrije navigatie, axe-toegankelijkheid en afronden met Enter.

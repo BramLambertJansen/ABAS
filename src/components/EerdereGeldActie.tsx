@@ -8,7 +8,7 @@ export function EerdereGeldActie() {
   const requests = usePendingMoneyRequests();
   if (!requests.pending.length && !requests.error) return null;
   return (
-    <section aria-label="Eerdere geldacties" className="fixed inset-x-4 top-4 z-[70] mx-auto flex max-w-xl flex-col gap-2 rounded-xl border border-border bg-warning-bg p-4 text-warning-fg shadow-lg">
+    <section aria-label="Eerdere geldacties" className="mx-4 my-3 flex max-w-xl flex-col gap-2 rounded-xl border border-border bg-warning-bg p-4 text-warning-fg shadow-lg sm:mx-auto">
       <p className="text-sm font-bold" role="status">Een eerdere actie heeft nog geen bevestigde uitkomst.</p>
       {requests.pending.map(({ operation }) => (
         <div key={operation} className="flex flex-wrap gap-2">
