@@ -291,6 +291,26 @@ stands. Shared pieces, all additive to the T05 contract:
 Consequence: a truly hanging money request keeps its dialog blocked until
 reload. Not covered: `TweestapSheet`, manual Safari/touch/screen-reader run.
 
+**Beheerformulieren en catalogus (built and merged, #131, PR #169, `5610f7c`;
+`docs/features/beheerformulieren-catalogus.md`)**: no ADR, frontend only (no
+database, RPC, policy or auth change). Additive to the T05/T06 contract:
+- `Overlay` props **`variant`** (`"standaard" | "detail"`) and **`meta`**: in the
+  modal form `detail` is wider with a fixed header (title, description, `meta`,
+  Sluiten) and a scrolling body; focus, inert, scroll-lock and close rules run
+  through the same code. In sheet form `detail` shows the detail header (with Sluiten) but it is not
+  fixed: header, body and footer scroll together in the sheet's single
+  scroll container (no portal consumer yet). Only "Lid beheren" uses it.
+- `OpslaanSectie` props `label`, `kop`, `status`, `statusTekst` and the pure
+  `sectieStatus` in `src/lib/opslaan.ts`: a visible "Niet opgeslagen"/"Opgeslagen"
+  line per section replaces the toast in "Lid beheren".
+- `src/components/ZoekVeld.tsx` and `StatusFilter.tsx`, lifted from
+  `LedenLijst` and also used by `ProductenLijst`; other search fields keep their
+  own variants.
+- Feature-local pure logic: `assortimentbeheer/beheerProductFilter.ts`,
+  `assortimentbeheer/laatsteActieveType.ts`,
+  `ledenbeheer/contactadresTeksten.ts`. The inline warning for archiving the
+  last active activity type is a warning, not a ban (no server guard).
+
 **Invoerfeedback, ledenzoeker en productfilters (built and merged, #127, PR #152,
 `3a8d13e`; `docs/features/invoerfeedback-zoeken-filters.md`)**: no ADR, no
 database, RPC or policy change. Shared pieces:
