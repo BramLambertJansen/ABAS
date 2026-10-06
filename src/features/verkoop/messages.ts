@@ -33,6 +33,7 @@ export function placeOrderErrorMessage(code: PlaceOrderErrorCode): string {
     case "insufficient_balance":
     case "empty_order":
     case "invalid_qty":
+    case "request_id_conflict":
       return "er ging iets mis, probeer het opnieuw";
     case "unknown":
       // Netwerk- of onbekende fout: de server kan de bestelling al hebben

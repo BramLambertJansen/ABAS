@@ -131,8 +131,8 @@ for (const crew of [["no-pin"], ["pin", "no-pin"]]) {
     await topup.getByRole("button", { name: "boeken", exact: true }).click();
     await expect(topup).toBeHidden();
     expect(state.money).toEqual([
-      { rpc: "place_order", body: { p_shift_id: SHIFT, p_member_id: "payer", p_lines: [{ product_id: "product", qty: 1 }], p_served_by: "no-pin" } },
-      { rpc: "top_up", body: { p_shift_id: SHIFT, p_member_id: "payer", p_amount_cents: 500, p_method: "cash", p_served_by: "no-pin" } },
+      { rpc: "place_order", body: { p_shift_id: SHIFT, p_member_id: "payer", p_lines: [{ product_id: "product", qty: 1 }], p_served_by: "no-pin", p_request_id: expect.any(String) } },
+      { rpc: "top_up", body: { p_shift_id: SHIFT, p_member_id: "payer", p_amount_cents: 500, p_method: "cash", p_served_by: "no-pin", p_request_id: expect.any(String) } },
     ]);
   });
 }

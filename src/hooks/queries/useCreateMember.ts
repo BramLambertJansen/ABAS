@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { reportClientError } from "@/lib/clientErrors";
+import { maakSleutelGeheugen } from "@/lib/requestId";
 import type { LedenbeheerLid } from "./useAlleLeden";
 
 /** Error codes `create_member` (0007_ledenbeheer.sql, uitgebreid in
@@ -16,6 +17,7 @@ export type CreateMemberErrorCode =
   | "invalid_email"
   | "actor_not_found"
   | "no_admin_role"
+  | "request_id_conflict"
   | "unknown";
 
 type State =
@@ -29,7 +31,9 @@ function toErrorCode(message: string | undefined): CreateMemberErrorCode {
     message === "invalid_starting_balance" ||
     message === "invalid_email" ||
     message === "actor_not_found" ||
-    message === "no_admin_role"
+    message === "no_admin_role" ||
+    // 0042 (ADR 0023): dezelfde sleutel met een andere opdracht of lid.
+    message === "request_id_conflict"
   ) {
     return message;
   }
@@ -38,6 +42,8 @@ function toErrorCode(message: string | undefined): CreateMemberErrorCode {
 
 export function useCreateMember() {
   const [state, setState] = useState<State>({ status: "idle" });
+  // Eén sleutel per intentie (src/lib/requestId.ts, ADR 0023).
+  const [sleutels] = useState(() => maakSleutelGeheugen());
 
   /** `startingBalanceCents` null -> stuurt `p_starting_balance_cents = null`
    *  ("geen startsaldo", de RPC behandelt dat gelijk aan 0 — zie
@@ -51,6 +57,7 @@ export function useCreateMember() {
     email: string | null
   ): Promise<LedenbeheerLid | null> {
     setState({ status: "pending" });
+    const requestId = sleutels.voorOpdracht([name, startingBalanceCents, email]);
     try {
       const supabase = createClient();
       // create_member returns `members` (single row, not `setof members`) —
@@ -60,14 +67,17 @@ export function useCreateMember() {
         p_name: name,
         p_starting_balance_cents: startingBalanceCents,
         p_email: email,
+        p_request_id: requestId,
       });
 
       if (error) {
         const code = toErrorCode(error.message);
         if (code === "unknown") reportClientError(supabase, "useCreateMember", error);
+        sleutels.afgerond(code === "unknown" ? "onbekend" : "definitief");
         setState({ status: "error", code });
         return null;
       }
+      sleutels.afgerond("definitief");
       setState({ status: "idle" });
       return {
         id: data.id as string,
@@ -94,6 +104,7 @@ export function useCreateMember() {
     } catch (err) {
       const code = toErrorCode(err instanceof Error ? err.message : undefined);
       if (code === "unknown") reportClientError(createClient, "useCreateMember", err);
+      sleutels.afgerond(code === "unknown" ? "onbekend" : "definitief");
       setState({ status: "error", code });
       return null;
     }

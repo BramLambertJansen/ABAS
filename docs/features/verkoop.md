@@ -1,5 +1,9 @@
 # Verkoopscherm: mandje + afrekenen
 
+> **Bijgewerkt door [`idempotentie-geld-rpcs.md`](idempotentie-geld-rpcs.md) (ADR 0023, #143):** `place_order` heeft een optionele
+> `p_request_id` (idempotentiesleutel per gebruikersintentie); de client
+> stuurt nog steeds alleen ids en aantallen, nooit een totaal.
+
 Spec voor [issue #8](https://github.com/BramLambertJansen/ABAS/issues/8).
 Volgt op [#7](https://github.com/BramLambertJansen/ABAS/issues/7) (bezetting
 beheren, gemerged) — dat scherm noemde dit ticket al met naam voor twee dingen

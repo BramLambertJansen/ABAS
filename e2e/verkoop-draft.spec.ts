@@ -86,6 +86,7 @@ test("twee tabwissels bewaren lid, regels, aantallen en weergave; afrekening wis
   expect(state.orders).toEqual([{
     p_shift_id: "shift-1", p_member_id: "payer",
     p_lines: [{ product_id: "pils", qty: 2 }], p_served_by: "Femke Bos",
+    p_request_id: expect.any(String),
   }]);
   await heenEnTerug(page);
   await expect(page.getByLabel("Zoek lid")).toBeVisible();

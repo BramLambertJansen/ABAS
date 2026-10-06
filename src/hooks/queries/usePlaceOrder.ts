@@ -4,6 +4,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { reportClientError } from "@/lib/clientErrors";
 import { isSessionErrorCode, notifySessionCode, type SessionErrorCode } from "@/lib/barSessie";
+import { maakSleutelGeheugen } from "@/lib/requestId";
 
 /** Error codes `place_order` (0001_init.sql, 0029) actually raises, per
  *  docs/features/verkoop.md → RPC's / Randgevallen. Anything else (network
@@ -26,6 +27,7 @@ export type PlaceOrderErrorCode =
   | "product_not_available"
   | "member_not_found"
   | "insufficient_balance"
+  | "request_id_conflict"
   | "unknown";
 
 const KNOWN_CODES: PlaceOrderErrorCode[] = [
@@ -36,6 +38,10 @@ const KNOWN_CODES: PlaceOrderErrorCode[] = [
   "product_not_available",
   "member_not_found",
   "insufficient_balance",
+  // 0042 (ADR 0023): dezelfde sleutel met een andere opdracht, lid of RPC.
+  // Hoort met een sleutel per intentie niet voor te komen; domeinuitkomst,
+  // dus niet gemeld aan client_errors.
+  "request_id_conflict",
 ];
 
 function toErrorCode(message: string | undefined): PlaceOrderErrorCode {
@@ -69,9 +75,12 @@ type State =
 /** `place_order`-mutatiehook. De client stuurt uitsluitend product-ids,
  *  aantallen, het gekozen lid en `served_by` mee — nooit een berekend
  *  totaal (CLAUDE.md → Architectuurbeslissingen); het bedrag in het
- *  resultaat komt van de RPC-response. */
+ *  resultaat komt van de RPC-response. Daarnaast `p_request_id`: één sleutel
+ *  per gebruikersintentie (src/lib/requestId.ts, ADR 0023), hergebruikt zolang
+ *  dezelfde opdracht geen definitieve uitkomst had. */
 export function usePlaceOrder() {
   const [state, setState] = useState<State>({ status: "idle" });
+  const [sleutels] = useState(() => maakSleutelGeheugen());
 
   async function placeOrder(
     shiftId: string,
@@ -80,6 +89,7 @@ export function usePlaceOrder() {
     servedBy: string
   ): Promise<PlaceOrderResult> {
     setState({ status: "pending" });
+    const requestId = sleutels.voorOpdracht([shiftId, memberId, lines, servedBy]);
     try {
       const supabase = createClient();
       const { data, error } = await supabase.rpc("place_order", {
@@ -90,19 +100,23 @@ export function usePlaceOrder() {
           qty: line.qty,
         })),
         p_served_by: servedBy,
+        p_request_id: requestId,
       });
       if (error) {
         const code = toErrorCode(error.message);
         if (code === "unknown") reportClientError(supabase, "usePlaceOrder", error);
+        sleutels.afgerond(code === "unknown" ? "onbekend" : "definitief");
         setState({ status: "error", code });
         return { ok: false, code };
       }
+      sleutels.afgerond("definitief");
       setState({ status: "idle" });
       const order = data as { total_cents: number };
       return { ok: true, totalCents: order.total_cents };
     } catch (err) {
       const code = toErrorCode(err instanceof Error ? err.message : undefined);
       if (code === "unknown") reportClientError(createClient, "usePlaceOrder", err);
+      sleutels.afgerond(code === "unknown" ? "onbekend" : "definitief");
       setState({ status: "error", code });
       return { ok: false, code };
     }

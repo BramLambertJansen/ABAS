@@ -14,6 +14,9 @@ const FAKES = {
   "@/lib/supabase/client": new URL("./supabaseBrowserClient.ts", import.meta.url).href,
   "@/lib/clientErrors": new URL("./clientErrors.ts", import.meta.url).href,
   "@/lib/barSessie": new URL("./barSessie.ts", import.meta.url).href,
+  // Geen nep: het echte sleutelhulpje (src/lib/requestId.ts), alleen de
+  // alias omgezet. De test bewijst zo de sleutel die de hooks echt meesturen.
+  "@/lib/requestId": new URL("../../src/lib/requestId.ts", import.meta.url).href,
 };
 
 export async function resolve(specifier, context, nextResolve) {

@@ -293,3 +293,22 @@ test("Nieuw lid: geen time-out voor geld: na 30 s blijft de dialoog geblokkeerd"
   await expect(alertOf(page)).toHaveText(ONBEKEND);
   await expect(dialog.getByRole("button", { name: "Ik heb gecontroleerd" })).toBeEnabled();
 });
+
+test("Nieuw lid: de aanvraag bevat p_request_id naast naam, startsaldo en e-mail", async ({ page }) => {
+  await mockBeheerder(page);
+  const bodies: Record<string, unknown>[] = [];
+  await page.route(/\/rest\/v1\/rpc\/create_member(\?|$)/, (route) => {
+    bodies.push(route.request().postDataJSON());
+    return json(route, 400, { code: "P0001", message: "invalid_name", details: null, hint: null });
+  });
+  await naarBeheer(page, "Leden");
+  await page.getByRole("button", { name: /nieuw lid/i }).click();
+  const dialog = page.getByRole("dialog", { name: "Nieuw lid" });
+  await dialog.getByLabel("Naam").fill("Pieter");
+  await dialog.getByLabel("Startsaldo (optioneel)").fill("10");
+  await dialog.getByRole("button", { name: "Toevoegen" }).click();
+  await expect.poll(() => bodies.length).toBe(1);
+
+  expect(Object.keys(bodies[0]).sort()).toEqual(["p_email", "p_name", "p_request_id", "p_starting_balance_cents"]);
+  expect(bodies[0].p_request_id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+});

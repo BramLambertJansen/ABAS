@@ -25,6 +25,7 @@ register("./fakes/money-hooks-resolve.mjs", import.meta.url);
 
 const { usePlaceOrder } = await import("../src/hooks/queries/usePlaceOrder.ts");
 const { useTopUp } = await import("../src/hooks/queries/useTopUp.ts");
+const { useCreateMember } = await import("../src/hooks/queries/useCreateMember.ts");
 const { useReverseOrderAtBar } = await import("../src/hooks/queries/useReverseOrder.ts");
 const { useAddShiftMember } = await import("../src/hooks/queries/useAddShiftMember.ts");
 const { useRemoveShiftMember } = await import("../src/hooks/queries/useRemoveShiftMember.ts");
@@ -78,6 +79,8 @@ const PLACE_ORDER_DOMAIN = [
   "product_not_available",
   "member_not_found",
   "insufficient_balance",
+  // 0042 (ADR 0023): dezelfde sleutel met een andere opdracht, lid of RPC.
+  "request_id_conflict",
 ] as const;
 
 const TOP_UP_DOMAIN = [
@@ -88,6 +91,7 @@ const TOP_UP_DOMAIN = [
   "invalid_amount",
   "amount_exceeds_max",
   "member_not_found",
+  "request_id_conflict",
 ] as const;
 
 function verwachtNotificaties(code: string): string[] {
@@ -363,4 +367,122 @@ test("useEndBarSession: een gegooide netwerkfout laat de sessie ook staan", asyn
   fakeMoney().next = { kind: "throw", error: new TypeError("Failed to fetch") };
   assert.deepEqual(await useEndBarSession().endBarSession(false), { ok: false, code: "unknown" });
   assert.deepEqual(fakeMoney().signOuts, []);
+});
+
+// ── Idempotentiesleutel (0042, ADR 0023, docs/features/idempotentie-geld-rpcs.md) ──
+// De hooks sturen `p_request_id` mee, één sleutel per intentie, in het
+// geheugen van de hookinstantie. De client stuurt nooit een berekend bedrag.
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+function laatsteSleutel(): unknown {
+  const calls = fakeMoney().rpcCalls;
+  return (calls[calls.length - 1]?.args as Record<string, unknown>).p_request_id;
+}
+
+test("usePlaceOrder stuurt een p_request_id mee, en alleen ids en aantallen (geen totaal)", async () => {
+  fakeMoney().next = { kind: "result", data: { total_cents: 250 }, error: null };
+  await placeOrder();
+  const args = fakeMoney().rpcCalls[0]?.args as Record<string, unknown>;
+  assert.deepEqual(Object.keys(args).sort(), [
+    "p_lines",
+    "p_member_id",
+    "p_request_id",
+    "p_served_by",
+    "p_shift_id",
+  ]);
+  assert.match(String(args.p_request_id), UUID);
+  assert.deepEqual(args.p_lines, [{ product_id: "p", qty: 1 }]);
+});
+
+test("useTopUp stuurt een p_request_id mee, en alleen lid, bedrag en served_by (geen saldo)", async () => {
+  fakeMoney().next = { kind: "result", data: { amount_cents: 1000 }, error: null };
+  await topUp();
+  const args = fakeMoney().rpcCalls[0]?.args as Record<string, unknown>;
+  assert.deepEqual(Object.keys(args).sort(), [
+    "p_amount_cents",
+    "p_member_id",
+    "p_method",
+    "p_request_id",
+    "p_served_by",
+    "p_shift_id",
+  ]);
+  assert.match(String(args.p_request_id), UUID);
+});
+
+test("useCreateMember stuurt een p_request_id mee", async () => {
+  fakeMoney().next = { kind: "result", data: { id: "m", name: "n", role: "lid", balance_cents: 0, archived: false, auth_user_id: null, has_pin: false, email: null, invited_at: null }, error: null };
+  await useCreateMember().createMember("Nieuw", 500, null);
+  const args = fakeMoney().rpcCalls[0]?.args as Record<string, unknown>;
+  assert.deepEqual(Object.keys(args).sort(), [
+    "p_email",
+    "p_name",
+    "p_request_id",
+    "p_starting_balance_cents",
+  ]);
+  assert.match(String(args.p_request_id), UUID);
+});
+
+test("usePlaceOrder: een onbekende uitkomst houdt de sleutel vast voor dezelfde opdracht", async () => {
+  const hook = usePlaceOrder();
+  const lines = [{ productId: "p", qty: 1 }];
+  fakeMoney().next = { kind: "throw", error: new TypeError("Failed to fetch") };
+  await hook.placeOrder(SHIFT, MEMBER, lines, SERVER);
+  const eerste = laatsteSleutel();
+  await hook.placeOrder(SHIFT, MEMBER, [{ productId: "p", qty: 1 }], SERVER);
+  assert.equal(laatsteSleutel(), eerste, "dezelfde opdracht na een onbekende uitkomst: dezelfde sleutel");
+});
+
+test("usePlaceOrder: een gewijzigde opdracht, succes of een bekende fout geeft een nieuwe sleutel", async () => {
+  const hook = usePlaceOrder();
+  const lines = [{ productId: "p", qty: 1 }];
+
+  fakeMoney().next = { kind: "throw", error: new TypeError("Failed to fetch") };
+  await hook.placeOrder(SHIFT, MEMBER, lines, SERVER);
+  const eerste = laatsteSleutel();
+
+  await hook.placeOrder(SHIFT, MEMBER, [{ productId: "p", qty: 2 }], SERVER);
+  const gewijzigd = laatsteSleutel();
+  assert.notEqual(gewijzigd, eerste, "andere aantallen: nieuwe sleutel");
+
+  rpcError("insufficient_balance");
+  await hook.placeOrder(SHIFT, MEMBER, [{ productId: "p", qty: 2 }], SERVER);
+  assert.equal(laatsteSleutel(), gewijzigd, "de bekende fout zelf gebruikte nog dezelfde sleutel");
+  await hook.placeOrder(SHIFT, MEMBER, [{ productId: "p", qty: 2 }], SERVER);
+  assert.notEqual(laatsteSleutel(), gewijzigd, "na een bekende fout: nieuwe sleutel");
+
+  fakeMoney().next = { kind: "result", data: { total_cents: 250 }, error: null };
+  await hook.placeOrder(SHIFT, MEMBER, lines, SERVER);
+  const voorSucces = laatsteSleutel();
+  await hook.placeOrder(SHIFT, MEMBER, lines, SERVER);
+  assert.notEqual(laatsteSleutel(), voorSucces, "na succes: nieuwe sleutel (een bewust tweede identieke bestelling)");
+});
+
+test("useTopUp: onbekende uitkomst houdt de sleutel vast; een ander bedrag is een nieuwe intentie", async () => {
+  const hook = useTopUp();
+  fakeMoney().next = { kind: "throw", error: new TypeError("Failed to fetch") };
+  await hook.topUp(SHIFT, MEMBER, 1000, SERVER);
+  const eerste = laatsteSleutel();
+  await hook.topUp(SHIFT, MEMBER, 1000, SERVER);
+  assert.equal(laatsteSleutel(), eerste);
+  await hook.topUp(SHIFT, MEMBER, 2000, SERVER);
+  assert.notEqual(laatsteSleutel(), eerste);
+});
+
+test("useCreateMember: onbekende uitkomst houdt de sleutel vast; een andere naam is een nieuwe intentie", async () => {
+  const hook = useCreateMember();
+  fakeMoney().next = { kind: "throw", error: new TypeError("Failed to fetch") };
+  await hook.createMember("Nieuw", 500, null);
+  const eerste = laatsteSleutel();
+  await hook.createMember("Nieuw", 500, null);
+  assert.equal(laatsteSleutel(), eerste);
+  await hook.createMember("Anders", 500, null);
+  assert.notEqual(laatsteSleutel(), eerste);
+});
+
+test("useCreateMember meldt request_id_conflict niet als fout", async () => {
+  rpcError("request_id_conflict");
+  const hook = useCreateMember();
+  assert.equal(await hook.createMember("Nieuw", 500, null), null);
+  assert.deepEqual(fakeMoney().reports, []);
 });

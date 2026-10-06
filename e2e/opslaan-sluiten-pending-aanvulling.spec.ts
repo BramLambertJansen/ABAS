@@ -17,7 +17,7 @@ import {
  * met `page.clock` (fastForward) tegen een met opzet hangend verzoek.
  *
  * Wat dit níét toetst: Safari/touch/schermlezer (handmatig) en echte dubbele
- * boeking (geen idempotentie, apart ticket; de UI claimt dat ook niet).
+ * boeking (dat bewijzen db:test en test:integration, ADR 0023; de UI claimt het niet).
  */
 
 const MELDING = "Even wachten, de actie wordt nog verwerkt.";
@@ -604,4 +604,66 @@ test("Opwaarderen: hangend verzoek faalt pas na 30 s: dan pas onbekende uitkomst
   await dialog.getByRole("button", { name: "boeken", exact: true }).click({ force: true });
   await page.waitForTimeout(500);
   expect(calls.top_up).toBe(1);
+});
+
+// ── Idempotentiesleutel (0042, ADR 0023): fase 1 ─────────────────────────
+//
+// De aanvraag bevat een `p_request_id` en nooit een berekend bedrag. De UI
+// zegt niets over dubbel boeken (fase 2, apart akkoord) en de teksten blijven
+// ongewijzigd; dit toetst alleen wat de client meestuurt.
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+test("Afrekenen: de aanvraag bevat p_request_id en alleen ids en aantallen, geen bedrag", async ({ page }) => {
+  const bodies: Record<string, unknown>[] = [];
+  await openKassa(page, {
+    place_order: (route) => {
+      bodies.push(route.request().postDataJSON());
+      return json(route, 200, { total_cents: 250 });
+    },
+  });
+  const dialog = await openAfrekenen(page);
+  await dialog.getByRole("button", { name: "ja, afrekenen" }).click();
+  await expect.poll(() => bodies.length).toBe(1);
+
+  expect(Object.keys(bodies[0]).sort()).toEqual(["p_lines", "p_member_id", "p_request_id", "p_served_by", "p_shift_id"]);
+  expect(bodies[0].p_request_id).toMatch(UUID_RE);
+  expect(JSON.stringify(bodies[0])).not.toMatch(/total|cents|amount/i);
+});
+
+test("Opwaarderen: de aanvraag bevat p_request_id en alleen lid, bedrag en served_by, geen saldo", async ({ page }) => {
+  const bodies: Record<string, unknown>[] = [];
+  await openKassa(page, {
+    top_up: (route) => {
+      bodies.push(route.request().postDataJSON());
+      return json(route, 200, { amount_cents: 500 });
+    },
+  });
+  const dialog = await openOpwaarderen(page);
+  await dialog.getByRole("button", { name: "boeken", exact: true }).click();
+  await expect.poll(() => bodies.length).toBe(1);
+
+  expect(Object.keys(bodies[0]).sort()).toEqual([
+    "p_amount_cents", "p_member_id", "p_method", "p_request_id", "p_served_by", "p_shift_id",
+  ]);
+  expect(bodies[0].p_request_id).toMatch(UUID_RE);
+  expect(bodies[0].p_amount_cents).toBe(500);
+});
+
+test("Afrekenen: na een afgebroken verzoek en 'Ik heb gecontroleerd' gaat dezelfde opdracht met dezelfde sleutel", async ({ page }) => {
+  const ids: unknown[] = [];
+  await openKassa(page, {
+    place_order: (route, n) => {
+      ids.push((route.request().postDataJSON() as { p_request_id: unknown }).p_request_id);
+      return n === 0 ? route.abort("failed") : json(route, 200, { total_cents: 250 });
+    },
+  });
+  const dialog = await openAfrekenen(page);
+  await dialog.getByRole("button", { name: "ja, afrekenen" }).click();
+  await expect(alertOf(page).filter({ hasText: ONBEKEND_GELD })).toBeVisible();
+  await dialog.getByRole("button", { name: "Ik heb gecontroleerd" }).click();
+  await dialog.getByRole("button", { name: "ja, afrekenen" }).click();
+  await expect.poll(() => ids.length).toBe(2);
+  expect(ids[0]).toMatch(UUID_RE);
+  expect(ids[1]).toBe(ids[0]);
 });

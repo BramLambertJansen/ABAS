@@ -68,6 +68,10 @@ export function topUpErrorMessage(code: TopUpErrorCode): string {
       return topUpAmountTooHighMessage();
     case "shift_not_open":
       return "de dienst is niet meer actief — herlaad het scherm";
+    case "request_id_conflict":
+      // 0042 (ADR 0023): hoort niet voor te komen; algemene fout, de volgende
+      // poging krijgt een nieuwe sleutel.
+      return "er ging iets mis, probeer het opnieuw";
     case "unknown":
       // Netwerk- of onbekende fout: de opwaardering kan al geboekt zijn. Geen
       // "probeer opnieuw" (docs/features/opslaan-sluiten-pending.md, besluit C).

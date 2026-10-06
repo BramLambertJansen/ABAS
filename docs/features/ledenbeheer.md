@@ -1,5 +1,9 @@
 # Ledenbeheer (member CRUD)
 
+> **Bijgewerkt door [`idempotentie-geld-rpcs.md`](idempotentie-geld-rpcs.md) (ADR 0023, #143):** `create_member` heeft een optionele
+> `p_request_id` (idempotentiesleutel per gebruikersintentie); een herhaald
+> verzoek maakt geen tweede lid.
+
 Spec voor [issue #13](https://github.com/BramLambertJansen/ABAS/issues/13).
 
 **Gebouwd en gemerged** ([issue #13](https://github.com/BramLambertJansen/ABAS/issues/13),

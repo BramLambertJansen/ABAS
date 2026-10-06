@@ -7,6 +7,11 @@
 > `self_top_up_forbidden`); `OpwaarderenOverlay` toont dat al inline bij het
 > kiezen van jezelf. Wat hieronder over "de gedeelde bar-tablet-sessie" staat,
 > is historie. Bedrag, €500-grens en bevestiging boven €100 zijn ongewijzigd.
+>
+> **Bijgewerkt door [`idempotentie-geld-rpcs.md`](idempotentie-geld-rpcs.md) (ADR 0023, #143):** `top_up` heeft een optionele `p_request_id`
+> (idempotentiesleutel per gebruikersintentie); een herhaald verzoek met
+> dezelfde sleutel en opdracht boekt niet opnieuw. Bedrag, €500-grens en
+> bevestiging boven €100 zijn ongewijzigd.
 
 Spec voor [issue #10](https://github.com/BramLambertJansen/ABAS/issues/10).
 Volgt op [#7](https://github.com/BramLambertJansen/ABAS/issues/7) (bezetting

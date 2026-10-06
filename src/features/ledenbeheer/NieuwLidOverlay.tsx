@@ -29,6 +29,10 @@ function errorMessage(code: CreateMemberErrorCode): string {
       return "dit account is niet gekoppeld aan een lid — vraag een beheerder";
     case "no_admin_role":
       return "dit account kan leden niet beheren — vraag een beheerder";
+    case "request_id_conflict":
+      // 0042 (ADR 0023): hoort niet voor te komen; algemene fout, de volgende
+      // poging krijgt een nieuwe sleutel.
+      return "er ging iets mis, probeer het opnieuw";
     case "unknown":
       // Onbekende uitkomst van een verzoek dat een startsaldo kan schrijven:
       // geen "probeer opnieuw" (zie OnbekendeUitkomstMelding).

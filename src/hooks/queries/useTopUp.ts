@@ -4,6 +4,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { reportClientError } from "@/lib/clientErrors";
 import { isSessionErrorCode, notifySessionCode, type SessionErrorCode } from "@/lib/barSessie";
+import { maakSleutelGeheugen } from "@/lib/requestId";
 
 /** Error codes `top_up` (0001_init.sql, 0016, 0029) actually raises, per
  *  docs/features/opwaarderen.md → RPC's / Randgevallen. Anything else
@@ -29,6 +30,7 @@ export type TopUpErrorCode =
   | "invalid_amount"
   | "amount_exceeds_max"
   | "member_not_found"
+  | "request_id_conflict"
   | "unknown";
 
 const KNOWN_CODES: TopUpErrorCode[] = [
@@ -41,6 +43,10 @@ const KNOWN_CODES: TopUpErrorCode[] = [
   // noemen, zie src/features/opwaarderen/messages.ts.
   "amount_exceeds_max",
   "member_not_found",
+  // 0042 (ADR 0023): dezelfde sleutel met een andere opdracht, lid of RPC.
+  // Hoort met een sleutel per intentie niet voor te komen; domeinuitkomst,
+  // dus niet gemeld aan client_errors.
+  "request_id_conflict",
 ];
 
 function toErrorCode(message: string | undefined): TopUpErrorCode {
@@ -73,9 +79,13 @@ type State =
 
 /** `top_up`-mutatiehook. De client stuurt uitsluitend het gekozen lid, een
  *  bedrag in centen en `served_by` mee — nooit een berekend saldo (CLAUDE.md
- *  → Architectuurbeslissingen). */
+ *  → Architectuurbeslissingen). Daarnaast `p_request_id`: één sleutel per
+ *  gebruikersintentie (src/lib/requestId.ts, ADR 0023), hergebruikt zolang
+ *  dezelfde opdracht geen definitieve uitkomst had; een ander bedrag is een
+ *  nieuwe intentie. */
 export function useTopUp() {
   const [state, setState] = useState<State>({ status: "idle" });
+  const [sleutels] = useState(() => maakSleutelGeheugen());
 
   async function topUp(
     shiftId: string,
@@ -84,6 +94,7 @@ export function useTopUp() {
     servedBy: string
   ): Promise<TopUpResult> {
     setState({ status: "pending" });
+    const requestId = sleutels.voorOpdracht([shiftId, memberId, amountCents, servedBy]);
     try {
       const supabase = createClient();
       const { data, error } = await supabase.rpc("top_up", {
@@ -92,19 +103,23 @@ export function useTopUp() {
         p_amount_cents: amountCents,
         p_method: METHOD,
         p_served_by: servedBy,
+        p_request_id: requestId,
       });
       if (error) {
         const code = toErrorCode(error.message);
         if (code === "unknown") reportClientError(supabase, "useTopUp", error);
+        sleutels.afgerond(code === "unknown" ? "onbekend" : "definitief");
         setState({ status: "error", code });
         return { ok: false, code };
       }
+      sleutels.afgerond("definitief");
       setState({ status: "idle" });
       const topUpRow = data as { amount_cents: number };
       return { ok: true, amountCents: topUpRow.amount_cents };
     } catch (err) {
       const code = toErrorCode(err instanceof Error ? err.message : undefined);
       if (code === "unknown") reportClientError(createClient, "useTopUp", err);
+      sleutels.afgerond(code === "unknown" ? "onbekend" : "definitief");
       setState({ status: "error", code });
       return { ok: false, code };
     }

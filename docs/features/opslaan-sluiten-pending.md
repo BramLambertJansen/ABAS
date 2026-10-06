@@ -87,6 +87,9 @@ alleen voor beheerdialogen zonder geld (besluit 1).
 - Handmatige reeks (Safari, touch, schermlezer, trage tablet) nog niet
   uitgevoerd: geen claim over werking daarop.
 - Backend-idempotentie: #143.
+  Sinds #143 sturen `place_order`, `top_up` en `create_member` een optionele
+  `p_request_id` mee; zie [`idempotentie-geld-rpcs.md`](idempotentie-geld-rpcs.md) (ADR 0023, #143). De UI-tekst van de onbekende uitkomst en de
+  time-outs blijven tot fase 2 van die spec ongewijzigd.
 
 **ADR:** er hoort geen ADR bij T06 (zie "ADR nodig?"); #143 krijgt een ADR bij
 zijn eigen spec.

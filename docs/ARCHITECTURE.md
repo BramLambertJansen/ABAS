@@ -285,6 +285,9 @@ stands. Shared pieces, all additive to the T05 contract:
   automatic retry. Discourages a blind retry, does not prove an outcome:
   there is no idempotency key; backend idempotency is issue
   [#143](https://github.com/BramLambertJansen/ABAS/issues/143).
+  Since [#143](https://github.com/BramLambertJansen/ABAS/issues/143) the money
+  RPCs take an optional `p_request_id`, but this message stays unchanged until
+  phase 2 of [`idempotentie-geld-rpcs.md`](features/idempotentie-geld-rpcs.md).
 - `Overlay` prop **`onopgeslagen`**: Escape and backdrop ask for confirmation
   inline in the same dialog (no second overlay, ADR 0014); the consumer's own
   Sluiten/Annuleren buttons discard directly; `closeBlocked` always wins.
@@ -437,6 +440,14 @@ disabled state on the rail. No RPC, schema or policy changes.
   method)` — which compute the amount server-side, check balance (member
   balance + the admin-configured negative limit), and write the transaction
   in one statement. The client never sends a computed total.
+- `place_order`, `top_up` and `create_member` take an optional client key
+  `p_request_id` (one per user intent; `idempotency_keys`, no policies, read
+  by nobody via the API, pruned after 30 days by `purge_idempotency_keys()`).
+  A repeat with the same key, member and request returns the original result
+  without re-running the state checks and books nothing; anything else is
+  `request_id_conflict`. ADR
+  [0023](adr/0023-geld-rpcs-idempotent-via-client-sleutel.md), spec
+  [`idempotentie-geld-rpcs.md`](features/idempotentie-geld-rpcs.md).
 - Money tables are `REVOKE`d from `authenticated` — no direct table access is
   *possible*, not just discouraged.
 - `served_by` is chosen by the operator from the active shift's roster
