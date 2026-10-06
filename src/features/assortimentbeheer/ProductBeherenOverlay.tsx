@@ -388,7 +388,7 @@ export function ProductBeherenOverlay({
           <span className="text-xs font-medium text-muted">
             {product.archived
               ? "product verschijnt weer op het verkoopscherm"
-              : "product verdwijnt van het verkoopscherm, historie blijft"}
+              : "Het product verdwijnt van het verkoopscherm. Verkoophistorie blijft bestaan. Terugzetten kan onder ‘Uit assortiment’."}
           </span>
         </span>
         <span aria-hidden="true" className="text-base font-bold text-muted">

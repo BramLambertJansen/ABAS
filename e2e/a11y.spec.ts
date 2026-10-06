@@ -614,6 +614,34 @@ test.describe("beheer ingelogde staat (a11y)", () => {
       .toEqual([]);
   });
 
+  /**
+   * docs/features/beheerformulieren-catalogus.md (#131) → Teststrategie →
+   * A11y: de nieuwe zoek- en chipsbalk van de productenlijst, in de
+   * standaardstand en met een zoekterm zonder treffers (lege uitkomst met
+   * "Zoekopdracht wissen").
+   */
+  test("beheer (/beheer) Assortiment-tab met zoeken en statuschips has no WCAG2A/AA violations", async ({
+    page,
+  }) => {
+    await loginAsBeheerder(page);
+    await page
+      .getByRole("heading", { name: "Assortiment" })
+      .waitFor({ state: "visible", timeout: 15_000 });
+
+    await page.getByRole("button", { name: /^Uit assortiment/ }).click();
+    await page.getByLabel("Zoek product op naam of categorie").fill("zzzzzz-geen-treffer");
+    await page
+      .getByRole("button", { name: "Zoekopdracht wissen" })
+      .waitFor({ state: "visible", timeout: 15_000 });
+
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+
+    expect(results.violations, JSON.stringify(results.violations, null, 2))
+      .toEqual([]);
+  });
+
   test("beheer (/beheer) Instellingen-tab (ingelogd) has no WCAG2A/AA violations", async ({
     page,
   }) => {
