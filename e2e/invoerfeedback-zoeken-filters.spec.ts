@@ -49,7 +49,7 @@ async function verkoop(page: Page, opties: Opties = {}) {
     [{ member_id: "Femke Bos", added_at: new Date().toISOString(), members: { name: "Femke Bos" } }]));
   await page.route(/\/rest\/v1\/app_settings(\?|$)/, (route) => json(route, 200, { negative_limit_cents: 0, low_balance_threshold_cents: 1000 }));
   await page.route(/\/rest\/v1\/activity_types(\?|$)/, (route) => json(route, 200, [{ id: "training", name: "Training" }]));
-  await page.route(/\/rest\/v1\/rpc\/top_up(\?|$)/, (route) => {
+  await page.route(/\/rest\/v1\/rpc\/top_up_once(\?|$)/, (route) => {
     state.topUps++;
     return json(route, 200, { amount_cents: 500 });
   });
@@ -493,7 +493,7 @@ async function beheer(page: Page, tab: "Assortiment" | "Leden" | "Instellingen")
   await page.route(/\/rest\/v1\/rpc\/list_members_admin(\?|$)/, (route) => json(route, 200, [LID]));
   await page.route(/\/rest\/v1\/app_settings(\?|$)/, (route) => json(route, 200, { negative_limit_cents: 0, low_balance_threshold_cents: 1000 }));
   const rpcs: string[] = [];
-  await page.route(/\/rest\/v1\/rpc\/(create_member|create_product|update_product_price|update_member_email|update_negative_limit)(\?|$)/, (route) => {
+  await page.route(/\/rest\/v1\/rpc\/(create_member_once|create_product|update_product_price|update_member_email|update_negative_limit)(\?|$)/, (route) => {
     rpcs.push(new URL(route.request().url()).pathname);
     return json(route, 400, { message: "geweigerd" });
   });

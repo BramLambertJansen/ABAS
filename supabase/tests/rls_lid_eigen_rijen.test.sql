@@ -52,7 +52,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(41);
+select plan(45);
 
 -- ── Fixtures (als superuser, vóór de rolwissel) ──────────────────────────
 
@@ -516,22 +516,17 @@ reset role;
 
 -- ── Blok 7: als anon ─────────────────────────────────────────────────────
 -- De anon-key staat in elke client. Alle vijf de leespolicies zijn `to
--- authenticated`, dus voor anon geldt geen enkele policy en blijft elke
--- tabel leeg (de tabel-SELECT-grant via Supabase's default privileges
--- bestaat wel, vandaar 0 rijen en geen 42501). Dat anon de helper niet kan
--- uitvoeren staat generiek in rpc_execute_grants.test.sql.
+-- authenticated`. Sinds 0042 ontbreken bovendien de tabelrechten voor
+-- anon: de database weigert SELECT voordat een leespolicy wordt toegepast.
+-- Dat anon de helper niet kan uitvoeren staat in rpc_execute_grants.test.sql.
 
 set local role anon;
 
-select is(
-  (select (select count(*) from members)
-        + (select count(*) from orders)
-        + (select count(*) from order_lines)
-        + (select count(*) from top_ups)
-        + (select count(*) from order_reversals))::integer,
-  0,
-  'anon leest geen enkele rij uit members/orders/order_lines/top_ups/order_reversals'
-);
+select throws_ok('select * from members', '42501', null, 'anon kan members niet lezen');
+select throws_ok('select * from orders', '42501', null, 'anon kan orders niet lezen');
+select throws_ok('select * from order_lines', '42501', null, 'anon kan order_lines niet lezen');
+select throws_ok('select * from top_ups', '42501', null, 'anon kan top_ups niet lezen');
+select throws_ok('select * from order_reversals', '42501', null, 'anon kan order_reversals niet lezen');
 
 reset role;
 

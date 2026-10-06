@@ -1,3 +1,4 @@
+import { PENDING_REQUEST_MESSAGE, REQUEST_STORAGE_MESSAGE } from "@/lib/moneyRequest";
 import { formatCents } from "@/lib/money";
 import { SESSION_CODE_INLINE_MESSAGE, isSessionErrorCode } from "@/lib/barSessie";
 import { ONBEKENDE_UITKOMST_GELD_TEKST } from "@/lib/opslaan";
@@ -52,6 +53,14 @@ export function topUpErrorMessage(code: TopUpErrorCode): string {
   // inline regel per scherm.
   if (isSessionErrorCode(code)) return SESSION_CODE_INLINE_MESSAGE;
   switch (code) {
+    case "pending_request":
+    case "request_id_conflict":
+    case "invalid_request_id":
+      return PENDING_REQUEST_MESSAGE;
+    case "request_cancelled":
+      return "Deze eerdere actie is definitief geannuleerd. Er is niets geboekt onder deze sleutel.";
+    case "request_storage_unavailable":
+      return REQUEST_STORAGE_MESSAGE;
     case "self_top_up_forbidden":
       return SELF_TOP_UP_MESSAGE;
     case "served_by_not_on_shift":

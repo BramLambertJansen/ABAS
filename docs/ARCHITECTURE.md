@@ -1,5 +1,16 @@
 # Architecture — ABAS
 
+> Actueel beheer en uitrollen: [platformrunbook](operations/platform-runbook.md).
+> De rest van dit document bevat ook historische bouw- en ontwerpnotities.
+
+## Server/client-grens (2026-10-05)
+
+De drie Supabase-servermodules beginnen met `import "server-only"`.
+Next.js blokkeert daardoor directe en indirecte clientimports; `check:arch`
+volgt dezelfde importgraaf en meldt de kortste keten. Types en pure regels
+blijven in aparte modules. Zie [ADR 0021](adr/0021-server-only-markering-is-de-grens-client-server.md).
+
+
 Living document — decisions land here first (see `CLAUDE.md` → Werkstraat).
 `CLAUDE.md` stays the short, gate-complementing summary; this is where the
 detail behind it lives.

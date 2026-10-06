@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { runMoneyRequest, isMoneyRequestError, type MoneyRequestErrorCode } from "@/lib/moneyRequest";
 import { reportClientError } from "@/lib/clientErrors";
 import { isSessionErrorCode, notifySessionCode, type SessionErrorCode } from "@/lib/barSessie";
 
@@ -22,6 +23,7 @@ import { isSessionErrorCode, notifySessionCode, type SessionErrorCode } from "@/
  *  de centrale afhandeling (`notifySessionCode`, src/lib/barSessie.ts): één
  *  melding voor de hele bar in plaats van een inline foutregel per scherm. */
 export type TopUpErrorCode =
+  | MoneyRequestErrorCode
   | SessionErrorCode
   | "self_top_up_forbidden"
   | "shift_not_open"
@@ -44,6 +46,7 @@ const KNOWN_CODES: TopUpErrorCode[] = [
 ];
 
 function toErrorCode(message: string | undefined): TopUpErrorCode {
+  if (isMoneyRequestError(message)) return message;
   if (isSessionErrorCode(message)) {
     notifySessionCode(message);
     return message;
@@ -86,7 +89,7 @@ export function useTopUp() {
     setState({ status: "pending" });
     try {
       const supabase = createClient();
-      const { data, error } = await supabase.rpc("top_up", {
+      const { data, error } = await runMoneyRequest(supabase, "top_up", {
         p_shift_id: shiftId,
         p_member_id: memberId,
         p_amount_cents: amountCents,

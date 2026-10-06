@@ -404,7 +404,7 @@ async function openBar(page: Page, placeOrderDelay?: Promise<void>) {
   await page.route(/\/rest\/v1\/app_settings(\?|$)/, (route) =>
     json(route, 200, { negative_limit_cents: 0, low_balance_threshold_cents: 1000 })
   );
-  await page.route(/\/rest\/v1\/rpc\/place_order(\?|$)/, async (route) => {
+  await page.route(/\/rest\/v1\/rpc\/place_order_once(\?|$)/, async (route) => {
     orderCalls.push(route.request().postDataJSON());
     await placeOrderDelay;
     return json(route, 200, { total_cents: 250 });

@@ -34,6 +34,67 @@ const PRODUCT = { id: "p1", name: "Pils", category: "Bier", price_cents: 250, ar
 const MELDING = "Even wachten, de actie wordt nog verwerkt.";
 const ONBEKEND = "De uitkomst is onbekend. Controleer eerst het saldo of de transacties voordat je opnieuw probeert.";
 
+test("Nieuw lid: verloren antwoord blijft na herladen met dezelfde sleutel herstelbaar", async ({ page }) => {
+  await mockBeheerder(page);
+  await page.route(/\/rest\/v1\/rpc\/inspect_money_request(\?|$)/, (route) => json(route, 200, { status: "missing" }));
+  const keys: string[] = [];
+  await page.route(/\/rest\/v1\/rpc\/create_member_once(\?|$)/, async (route) => {
+    keys.push(route.request().postDataJSON().p_request_id);
+    if (keys.length === 1) return route.abort("failed");
+    return json(route, 200, LID);
+  });
+  await naarBeheer(page, "Leden");
+  await page.getByRole("button", { name: /nieuw lid/i }).click();
+  const dialog = page.getByRole("dialog", { name: "Nieuw lid" });
+  await dialog.getByLabel("Naam", { exact: true }).fill("Joris de Vries");
+  await dialog.getByRole("button", { name: "Toevoegen", exact: true }).click();
+  await expect(dialog.getByText(ONBEKEND)).toBeVisible();
+  await page.reload();
+  const recovery = page.getByRole("button", { name: "Eerdere nieuw lid veilig afronden" });
+  await expect(recovery).toBeVisible();
+  expect(keys).toHaveLength(1); // Reload does not automatically book again.
+  const notice = await page.getByRole("region", { name: "Eerdere geldacties" }).boundingBox();
+  const navigation = await page.getByRole("tab", { name: "Assortiment", exact: true }).boundingBox();
+  expect(notice).not.toBeNull();
+  expect(navigation).not.toBeNull();
+  expect(notice!.y + notice!.height).toBeLessThanOrEqual(navigation!.y);
+  const scan = await new AxeBuilder({ page }).include('[aria-label="Eerdere geldacties"]').analyze();
+  expect(scan.violations).toEqual([]);
+  await recovery.focus();
+  await expect(recovery).toBeFocused();
+  await page.screenshot({ path: process.env.ABAS_REVIEW_SCREENSHOT ?? test.info().outputPath("financial-recovery.png") });
+  await recovery.press("Enter");
+  await expect.poll(() => keys.length).toBe(2);
+  expect(keys[0]).toMatch(/^[a-f0-9-]{36}$/i);
+  expect(keys[1]).toBe(keys[0]);
+  await expect(page.getByRole("button", { name: "Eerdere nieuw lid veilig afronden" })).toHaveCount(0);
+});
+
+test("Nieuw lid: definitieve annulering beëindigt een bewaarde onbekende actie zonder nieuwe boeking", async ({ page }) => {
+  await mockBeheerder(page);
+  let originalKey = "", cancelledKey = "", calls = 0;
+  await page.route(/\/rest\/v1\/rpc\/create_member_once(\?|$)/, (route) => {
+    originalKey = route.request().postDataJSON().p_request_id; calls++;
+    return route.abort("failed");
+  });
+  await page.route(/\/rest\/v1\/rpc\/inspect_money_request(\?|$)/, (route) => {
+    const body = route.request().postDataJSON();
+    expect(body.p_cancel).toBe(true); cancelledKey = body.p_request_id;
+    return json(route, 200, { status: "cancelled" });
+  });
+  await naarBeheer(page, "Leden");
+  await page.getByRole("button", { name: /nieuw lid/i }).click();
+  const dialog = page.getByRole("dialog", { name: "Nieuw lid" });
+  await dialog.getByLabel("Naam", { exact: true }).fill("Joris de Vries");
+  await dialog.getByRole("button", { name: "Toevoegen", exact: true }).click();
+  await expect(dialog.getByText(ONBEKEND)).toBeVisible();
+  await page.reload();
+  await page.getByRole("button", { name: "Eerdere nieuw lid definitief annuleren" }).click();
+  await expect.poll(() => cancelledKey).toBe(originalKey);
+  await expect(page.getByRole("button", { name: "Eerdere nieuw lid definitief annuleren" })).toHaveCount(0);
+  expect(calls).toBe(1);
+});
+
 /** Houdt een RPC-antwoord vast tot `laatDoor()`; telt de aanroepen. */
 function houdVast() {
   let release!: () => void;
@@ -235,7 +296,7 @@ test("Nieuw product: Escape en backdrop vragen om bevestiging, Annuleren niet", 
 test("Nieuw lid: afgebroken create_member toont de controletekst, geen 'probeer opnieuw', geen tweede request", async ({ page }) => {
   await mockBeheerder(page);
   let aanroepen = 0;
-  await page.route(/\/rest\/v1\/rpc\/create_member(\?|$)/, (route) => {
+  await page.route(/\/rest\/v1\/rpc\/create_member_once(\?|$)/, (route) => {
     aanroepen++;
     return route.abort("failed");
   });
@@ -265,7 +326,7 @@ test("Nieuw lid: geen time-out voor geld: na 30 s blijft de dialoog geblokkeerd"
   let laatDoor!: () => void;
   const poort = new Promise<void>((resolve) => (laatDoor = resolve));
   let aanroepen = 0;
-  await page.route(/\/rest\/v1\/rpc\/create_member(\?|$)/, async (route) => {
+  await page.route(/\/rest\/v1\/rpc\/create_member_once(\?|$)/, async (route) => {
     aanroepen++;
     await poort;
     return route.abort("failed");

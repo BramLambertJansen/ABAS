@@ -10,6 +10,7 @@
  * registreert.
  */
 const FAKES = {
+  "@/lib/moneyRequest": new URL("./moneyRequest.ts", import.meta.url).href,
   react: new URL("./react.ts", import.meta.url).href,
   "@/lib/supabase/client": new URL("./supabaseBrowserClient.ts", import.meta.url).href,
   "@/lib/clientErrors": new URL("./clientErrors.ts", import.meta.url).href,

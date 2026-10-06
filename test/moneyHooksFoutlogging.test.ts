@@ -99,7 +99,7 @@ for (const code of PLACE_ORDER_DOMAIN) {
     rpcError(code);
     const result = await placeOrder();
     assert.deepEqual(result, { ok: false, code });
-    assert.equal(fakeMoney().rpcCalls[0]?.fn, "place_order");
+    assert.equal(fakeMoney().rpcCalls[0]?.fn, "place_order_once");
     assert.deepEqual(fakeMoney().reports, []);
     // Een sessiecode gaat naar de centrale afhandeling, een andere uitkomst niet.
     assert.deepEqual(fakeMoney().notifications, verwachtNotificaties(code));
@@ -111,7 +111,7 @@ for (const code of TOP_UP_DOMAIN) {
     rpcError(code);
     const result = await topUp();
     assert.deepEqual(result, { ok: false, code });
-    assert.equal(fakeMoney().rpcCalls[0]?.fn, "top_up");
+    assert.equal(fakeMoney().rpcCalls[0]?.fn, "top_up_once");
     assert.deepEqual(fakeMoney().reports, []);
     assert.deepEqual(fakeMoney().notifications, verwachtNotificaties(code));
   });

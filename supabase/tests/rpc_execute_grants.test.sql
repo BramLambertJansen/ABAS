@@ -26,7 +26,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(38);
+select plan(39);
 
 -- ── 1) Niets in public is uitvoerbaar zonder sessie ──────────────────────
 
@@ -142,7 +142,7 @@ select ok(
   'reverse_order_as_admin blijft aanroepbaar voor een ingelogde sessie'
 );
 
--- Added for 0022_lid_account_koppelen.sql (#15, docs/features/portal-login.md):
+-- Added for 0023_lid_account_koppelen.sql (#15, docs/features/portal-login.md):
 -- named checks naast the blanket "geen enkele functie in public"-assertions
 -- above (die dekken deze functie al automatisch, maar een falende run zou
 -- daar alleen "er zijn er N te veel" tonen, niet wélke — vandaar ook hier
@@ -376,6 +376,12 @@ select ok(
 select ok(
   to_regprocedure('public.start_shift(uuid,text,uuid)') is null,
   'de oude start_shift met PIN bestaat niet meer'
+);
+
+select ok(
+  not has_function_privilege('authenticated', 'public.forbid_api_role_truncate()', 'EXECUTE')
+    and not has_function_privilege('service_role', 'public.forbid_api_role_truncate()', 'EXECUTE'),
+  'de truncate-guard is intern en niet direct uitvoerbaar door API-rollen'
 );
 
 select * from finish();
