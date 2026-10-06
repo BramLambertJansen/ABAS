@@ -1,9 +1,9 @@
 # Idempotentie voor geld-RPC's (`request_id`)
 
-**Status: concept, wacht op akkoord van Bram.** Er is nog niets gebouwd en
-geen enkele keuze hieronder is genomen: alles onder "Open vragen" is een
-aanbeveling. Het issue is gelabeld `needs-decision` en Bram heeft de
-Architect niet gevraagd zelf te kiezen. De Developer begint pas na akkoord.
+**Status: goedgekeurd door Bram (aanbevelingen 1-12 overgenomen).** De
+Developer mag bouwen volgens "Besluiten van Bram" en "Fasering en bouwplan".
+Fase 2 (zie besluit 9) heeft een eigen akkoord nodig en valt buiten deze bouw.
+ADR: [0023](../adr/0023-geld-rpcs-idempotent-via-client-sleutel.md).
 
 Spec voor [issue #143](https://github.com/BramLambertJansen/ABAS/issues/143)
 (backend, voortgekomen uit T06 [#126](https://github.com/BramLambertJansen/ABAS/issues/126),
@@ -88,7 +88,7 @@ binnen de bar-shell, modus beheer). Geen portal-wijziging. De hooks
 (`src/hooks/queries/`) en de overlays zijn shell-onwetend; geen
 `useShell()`-uitbreiding.
 
-## Ontwerp (alles onder voorbehoud van de open vragen)
+## Ontwerp
 
 ### De sleutel
 
@@ -264,7 +264,7 @@ Alleen wat nodig is voor een werkende sleutel; geen nieuw scherm.
 - Bij fase 1 blijft T06-gedrag **ongewijzigd**: `OnbekendeUitkomstMelding`,
   "Ik heb gecontroleerd", geen automatische retry, geen time-out voor geld,
   `closeBlocked`. De winst in fase 1 is dat dubbelverzoeken onschadelijk zijn.
-- Fase 2 (alleen na vraag 9): in de onbekende-uitkomstmelding een "Opnieuw
+- Fase 2 (apart akkoord van Bram, besluit 9; buiten deze bouw): in de onbekende-uitkomstmelding een "Opnieuw
   proberen" met dezelfde sleutel, en eventueel een time-out op geldoverlays.
   Teksten zijn aan Bram (CLAUDE.md: geen verzonnen teksten); een voorstel staat
   bij vraag 9. De sleutel leeft in geheugen van de hook, dus een paginaherlaad
@@ -293,117 +293,92 @@ Alleen wat nodig is voor een werkende sleutel; geen nieuw scherm.
 - **Gastbestelling (`p_member_id` null):** gewoon hetzelfde mechanisme.
 - **Twee bewust identieke bestellingen:** twee sleutels, twee boekingen.
 
-## Open vragen (met aanbeveling)
+## Besluiten van Bram
 
-Antwoord "pak aanbevelingen" volstaat. Niets hieronder is gekozen.
+Bram nam alle aanbevelingen over ("Pak aanbevelingen"). De nummering blijft
+die van de vragen, omdat de rest van de spec ernaar verwijst.
 
-**1. Opslag: kolom met unieke constraint op elke geldtabel, of één aparte
-`idempotency_keys`-tabel?** (issue-vraag 1)
-Aanbeveling: **aparte tabel**. Eén mechanisme, één plek om te testen en te
-reviewen, werkt ook voor `create_member` dat geen transactierij heeft, en geen
-wijziging aan `orders`/`top_ups`/`members` (geen kolom op de PII-tabel
-`members`, geen impact op leesrechten en overzichten). Het alternatief
-(`request_id` met unieke index op `orders` en `top_ups`, en een kolom op
-`members`) geeft permanente uniekheid zonder retentiegat en geen cron, maar
-verspreidt het mechanisme over drie tabellen en vraagt voor `create_member`
-een kolom op `members`. Dat is het afgewogen alternatief als Bram permanente
-sleutels belangrijker vindt.
+1. **Opslag:** aparte tabel `idempotency_keys`, RLS aan zonder policies,
+   `revoke all` voor `authenticated` en `anon`, toevoegen aan `MONEY_TABLES`
+   in `scripts/check-rls.mjs`. Geen kolom op `orders`/`top_ups`/`members`.
+2. **Bewaartermijn:** 30 dagen, dagelijkse `pg_cron`-job (03:00) die
+   `purge_idempotency_keys()` aanroept; interne functie, `intern` in
+   `rpc_catalogus`.
+3. **Zelfde sleutel, andere payload, andere RPC of ander lid:** één foutcode
+   `request_id_conflict`. Scope van de sleutel is het lid van de sessie
+   (`actor_member_id`), niet de bar-sessie of dienst.
+4. **Replay:** alleen de guards lopen, geen herhaalde state-checks; het
+   oorspronkelijke resultaat komt terug. Bewust, vastgelegd in ADR 0023.
+5. **Mislukte eerste aanroep:** de claim rolt mee terug, geen "mislukt"-status;
+   de sleutel is daarna weer bruikbaar.
+6. **Sleutel op de client:** in het hookgeheugen (fase 1). `sessionStorage` is
+   een mogelijk vervolg, niet in deze bouw.
+7. **Rollout:** `p_request_id uuid default null`, oude signaturen expliciet
+   gedropt met opnieuw uitgegeven grants (geen overloads); later verplicht via
+   een aparte migratie (`request_id_required`), dan pas een gate in
+   `rpc_catalogus`.
+8. **Geen replay-vlag:** returntypes ongewijzigd, replay is gewoon succes.
+9. **Frontend in twee fases, apart gemerged.** FASE 1 NU: hooks sturen de
+   sleutel mee, T06-gedrag ongewijzigd (`OnbekendeUitkomstMelding`, geen
+   retry, geen time-out voor geld, `closeBlocked`), de UI claimt niets.
+   FASE 2 APART: "Opnieuw proberen" met dezelfde sleutel en heroverweging van
+   de time-out voor geldoverlays; dat vraagt een eigen akkoord van Bram (ook
+   voor de teksten) en valt BUITEN deze bouw. De UI zegt pas "boekt niet
+   dubbel" na fase 1 en een slagende race-integratietest (ADR 0023).
+10. **Startsaldo-transactierij:** niet in dit ticket; opvolgticket (#143b) met
+    eigen spec. Startsaldo blijft de eerste stand van het lid.
+11. **`reverse_order_at_bar`/`reverse_order_as_admin`:** buiten scope (al veilig
+    via primary key, `for update` en `already_reversed`).
+12. **ADR:** 0023, `docs/adr/0023-geld-rpcs-idempotent-via-client-sleutel.md`
+    (0022 bestond al). Een gate op "elke geldschrijvende client-RPC heeft
+    `p_request_id`" volgt pas nadat de parameter verplicht is (opvolger).
 
-**2. Bewaartermijn.** (issue-vraag 2)
-Aanbeveling: **30 dagen**, opgeruimd door een dagelijkse `pg_cron`-job
-(03:00, zoals `purge_client_errors`). Rijen zijn klein (ids en een hash); een
-retry-venster is minuten, dus 30 dagen is een ruime marge zonder dat de tabel
-onbeperkt groeit. Wordt het permanent gewenst, dan is vraag 1 het alternatief.
+## Fasering en bouwplan (voor de Developer)
 
-**3. Gedrag bij dezelfde sleutel met andere parameters, andere RPC of ander
-lid.** (issue-vraag 3)
-Aanbeveling: **fout `request_id_conflict`**, één code voor alle drie gevallen
-(geen aanwijzing voor een ander lid dat de sleutel bestaat). Geen stille
-uitvoering met de nieuwe payload, geen stille replay van de oude. Scope van de
-sleutel is het **lid** van de sessie (`actor_member_id`), niet de
-bar-sessie of dienst: een herinlog van hetzelfde lid mag herhalen, een collega
-niet.
+Drie stappen, in deze volgorde, bij voorkeur als drie commits in één PR (of
+(a)+(b) eerst als eigen PR). Migratie vóór of samen met de frontend (ADR 0023,
+rolloutvolgorde); frontend nooit vóór de migratie.
 
-**4. Moet een herhaling de state-checks (dienst open, bezetting, saldo,
-negatieflimiet) opnieuw doen?**
-Aanbeveling: **nee**, alleen de guards. Een eerder geslaagde boeking wordt bij
-herhaling zelfde resultaat, ook als de dienst inmiddels sloot of het saldo
-daalde. Anders ziet de gebruiker een fout bij een boeking die er wel is.
+**(a) Migratie, pgTAP, rpc_catalogus, check-rls**
+- `supabase/migrations/0042_idempotentie_geld_rpcs.sql` (nummer controleren
+  met `check:migrations`): tabel + index op `created_at`, RLS + `revoke`,
+  `drop function` van de drie oude signaturen, drie nieuwe RPC's (body's
+  letterlijk uit `0029` plus sleutelstappen, volgorde: guards, claim,
+  uitvoeren), `revoke ... from public, anon` en `grant execute ... to
+  authenticated`, `purge_idempotency_keys()` en de cron-job.
+- `scripts/check-rls.mjs`: `idempotency_keys` in `MONEY_TABLES`.
+- `supabase/tests/idempotentie.test.sql` volgens het testplan, en
+  `rpc_catalogus.test.sql` (`purge_idempotency_keys` als `intern`, `plan`
+  ophogen, geen overload). Bestaande tests (`place_order`, `top_up`,
+  `negatieve_saldolimiet`, `geld_rpcs_attributie`, `end_shift`) ongewijzigd
+  groen.
 
-**5. Mag een sleutel na een mislukte eerste aanroep hergebruikt worden?**
-Aanbeveling: **ja, vanzelf** (de claim rolt mee terug); de client maakt na een
-definitieve fout toch een nieuwe sleutel. Geen aparte "mislukt"-status in de
-tabel.
+**(b) Integratietest voor de race**
+- `integration/idempotentie-race.test.ts`: twee parallelle `place_order` en
+  twee parallelle `top_up` met dezelfde sleutel via PostgREST
+  (`Promise.all`); één boeking, beide antwoorden hetzelfde id, saldo één keer
+  gewijzigd. Vorm van de bestaande `integration/*.test.ts`.
 
-**6. Waar leeft de sleutel op de client?**
-Aanbeveling: **in het geheugen van de hook** (per openstaande intentie),
-fase 1. Reden: de bestaande overlays zijn gemount per actie en dit raakt de
-bewuste T06-afspraken niet. Gevolg: na een paginaherlaad is de sleutel weg en
-valt een herpoging terug op "controleer eerst" (zoals vandaag). Alternatief:
-sessionStorage per tab zodat een herlaad na een hangend verzoek veilig kan
-herhalen. Dat is nuttiger voor het T06-scenario "hangt tot herladen", maar
-vraagt opruimregels en bijkomende testgevallen; aanbevolen als vervolg,
-niet in de eerste ronde.
+**(c) Frontend fase 1**
+- `src/lib/requestId.ts` (naam aan de Developer) met unit-test in `test/`;
+  `usePlaceOrder`, `useTopUp`, `useCreateMember` sturen `p_request_id` mee;
+  `request_id_conflict` als bekende code (niet naar `client_errors`),
+  `test/moneyHooksFoutlogging.test.ts` bijwerken.
+- E2E (Playwright, gemockte RPC): de aanvraag bevat `p_request_id`, geen
+  berekend bedrag; bestaande specs (`opslaan-sluiten-pending*`,
+  `bestelling-terugdraaien`) blijven groen. De overlays en teksten blijven
+  ongewijzigd.
+- Verwijzing naar deze spec in `opslaan-sluiten-pending.md`, `opwaarderen.md`,
+  `verkoop.md`, `ledenbeheer.md`; `docs/ARCHITECTURE.md` (geldlaag).
 
-**7. Rollout en compatibiliteit: `p_request_id` optioneel of verplicht?**
-Aanbeveling: **optioneel (`default null`) in deze release, verplicht in een
-latere migratie** (null wordt dan `request_id_required`). Backend en frontend
-deployen niet atomair; een cache- of niet-herladen client mag niet ineens op
-"functie bestaat niet" lopen. De oude signaturen worden wel gedropt (geen
-overloads). Bestaande aanroepen in tests en seed (ruim 80 regels in circa 25
-bestanden) blijven daardoor werken zonder wijziging. Het verplicht maken is een
-klein opvolgticket zodra de nieuwe client breed draait. Alles in één release
-met verplichte parameter is het alternatief; het geeft de sterkste garantie,
-maar breekt oude clients hard.
-
-**8. Moet de RPC melden dat het een herhaling was?**
-Aanbeveling: **nee**, returntype ongewijzigd. De client behandelt replay als
-gewoon succes. Een vlag vraagt een ander returntype (jsonb of composite) en
-raakt alle hooks en tests; de gebruikerswaarde is klein.
-
-**9. Frontend in dit ticket, of in twee fases?** En wat met de T06-besluiten?
-Aanbeveling: **twee fases, apart gemerged.** Fase 1: migratie, tests, hooks
-sturen de sleutel mee, T06-gedrag ongewijzigd (geen nieuwe teksten nodig).
-Fase 2 (apart akkoord van Bram): "Opnieuw proberen" met dezelfde sleutel in
-`OnbekendeUitkomstMelding`, en pas dán heroverweging van de 30 s-time-out voor
-geldoverlays (besluit 1 in T06 blijft tot Bram anders zegt; een time-out
-afbreken is pas veilig als de herpoging idempotent is). Voorstel tekst voor
-fase 2, aan Bram om aan te passen: "De uitkomst is onbekend. Opnieuw
-proberen boekt niet dubbel." (formulering uitsluitend na akkoord op de
-garantie; zie risico 1).
-
-**10. Startsaldo bij `create_member`: transactierij toevoegen?** (issue-vraag 4)
-Aanbeveling: **nee, niet in dit ticket.** Idempotentie lost het dubbele lid
-op; een transactierij voor het startsaldo is een eigen grootboekbeslissing.
-`top_ups` is er niet voor geschikt (`shift_id not null`, telt mee in de
-kas-/omzetoverzichten van een dienst, en `list_own_transactions` zou een
-"opwaardering" tonen die geen contant geld was). Een transactierij vraagt een
-nieuw soort rij (bijvoorbeeld een aparte beginsaldotabel), RLS, weergave in
-portal en logboek, en past niet in een idempotentieticket. Opvolgticket
-(#143b) met eigen spec, als Bram het wil. Tot dan blijft de eis "startsaldo is
-de eerste stand van het lid, niet een transactie".
-
-**11. Ook `reverse_order_at_bar`/`reverse_order_as_admin`?**
-Aanbeveling: **nee.** Geldzakelijk al veilig (primary key op
-`order_reversals.order_id`, `for update`, `already_reversed`). Het resterende
-punt is dat een herhaling na onbekende uitkomst een fout geeft in plaats van
-succes; dat is een UX-kwestie (de bestaande `already_reversed`-tekst is dan
-juist), geen risico op dubbel boeken. Aan Bram om te bevestigen dat de
-terugdraai-UX hier geen werk voor nodig heeft.
-
-**12. ADR.**
-Aanbeveling: **ja, ADR 0023** (nummer nu vrij; `check:adr` bewaakt dubbele
-nummers, controleren bij schrijven): "Geld-RPC's met een client-sleutel zijn
-idempotent via `idempotency_keys`". Het is een architectuurbeslissing die elke
-volgende geldfeature raakt (webhook #23, nieuwe geld-RPC's) en een bestaande
-beslissing preciseert (geld alleen via RPC). Staat niet in CLAUDE.md en
-wordt door geen gate afgedwongen. De Architect schrijft de ADR zodra Bram de
-antwoorden gaf, **vóór** de Developer begint, in dezelfde PR als de
-implementatie of eerder; hij legt vast: aparte tabel, scope per lid,
-replay-semantiek zonder state-checks, retentie, één foutcode, optioneel eerst.
-Een gate erbij (afgedwongen dat elke geldschrijvende client-RPC een
-`p_request_id` heeft) is mogelijk via `rpc_catalogus` maar pas zinvol als
-de parameter verplicht is (vraag 7); dat noteer ik als opvolger.
+**Wat alleen CI kan bewijzen:** er is lokaal geen Supabase/docker. `db:test`
+(pgTAP, rpc_catalogus, check van overloads/grants/cron) en `test:integration`
+(de race) draaien alleen in CI; de Developer kan lokaal alleen `check:fast`
+(lint, typecheck, unit, check:arch/policy/rls/migrations/adr) en de unit-tests
+bewijzen. De Developer meldt dit expliciet in de PR en schrijft de SQL daarom
+extra zorgvuldig (copy van `0029`); de handmatige rooktest op de lokale stack
+uit risico 2 is dan voor de Tester/CI. De PR is pas klaar bij groene
+`check:all` in CI.
 
 ## Testplan
 
@@ -466,7 +441,8 @@ Safari/touch zonder die reeks.
 - Idempotentie op `reverse_order_*`, `update_*`, `set_*`, `start_shift` (al
   eindstaat-idempotent of geen geld) (vraag 11).
 - De webhook/iDEAL-RPC uit #23 (alleen: ontwerp staat het niet in de weg).
-- Time-out voor geldoverlays en de "Opnieuw proberen"-UI (fase 2, vraag 9).
+- Time-out voor geldoverlays en de "Opnieuw proberen"-UI (fase 2, besluit 9,
+  eigen akkoord van Bram).
 - Sleutel bewaren over een paginaherlaad (vraag 6).
 - Het verplicht maken van `p_request_id` en een gate daarop (opvolger, vraag 7
   en 12).
@@ -505,6 +481,6 @@ Safari/touch zonder die reeks.
   `useTopUp.ts`, `useCreateMember.ts`; `test/` voor het hulpje.
 - Fase 2: `src/components/OnbekendeUitkomstMelding.tsx`,
   `src/lib/opslaan.ts`, de drie overlays.
-- `docs/adr/0023-...md`, `docs/ARCHITECTURE.md` (geldlaag), en een regel in
+- `docs/adr/0023-geld-rpcs-idempotent-via-client-sleutel.md` (staat er al), `docs/ARCHITECTURE.md` (geldlaag), en een regel in
   `opslaan-sluiten-pending.md`, `opwaarderen.md`, `verkoop.md`,
   `ledenbeheer.md` die naar deze spec verwijst.
