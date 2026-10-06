@@ -1,11 +1,48 @@
 # Een token van een beëindigde sessie leest en schrijft niets meer ("JWT na afmelden")
 
-**Status: goedgekeurd (2026-10-05), nog te bouwen.** Bram heeft de keuzes
+**Status: gebouwd (PR #163, gemerged in `74737e4`).** Wat afwijkt van of
+aanvult op de spec hieronder staat in "Wat gebouwd is"; waar die sectie en
+de rest van dit document verschillen, geldt die sectie. Bram heeft de keuzes
 voor deze opdracht bij de Architect gelegd (item M1): de spec geldt als
 goedgekeurd zodra hij geschreven is, en elke keuze staat hieronder met
 reden. Architectuurbeslissing:
 [ADR 0022](../adr/0022-token-van-beeindigde-sessie-leest-en-schrijft-niets.md).
 Migratie `0041_sessie_na_afmelden.sql`.
+
+## Wat gebouwd is (PR #163)
+
+- **`my_bar_state`** heeft twee takken bij een dode Auth-sessie, zoals
+  keuze 5: bar-sessie open → `{"session": null}`; bar-sessie gesloten → de
+  eigen sessie met `status: 'ended'` en sluitreden, zonder `shift`,
+  `other_shift` of `notifications`.
+- **Geleend sessie-id.** `caller_session_alive()` eist dat de rij in
+  `auth.sessions` bij `auth.uid()` hoort; een `session_id`-claim die naar de
+  Auth-sessie van een ander account wijst, geeft in `require_session` nu
+  `session_ended`.
+- **Integratiescenario 2** assert `my_bar_state` pas na de poll op de
+  cron-job (`end_reason = 'elders_uitgelogd'`), niet ervoor; de `null`-tak
+  staat in pgTAP.
+- **Tester-aanvulling, blok 12** (`sessie_na_afmelden.test.sql`, `plan(93)`):
+  sluit de cron-job een bar-sessie die gelijktijdig al normaal gesloten is,
+  dan blijven sluitreden en tijdstip van de eerste sluiting staan.
+- **Integratietest leest `select("id")`**, niet `select()`: de kolomrechten
+  op `members` staan een kale `select *` voor `authenticated` niet toe.
+- **Gedeelde helper `src/lib/sessieBevestigen.ts`**
+  (`bevestigSessieOfMeldAf`) voor keuze 9, gebruikt door `usePortalSession`
+  en `useBeheerSession`; elke hook geeft de `auth` van zijn eigen client mee.
+- **Samengevoegd met #164 (portal-sessielookup):** in de portal gaat de
+  uitkomst als `sessieBevestigd` mee in de beslistabel
+  `src/lib/portalSessie.ts` (lege eigen rij + niet bevestigd → `signed-out`,
+  anders `denied`). De e2e-mock geeft een geldige `/auth/v1/user`, zodat de
+  "niet gekoppeld"-scenario's `denied` blijven tonen.
+
+### Bekend vervolgpunt (niet gebouwd, aparte ticket)
+
+Bij een lege eigen rij geeft een netwerkfout in `getUser()` nu `signed-out`
+in plaats van de `error`-status uit #164. Strikter: alleen afmelden bij een
+definitieve auth-fout (GoTrue weigert de sessie) en bij een retryable fout
+de foutstaat tonen, volgens het principe uit
+`docs/features/portal-sessielookup-laadfout.md`.
 
 ## Aanleiding (geverifieerd in de code)
 
