@@ -398,11 +398,16 @@ tests vonden geen productgat.
   `page.clock`, zie Productbevindingen 2).
 - De `UitloggenKnop`-keuzedialoog heeft een eigen `onClose` en valt buiten het
   `closeBlocked`-contract (vraag 6).
-- **Bestaande flake**, niet van dit ticket:
-  `dialogen-tabs-landmarks-negatief.spec.ts:319` ("geldmutatie: geblokkeerde
-  sluitpogingen", `await expect(status).toHaveText("")` na succes) faalt
-  incidenteel onder parallelle load, ook op de baseline vóór deze wijziging;
-  zie #175 punt 1.
+- **Bestaande flake**, niet van dit ticket: in
+  `dialogen-tabs-landmarks-negatief.spec.ts`, test "geldmutatie: geblokkeerde
+  sluitpogingen", zoekt `dialog.locator('p[role="status"]')` (r.314) alle
+  `p`-statusregio's in de dialoog; volgens #175 punt 1 vindt die twee
+  elementen ("Bestellingen laden…" en de sr-only status), een
+  strict-mode-violation bij de assertie op r.317. Tijdens mijn baseline-runs
+  (vóór mijn wijzigingen, onder parallelle load) zag ik die test incidenteel
+  falen bij `await expect(status).toHaveText("")` na het succes (r.345). Ik heb
+  de oorzaak niet uitgezocht, dus het staat niet vast dat dit hetzelfde falen
+  is als in #175 punt 1.
 - De kopieën van `houdVast` in `opslaan-sluiten-pending.spec.ts` en
   `productafbeeldingen.spec.ts` en de drie lokale `openBar`-kopieën blijven
   staan (apart opruimticket).
