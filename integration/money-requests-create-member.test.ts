@@ -58,14 +58,16 @@ test("concurrent create_member_once with one key from two beheer sessions create
   assert.equal(inserted.error, null, `member insert faalde: ${inserted.error?.message}`);
   aangemaakteLeden.push(actor);
 
+  // Eerst de factor enrollen en verifiëren met één sessie: GoTrue trekt andere
+  // sessies van de gebruiker in bij de eerste verificatie van een factor, dus
+  // de tweede sessie mag pas daarna inloggen.
   const eerste = gebruiker(), tweede = gebruiker();
   assert.equal((await eerste.auth.signInWithPassword({ email, password })).error, null);
-  assert.equal((await tweede.auth.signInWithPassword({ email, password })).error, null);
-
   const enroll = await eerste.auth.mfa.enroll({ factorType: "totp" });
   assert.equal(enroll.error, null, `mfa.enroll faalde: ${enroll.error?.message}`);
   const factorId = enroll.data!.id, geheim = enroll.data!.totp.secret;
   await naarAal2(eerste, factorId, geheim, [0, -30_000, 30_000]);
+  assert.equal((await tweede.auth.signInWithPassword({ email, password })).error, null);
   await naarAal2(tweede, factorId, geheim, [30_000, -30_000, 0]);
 
   for (const client of [eerste, tweede]) {
