@@ -323,3 +323,73 @@ _Besloten op 2026-10-06: alle zeven aanbevelingen overgenomen._
    Dienst-tab en één beheerder-variant via `DienstElders`; de overige ingangen
    (`AdminMeldingen`, `DienstenApparaten`, `DienstTeLangOpenMelding`,
    Uitloggen-keuze) gebruiken dezelfde overlay en worden niet apart getest.
+
+## Gebouwd, afwijkingen en wat niet gedaan is
+
+Alleen testwerk, geen productcode, migratie of RPC. Bestanden:
+`e2e/overlays-pending-sluiten.spec.ts` (nieuw), `e2e/helpers/pendingOverlay.ts`,
+`e2e/helpers/barBasis.ts`, `e2e/helpers/barDienst.ts` en `e2e/helpers/kassa.ts`
+(nieuw), `e2e/helpers/supabaseMock.ts` (aangepast), en de specs waaruit
+helpers zijn verplaatst (`opslaan-sluiten-pending-aanvulling.spec.ts`,
+`dialogen-tabs-landmarks-negatief.spec.ts`).
+
+**Zoals gespecificeerd gebouwd:** `houdVast` en `dialogFocusState` naar
+`pendingOverlay.ts`; `openKassa` heet nu `mockKassa` en staat met `kiesLid` in
+`kassa.ts`; `mockBarSessie` heeft een `admin`-optie; de gedeelde
+`expectGeblokkeerdTijdensPending` (a, b, c) en per overlay een geslaagd- en een
+mislukt-test (d), met de vertraging in de route en zonder `page.clock`.
+
+**Afwijkingen en toevoegingen:**
+
+- **11 tests, niet tien (vraag 4):** de beheerder-variant van Dienst afsluiten
+  staat in één test (eerst `shift_not_open`, dan geslaagd), zoals de spec bij
+  "Test 3 (B)" al voorschreef.
+- **Extra verplaatst:** `openOpwaarderen` (naast `kiesLid`) naar `kassa.ts`,
+  want de nieuwe spec heeft hem ook nodig; zuivere verplaatsing.
+- **Extra helpers in `pendingOverlay.ts`:** `vertraagRpc` (houdt één RPC vast,
+  telt aanroepen en payloads), `overlayStatus` (de laatste `p[role="status"]`
+  van de dialoog, want "Overzicht laden…" staat erboven),
+  `expectSluitbaarNaPending` (contract d) en `domeinFout` (een eenregelige
+  wrapper om `json(route, 400, { code: "P0001", ... })`). Bij een mislukte
+  assertie laat de helper de vastgehouden route alsnog door.
+- **Gedeelde basis in plaats van een tweede kopie:** de basismocks (login,
+  lege REST, dienst, bezetting, Pils, Anna, instellingen) en de constanten
+  `ANNA`, `TOM` en `BAR_SHIFT` staan in `barBasis.ts` (`mockBarBasis`);
+  `mockKassa` en `mockBarDienst` bouwen erop. `mockBarDienst` logt niet in,
+  heeft opties voor rol, `otherShift` en een bestelling in de transactielijst,
+  en geeft de sessie terug met `sluitDienst()`.
+- **`bodyIsNiet`** is nu een export uit `supabaseMock.ts` (was lokaal in de
+  aanvulling-spec).
+- **Foutcodes gekozen bij de bouw:** Opwaarderen `invalid_amount` ("vul een
+  geldig bedrag in"), een definitieve afwijzing in `moneyRequest.ts`, dus
+  geen onbekende-uitkomstflow; Afmelden `target_session_ended`, een bekende
+  code zonder eigen tekst, dus de overlay toont `foutOverig` ("er ging iets
+  mis, probeer het opnieuw"); Overnemen en beheerder-afsluiten
+  `shift_not_open`; Terugdraaien `already_reversed`; eigen Dienst afsluiten een
+  500 zonder code.
+- Overnemen en Afmelden hebben geen "bezig…"-label (vraag 5): die tests leunen
+  op `aria-busy`, disabled en focus.
+
+**Lokaal bewezen:** de nieuwe spec slaagt met `--repeat-each=5`; de specs
+waaruit helpers verplaatst zijn geven dezelfde uitkomst; `check:fast` groen. De
+tests vonden geen productgat.
+
+**Niet gedaan / open punten:**
+
+- **Mutatiecheck** (een overlay tijdelijk `closeBlocked={false}` geven om te
+  zien dat de test dan faalt) is door de Developer niet gedraaid; dat de tests
+  bij een kapot contract rood worden is dus niet aangetoond. De Tester probeert
+  het.
+- De 30 s-poll van de bar-sessie tijdens pending is niet getest (geen
+  `page.clock`, zie Productbevindingen 2).
+- De `UitloggenKnop`-keuzedialoog heeft een eigen `onClose` en valt buiten het
+  `closeBlocked`-contract (vraag 6).
+- **Bestaande flake**, niet van dit ticket:
+  `dialogen-tabs-landmarks-negatief.spec.ts:319` ("geldmutatie: geblokkeerde
+  sluitpogingen", `await expect(status).toHaveText("")` na succes) faalt
+  incidenteel onder parallelle load, ook op de baseline vóór deze wijziging;
+  zie #175 punt 1.
+- De kopieën van `houdVast` in `opslaan-sluiten-pending.spec.ts` en
+  `productafbeeldingen.spec.ts` en de drie lokale `openBar`-kopieën blijven
+  staan (apart opruimticket).
+- `check:a11y`, `build`, `db:test` en `test:integration` draaien alleen in CI.

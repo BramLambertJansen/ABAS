@@ -14,7 +14,8 @@ import {
   vertraagRpc,
 } from "./helpers/pendingOverlay";
 import { mockKassa, openOpwaarderen } from "./helpers/kassa";
-import { DIENST_ID, ORDER_ID, mockBarDienst } from "./helpers/barDienst";
+import { BAR_SHIFT } from "./helpers/barBasis";
+import { ORDER_ID, mockBarDienst } from "./helpers/barDienst";
 
 /**
  * Pending-E2E voor de overige `closeBlocked`-overlays (#140, vervolg op #125;
@@ -131,7 +132,7 @@ test.describe("Dienst afsluiten (eigen dienst, end_shift)", () => {
     rpc.vast.laatDoor();
     await expect(dialog).toHaveCount(0);
     await expect(page.getByRole("tab", { name: "Verkoop" })).toHaveCount(0, { timeout: 15_000 });
-    expect(rpc.payloads).toEqual([{ p_shift_id: DIENST_ID }]);
+    expect(rpc.payloads).toEqual([{ p_shift_id: BAR_SHIFT }]);
   });
 
   test("mislukt (500 zonder code): foutregel, annuleren weer enabled, Escape sluit", async ({ page }) => {
@@ -157,7 +158,7 @@ async function openElders(page: Page) {
   await mockBarDienst(page, {
     rol: "beheerder",
     otherShift: {
-      id: DIENST_ID,
+      id: BAR_SHIFT,
       startedAt: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
       startedByName: "Tom Willems",
       activityTypeName: "Training",
@@ -209,7 +210,7 @@ test.describe("Dienst afsluiten (beheerder, admin_end_shift)", () => {
     geslaagd.vast.laatDoor();
     await expect(dialog).toHaveCount(0);
     await expect(page.locator("[inert]")).toHaveCount(0);
-    expect(geslaagd.payloads).toEqual([{ p_shift_id: DIENST_ID }]);
+    expect(geslaagd.payloads).toEqual([{ p_shift_id: BAR_SHIFT }]);
     expect(mislukt.aanroepen()).toBe(1);
   });
 });
@@ -240,7 +241,7 @@ test.describe("Overnemen (admin_take_over_shift)", () => {
     rpc.vast.laatDoor();
     await expect(dialog).toHaveCount(0);
     await expect(page.getByRole("status").filter({ hasText: "Dienst overgenomen" })).toBeVisible();
-    expect(rpc.payloads).toEqual([{ p_shift_id: DIENST_ID }]);
+    expect(rpc.payloads).toEqual([{ p_shift_id: BAR_SHIFT }]);
   });
 
   test("mislukt (shift_not_open): foutregel blijft ondanks het verversen, weer sluitbaar", async ({ page }) => {

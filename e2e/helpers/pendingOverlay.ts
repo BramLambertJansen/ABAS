@@ -1,4 +1,5 @@
 import { expect, type Locator, type Page, type Route } from "@playwright/test";
+import { json } from "./supabaseMock";
 
 /**
  * Gedeelde bouwstenen voor de pending-E2E van overlays met het
@@ -44,15 +45,7 @@ export async function dialogFocusState(page: Page) {
 
 /** Een PostgREST-domeinfout zoals `resume_orphan_shift` in `mockBarSessie`. */
 export function domeinFout(route: Route, code: string) {
-  return route.fulfill({
-    status: 400,
-    headers: {
-      "access-control-allow-origin": "*",
-      "access-control-allow-headers": "*",
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({ code: "P0001", message: code, details: null, hint: null }),
-  });
+  return json(route, 400, { code: "P0001", message: code, details: null, hint: null });
 }
 
 /**
