@@ -1,6 +1,6 @@
 # Pending-E2E voor de overige `closeBlocked`-overlays
 
-**Status: akkoord van Bram (2026-10-06): alle zeven aanbevelingen uit "Vragen voor Bram" overgenomen.**
+**Status: gebouwd en gemerged ([#181](https://github.com/BramLambertJansen/ABAS/pull/181), ticket #140, merge-commit ba366d1). Akkoord van Bram (2026-10-06): alle zeven aanbevelingen uit "Vragen voor Bram" overgenomen. De secties tot en met "Vragen voor Bram" zijn de spec zoals goedgekeurd vóór de bouw (tegenwoordige tijd en regelverwijzingen daarin beschrijven de situatie van toen); wat er daadwerkelijk staat beschrijft "Gebouwd, afwijkingen en wat niet gedaan is".**
 
 Spec voor [issue #140](https://github.com/BramLambertJansen/ABAS/issues/140),
 vervolg op #125 (PR #139, `docs/features/dialogen-tabs-landmarks.md` →
@@ -13,10 +13,11 @@ apart ticket, geen stille productfix (zie "Productbevindingen").
 
 Elke overlay die het gedeelde `closeBlocked`-contract van `Overlay` gebruikt
 heeft een gemockte E2E-test die bewijst dat sluiten geblokkeerd is zolang de
-actie loopt. Nu hebben alleen Afrekenen
+actie loopt. Vóór #181 hadden alleen Afrekenen
 (`e2e/dialogen-tabs-landmarks-negatief.spec.ts`, "Afrekenen pending") en de
 beheer-terugdraaiflow (zelfde bestand, "geldmutatie: geblokkeerde
-sluitpogingen"; `e2e/dialogen-tabs-landmarks.spec.ts`) zo'n test.
+sluitpogingen"; `e2e/dialogen-tabs-landmarks.spec.ts`) zo'n test; de overige vijf
+zijn sinds #181 gedekt door `e2e/overlays-pending-sluiten.spec.ts`.
 
 Het contract per overlay (uit het ticket):
 
@@ -54,7 +55,9 @@ alleen via RPC": alleen id's, aantal of opwaardeerbedrag, nooit een totaal).
 - **Kaders:** `CLAUDE.md` (gates, "Componenten zijn herbruikbaar" geldt hier
   ook voor testhelpers), ADR 0014, ADR 0016, ADR 0024 (`*_once`-RPC's).
 
-## Wat al gedekt is (niet dupliceren)
+## Wat al gedekt was (niet dupliceren)
+
+Stand vóór #181; de dekking nu staat onder "Gebouwd".
 
 | Overlay | Bestaande dekking | Gat voor #140 |
 |---|---|---|
@@ -76,8 +79,8 @@ overlays doen exact dezelfde assertiereeks, dus één gedeelde assertiefunctie
 in plaats van vijf kopieën (CLAUDE.md: duplicatie is een reviewfout):
 
 - `e2e/helpers/pendingOverlay.ts`:
-  - `houdVast()` (nu lokaal in `opslaan-sluiten-pending-aanvulling.spec.ts`
-    regel 30, daar verplaatsen en importeren; zuivere verplaatsing).
+  - `houdVast()` (was lokaal in `opslaan-sluiten-pending-aanvulling.spec.ts`,
+    daar verplaatst en geïmporteerd; zuivere verplaatsing).
   - `expectGeblokkeerdTijdensPending(page, dialog, { bevestig, aanroepen })`:
     leest dat `p[role="status"]` bestaat en leeg is, klikt `bevestig`, asserteert
     `aria-busy`, `aanroepen() === 1`, disabled sluit-/annuleerknoppen,
@@ -156,7 +159,7 @@ een mislukking blijft de dialoog open, dus alleen daar valt (d) te toetsen.
   (kleine letters; `bezig…` tijdens pending).
 - Test 1 (A): na vrijgave sluit de dialoog en het scherm gaat naar "dienst
   starten" (`dienstGesloten = true` en `shifts`-route `null`, zoals in
-  `dienst-te-lang-open.spec.ts` regel 357); `end_shift` precies één keer met
+  `dienst-te-lang-open.spec.ts` regel 380); `end_shift` precies één keer met
   `{ p_shift_id }`.
 - Test 2 (A): `500` zonder code → "er ging iets mis, probeer het opnieuw" in
   `role="alert"`; `annuleren` weer enabled; Escape sluit.
@@ -189,7 +192,7 @@ een mislukking blijft de dialoog open, dus alleen daar valt (d) te toetsen.
 **4. Afmelden**
 
 - Ingang: beheerder in beheer-modus (`loginMetWachtwoord`, knop "Beheer",
-  zoals in `dienst-te-lang-open.spec.ts` regel 396), tab "Diensten" in
+  zoals in `dienst-te-lang-open.spec.ts` regel 431), tab "Diensten" in
   `Beheer-navigatie`, rij onder "Ingelogd" met `is_own: false`, knop
   `Afmelden: <naam>` (aria-label), dialoog "Apparaat afmelden?". Dit vraagt de
   `admin`-optie op `mockBarSessie` (vraag 3).
@@ -385,12 +388,15 @@ tests vonden geen productgat.
   De sluitpogingen worden sinds de review per Escape en per backdrop-klik
   afzonderlijk getoetst, zodat een dialoog die toch sluit snel en duidelijk
   faalt.
-- **Overlay-`Sluiten`-knop:** die staat in `Overlay.tsx` (`sluitKnop`) alleen in
-  `variant="detail"`, niet in de standaard-bar-overlays van deze spec, en de
-  portal-sheets gebruiken hem niet (eigen "Annuleren"). Het pending-gedrag
-  ervan is bedekt door `dialogen-tabs-landmarks-negatief.spec.ts:326`,
-  `opslaan-sluiten-pending.spec.ts:169` en `:226` en
-  `productafbeeldingen.spec.ts:140`; deze bar-spec bewijst hem niet.
+- **Overlay-`Sluiten`-knop niet door deze spec bewezen:** de eigen
+  `sluitKnop` van `Overlay` (`Overlay.tsx`) staat alleen in `variant="detail"`;
+  in `src` gebruikt alleen `LidBeherenOverlay` die variant. De standaard-bar-
+  overlays van deze spec hebben hem niet; de helper dekt wel elke knop
+  `annuleren` of `Sluiten` die in de dialoog staat. De `Sluiten`-knoppen in
+  `dialogen-tabs-landmarks-negatief.spec.ts:326`,
+  `opslaan-sluiten-pending.spec.ts:169`/`:226` en
+  `productafbeeldingen.spec.ts:140` zijn de eigen knoppen van de consumenten
+  (`LidBestellingenOverlay`, `ProductBeherenOverlay`), niet die van `Overlay`.
 - Afmelden-geslaagd wacht niet meer op een vaste pauze maar op de verversing
   van `my_bar_state`; een toast die pas ná die lezing verdwijnt, zou nog
   net ontsnappen aan de assertie.
@@ -403,12 +409,12 @@ tests vonden geen productgat.
   sluitpogingen", zoekt `dialog.locator('p[role="status"]')` (r.314) alle
   `p`-statusregio's in de dialoog; volgens #175 punt 1 vindt die twee
   elementen ("Bestellingen laden…" en de sr-only status), een
-  strict-mode-violation bij de assertie op r.317. Tijdens mijn baseline-runs
-  (vóór mijn wijzigingen, onder parallelle load) zag ik die test incidenteel
-  falen bij `await expect(status).toHaveText("")` na het succes (r.345). Ik heb
-  de oorzaak niet uitgezocht, dus het staat niet vast dat dit hetzelfde falen
+  strict-mode-violation bij de assertie op r.317. Tijdens baseline-runs
+  (vóór de wijzigingen van #181, onder parallelle load) faalde die test incidenteel
+  bij `await expect(status).toHaveText("")` na het succes (r.345). De
+  oorzaak is niet uitgezocht, dus het staat niet vast dat dit hetzelfde falen
   is als in #175 punt 1.
-- De kopieën van `houdVast` in `opslaan-sluiten-pending.spec.ts` en
-  `productafbeeldingen.spec.ts` en de drie lokale `openBar`-kopieën blijven
+- De lokale kopieën van `houdVast` in `opslaan-sluiten-pending.spec.ts` (r.99) en
+  `productafbeeldingen.spec.ts` (r.32) en de drie lokale `openBar`-kopieën blijven
   staan (apart opruimticket).
 - `check:a11y`, `build`, `db:test` en `test:integration` draaien alleen in CI.
