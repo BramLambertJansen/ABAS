@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { LeesFout } from "@/components/LeesFout";
 import { useLeesHerstel } from "@/hooks/useLeesHerstel";
 import {
@@ -8,7 +8,15 @@ import {
   type AssortimentProduct,
 } from "@/hooks/queries/useAlleProducten";
 import { formatCents } from "@/lib/money";
+import { ZoekVeld } from "@/components/ZoekVeld";
+import { StatusFilter } from "@/components/StatusFilter";
 import { ProductAfbeelding } from "@/components/ProductAfbeelding";
+import {
+  filterBeheerProducten,
+  leegReden,
+  telPerStatus,
+  type BeheerProductStatus,
+} from "./beheerProductFilter";
 import { NieuwProductOverlay } from "./NieuwProductOverlay";
 import { ProductBeherenOverlay } from "./ProductBeherenOverlay";
 
@@ -31,6 +39,17 @@ export function ProductenLijst() {
     { kind: "new" } | { kind: "manage"; product: AssortimentProduct } | null
   >(null);
   const [toast, setToast] = useState<string | null>(null);
+  // Lokale staat, geen persistentie (docs/features/beheerformulieren-catalogus.md,
+  // besluit 7). Standaard Actief, zoals Leden.
+  const [query, setQuery] = useState("");
+  const [status, setStatus] = useState<BeheerProductStatus>("actief");
+  const alle = products.status === "ready" ? products.products : null;
+  const zichtbaar = useMemo(
+    () => (alle ? filterBeheerProducten(alle, { query, status }) : []),
+    [alle, query, status]
+  );
+  const tellers = useMemo(() => telPerStatus(alle ?? [], query), [alle, query]);
+  const reden = alle ? leegReden(alle, { query, status }) : null;
 
   useEffect(() => {
     if (!toast) return;
@@ -68,6 +87,26 @@ export function ProductenLijst() {
         )}
       </div>
 
+      <ZoekVeld
+        id="assortimentbeheer-search"
+        label="Zoek product op naam of categorie"
+        placeholder="Zoek product op naam of categorie"
+        waarde={query}
+        onChange={setQuery}
+      />
+
+      <StatusFilter
+        opties={[
+          { id: "actief", label: "Actief" },
+          { id: "uit", label: "Uit assortiment" },
+        ].map((o) => ({
+          ...o,
+          aantal: tellers[o.id as BeheerProductStatus],
+          actief: status === o.id,
+          onKies: () => setStatus(o.id as BeheerProductStatus),
+        }))}
+      />
+
       {products.status === "loading" && !herstel.toonFout && (
         <p className="text-sm font-semibold text-muted" role="status">
           Assortiment laden…
@@ -90,13 +129,36 @@ export function ProductenLijst() {
         </p>
       )}
 
-      {products.status === "ready" && products.products.length > 0 && (
+      {reden === "geen-treffers" && (
+        <div className="flex flex-col items-start gap-2">
+          <p className="text-sm font-semibold text-muted">
+            {`Geen producten gevonden voor “${query.trim()}”.`}
+          </p>
+          <button
+            type="button"
+            onClick={() => setQuery("")}
+            className="flex h-11 items-center justify-center rounded-control border border-border bg-white px-4 text-sm font-bold text-ink transition-colors hover:border-ink"
+          >
+            Zoekopdracht wissen
+          </button>
+        </div>
+      )}
+
+      {reden === "leeg-filter" && (
+        <p className="text-sm font-semibold text-muted">
+          {status === "uit"
+            ? "Geen producten uit assortiment."
+            : "Geen actieve producten. Bekijk Uit assortiment."}
+        </p>
+      )}
+
+      {products.status === "ready" && zichtbaar.length > 0 && (
         <div className="flex min-h-0 flex-col overflow-hidden rounded-card border border-border bg-white">
           <p className="flex-none border-b border-border-subtle px-4 py-[11px] text-[11px] font-bold uppercase tracking-[0.07em] text-muted">
-            {products.products.length === 1 ? "1 product" : `${products.products.length} producten`}
+            {`${zichtbaar.length} van ${products.products.length} producten`}
           </p>
         <ul className="flex flex-col overflow-auto px-1.5 py-1">
-          {products.products.map((product) => (
+          {zichtbaar.map((product) => (
             <li key={product.id}>
               <button
                 type="button"

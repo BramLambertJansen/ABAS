@@ -543,3 +543,19 @@ is de vindplaats van de beslissing zelf.
    `self_demote_forbidden`-guard (zelfde zelfreferentie-redenering als
    `self_archive_forbidden`) en dezelfde bewuste "geen laatste-beheerder-
    telling"-afweging als bij archiveren.
+
+## Zoals later aangepast (PR #169, `beheerformulieren-catalogus.md`)
+
+"Lid beheren" is sinds PR #169 een `Overlay variant="detail"`: vaste kop met
+titel, "Wijzigingen aan {naam}.", rolbadge, Gearchiveerd-label, saldo en
+Sluiten, met een scrollend lichaam in vier groepen (Profiel, Toegang,
+Bestellingen, Archief). De succes-toasts uit Schermflow stap 3 ("Naam
+bijgewerkt", "Rechten bijgewerkt", "[Naam] gearchiveerd/teruggezet") zijn
+vervangen door een **sectiestatus** per `OpslaanSectie` ("Niet opgeslagen" bij
+afwijkende invoer, "Opgeslagen", "Gearchiveerd"/"Teruggezet"). Het veld
+e-mailadres heet "Contactadres", zie `ledenbeheer-email.md`. De archiveertekst
+noemt de herstelroute: "Het lid verdwijnt uit de verkoopzoeker. Saldo en
+bestellingen blijven bewaard. Terugzetten kan onder ‘Archief’ in de
+ledenlijst." De toast "[Naam] toegevoegd" bij "Nieuw lid" is ongewijzigd.
+`LedenLijst` gebruikt `ZoekVeld` en `StatusFilter` uit `src/components/`
+(uiterlijk ongewijzigd).

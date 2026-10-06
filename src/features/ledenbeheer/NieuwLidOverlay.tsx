@@ -13,6 +13,7 @@ import {
 import type { LedenbeheerLid } from "@/hooks/queries/useAlleLeden";
 import { parseEuroToCents } from "@/lib/money";
 import { bedragFout, bedragFoutTekst, EMAIL_ONGELDIG_TEKST, emailFout } from "@/lib/veldFouten";
+import { CONTACTADRES_LABEL, CONTACTADRES_UITLEG } from "./contactadresTeksten";
 import { VeldFout } from "@/components/TekstVeld";
 import { useVeldMoment } from "@/hooks/useVeldMoment";
 
@@ -193,7 +194,7 @@ export function NieuwLidOverlay({
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor={emailId} className="text-xs font-bold text-muted">
-          E-mailadres (optioneel)
+          {CONTACTADRES_LABEL} (optioneel)
         </label>
         <input
           ref={emailInputRef}
@@ -202,7 +203,7 @@ export function NieuwLidOverlay({
           value={emailInput}
           readOnly={inVlucht}
           aria-invalid={emailMelding ? true : undefined}
-          aria-describedby={emailMelding ? `${emailId}-fout` : undefined}
+          aria-describedby={`${emailId}-uitleg${emailMelding ? ` ${emailId}-fout` : ""}`}
           onBlur={emailMoment.bijBlur}
           onChange={(event) => {
             setEmailInput(event.target.value);
@@ -211,6 +212,9 @@ export function NieuwLidOverlay({
           }}
           className="h-12 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink outline-none focus:border-accent"
         />
+        <p id={`${emailId}-uitleg`} className="text-xs font-medium text-muted">
+          {CONTACTADRES_UITLEG}
+        </p>
         <VeldFout id={`${emailId}-fout`} tekst={emailMelding} alert={emailMoment.pogingAlert} />
       </div>
 

@@ -614,6 +614,34 @@ test.describe("beheer ingelogde staat (a11y)", () => {
       .toEqual([]);
   });
 
+  /**
+   * docs/features/beheerformulieren-catalogus.md (#131) → Teststrategie →
+   * A11y: de nieuwe zoek- en chipsbalk van de productenlijst, in de
+   * standaardstand en met een zoekterm zonder treffers (lege uitkomst met
+   * "Zoekopdracht wissen").
+   */
+  test("beheer (/beheer) Assortiment-tab met zoeken en statuschips has no WCAG2A/AA violations", async ({
+    page,
+  }) => {
+    await loginAsBeheerder(page);
+    await page
+      .getByRole("heading", { name: "Assortiment" })
+      .waitFor({ state: "visible", timeout: 15_000 });
+
+    await page.getByRole("button", { name: /^Uit assortiment/ }).click();
+    await page.getByLabel("Zoek product op naam of categorie").fill("zzzzzz-geen-treffer");
+    await page
+      .getByRole("button", { name: "Zoekopdracht wissen" })
+      .waitFor({ state: "visible", timeout: 15_000 });
+
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+
+    expect(results.violations, JSON.stringify(results.violations, null, 2))
+      .toEqual([]);
+  });
+
   test("beheer (/beheer) Instellingen-tab (ingelogd) has no WCAG2A/AA violations", async ({
     page,
   }) => {
@@ -811,7 +839,7 @@ test.describe("beheer ingelogde staat (a11y)", () => {
    * "one test per screen, several passes as the screen's own state changes"
    * shape as the Dienst-scherm test's open-filter-dropdown second pass
    * above — because the spec's Randgevallen table also calls out the
-   * Assortiment-/Leden-filterchip's "Nog niets vastgelegd"-lege-staat (geen
+   * Assortiment-/Leden-filterchip's "Nog niet geregistreerd"-lege-staat (geen
    * databron, geen foutmelding) as a state worth covering here, not a new
    * scenario type of its own.
    */
@@ -839,10 +867,10 @@ test.describe("beheer ingelogde staat (a11y)", () => {
       .toEqual([]);
 
     // Randgevallen → "Assortiment-/Leden-filter aangetikt": geen databron,
-    // dus de "Nog niets vastgelegd"-lege-staat — geen foutmelding.
+    // dus de eerlijke "Nog niet geregistreerd"-lege-staat — geen foutmelding.
     await page.getByRole("button", { name: "Assortiment" }).click();
     await page
-      .getByText("Nog niets vastgelegd")
+      .getByText("Nog niet geregistreerd")
       .waitFor({ state: "visible", timeout: 15_000 });
 
     const filteredResults = await new AxeBuilder({ page })

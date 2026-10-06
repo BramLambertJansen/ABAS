@@ -9,6 +9,7 @@ import {
   isPrijsOnopgeslagen,
   isTekstOnopgeslagen,
   magActieStarten,
+  sectieStatus,
 } from "../src/lib/opslaan.ts";
 
 /** Unit tests voor src/lib/opslaan.ts (docs/features/opslaan-sluiten-pending.md,
@@ -56,4 +57,14 @@ test("nieuw lid/product: elk ingevuld veld is onopgeslagen", () => {
   assert.equal(isNieuwOnopgeslagen(["Pils", "", null]), true);
   assert.equal(isNieuwOnopgeslagen(["", "", "Bier"]), true);
   assert.equal(isNieuwOnopgeslagen(["", "0", null]), true);
+});
+
+test("sectieStatus: onopgeslagen, opgeslagen en fout volgen elkaar op", () => {
+  assert.equal(sectieStatus({ onopgeslagen: false, gelukt: false, fout: false }), null);
+  assert.equal(sectieStatus({ onopgeslagen: true, gelukt: false, fout: false }), "onopgeslagen");
+  assert.equal(sectieStatus({ onopgeslagen: false, gelukt: true, fout: false }), "opgeslagen");
+  // Invoer wijzigt na een succes: niet opgeslagen wint.
+  assert.equal(sectieStatus({ onopgeslagen: true, gelukt: true, fout: false }), "onopgeslagen");
+  // Een fout vervangt alles.
+  assert.equal(sectieStatus({ onopgeslagen: true, gelukt: true, fout: true }), null);
 });

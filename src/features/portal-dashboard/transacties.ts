@@ -1,5 +1,6 @@
 import type { PortalTransaction } from "@/hooks/queries/usePortalTransactions";
 import { PORTAL_TIME_ZONE } from "../../lib/verversen.ts";
+import { methodLabel } from "../../lib/betaalmethode.ts";
 
 /**
  * Pure logica achter het Transacties-tabblad (docs/features/
@@ -59,14 +60,6 @@ function monthLabel(iso: string): string {
  *  bestelling, alleen doorgestreept (zie TransactieRij.tsx). */
 export function transactionLabel(t: Pick<PortalTransaction, "kind">): string {
   return t.kind === "bestelling" ? "Bestelling" : "Opgewaardeerd";
-}
-
-function methodLabel(method: string | null): string {
-  // Vandaag altijd "cash" (opwaarderen.md → Besloten: uitsluitend contant,
-  // geen methode-toggle) — deze mapping bestaat zodat een toekomstige
-  // tweede methode niet de rauwe database-waarde op het scherm zet.
-  if (!method) return "";
-  return method === "cash" ? "contant" : method;
 }
 
 /** Detail-subtitel voor één rij: itemomschrijving voor een bestelling

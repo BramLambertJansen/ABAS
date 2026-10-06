@@ -403,6 +403,25 @@ loggen) — alleen de databron binnen de hook verandert, niet het contract
 naar de callers (`LedenLijst.tsx`, `LidBeherenOverlay.tsx`,
 `NieuwLidOverlay.tsx` blijven ongewijzigd).
 
+## Zoals later aangepast (PR #169, `beheerformulieren-catalogus.md`)
+
+Het veld heet in de UI **"Contactadres"** (in `NieuwLidOverlay`: "Contactadres
+(optioneel)"), niet "E-mailadres". Onder het veld staat altijd de uitleg
+"Hierheen stuurt ABAS de uitnodiging. Dit is niet automatisch het adres waarmee
+het lid inlogt.", met extra regels voor een lid met account (een ander adres
+verandert het inlogadres niet), een openstaande uitnodiging (een ander adres
+laat hem vervallen) en een lid zonder adres. Teksten staan in
+`src/features/ledenbeheer/contactadresTeksten.ts`. De succesmelding
+"E-mailadres bijgewerkt" (toast) is vervangen door een **sectiestatus** in de
+sectie "Contactadres wijzigen" ("Contactadres opgeslagen." resp. "Contactadres
+opgeslagen. Het inlogadres is niet gewijzigd." bij een lid met account). Na
+opslaan neemt de overlay `email`, `invitedAt` en `hasAccount` uit de RPC-return
+over, zodat een vervallen uitnodiging niet meer wordt getoond. Het
+Auth-inlogadres wordt in "Lid beheren" en "Nieuw lid" nergens getoond of
+gewijzigd (de portal toont het eigen sessie-adres wel, onder "Mijn account",
+`src/features/portal-profiel/AccountTab.tsx`). De Schermflow hieronder
+beschrijft de oorspronkelijke bouw; labels en toast daarin zijn achterhaald.
+
 ## Schermflow
 
 Nieuwe helper `src/lib/email.ts`, naast `money.ts`:

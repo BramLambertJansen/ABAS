@@ -293,6 +293,27 @@ module-level `formatter`) exact zoals die is, voeg deze branch's
 hierboven) er additief aan toe in hetzelfde bestand. Dit is puur samenvoegen,
 geen architectuurbeslissing — geen aparte ADR nodig.
 
+## Zoals later aangepast (PR #169, `beheerformulieren-catalogus.md`)
+
+De productenlijst is niet meer ongefilterd. Ze heeft een zoekveld "Zoek
+product op naam of categorie" (`ZoekVeld`, trim, hoofdletterongevoelige
+substring op naam en categorie) en statuschips **Actief | Uit assortiment**
+(`StatusFilter`) met tellers die met de zoekterm meebewegen. Standaard staat
+**Actief** gekozen, de kop is "N van M producten" en zoekterm en filter zijn
+lokale staat. Gearchiveerde producten staan dus onder "Uit assortiment" en
+niet meer in de standaardlijst. Lege uitkomsten: "Nog geen producten"
+(niets bestaat), "Geen producten gevonden voor “{term}”." met "Zoekopdracht
+wissen", en "Geen actieve producten. Bekijk Uit assortiment." / "Geen
+producten uit assortiment." (filter leeg; ook als de term alleen in de andere
+status matcht). Logica: `src/features/assortimentbeheer/beheerProductFilter.ts`.
+De archiveertekst in de productoverlay noemt de herstelroute: "Het product
+verdwijnt van het verkoopscherm. Verkoophistorie blijft bestaan. Terugzetten
+kan onder ‘Uit assortiment’." Bekende beperking: een nieuw product dat buiten
+het actieve zoekfilter of de gekozen chip valt is na toevoegen niet zichtbaar.
+Categoriefilter, sorteerkeuze en naam-/categoriebeheer zijn niet gebouwd.
+De zin hieronder dat een gearchiveerd product "niet weggefilterd" wordt is
+achterhaald: het staat onder de chip "Uit assortiment".
+
 ## Schermflow
 
 0. **Inloggen** (`/beheer`, zie Betrokken shell): geen actieve
