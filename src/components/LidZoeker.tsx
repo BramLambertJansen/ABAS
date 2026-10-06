@@ -169,7 +169,7 @@ export function LidZoeker({
         }}
         onKeyDown={handleKeyDown}
         onBlur={() => setOpen(false)}
-        className="h-[50px] w-full rounded-card border border-border bg-white pl-[46px] pr-[18px] text-[14.5px] font-medium text-ink shadow-[0_1px_2px_rgba(27,30,35,0.03)] outline-none placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
+        className="h-[50px] w-full rounded-card border border-border bg-white pl-[46px] pr-[18px] text-[14.5px] font-medium text-ink shadow-[0_1px_2px_rgba(27,30,35,0.03)] focus-visible:outline-none placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
       />
 
       <p

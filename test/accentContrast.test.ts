@@ -196,7 +196,7 @@ test("taal: geen 'Invite' of 'Annuleer' in UI-tekst (JSX-tekst en stringliterale
       ...literalen(bron),
     ];
     for (const t of ui) {
-      if (/\bInvite\b/.test(t) || /\bAnnuleer\b/.test(t)) fouten.push(`${file}: ${t.trim()}`);
+      if (/\bInvite\b/.test(t) || /\bAnnuleer\b/i.test(t)) fouten.push(`${file}: ${t.trim()}`);
     }
   }
   assert.deepEqual(fouten, []);

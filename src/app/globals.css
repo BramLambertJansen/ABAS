@@ -11,11 +11,23 @@
    * Eén zichtbare focusstijl (T12, #132): 2px accent met 2px afstand.
    * Accent is 3,43:1 op wit en 5,18:1 op rail, genoeg voor een UI-component
    * (WCAG 1.4.11, 3:1). Alleen :focus-visible, dus geen ring na een muisklik.
-   * Eigen `outline-*`/`focus:ring`-klassen (utilities) gaan hier boven.
+   *
+   * De verdubbelde pseudo-klasse geeft specificiteit 0,2,0, bewust boven die
+   * van `.outline-none` (0,1,0): een kale `outline-none` schakelt de ring dus niet uit. Eigen
+   * vervangingen winnen wel: `focus-visible:outline-*` en `focus:outline-none`
+   * zijn ook 0,2,0 en komen als utility later in de CSS. Velden met een eigen
+   * `focus:ring-*`/randwissel zetten daarom `focus-visible:outline-none`, om
+   * geen dubbele ring te tonen. Uitgezonderd zijn niet-interactieve elementen
+   * met `tabindex="-1"` (koppen en blokken waar focus programmatisch heen
+   * wordt gezet, tweede regel); knoppen met een roving tabindex houden de ring.
    */
-  :focus-visible {
+  :focus-visible:focus-visible {
     outline: 2px solid theme("colors.accent.DEFAULT");
     outline-offset: 2px;
+  }
+
+  :where(h1, h2, h3, h4, h5, h6, p, span, div, section)[tabindex="-1"]:focus-visible {
+    outline: none;
   }
 }
 

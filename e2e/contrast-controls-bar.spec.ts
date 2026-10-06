@@ -113,10 +113,22 @@ test("hover en ingedrukt: DienstTeLangOpenMelding", async ({ page }) => {
   await scanHoverEnIngedrukt(page, melding.getByRole("button", { name: "Dienst afsluiten" }));
 });
 
-const heeftRing = (el: Element) => {
+/** De outline van een element, zoals de browser hem rekent (niet de schaduw). */
+const outline = (el: Element) => {
   const s = getComputedStyle(el);
-  return s.outlineStyle !== "none" || s.boxShadow !== "none";
+  return { stijl: s.outlineStyle, breedte: s.outlineWidth, kleur: s.outlineColor };
 };
+
+const zichtbaar = (o: { stijl: string; breedte: string; kleur: string }) =>
+  o.stijl !== "none" && o.breedte !== "0px" && o.kleur !== "rgba(0, 0, 0, 0)";
+
+/** De globale :focus-visible-regel: 2px solid in een zichtbare (niet-transparante) kleur. */
+async function verwachtGlobaleRing(el: Locator) {
+  const o = await el.evaluate(outline);
+  expect(zichtbaar(o)).toBe(true);
+  expect(o.stijl).toBe("solid");
+  expect(o.breedte).toBe("2px");
+}
 
 /** Tab tot het doel focus heeft (echte toetsenbordfocus, dus :focus-visible). */
 async function tabNaar(page: Page, doel: Locator) {
@@ -130,14 +142,19 @@ async function tabNaar(page: Page, doel: Locator) {
 test("focus: invoerveld en knop tonen een focusring bij Tab", async ({ page }) => {
   await openBar(page);
   const zoek = page.getByRole("combobox", { name: "Zoek lid op naam" });
+  expect(zichtbaar(await zoek.evaluate(outline))).toBe(false);
   await tabNaar(page, zoek);
-  expect(await zoek.evaluate(heeftRing)).toBe(true);
+  // LidZoeker heeft `outline-none` en een eigen ring (box-shadow): de globale
+  // outline blijft bewust uit, anders staan er twee ringen.
+  await expect(zoek).toBeFocused();
+  expect(await zoek.evaluate((el) => getComputedStyle(el).boxShadow)).not.toBe("none");
 
   await page.getByRole("button", { name: /^Pils,/ }).click();
   await kiesLid(page);
   const tik = page.getByRole("button", { name: "Tik afrekenen" });
+  expect(zichtbaar(await tik.evaluate(outline))).toBe(false);
   await tabNaar(page, tik);
-  expect(await tik.evaluate(heeftRing)).toBe(true);
+  await verwachtGlobaleRing(tik);
   await axeSchoon(page);
 });
 
@@ -145,6 +162,34 @@ test("focus: een knop op het beheer-inlogscherm toont een focusring bij Tab", as
   await page.goto("/beheer");
   const knop = page.getByRole("button", { name: /^(Inloggen|Stuur inloglink)$/ });
   await knop.waitFor({ state: "visible", timeout: 15_000 });
+  expect(zichtbaar(await knop.evaluate(outline))).toBe(false);
   await tabNaar(page, knop);
-  expect(await knop.evaluate(heeftRing)).toBe(true);
+  await verwachtGlobaleRing(knop);
+});
+
+test("focus: een control met kale `outline-none` krijgt toch de globale ring; een eigen vervanging wint", async ({ page }) => {
+  await page.goto("/beheer");
+  await page.getByRole("button", { name: /^(Inloggen|Stuur inloglink)$/ }).waitFor({ state: "visible", timeout: 15_000 });
+  // Klassen die in de bron voorkomen (dus door Tailwind gegenereerd): kaal
+  // `outline-none` (NieuwLidOverlay-veld) en `focus-visible:outline-none` (zoekveld met eigen ring).
+  await page.evaluate(() => {
+    const maak = (id: string, klassen: string) => {
+      const i = document.createElement("input");
+      i.id = id;
+      i.setAttribute("aria-label", id);
+      i.className = klassen;
+      document.body.prepend(i);
+    };
+    maak("eigen-vervanging", "focus-visible:outline-none");
+    maak("kaal-outline-none", "outline-none");
+  });
+  const kaal = page.locator("#kaal-outline-none");
+  const eigen = page.locator("#eigen-vervanging");
+  // `kaal` is het eerste element in de DOM (prepend), `eigen` het tweede.
+  await page.keyboard.press("Tab");
+  await expect(kaal).toBeFocused();
+  await verwachtGlobaleRing(kaal);
+  await page.keyboard.press("Tab");
+  await expect(eigen).toBeFocused();
+  expect(zichtbaar(await eigen.evaluate(outline))).toBe(false);
 });
