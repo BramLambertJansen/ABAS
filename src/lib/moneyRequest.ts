@@ -60,7 +60,7 @@ export function pendingMoneyRequests(actor: string, environment = browserEnviron
     let args: unknown;
     try { args = JSON.parse(intent.payload); } catch { throw new Error("request_storage_unavailable"); }
     if (!args || typeof args !== "object" || Array.isArray(args)) throw new Error("request_storage_unavailable");
-    return [{ operation, args: args as Record<string, unknown> }];
+    return [{ operation, id: intent.id, args: args as Record<string, unknown> }];
   });
 }
 
@@ -111,7 +111,7 @@ function writeIntent(environment: IntentEnvironment, key: string, intent: Intent
 }
 
 export async function runMoneyRequest(client: Client, operation: "place_order" | "top_up" | "create_member",
-  args: Record<string, unknown>, environment?: IntentEnvironment): Promise<RpcResult> {
+  args: Record<string, unknown>, environment?: IntentEnvironment, expectedRequestId?: string): Promise<RpcResult> {
   const { data, error } = await client.auth.getSession();
   if (error || !data.session?.user.id) return { data: null, error: { message: "no_bar_session", code: "P0001" } };
   const context = environment ?? browserEnvironment();
@@ -122,8 +122,12 @@ export async function runMoneyRequest(client: Client, operation: "place_order" |
   const acquired = await context.lock(key, async () => {
     const payload = JSON.stringify(args);
     const pending = readIntent(context, key) ?? observed;
+    if (expectedRequestId && pending && pending.id !== expectedRequestId) return null;
     if (pending && pending.payload !== payload) return null;
-    const intent = pending ?? { id: context.uuid(), payload, attempts: [] };
+    // Recovery belongs to the captured request even if another tab confirms
+    // or cancels it between inspection and retry. Never create a new UUID.
+    const intent = pending ?? { id: expectedRequestId ?? context.uuid(), payload,
+      attempts: expectedRequestId ? ["recovery-unknown"] : [] };
     if (!UUID.test(intent.id)) throw new Error("request_storage_unavailable");
     const attempt = context.uuid();
     intent.attempts = [...intent.attempts, attempt];

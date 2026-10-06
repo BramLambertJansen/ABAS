@@ -126,3 +126,8 @@ bewaard tot een terminale bevestiging.
 De herstelmelding neemt eigen ruimte boven de app in, zodat navigatie en
 focus niet door een zwevende melding worden bedekt. De browsertest bewaakt
 de vrije navigatie, axe-toegankelijkheid en afronden met Enter.
+
+Herstel houdt de oorspronkelijke UUID ook vast tussen resultaatopvraag en
+retry. Een annulering of bevestiging in een ander tabblad mag in dat venster
+geen nieuwe boeking laten ontstaan. Een inmiddels gestarte nieuwe actie
+wordt niet door een verouderde herstelactie overgenomen.

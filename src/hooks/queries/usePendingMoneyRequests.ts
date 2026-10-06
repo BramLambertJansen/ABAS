@@ -40,7 +40,7 @@ export function usePendingMoneyRequests() {
         setError("De eerdere actie kon niet worden bevestigd. De sleutel blijft bewaard.");
         return false;
       }
-      const result = inspection.error || cancel ? inspection : await runMoneyRequest(client, operation, intent.args);
+      const result = inspection.error || cancel ? inspection : await runMoneyRequest(client, operation, intent.args, undefined, intent.id);
       if (result.error) {
         if (isSessionErrorCode(result.error.message)) notifySessionCode(result.error.message);
         else if (result.error.code !== "P0001") reportClientError(client, "usePendingMoneyRequests", result.error);

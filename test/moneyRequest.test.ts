@@ -191,3 +191,33 @@ test("legacy v1 pending requests also require terminal server proof", async () =
   await inspectPendingMoneyRequest(f.client, "top_up", true, f.environment);
   assert.equal(f.storage.size, 0);
 });
+
+test("cancellation between inspection and recovery cannot turn recovery into a new booking", async () => {
+  const f = fixture();
+  await runMoneyRequest(f.client, "top_up", args, f.environment);
+  const original = f.calls[0].p_request_id as string;
+  f.response({ data: { status: "missing" }, error: null });
+  await inspectPendingMoneyRequest(f.client, "top_up", false, f.environment);
+  f.response({ data: { status: "cancelled" }, error: null });
+  await inspectPendingMoneyRequest(f.client, "top_up", true, f.environment);
+  assert.equal(f.storage.size, 0);
+  f.response({ data: null, error: { message: "request_cancelled", code: "P0001" } });
+  await runMoneyRequest(f.client, "top_up", args, f.environment, original);
+  assert.equal(f.calls[3].p_request_id, original);
+  assert.equal(f.storage.size, 0);
+});
+
+test("stale recovery cannot use a newer action's key", async () => {
+  const f = fixture();
+  await runMoneyRequest(f.client, "top_up", args, f.environment);
+  const original = f.calls[0].p_request_id as string;
+  f.response({ data: { status: "cancelled" }, error: null });
+  await inspectPendingMoneyRequest(f.client, "top_up", true, f.environment);
+  f.response({ data: null, error: { message: "network" } });
+  await runMoneyRequest(f.client, "top_up", args, f.environment);
+  assert.notEqual(f.calls[2].p_request_id, original);
+  const result = await runMoneyRequest(f.client, "top_up", args, f.environment, original);
+  assert.equal(result.error?.message, "pending_request");
+  assert.equal(f.calls.length, 3);
+  assert.equal(f.storage.size, 1);
+});
