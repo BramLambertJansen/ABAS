@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execSync } from "node:child_process";
-import { randomBytes } from "node:crypto";
+import { createHmac, randomBytes } from "node:crypto";
 
 import { createClient, type Session, type SupabaseClient } from "@supabase/supabase-js";
 
@@ -120,4 +120,35 @@ export function sessieId(session: Session): string {
   const id = tokenClaims(session).session_id;
   assert.ok(id, "access token heeft geen session_id-claim");
   return id;
+}
+
+// ── TOTP (voor een aal2-sessie) ───────────────────────────────────────────
+
+/** RFC 4648 base32 (zonder padding), zoals GoTrue het TOTP-geheim geeft. */
+function base32Decode(invoer: string): Buffer {
+  const alfabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+  let bits = 0;
+  let waarde = 0;
+  const uit: number[] = [];
+  for (const teken of invoer.replace(/=+$/, "").toUpperCase()) {
+    const index = alfabet.indexOf(teken);
+    assert.ok(index >= 0, `ongeldig base32-teken in TOTP-geheim: ${teken}`);
+    waarde = (waarde << 5) | index;
+    bits += 5;
+    if (bits >= 8) {
+      uit.push((waarde >>> (bits - 8)) & 0xff);
+      bits -= 8;
+    }
+  }
+  return Buffer.from(uit);
+}
+
+/** TOTP volgens RFC 6238: HMAC-SHA1, stap 30 s, 6 cijfers. */
+export function totpCode(geheim: string, nu: number = Date.now()): string {
+  const teller = Buffer.alloc(8);
+  teller.writeBigUInt64BE(BigInt(Math.floor(nu / 1000 / 30)));
+  const hmac = createHmac("sha1", base32Decode(geheim)).update(teller).digest();
+  const offset = hmac[hmac.length - 1]! & 0x0f;
+  const getal = (hmac.readUInt32BE(offset) & 0x7fffffff) % 1_000_000;
+  return getal.toString().padStart(6, "0");
 }
