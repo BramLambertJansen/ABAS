@@ -91,6 +91,13 @@ export function json(route: Route, status: number, body: unknown) {
   return route.fulfill({ status, headers: SUPABASE_HEADERS, body: JSON.stringify(body) });
 }
 
+/** Vraagt de aanroep één rij (`Accept: application/vnd.pgrst.object+json`) in
+ *  plaats van een lijst? Dan hoort een lege mock `null` te zijn, geen `[]`. */
+export const bodyIsNiet = (route: Route) => {
+  const accept = route.request().headers()["accept"] ?? "";
+  return accept.includes("vnd.pgrst.object");
+};
+
 /** De eigen `role="alert"` van het scherm — niet Next.js' route-announcer. */
 export function alertOf(page: Page) {
   return page.locator('[role="alert"]:not(#__next-route-announcer__)');
@@ -171,6 +178,28 @@ export type BarSessieMockOpties = {
   resumable?: boolean;
   /** De gebruiker die `GET /auth/v1/user` teruggeeft (standaard met factor). */
   user?: typeof USER | typeof USER_ZONDER_FACTOR;
+  /** Het beheeroverzicht (`admin` in `my_bar_state`: diensten met hun
+   *  koppelingen en de actieve bar-sessies), alleen voor een beheerder in
+   *  modus beheer. Standaard leeg. */
+  admin?: {
+    shifts?: {
+      id: string;
+      startedAt: string;
+      startedByName: string;
+      activityTypeName: string | null;
+      sessions: { barSessionId: string; memberName: string; lastActivityAt: string }[];
+    }[];
+    sessions?: {
+      id: string;
+      memberName: string;
+      mode: "bar" | "beheer";
+      startedAt: string;
+      lastActivityAt: string;
+      shiftId: string | null;
+      /** `is_own`: de sessie van de ingelogde beheerder (geen "Afmelden"). */
+      isOwn: boolean;
+    }[];
+  };
 };
 
 export type BarSessieMock = {
@@ -266,7 +295,31 @@ export async function mockBarSessie(
           }
         : null,
       notifications: rol === "beheerder" ? [] : undefined,
-      admin: rol === "beheerder" && staat.modus === "beheer" ? { shifts: [], sessions: [] } : undefined,
+      admin:
+        rol === "beheerder" && staat.modus === "beheer"
+          ? {
+              shifts: (opties.admin?.shifts ?? []).map((s) => ({
+                id: s.id,
+                started_by_name: s.startedByName,
+                started_at: s.startedAt,
+                activity_type_name: s.activityTypeName,
+                sessions: s.sessions.map((x) => ({
+                  bar_session_id: x.barSessionId,
+                  member_name: x.memberName,
+                  last_activity_at: x.lastActivityAt,
+                })),
+              })),
+              sessions: (opties.admin?.sessions ?? []).map((x) => ({
+                id: x.id,
+                member_name: x.memberName,
+                mode: x.mode,
+                started_at: x.startedAt,
+                last_activity_at: x.lastActivityAt,
+                shift_id: x.shiftId,
+                is_own: x.isOwn,
+              })),
+            }
+          : undefined,
     });
   });
   await page.route(/\/rest\/v1\/rpc\/register_bar_session(\?|$)/, (route) => {

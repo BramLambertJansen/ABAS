@@ -7,6 +7,7 @@ import {
   mockBarSessie,
   portalLoginMetWachtwoord,
 } from "./helpers/supabaseMock";
+import { dialogFocusState } from "./helpers/pendingOverlay";
 
 /**
  * Aanvulling op e2e/dialogen-tabs-landmarks.spec.ts (#125) met de negatieve
@@ -22,25 +23,6 @@ import {
  */
 
 // ── Hulpfuncties ──────────────────────────────────────────────────────────
-
-/** Indexen binnen de lijst met bereikbare elementen van de dialoog. */
-async function dialogFocusState(page: Page) {
-  return page.evaluate(() => {
-    const dialog = document.querySelector('[role="dialog"]') as HTMLElement;
-    const list = Array.from(
-      dialog.querySelectorAll<HTMLElement>(
-        'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled])'
-      )
-    ).filter((el) => el.getAttribute("tabindex") !== "-1" && el.getClientRects().length > 0);
-    const active = document.activeElement as HTMLElement | null;
-    return {
-      count: list.length,
-      index: active ? list.indexOf(active) : -1,
-      onContainer: active === dialog,
-      inDialog: !!active && dialog.contains(active),
-    };
-  });
-}
 
 /** Dialoog net open: de focus staat op de container. Tab en Shift+Tab moeten
  *  dan exact op het eerste respectievelijk laatste element landen, en de
