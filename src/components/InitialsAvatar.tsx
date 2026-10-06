@@ -14,7 +14,7 @@ import { initials } from "@/lib/staff";
  * `size` is the three sizes the three current call sites actually use, not
  * a free-form number — add a variant here if a fourth size shows up, don't
  * reach for an arbitrary px value at the call site:
- * - "xs" — DienstActief.tsx's read-only bezetting pill (via MemberPill)
+ * - "xs" — DienstAfsluitenOverlay.tsx's read-only bezetting pill (via MemberPill)
  * - "chip" — BezettingPil.tsx's overlappende avatars en de bezettingsrijen
  *   op het Dienst-scherm (26px, prototype)
  * - "sm" — BezettingOverlay.tsx's add/remove toggle row

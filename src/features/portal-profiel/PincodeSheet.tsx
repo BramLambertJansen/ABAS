@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Overlay } from "@/components/Overlay";
+import { Overlay, OverlaySluitKnop } from "@/components/Overlay";
 import { PinToetsenbord, PIN_LENGTH } from "@/components/PinToetsenbord";
 import { usePortalSetOwnPin } from "@/hooks/queries/usePortalSetOwnPin";
 import { setOwnPinErrorMessage } from "@/lib/ownPinErrors";
@@ -121,20 +121,18 @@ export function PincodeSheet({
             type="button"
             disabled={pending}
             onClick={() => void submit(null)}
-            className="self-center p-2 text-[12.5px] font-semibold text-muted underline-offset-2 hover:text-ink hover:underline disabled:opacity-50"
+            className="self-center p-2 text-metadata font-semibold text-muted underline-offset-2 hover:text-ink hover:underline disabled:opacity-50"
           >
             Pincode verwijderen
           </button>
         )}
 
-        <button
-          type="button"
+        <OverlaySluitKnop
           disabled={closeBlocked}
-          onClick={onClose}
           className="flex h-[52px] w-full items-center justify-center rounded-2xl border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
         >
           Annuleren
-        </button>
+        </OverlaySluitKnop>
       </div>
     </Overlay>
   );

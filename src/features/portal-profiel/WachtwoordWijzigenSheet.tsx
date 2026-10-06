@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, type FormEvent } from "react";
-import { Overlay } from "@/components/Overlay";
+import { Overlay, OverlaySluitKnop } from "@/components/Overlay";
 import { CodeInvoer } from "@/components/CodeInvoer";
 import { TWEESTAP_TEKSTEN, type CodeFout } from "@/lib/mfa";
 import { useFocusNaWissel } from "@/hooks/useFocusNaWissel";
@@ -80,13 +80,11 @@ export function WachtwoordWijzigenSheet({
         <div className="flex flex-col gap-[14px]">
           <p className="text-sm font-medium leading-relaxed text-muted">{TWEESTAP_TEKSTEN.wachtwoordCodeStap}</p>
           <CodeInvoer tone="light" onVerifieer={verifieer} />
-          <button
-            type="button"
-            onClick={onClose}
+          <OverlaySluitKnop
             className="flex h-[52px] w-full items-center justify-center rounded-2xl border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink"
           >
             Annuleren
-          </button>
+          </OverlaySluitKnop>
         </div>
       )}
       {mutation.codeStap === "klaar" && (
@@ -110,7 +108,6 @@ export function WachtwoordWijzigenSheet({
         <SheetKnoppen
           submitLabel={pending ? OPSLAAN_BEZIG_TEKST : "Wijzigen"}
           disabled={disabled}
-          onCancel={onClose}
           cancelDisabled={closeBlocked}
         />
       </form>

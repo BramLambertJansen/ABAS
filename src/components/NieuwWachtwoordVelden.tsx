@@ -1,5 +1,6 @@
 "use client";
 
+import { TekstVeld } from "@/components/TekstVeld";
 import { useId } from "react";
 import {
   checkPassword,
@@ -41,10 +42,7 @@ export function NieuwWachtwoordVelden({
   return (
     <>
       <div className="flex flex-col gap-1.5">
-        <label htmlFor={passwordId} className="text-xs font-bold text-muted">
-          Nieuw wachtwoord
-        </label>
-        <input
+        <TekstVeld label="Nieuw wachtwoord" tone="light" maat="48"
           id={passwordId}
           type="password"
           autoComplete="new-password"
@@ -52,9 +50,7 @@ export function NieuwWachtwoordVelden({
           aria-describedby={rulesId}
           value={password}
           readOnly={readOnly}
-          onChange={(event) => onPasswordChange(event.target.value)}
-          className="h-12 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink outline-none focus:border-accent"
-        />
+          onChange={(event) => onPasswordChange(event.target.value)} />
         <ul id={rulesId} className="mt-1 flex flex-col gap-0.5 text-xs font-semibold">
           {RULES.map((rule) => (
             <li key={rule} className={check[rule] ? "text-success" : "text-muted"}>
@@ -67,10 +63,7 @@ export function NieuwWachtwoordVelden({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <label htmlFor={repeatId} className="text-xs font-bold text-muted">
-          Herhaal wachtwoord
-        </label>
-        <input
+        <TekstVeld label="Herhaal wachtwoord" tone="light" maat="48"
           id={repeatId}
           type="password"
           autoComplete="new-password"
@@ -79,9 +72,7 @@ export function NieuwWachtwoordVelden({
           aria-describedby={mismatch ? mismatchId : undefined}
           value={repeat}
           readOnly={readOnly}
-          onChange={(event) => onRepeatChange(event.target.value)}
-          className="h-12 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink outline-none focus:border-accent"
-        />
+          onChange={(event) => onRepeatChange(event.target.value)} />
         {mismatch && (
           <p id={mismatchId} className="text-xs font-bold text-danger">
             de wachtwoorden zijn niet gelijk

@@ -19,13 +19,12 @@ import { kiesLid, mockKassa, openOpwaarderen } from "./helpers/kassa";
  * 30 seconden (alleen zonder geld; geldoverlays hebben geen time-out). Zonder echte database: Supabase via `page.route()`, de time-out
  * met `page.clock` (fastForward) tegen een met opzet hangend verzoek.
  *
- * Wat dit níét toetst: Safari/touch/schermlezer (handmatig) en echte dubbele
- * boeking (geen idempotentie, apart ticket; de UI claimt dat ook niet).
+ * Wat dit níét toetst: Safari/touch/schermlezer (handmatig) en echte databaseboekingen (apart geverifieerd met pgTAP en integratietests).
  */
 
 const MELDING = "Even wachten, de actie wordt nog verwerkt.";
 const ONBEKEND_GELD =
-  "De uitkomst is onbekend. Controleer eerst het saldo of de transacties voordat je opnieuw probeert.";
+  "De uitkomst is onbekend. Controleer het eerdere resultaat, rond dezelfde actie veilig af of annuleer de onbevestigde actie definitief.";
 const ONBEKEND_BEHEER =
   "De uitkomst is onbekend. Controleer eerst de actuele gegevens voordat je opnieuw probeert.";
 const WEGGOOIEN = "Niet-opgeslagen wijziging weggooien?";
@@ -219,7 +218,7 @@ test("Portal Naam wijzigen: pending blokkeert sluiten, bevriest het veld, Enter-
   expect(aanroepen).toBe(1);
 });
 
-test("Portal Naam wijzigen: onopgeslagen vraagt bij Escape/backdrop, niet bij ongewijzigd of Annuleren", async ({ page }) => {
+test("Portal Naam wijzigen: onopgeslagen vraagt bij alle sluitacties, ongewijzigd sluit direct", async ({ page }) => {
   await mockPortal(page, LID, {});
   const dialog = await openNaamSheet(page);
 
@@ -238,9 +237,13 @@ test("Portal Naam wijzigen: onopgeslagen vraagt bij Escape/backdrop, niet bij on
   await dialog.getByRole("button", { name: "Weggooien" }).click();
   await expect(dialog).toHaveCount(0);
 
-  // Terug naar de oude waarde telt niet als onopgeslagen; bewuste Annuleren gooit zonder vraag weg.
+  // Ook Annuleren vraagt; de oude waarde herstellen sluit zonder vraag.
   await page.getByRole("button", { name: /^Naam wijzigen/ }).click();
   await dialog.getByLabel("Volledige naam").fill("Iets anders");
+  await dialog.getByRole("button", { name: "Annuleren" }).click();
+  await expect(dialog.getByText(WEGGOOIEN)).toBeVisible();
+  await dialog.getByRole("button", { name: "Terug" }).click();
+  await dialog.getByLabel("Volledige naam").fill(LID.name);
   await dialog.getByRole("button", { name: "Annuleren" }).click();
   await expect(dialog).toHaveCount(0);
 });
@@ -361,7 +364,7 @@ async function openAfrekenen(page: Page) {
   return dialog;
 }
 
-test("Afrekenen: afgebroken place_order toont de controletekst, geen 'probeer opnieuw', geen retry, pas na 'Ik heb gecontroleerd' opnieuw", async ({ page }) => {
+test("Afrekenen: afgebroken place_order toont de controletekst, geen 'probeer opnieuw', geen automatische retry na resultaatcontrole", async ({ page }) => {
   const calls = await mockKassa(page, { place_order: (route) => route.abort("failed") });
   const dialog = await openAfrekenen(page);
   await dialog.getByRole("button", { name: "ja, afrekenen" }).click();
@@ -374,19 +377,19 @@ test("Afrekenen: afgebroken place_order toont de controletekst, geen 'probeer op
   await page.waitForTimeout(1500);
   expect(calls.place_order).toBe(1);
   // De sluitblokkade is weg: de gebruiker zit niet vast.
-  await expect(dialog.getByRole("button", { name: "annuleren" })).toBeEnabled();
+  await expect(dialog.getByRole("button", { name: "annuleren", exact: true })).toBeEnabled();
 
-  await dialog.getByRole("button", { name: "Ik heb gecontroleerd" }).click();
-  await expect(dialog.getByRole("button", { name: "ja, afrekenen" })).toBeEnabled();
+  await dialog.getByRole("button", { name: "Resultaat controleren" }).click();
+  await expect(dialog.getByRole("button", { name: "ja, afrekenen" })).toBeDisabled();
   expect(calls.place_order).toBe(1);
 });
 
-test("Afrekenen: focus blijft na 'Ik heb gecontroleerd' in de dialoog", async ({ page }) => {
+test("Afrekenen: focus blijft na 'Resultaat controleren' in de dialoog", async ({ page }) => {
   await mockKassa(page, { place_order: (route) => route.abort("failed") });
   const dialog = await openAfrekenen(page);
   await dialog.getByRole("button", { name: "ja, afrekenen" }).click();
-  await dialog.getByRole("button", { name: "Ik heb gecontroleerd" }).click();
-  await expect(dialog.getByRole("button", { name: "ja, afrekenen" })).toBeEnabled();
+  await dialog.getByRole("button", { name: "Resultaat controleren" }).click();
+  await expect(dialog.getByRole("button", { name: "ja, afrekenen" })).toBeDisabled();
   expect(await page.evaluate(() => !!document.activeElement?.closest('[role="dialog"]'))).toBe(true);
 });
 
@@ -398,7 +401,7 @@ test("Afrekenen: een domeinfout (insufficient_balance) is géén onbekende uitko
   await dialog.getByRole("button", { name: "ja, afrekenen" }).click();
   await expect.poll(() => calls.place_order).toBe(1);
   await expect(dialog.getByText(ONBEKEND_GELD)).toHaveCount(0);
-  await expect(dialog.getByRole("button", { name: "Ik heb gecontroleerd" })).toHaveCount(0);
+  await expect(dialog.getByRole("button", { name: "Resultaat controleren" })).toHaveCount(0);
 });
 
 test("Afrekenen: geen time-out voor geld: na 30 s blijft de dialoog geblokkeerd, geen onbekende uitkomst, één request", async ({ page }) => {
@@ -416,11 +419,11 @@ test("Afrekenen: geen time-out voor geld: na 30 s blijft de dialoog geblokkeerd,
 
   for (const ms of [29_000, 1_500, 60_000]) {
     await page.clock.fastForward(ms);
-    await expect(dialog.getByRole("button", { name: "annuleren" })).toBeDisabled();
+    await expect(dialog.getByRole("button", { name: "annuleren", exact: true })).toBeDisabled();
     await page.keyboard.press("Escape");
     await expect(dialog).toBeVisible();
     await expect(dialog.getByText(ONBEKEND_GELD)).toHaveCount(0);
-    await expect(dialog.getByRole("button", { name: "Ik heb gecontroleerd" })).toHaveCount(0);
+    await expect(dialog.getByRole("button", { name: "Resultaat controleren" })).toHaveCount(0);
     await expect(dialog.getByRole("button", { name: "bezig…" })).toBeDisabled();
   }
   expect(calls.place_order).toBe(1);
@@ -443,23 +446,23 @@ test("Afrekenen: hangend verzoek faalt pas na 30 s: dan pas onbekende uitkomst, 
   const dialog = await openAfrekenen(page);
   await dialog.getByRole("button", { name: "ja, afrekenen" }).click();
   await page.clock.fastForward(31_000);
-  await expect(dialog.getByRole("button", { name: "Ik heb gecontroleerd" })).toHaveCount(0);
+  await expect(dialog.getByRole("button", { name: "Resultaat controleren" })).toHaveCount(0);
 
   vast.laatDoor();
   await expect(alertOf(page).filter({ hasText: ONBEKEND_GELD })).toBeVisible();
-  const controle = dialog.getByRole("button", { name: "Ik heb gecontroleerd" });
+  const controle = dialog.getByRole("button", { name: "Resultaat controleren" });
   await expect(controle).toBeEnabled();
-  await expect(dialog.getByRole("button", { name: "annuleren" })).toBeEnabled();
+  await expect(dialog.getByRole("button", { name: "annuleren", exact: true })).toBeEnabled();
   await expect(dialog.getByRole("button", { name: "ja, afrekenen" })).toBeDisabled();
   await dialog.getByRole("button", { name: "ja, afrekenen" }).click({ force: true });
   await page.waitForTimeout(500);
   expect(calls.place_order).toBe(1);
 
   await controle.click();
-  await expect(dialog.getByRole("button", { name: "ja, afrekenen" })).toBeEnabled();
+  await expect(dialog.getByRole("button", { name: "ja, afrekenen" })).toBeDisabled();
 });
 
-test("Opwaarderen: afgebroken top_up toont de controletekst, geen 'probeer opnieuw', geen retry, pas na controle opnieuw", async ({ page }) => {
+test("Opwaarderen: afgebroken top_up toont de controletekst, geen 'probeer opnieuw', geen automatische retry na resultaatcontrole", async ({ page }) => {
   const calls = await mockKassa(page, { top_up: (route) => route.abort("failed") });
   const dialog = await openOpwaarderen(page);
   await dialog.getByRole("button", { name: "boeken", exact: true }).click();
@@ -470,19 +473,19 @@ test("Opwaarderen: afgebroken top_up toont de controletekst, geen 'probeer opnie
   await dialog.getByRole("button", { name: "boeken", exact: true }).click({ force: true });
   await page.waitForTimeout(1500);
   expect(calls.top_up).toBe(1);
-  await expect(dialog.getByRole("button", { name: "annuleren" })).toBeEnabled();
+  await expect(dialog.getByRole("button", { name: "annuleren", exact: true })).toBeEnabled();
 
-  await dialog.getByRole("button", { name: "Ik heb gecontroleerd" }).click();
-  await expect(dialog.getByRole("button", { name: "boeken", exact: true })).toBeEnabled();
+  await dialog.getByRole("button", { name: "Resultaat controleren" }).click();
+  await expect(dialog.getByRole("button", { name: "boeken", exact: true })).toBeDisabled();
   expect(calls.top_up).toBe(1);
 });
 
-test("Opwaarderen: focus blijft na 'Ik heb gecontroleerd' in de dialoog", async ({ page }) => {
+test("Opwaarderen: focus blijft na 'Resultaat controleren' in de dialoog", async ({ page }) => {
   await mockKassa(page, { top_up: (route) => route.abort("failed") });
   const dialog = await openOpwaarderen(page);
   await dialog.getByRole("button", { name: "boeken", exact: true }).click();
-  await dialog.getByRole("button", { name: "Ik heb gecontroleerd" }).click();
-  await expect(dialog.getByRole("button", { name: "boeken", exact: true })).toBeEnabled();
+  await dialog.getByRole("button", { name: "Resultaat controleren" }).click();
+  await expect(dialog.getByRole("button", { name: "boeken", exact: true })).toBeDisabled();
   expect(await page.evaluate(() => !!document.activeElement?.closest('[role="dialog"]'))).toBe(true);
 });
 
@@ -505,9 +508,9 @@ test("Opwaarderen: geen time-out voor geld: pending blokkeert sluiten, na 30 s n
     await page.keyboard.press("Escape");
     await page.mouse.click(3, 3);
     await expect(dialog).toBeVisible();
-    await expect(dialog.getByRole("button", { name: "annuleren" })).toBeDisabled();
+    await expect(dialog.getByRole("button", { name: "annuleren", exact: true })).toBeDisabled();
     await expect(dialog.getByText(ONBEKEND_GELD)).toHaveCount(0);
-    await expect(dialog.getByRole("button", { name: "Ik heb gecontroleerd" })).toHaveCount(0);
+    await expect(dialog.getByRole("button", { name: "Resultaat controleren" })).toHaveCount(0);
   }
   expect(calls.top_up).toBe(1);
   vast.laatDoor();
@@ -526,11 +529,11 @@ test("Opwaarderen: hangend verzoek faalt pas na 30 s: dan pas onbekende uitkomst
   const dialog = await openOpwaarderen(page);
   await dialog.getByRole("button", { name: "boeken", exact: true }).click();
   await page.clock.fastForward(31_000);
-  await expect(dialog.getByRole("button", { name: "Ik heb gecontroleerd" })).toHaveCount(0);
+  await expect(dialog.getByRole("button", { name: "Resultaat controleren" })).toHaveCount(0);
 
   vast.laatDoor();
   await expect(alertOf(page).filter({ hasText: ONBEKEND_GELD })).toBeVisible();
-  await expect(dialog.getByRole("button", { name: "Ik heb gecontroleerd" })).toBeEnabled();
+  await expect(dialog.getByRole("button", { name: "Resultaat controleren" })).toBeEnabled();
   await expect(dialog.getByRole("button", { name: "boeken", exact: true })).toBeDisabled();
   await dialog.getByRole("button", { name: "boeken", exact: true }).click({ force: true });
   await page.waitForTimeout(500);

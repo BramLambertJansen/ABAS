@@ -3,6 +3,11 @@ import type { Config } from "tailwindcss";
 // Tokens read directly off designs/Bar App.dc.html (inline styles) — see
 // docs/ARCHITECTURE.md "Design reference". The prototype governs the first
 // build of a screen; after that this file is the source of truth.
+const ACCENT = "#ee5a24";
+const INK = "#1b1e23";
+const alpha = (hex: string, opacity: number) =>
+  `rgba(${[1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)).join(",")},${opacity})`;
+
 const config: Config = {
   content: ["./src/**/*.{ts,tsx}"],
   theme: {
@@ -19,7 +24,7 @@ const config: Config = {
         // focus-paren door over alle klasse-literals in src/. Het oude
         // #d94d1a-testje blijft als negatieve bewaking.
         accent: {
-          DEFAULT: "#ee5a24",
+          DEFAULT: ACCENT,
           hover: "#f1703f",
           active: "#c9451a",
           // Hover en ingedrukt voor witte-tekst-knoppen: 5.61:1 met wit.
@@ -29,7 +34,7 @@ const config: Config = {
           // met accent.DEFAULT als tekstkleur (te weinig contrast).
           soft: "#fff2ec",
         },
-        ink: "#1b1e23",
+        ink: INK,
         canvas: "#faf7f3",
         border: {
           DEFAULT: "#ede7df",
@@ -56,6 +61,9 @@ const config: Config = {
         rail: {
           DEFAULT: "#16181c",
           card: "#1e2127",
+          hover: "#23262d",
+          "key-hover": "#262a31",
+          bright: "#e8eaed",
           border: "#2b2f37",
           // #7d838c (prototype) is only 4.65:1 on rail — fine at larger
           // sizes but no margin for error at 12-13px body text. Used
@@ -90,6 +98,30 @@ const config: Config = {
       borderRadius: {
         card: "16px",
         control: "12px",
+      },
+      fontSize: {
+        "screen-title": "25px",
+        "dialog-title": "19px",
+        "section-title": "17px",
+        "metadata": "12.5px",
+        "detail": "13.5px",
+      },
+      backgroundImage: {
+        "rail-glow": `radial-gradient(circle at 50% 0%,${alpha(ACCENT, 0.16)},transparent 60%)`,
+      },
+      boxShadow: {
+        "brand": `0 10px 26px -6px ${alpha(ACCENT, 0.7)}`,
+        "brand-compact": `0 6px 16px -4px ${alpha(ACCENT, 0.7)}`,
+        "accent-chip": `0 6px 16px -8px ${alpha(ACCENT, 0.9)}`,
+        "checkout": `0 12px 26px -12px ${alpha(ACCENT, 1)}`,
+        "surface": `0 1px 2px ${alpha(INK, 0.03)}`,
+        "surface-hover": `0 10px 24px -14px ${alpha(INK, 0.35)}`,
+        "segment": `0 1px 2px ${alpha(INK, 0.10)},0 4px 12px -6px ${alpha(INK, 0.28)}`,
+        "dropdown": `0 18px 40px -12px ${alpha(INK, 0.28)}`,
+        "rail-dropdown": `0 22px 48px -16px rgba(0,0,0,0.7)`,
+        "dialog": `0 30px 70px -20px rgba(0,0,0,0.55)`,
+        "shift": `0 14px 34px -22px rgba(22,24,28,0.9)`,
+        "menu": `0 16px 40px ${alpha(INK, 0.14)}`,
       },
       // Inschuiven van de portal-sheet (Overlay.tsx, `overlay: "sheet"`),
       // prototype designs/Lid App.dc.html → `abasSheet`. Alleen via

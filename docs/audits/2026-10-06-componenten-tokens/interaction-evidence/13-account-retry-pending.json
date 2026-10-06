@@ -1,0 +1,27 @@
+{
+  "fixtureProvenance": {
+    "dataKind": "synthetic browser fixtures only",
+    "personalAndFinancialData": "Names, email addresses, balances and transactions are invented test data; no production records.",
+    "source": [
+      "e2e/helpers/supabaseMock.ts (USER and fakeSession)",
+      "e2e/helpers/frontendReview.ts (reviewFixture)",
+      "docs/audits/2026-10-06-componenten-tokens/tools/screen-audit.cjs (PRODUCTS and TRANSACTIONS mocks)",
+      "docs/audits/2026-10-06-componenten-tokens/tools/interaction-audit.cjs (local route mocks)"
+    ],
+    "networkIsolation": "Local app only; unmocked external browser requests aborted."
+  },
+  "id": "13-account-retry-pending",
+  "file": "screenshots/13-account-retry-pending.png",
+  "note": "Tijdens retry verdwijnt de knop en valt focus op body.",
+  "url": "http://127.0.0.1:3100/portal",
+  "snapshot": "- alert\n- main:\n  - heading \"Hoi Femke\" [level=1]\n  - text: Ingelogd als femke.bos@aurora.local.\n  - button \"Uitloggen\"\n  - tablist \"Portaal-navigatie\":\n    - tab \"Saldo\"\n    - tab \"Transacties\"\n    - tab \"Account\" [selected]\n  - tabpanel \"Account\":\n    - heading \"Account\" [level=2]\n    - status: Gegevens laden…\n    - status",
+  "focus": {
+    "tag": "BODY",
+    "text": null,
+    "label": null
+  },
+  "calls": 2,
+  "health": "Fout — U03",
+  "auditNote": "De retryknop verdwijnt; actieve focus wordt BODY. Laden is bewust vastgehouden om deze toestand te onderzoeken.",
+  "visuallyInspected": true
+}

@@ -261,13 +261,13 @@ export function VerkoopScherm({ shift, draft }: { shift: OpenShift; draft: Verko
   }
 
   return (
-    <div className="flex min-h-0 min-w-0 flex-1">
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-hidden px-[26px] pb-[22px] pt-6">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto min-[700px]:flex-row min-[700px]:overflow-hidden">
+      <div className="flex h-[max(32rem,100dvh)] min-w-0 flex-none flex-col gap-4 overflow-hidden min-[700px]:h-auto min-[700px]:min-h-0 min-[700px]:flex-1 px-[26px] pb-[22px] pt-6">
         <header className="flex flex-none flex-wrap items-center gap-3.5">
           <h1
             ref={titelRef}
             tabIndex={-1}
-            className="text-[25px] font-extrabold leading-none tracking-[-0.025em] text-ink"
+            className="text-screen-title font-extrabold leading-none tracking-[-0.025em] text-ink"
           >
             Bar
           </h1>

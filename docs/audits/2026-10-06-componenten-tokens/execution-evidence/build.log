@@ -1,0 +1,46 @@
+
+> abas@0.0.0 build
+> next build
+
+   ▲ Next.js 15.5.27
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 5.4s
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/12) ...
+   Generating static pages (3/12)
+   Generating static pages (6/12)
+   Generating static pages (9/12)
+ ✓ Generating static pages (12/12)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                 Size  First Load JS
+┌ ○ /                                    24.8 kB         227 kB
+├ ○ /_not-found                            986 B         104 kB
+├ ƒ /auth/callback                         146 B         103 kB
+├ ○ /beheer                                27 kB         230 kB
+├ ƒ /beheer/callback                       146 B         103 kB
+├ ƒ /beheer/invite                         146 B         103 kB
+├ ƒ /beheer/productafbeelding              146 B         103 kB
+├ ƒ /beheer/wachtwoord-herstellen        4.07 kB         180 kB
+├ ƒ /design                                969 B         103 kB
+├ ƒ /design/files/[...path]                146 B         103 kB
+├ ƒ /inloggen/namen                        146 B         103 kB
+├ ƒ /inloggen/opties                       146 B         103 kB
+├ ƒ /inloggen/pin                          146 B         103 kB
+├ ƒ /inloggen/vergeten                     146 B         103 kB
+├ ƒ /inloggen/wachtwoord                   146 B         103 kB
+├ ○ /portal                              12.1 kB         200 kB
+└ ƒ /portal/wachtwoord-herstellen        1.29 kB         180 kB
++ First Load JS shared by all             103 kB
+  ├ chunks/65cd67bd-1fdf1518e1144385.js  54.2 kB
+  ├ chunks/71-e22b70c2dcde97de.js        46.4 kB
+  └ other shared chunks (total)          1.93 kB
+
+
+ƒ Middleware                             92.5 kB
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand

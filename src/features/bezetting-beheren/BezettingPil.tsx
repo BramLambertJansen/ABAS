@@ -49,7 +49,7 @@ export function BezettingPil({
           ))}
         </span>
       )}
-      <span className={`whitespace-nowrap text-[12.5px] font-bold text-muted-strong ${members.length ? "" : "pl-2"}`}>
+      <span className={`whitespace-nowrap text-metadata font-bold text-muted-strong ${members.length ? "" : "pl-2"}`}>
         {label}
       </span>
       <span

@@ -6,8 +6,9 @@
  * `./src/**\/*.{ts,tsx}`, dus klassen in dit bestand worden gebouwd.
  *
  * Woordenlijst voor knop- en dialoogteksten (vast):
- * - Sluiten: een weergave of dialoog sluiten, zonder iets af te breken of te
- *   bevestigen (de Sluiten-knop van `Overlay`).
+ * - Sluiten: de dialoog verlaten zonder opslaan. Onder het bestaande T06-
+ *   contract gooit een expliciete knop gewijzigde invoer direct weg;
+ *   Escape/backdrop vraagt eerst bevestiging. Pending blokkeert beide.
  * - Annuleren: een lopende handeling of invoer afbreken (uitgesproken
  *   werkwoord; niet "Annuleer").
  * - Klaar: alleen een bewerkscherm waarvan de wijzigingen al live zijn
@@ -30,15 +31,15 @@
  * `hover:`/`active:`, dus de hoverkleur lekt niet door.
  */
 export const KNOP_ACCENT_WIT =
-  "bg-accent-active text-white transition-colors hover:bg-accent-pressed active:bg-accent-pressed disabled:cursor-not-allowed disabled:bg-track disabled:text-muted";
+  "bg-accent-active text-white transition-colors hover:bg-accent-pressed active:bg-accent-pressed disabled:cursor-not-allowed disabled:bg-track disabled:text-muted aria-disabled:cursor-not-allowed aria-disabled:bg-track aria-disabled:text-muted aria-disabled:hover:bg-track aria-disabled:active:bg-track";
 
 /** Donkere tekst op accent; hover is lichter (`accent-hover`, 6,03:1). */
 export const KNOP_ACCENT_DONKER =
-  "bg-accent text-rail transition-colors hover:bg-accent-hover active:bg-accent-hover disabled:cursor-not-allowed disabled:bg-track disabled:text-muted";
+  "bg-accent text-rail transition-colors hover:bg-accent-hover active:bg-accent-hover disabled:cursor-not-allowed disabled:bg-track disabled:text-muted aria-disabled:cursor-not-allowed aria-disabled:bg-track aria-disabled:text-muted aria-disabled:hover:bg-track aria-disabled:active:bg-track";
 
 /** Witte knop met rand (Sluiten, Annuleren). */
 export const KNOP_RAND =
-  "border border-border bg-white text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50";
+  "border border-border bg-white text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50";
 
 /** De tweede (grote) maat: primaire dialoogknop. */
 export const KNOP_DIALOOG_MAAT = "h-[50px] rounded-2xl";

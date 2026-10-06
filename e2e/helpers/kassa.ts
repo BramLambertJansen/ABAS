@@ -30,6 +30,8 @@ export async function mockKassa(page: Page, geld: { place_order?: Geld; top_up?:
     bevestigd: true,
     shift: { id: BAR_SHIFT, startedAt, startedByName: TOM.name, activityTypeName: "Training" },
   });
+  // Resultaatcontrole leest een fictieve ontbrekende receipt; zij boekt niets.
+  await page.route(/\/rest\/v1\/rpc\/inspect_money_request(\?|$)/, (route) => json(route, 200, { status: "missing" }));
   await loginMetWachtwoord(page, USER.email, "Aurora#2026");
   await page.getByRole("tab", { name: "Verkoop" }).waitFor({ state: "visible", timeout: 15_000 });
   return calls;

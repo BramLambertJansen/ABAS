@@ -113,7 +113,7 @@ export function LidBestellingenOverlay({
             setReason(e.target.value);
             if (errorCode === "reason_required") setErrorCode(null);
           }}
-          className="h-12 w-full rounded-[13px] border border-border bg-white px-3.5 text-[13.5px] font-semibold text-ink focus-visible:outline-none placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
+          className="h-12 w-full rounded-[13px] border border-border bg-white px-3.5 text-detail font-semibold text-ink focus-visible:outline-none placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
         />
       </div>
 
@@ -125,7 +125,7 @@ export function LidBestellingenOverlay({
         className="flex max-h-[300px] flex-col gap-2 overflow-auto"
       >
         {orders.status === "loading" && !herstel.toonFout && (
-          <p className="py-5 text-center text-[12.5px] font-semibold text-muted" role="status">
+          <p className="py-5 text-center text-metadata font-semibold text-muted" role="status">
             Bestellingen laden…
           </p>
         )}
@@ -139,12 +139,12 @@ export function LidBestellingenOverlay({
           />
         )}
         {orders.status === "ready" && orders.orders.length === 0 && (
-          <p className="py-5 text-center text-[12.5px] font-semibold text-muted">
+          <p className="py-5 text-center text-metadata font-semibold text-muted">
             geen bestellingen van dit lid
           </p>
         )}
         {orders.status === "ready" && orders.beperkt && (
-          <p className="text-[12.5px] font-bold text-muted-strong">
+          <p className="text-metadata font-bold text-muted-strong">
             Alleen de laatste {MEMBER_ORDERS_LIMIT} bestellingen van {memberName} staan hier. Oudere
             bestellingen zijn niet te zien in beheer.
           </p>
@@ -205,9 +205,9 @@ function OrderRow({
   if (order.reversed) {
     return (
       <li className="flex items-center gap-3 rounded-[13px] border border-border bg-canvas px-3.5 py-3">
-        <span className="flex-none text-[12.5px] font-bold text-muted">{when}</span>
-        <span className="min-w-0 flex-1 truncate text-[13.5px] font-bold text-ink">{items}</span>
-        <span className="flex-none text-[13.5px] font-extrabold text-muted line-through">
+        <span className="flex-none text-metadata font-bold text-muted">{when}</span>
+        <span className="min-w-0 flex-1 truncate text-detail font-bold text-ink">{items}</span>
+        <span className="flex-none text-detail font-extrabold text-muted line-through">
           {formatCents(order.totalCents)}
         </span>
         <span className="flex-none text-xs font-extrabold text-muted">teruggedraaid</span>
@@ -225,16 +225,16 @@ function OrderRow({
           confirming ? "border-danger bg-danger-bg" : "border-border hover:border-danger"
         }`}
       >
-        <span className="flex-none text-[12.5px] font-bold text-muted">{when}</span>
-        <span className="min-w-0 flex-1 truncate text-[13.5px] font-bold text-ink">{items}</span>
-        <span className="flex-none text-[13.5px] font-extrabold text-ink">
+        <span className="flex-none text-metadata font-bold text-muted">{when}</span>
+        <span className="min-w-0 flex-1 truncate text-detail font-bold text-ink">{items}</span>
+        <span className="flex-none text-detail font-extrabold text-ink">
           {formatCents(order.totalCents)}
         </span>
         <span className="flex-none text-xs font-extrabold text-danger">terugdraaien →</span>
       </button>
       {confirming && (
         <div className="flex flex-wrap items-center gap-3 rounded-[13px] bg-danger-bg px-3.5 py-3">
-          <span className="min-w-0 flex-1 text-[12.5px] font-bold text-ink">
+          <span className="min-w-0 flex-1 text-metadata font-bold text-ink">
             {reasonMissing
               ? "Vul eerst een reden in."
               : `Terugdraaien zet ${formatCents(order.totalCents)} terug op het saldo van ${memberName}.`}
@@ -243,7 +243,7 @@ function OrderRow({
             type="button"
             onClick={onCancel}
             disabled={pending}
-            className="flex h-9 flex-none items-center rounded-[11px] border border-border bg-white px-3.5 text-[12.5px] font-extrabold text-ink transition-colors hover:border-ink disabled:opacity-50"
+            className="flex h-9 flex-none items-center rounded-[11px] border border-border bg-white px-3.5 text-metadata font-extrabold text-ink transition-colors hover:border-ink disabled:opacity-50"
           >
             annuleren
           </button>
@@ -251,7 +251,7 @@ function OrderRow({
             type="button"
             onClick={onConfirm}
             disabled={pending || reasonMissing}
-            className="flex h-9 flex-none items-center rounded-[11px] bg-danger px-4 text-[12.5px] font-extrabold text-white transition-colors hover:bg-ink disabled:cursor-not-allowed disabled:bg-track disabled:text-muted"
+            className="flex h-9 flex-none items-center rounded-[11px] bg-danger px-4 text-metadata font-extrabold text-white transition-colors hover:bg-ink disabled:cursor-not-allowed disabled:bg-track disabled:text-muted"
           >
             {pending ? "bezig…" : "terugdraaien"}
           </button>

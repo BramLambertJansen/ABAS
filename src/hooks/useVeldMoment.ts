@@ -20,6 +20,11 @@ export function useVeldMoment() {
     aangeraakt,
     pogingGedaan,
     pogingAlert,
+    reset: () => {
+      setAangeraakt(false);
+      setPogingGedaan(false);
+      setPogingAlert(false);
+    },
     bijBlur: () => setAangeraakt(true),
     bijWijzig: () => setPogingAlert(false),
     bijPoging: () => {

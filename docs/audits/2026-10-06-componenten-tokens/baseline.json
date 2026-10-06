@@ -1,0 +1,152 @@
+{
+  "date": "2026-10-06",
+  "scope": "Punt 1: componenten en tokens; punt 2: interactiepatronen; punt 3: schermen, responsive gedrag en toegankelijkheid",
+  "githubMainCommit": "62ca126b957a35cf7d8a60eb94c3951f404f9d44",
+  "verifiedGitObjects": {
+    "src": "4330a7664c829804a49093abaf8fb48755251f63",
+    "tailwind.config.ts": "02d8d73117547d5dc8733fb5f6e20fbab58305f9",
+    "test": "e05aa0be4309479d0125a4f166155a8227d0e11e",
+    "e2e": "dd79c725a50e443ae470ffffe66cad56299ed905"
+  },
+  "sourceCheckout": "/tmp/abas-platform-fixes",
+  "checks": [
+    {
+      "command": "node test/accentContrast.test.ts",
+      "passed": 16,
+      "failed": 0
+    },
+    {
+      "command": "node test/tabKeys.test.ts",
+      "passed": 12,
+      "failed": 0
+    },
+    {
+      "command": "node scripts/check-arch.mjs",
+      "status": "passed",
+      "filesScanned": 234
+    },
+    {
+      "command": "node test/opslaan.test.ts",
+      "passed": 8,
+      "failed": 0,
+      "reviewPoint": 2
+    },
+    {
+      "command": "node test/veldFouten.test.ts",
+      "passed": 5,
+      "failed": 0,
+      "reviewPoint": 2
+    },
+    {
+      "command": "node test/moneyRequest.test.ts",
+      "passed": 16,
+      "failed": 0,
+      "reviewPoint": 2
+    }
+  ],
+  "figmaFileInspected": false,
+  "browserReviewPerformed": true,
+  "productCodeChanged": false,
+  "interactionReview": {
+    "completed": true,
+    "screenshots": 19,
+    "sourceBaselineUnchanged": true,
+    "browser": "Chromium via Playwright library",
+    "app": "Local production build, Next.js 15.5.27",
+    "viewports": [
+      {
+        "width": 1024,
+        "height": 900,
+        "surface": "beheer"
+      },
+      {
+        "width": 390,
+        "height": 844,
+        "surface": "portal"
+      }
+    ],
+    "externalRequests": "All mocked or blocked",
+    "productionDataModified": false,
+    "databaseRecoveryExecuted": false,
+    "pageErrors": []
+  },
+  "screenReview": {
+    "completed": true,
+    "screenshots": 22,
+    "screenshotNumbers": [
+      20,
+      41
+    ],
+    "githubMainCommit": "62ca126b957a35cf7d8a60eb94c3951f404f9d44",
+    "browser": "Chromium via Playwright library",
+    "axeVersion": "4.13.0",
+    "axeTags": [
+      "wcag2a",
+      "wcag2aa",
+      "wcag21a",
+      "wcag21aa",
+      "wcag22aa"
+    ],
+    "axeViolations": 0,
+    "axeScansWithIncomplete": 9,
+    "axeIncompleteNodeMentions": 29,
+    "manualFindings": [
+      "R01",
+      "R02",
+      "R03"
+    ],
+    "productionResourcesModified": false,
+    "fullWCAGComplianceClaim": false,
+    "physicalDevicesTested": false,
+    "screenReadersTested": false,
+    "pageErrors": [],
+    "checks": [
+      {
+        "command": "node test/accentContrast.test.ts",
+        "passed": 16,
+        "failed": 0
+      },
+      {
+        "command": "node test/tabKeys.test.ts",
+        "passed": 12,
+        "failed": 0
+      }
+    ],
+    "viewports": [
+      {
+        "width": 320,
+        "height": 844
+      },
+      {
+        "width": 390,
+        "height": 844
+      },
+      {
+        "width": 390,
+        "height": 500
+      },
+      {
+        "width": 1280,
+        "height": 800
+      },
+      {
+        "width": 768,
+        "height": 1024
+      },
+      {
+        "width": 1024,
+        "height": 768
+      },
+      {
+        "width": 512,
+        "height": 384
+      },
+      {
+        "width": 768,
+        "height": 600
+      }
+    ],
+    "totalReviewFindings": 15,
+    "totalReviewScreenshots": 41
+  }
+}

@@ -1,5 +1,6 @@
 "use client";
 
+import { StartScherm } from "@/components/StartScherm";
 import { AuroraMerk } from "@/components/AuroraMerk";
 import { formatTime } from "@/lib/date";
 import { useBarSessie } from "./BarSessieContext";
@@ -20,11 +21,7 @@ export function HervatScherm() {
   const shift = sessie.shift;
 
   return (
-    <main className="relative isolate flex min-h-screen w-full flex-col items-center justify-center gap-6 overflow-auto bg-rail px-6 py-8 font-sans text-white">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_0%,rgba(238,90,36,0.16),transparent_60%)]"
-      />
+    <StartScherm>
       <AuroraMerk tone="dark">
         <h1 className="text-[21px] font-extrabold tracking-[-0.02em]">
           {hervatTitel(session.memberName)}
@@ -55,6 +52,6 @@ export function HervatScherm() {
           {HERVATTEN.uitloggen}
         </UitloggenKnop>
       </div>
-    </main>
+    </StartScherm>
   );
 }

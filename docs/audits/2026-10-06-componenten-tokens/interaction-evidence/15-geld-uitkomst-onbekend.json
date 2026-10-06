@@ -1,0 +1,27 @@
+{
+  "fixtureProvenance": {
+    "dataKind": "synthetic browser fixtures only",
+    "personalAndFinancialData": "Names, email addresses, balances and transactions are invented test data; no production records.",
+    "source": [
+      "e2e/helpers/supabaseMock.ts (USER and fakeSession)",
+      "e2e/helpers/frontendReview.ts (reviewFixture)",
+      "docs/audits/2026-10-06-componenten-tokens/tools/screen-audit.cjs (PRODUCTS and TRANSACTIONS mocks)",
+      "docs/audits/2026-10-06-componenten-tokens/tools/interaction-audit.cjs (local route mocks)"
+    ],
+    "networkIsolation": "Local app only; unmocked external browser requests aborted."
+  },
+  "id": "15-geld-uitkomst-onbekend",
+  "file": "screenshots/15-geld-uitkomst-onbekend.png",
+  "note": "Nieuw lid na verloren antwoord: waarschuwing en Ik heb gecontroleerd.",
+  "url": "http://127.0.0.1:3100/beheer",
+  "snapshot": "- alert\n- main:\n  - tablist \"Beheer-navigatie\":\n    - tab \"Assortiment\"\n    - tab \"Leden\" [selected]\n    - tab \"Instellingen\"\n    - tab \"Diensten\"\n    - tab \"Logboek\"\n  - text: Ingelogd als Femke Bos BEHEER\n  - button \"Uitloggen\"\n  - tabpanel \"Leden\":\n    - heading \"Leden\" [level=1]\n    - button \"nieuw lid\"\n    - status\n    - text: Zoek lid op naam\n    - searchbox \"Zoek lid op naam\"\n    - group \"Status\":\n      - button \"Actief 1\" [pressed]\n      - button \"Saldo laag 0\"\n      - button \"Archief 0\"\n    - paragraph: 1 van 1 leden\n    - list:\n      - listitem:\n        - button \"Joris de Vries € 15,00\"\n    - dialog \"Nieuw lid\":\n      - heading \"Nieuw lid\" [level=2]\n      - alert: De uitkomst is onbekend. Controleer eerst het saldo of de transacties voordat je opnieuw probeert.\n      - button \"Ik heb gecontroleerd\"\n      - text: Naam\n      - textbox \"Naam\": Joris Voorbeeld\n      - text: Startsaldo (optioneel)\n      - textbox \"Startsaldo (optioneel)\":\n        - /placeholder: 0,00\n      - text: Contactadres (optioneel)\n      - textbox \"Contactadres (optioneel)\"\n      - paragraph: Hierheen stuurt ABAS de uitnodiging. Dit is niet automatisch het adres waarmee het lid inlogt.\n      - button \"Annuleren\"\n      - button \"Toevoegen\" [disabled]\n      - status",
+  "focus": {
+    "tag": "INPUT",
+    "text": "",
+    "label": null
+  },
+  "calls": 3,
+  "health": "Verbeteren — U05",
+  "auditNote": "Invoer blijft staan en Toevoegen is geblokkeerd. De melding vraagt handmatige controle, terwijl de bewaarde actie ook serverherstel ondersteunt.",
+  "visuallyInspected": true
+}

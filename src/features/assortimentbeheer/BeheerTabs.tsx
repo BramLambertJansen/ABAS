@@ -14,7 +14,7 @@ import { useBarSessie } from "../bar-sessie/BarSessieContext";
 type Tab = "assortiment" | "leden" | "instellingen" | "logboek" | "diensten";
 
 const beheerTabClass = (selected: boolean) =>
-  `flex h-9 items-center whitespace-nowrap rounded-[10px] px-[15px] text-[12.5px] font-extrabold transition-colors ${
+  `flex h-9 items-center whitespace-nowrap rounded-[10px] px-[15px] text-metadata font-extrabold transition-colors ${
     selected ? "bg-ink text-white" : "text-muted-strong hover:bg-border-subtle"
   }`;
 

@@ -378,7 +378,7 @@ export function ActiviteitstypesInstellingen() {
 
       <div className="flex flex-col gap-1.5">
         <label htmlFor={newNameId} className="text-xs font-bold text-muted">
-          Nieuw activiteittype
+          Nieuw activiteitstype
         </label>
         <div className="flex gap-2">
           <input

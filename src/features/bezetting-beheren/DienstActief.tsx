@@ -79,7 +79,7 @@ export function DienstActief({
     <div className="flex min-h-0 min-w-0 flex-1">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-auto px-[26px] pb-[22px] pt-6">
         <header className="flex flex-none flex-wrap items-center gap-3.5">
-          <h1 className="text-[25px] font-extrabold leading-none tracking-[-0.025em] text-ink">
+          <h1 className="text-screen-title font-extrabold leading-none tracking-[-0.025em] text-ink">
             Dienst
           </h1>
           <BezettingPil
@@ -91,7 +91,7 @@ export function DienstActief({
 
         <section
           aria-label="Omzet deze dienst"
-          className="flex flex-none flex-col gap-[13px] rounded-[18px] bg-rail px-5 pb-4 pt-[15px] shadow-[0_14px_34px_-22px_rgba(22,24,28,0.9)]"
+          className="flex flex-none flex-col gap-[13px] rounded-[18px] bg-rail px-5 pb-4 pt-[15px] shadow-shift"
         >
           <div className="flex min-w-0 flex-col gap-[5px]">
             <span className="text-[9.5px] font-extrabold tracking-[0.14em] text-rail-muted">
@@ -221,7 +221,7 @@ export function DienstActief({
                   <span className="min-w-0 flex-1 truncate text-[13px] font-bold text-ink">
                     {member.name}
                   </span>
-                  <span className="flex-none text-[12.5px] font-extrabold text-muted">
+                  <span className="flex-none text-metadata font-extrabold text-muted">
                     {ledger.status !== "ready"
                       ? "…"
                       : receiptLabel(receipts.get(member.id) ?? 0)}
@@ -236,7 +236,7 @@ export function DienstActief({
         <div className="min-h-0 flex-1" />
 
         {shiftSummary.status === "ready" && shiftSummary.summary.reversalCount > 0 && (
-          <p className="flex-none rounded-[13px] bg-danger-bg px-[13px] py-[11px] text-[12.5px] font-bold text-danger">
+          <p className="flex-none rounded-[13px] bg-danger-bg px-[13px] py-[11px] text-metadata font-bold text-danger">
             {shiftSummary.summary.reversalCount === 1
               ? "1 correctie deze dienst"
               : `${shiftSummary.summary.reversalCount} correcties deze dienst`}
@@ -313,7 +313,7 @@ function Stat({ label, value }: { label: string; value: string }) {
       <dt className="truncate text-[9px] font-extrabold leading-tight tracking-[0.1em] text-rail-muted">
         {label}
       </dt>
-      <dd className="whitespace-nowrap text-[15px] font-extrabold tracking-[-0.02em] text-[#e8eaed]">
+      <dd className="whitespace-nowrap text-[15px] font-extrabold tracking-[-0.02em] text-rail-bright">
         {value}
       </dd>
     </div>

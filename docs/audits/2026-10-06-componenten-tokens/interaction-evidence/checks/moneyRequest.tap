@@ -1,0 +1,24 @@
+✔ lost response, remount, reset and reload reuse a persisted UUID (7.782511ms)
+✔ changed inputs cannot silently replace an unresolved money action (0.300835ms)
+✔ actor and operation partition intents; no automatic retry after login (0.338129ms)
+✔ session failures keep intent, definite transactional rejection clears it (0.425341ms)
+✔ unavailable or corrupted persistence blocks requests before transmission (3.219905ms)
+✔ guards before receipt lookup cannot discard an earlier unknown booking (1.085234ms)
+✔ overlapping requests acquire the same intent before either response arrives (1.770989ms)
+✔ missing receipt never releases intent; confirmed cancellation releases the exact key (3.350764ms)
+✔ lookup of completed booking releases intent, session or transport errors preserve it (0.538712ms)
+✔ a retry queued behind cancellation keeps the original key instead of silently creating a new action (3.61595ms)
+✔ a malformed success response cannot discard an unresolved intent (0.272435ms)
+✔ a rejected retry cannot prove the outcome of an earlier lost response (0.144463ms)
+✔ one rejected request cannot release the key while another request is in flight (1.805701ms)
+✔ legacy v1 pending requests also require terminal server proof (0.506735ms)
+✔ cancellation between inspection and recovery cannot turn recovery into a new booking (0.441002ms)
+✔ stale recovery cannot use a newer action's key (0.495987ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 33.982055

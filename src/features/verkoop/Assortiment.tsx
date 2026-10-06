@@ -1,5 +1,7 @@
 "use client";
 
+import { ZoekIcoon } from "@/components/ZoekIcoon";
+
 import { useMemo } from "react";
 import { formatCents } from "@/lib/money";
 import { ProductAfbeelding } from "@/components/ProductAfbeelding";
@@ -83,15 +85,15 @@ export function Assortiment({
   }, [cart]);
 
   const chipClass = (active: boolean) =>
-    `flex h-11 items-center whitespace-nowrap rounded-full border px-[18px] text-[13.5px] font-bold transition-colors ${
+    `flex h-11 items-center whitespace-nowrap rounded-full border px-[18px] text-detail font-bold transition-colors ${
       active
-        ? "border-accent-active bg-accent-active text-white shadow-[0_6px_16px_-8px_rgba(238,90,36,0.9)]"
+        ? "border-accent-active bg-accent-active text-white shadow-accent-chip"
         : "border-border bg-white text-muted-strong hover:border-ink"
     }`;
   const segClass = (active: boolean) =>
-    `flex h-11 items-center justify-center whitespace-nowrap rounded-[11px] px-[15px] text-[12.5px] font-bold transition-[background-color,color,box-shadow] ${
+    `flex h-11 items-center justify-center whitespace-nowrap rounded-[11px] px-[15px] text-metadata font-bold transition-[background-color,color,box-shadow] ${
       active
-        ? "bg-white text-ink shadow-[0_1px_2px_rgba(27,30,35,0.10),0_4px_12px_-6px_rgba(27,30,35,0.28)]"
+        ? "bg-white text-ink shadow-segment"
         : "text-muted-strong hover:text-ink"
     }`;
 
@@ -104,18 +106,8 @@ export function Assortiment({
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
       <div className="flex flex-none flex-wrap items-center gap-3">
-        <div className="relative flex min-w-[260px] flex-1 items-center">
-          <svg
-            width="17"
-            height="17"
-            viewBox="0 0 17 17"
-            fill="none"
-            aria-hidden="true"
-            className="pointer-events-none absolute left-[19px] top-1/2 -translate-y-1/2"
-          >
-            <circle cx="7.2" cy="7.2" r="5" stroke="#aca69e" strokeWidth="1.7" />
-            <line x1="11" y1="11" x2="15" y2="15" stroke="#aca69e" strokeWidth="1.7" strokeLinecap="round" />
-          </svg>
+        <div className="relative flex min-w-0 basis-[260px] flex-1 items-center">
+          <ZoekIcoon className="pointer-events-none absolute left-[19px] top-1/2 -translate-y-1/2" />
           <label htmlFor="verkoop-product-search" className="sr-only">
             Zoek product
           </label>
@@ -204,7 +196,7 @@ export function Assortiment({
       ) : view === "grid" ? (
         <ul
           className="grid flex-1 auto-rows-min content-start gap-3 overflow-auto p-0.5 pb-2"
-          style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${MIN_KAART_PX}px, 1fr))` }}
+          style={{ gridTemplateColumns: `repeat(auto-fill, minmax(min(100%, ${MIN_KAART_PX}px), 1fr))` }}
         >
           {visible.map((product) => {
             const qty = qtyByProduct.get(product.id) ?? 0;
@@ -214,12 +206,12 @@ export function Assortiment({
                   type="button"
                   onClick={() => onAdd(product.id)}
                   aria-label={addLabel(product.name, product.priceCents, qty)}
-                  className="group flex w-full flex-col gap-2.5 rounded-card border border-border bg-white p-[11px] text-left shadow-[0_1px_2px_rgba(27,30,35,0.03)] transition-[border-color,box-shadow] hover:border-accent hover:shadow-[0_10px_24px_-14px_rgba(27,30,35,0.35)]"
+                  className="group flex w-full flex-col gap-2.5 rounded-card border border-border bg-white p-[11px] text-left shadow-surface transition-[border-color,box-shadow] hover:border-accent hover:shadow-surface-hover"
                 >
                   <ProductAfbeelding imageUrl={product.imageUrl} name={product.name} size="tile" decorative />
                   <span className="flex w-full items-center justify-between gap-2">
                     <span className="flex min-w-0 flex-col gap-0.5">
-                      <span className="line-clamp-2 break-words text-[13.5px] font-bold leading-tight text-ink">
+                      <span className="line-clamp-2 break-words text-detail font-bold leading-tight text-ink">
                         {product.name}
                       </span>
                       <span className="flex flex-wrap items-center gap-1.5 text-[13px] font-semibold text-muted">
@@ -251,7 +243,7 @@ export function Assortiment({
                     {product.name}
                   </span>
                   {qty > 0 && <QtyPill qty={qty} />}
-                  <span className="min-w-[58px] text-right text-[13.5px] font-semibold text-muted">
+                  <span className="min-w-[58px] text-right text-detail font-semibold text-muted">
                     {formatCents(product.priceCents)}
                   </span>
                   <AddCircle />

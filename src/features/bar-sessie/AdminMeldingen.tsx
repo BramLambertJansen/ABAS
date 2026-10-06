@@ -47,7 +47,7 @@ export function AdminMeldingen({
           <h2 id={`melding-${melding.id}`} className="text-sm font-extrabold text-ink">
             {ADMIN_MELDING.titel}
           </h2>
-          <p className="text-[12.5px] font-semibold leading-relaxed text-muted-strong">
+          <p className="text-metadata font-semibold leading-relaxed text-muted-strong">
             {adminMeldingUitleg({
               starter: melding.startedByName,
               activiteit: melding.activityTypeName,

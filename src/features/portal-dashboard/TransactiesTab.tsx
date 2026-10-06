@@ -70,7 +70,7 @@ export function TransactiesTab() {
         tabIndex={-1}
         role="group"
         aria-label="Filter op soort transactie"
-        className="flex flex-none gap-1 rounded-2xl bg-track p-1"
+        className="flex flex-none flex-wrap gap-1 rounded-2xl bg-track p-1"
       >
         {FILTERS.map((f) => (
           <button
@@ -78,7 +78,7 @@ export function TransactiesTab() {
             type="button"
             aria-pressed={filter === f.id}
             onClick={() => setFilter(f.id)}
-            className={`flex h-10 flex-1 items-center justify-center rounded-xl text-xs font-bold transition-colors ${
+            className={`flex min-h-10 min-w-fit max-w-full flex-1 items-center justify-center rounded-xl px-2 py-2 text-xs font-bold transition-colors ${
               filter === f.id ? "bg-white text-ink shadow-sm" : "text-muted-strong"
             }`}
           >

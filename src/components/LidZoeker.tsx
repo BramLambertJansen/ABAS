@@ -1,5 +1,7 @@
 "use client";
 
+import { ZoekIcoon } from "@/components/ZoekIcoon";
+
 import { useEffect, useMemo, type KeyboardEvent } from "react";
 import { InitialsAvatar } from "@/components/InitialsAvatar";
 import { LeesFout } from "@/components/LeesFout";
@@ -137,17 +139,7 @@ export function LidZoeker({
 
   return (
     <div ref={rootRef} className="relative flex-none">
-      <svg
-        width="17"
-        height="17"
-        viewBox="0 0 17 17"
-        fill="none"
-        aria-hidden="true"
-        className="pointer-events-none absolute left-[18px] top-[17px]"
-      >
-        <circle cx="7.2" cy="7.2" r="5" stroke="#aca69e" strokeWidth="1.7" />
-        <line x1="11" y1="11" x2="15" y2="15" stroke="#aca69e" strokeWidth="1.7" strokeLinecap="round" />
-      </svg>
+      <ZoekIcoon className="pointer-events-none absolute left-[18px] top-[17px]" />
       <label htmlFor={inputId} className="sr-only">
         Zoek lid op naam
       </label>
@@ -169,7 +161,7 @@ export function LidZoeker({
         }}
         onKeyDown={handleKeyDown}
         onBlur={() => setOpen(false)}
-        className="h-[50px] w-full rounded-card border border-border bg-white pl-[46px] pr-[18px] text-[14.5px] font-medium text-ink shadow-[0_1px_2px_rgba(27,30,35,0.03)] focus-visible:outline-none placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
+        className="h-[50px] w-full rounded-card border border-border bg-white pl-[46px] pr-[18px] text-[14.5px] font-medium text-ink shadow-surface focus-visible:outline-none placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
       />
 
       <p
@@ -198,7 +190,7 @@ export function LidZoeker({
         onMouseDown={(event) => event.preventDefault()}
         // `hidden` als klasse, niet als attribuut: `flex` zou het attribuut
         // overschrijven (zelfde patroon als Select).
-        className={`absolute inset-x-0 top-14 z-30 ${listVisible ? "flex" : "hidden"} max-h-[300px] flex-col overflow-auto rounded-card border border-border bg-white p-[7px] shadow-[0_18px_40px_-12px_rgba(27,30,35,0.28)]`}
+        className={`absolute inset-x-0 top-14 z-30 ${listVisible ? "flex" : "hidden"} max-h-[300px] flex-col overflow-auto rounded-card border border-border bg-white p-[7px] shadow-dropdown`}
       >
         {matches.map((member, index) => {
           const low = member.balanceCents < lowBalanceThresholdCents;

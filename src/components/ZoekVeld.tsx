@@ -1,5 +1,7 @@
 "use client";
 
+import { ZoekIcoon } from "@/components/ZoekIcoon";
+
 /**
  * Zoekveld met loep-icoon en een sr-only label, uit `LedenLijst` getild
  * (docs/features/beheerformulieren-catalogus.md, besluit 10). Gebruikt door
@@ -21,17 +23,7 @@ export function ZoekVeld({
 }) {
   return (
     <div className="relative flex flex-none items-center">
-      <svg
-        width="17"
-        height="17"
-        viewBox="0 0 17 17"
-        fill="none"
-        aria-hidden="true"
-        className="pointer-events-none absolute left-[19px] top-1/2 -translate-y-1/2"
-      >
-        <circle cx="7.2" cy="7.2" r="5" stroke="#aca69e" strokeWidth="1.7" />
-        <line x1="11" y1="11" x2="15" y2="15" stroke="#aca69e" strokeWidth="1.7" strokeLinecap="round" />
-      </svg>
+      <ZoekIcoon className="pointer-events-none absolute left-[19px] top-1/2 -translate-y-1/2" />
       <label htmlFor={id} className="sr-only">
         {label}
       </label>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
+import { createContext, useContext, useEffect, useId, useLayoutEffect, useRef, useState, type ButtonHTMLAttributes, type ReactNode, type RefObject } from "react";
 import { useShell } from "@/lib/shell/ShellProvider";
 import { useRegisterOverlay } from "./OverlayPresence";
 import { acquireOverlay } from "./overlayShield";
@@ -11,6 +11,15 @@ const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 export const DEFAULT_CLOSE_BLOCKED_MESSAGE = "Even wachten, de actie wordt nog verwerkt.";
+
+const OverlayCloseContext = createContext<(() => void) | null>(null);
+
+/** Explicit close actions share the same pending/discard guard as Escape/backdrop. */
+export function OverlaySluitKnop(props: Omit<ButtonHTMLAttributes<HTMLButtonElement>, "onClick" | "type">) {
+  const requestClose = useContext(OverlayCloseContext);
+  if (!requestClose) throw new Error("OverlaySluitKnop moet binnen Overlay staan.");
+  return <button {...props} type="button" onClick={requestClose} />;
+}
 
 /** Elementen in de dialoog die nu echt met Tab bereikbaar zijn: zichtbaar,
  *  niet disabled, niet `tabindex="-1"`, niet in een hidden/inert-tak of een
@@ -69,12 +78,12 @@ function tabbableIn(container: HTMLElement): HTMLElement[] {
  * - `closeBlocked`: zolang waar, doet elk sluitpad (Escape, backdrop) niets
  *   behalve de `role="status"`-melding `closeBlockedMessage` tonen; de dialoog
  *   krijgt `aria-busy`. De consument houdt eigen sluitknoppen `disabled`.
- * - `onopgeslagen` (docs/features/opslaan-sluiten-pending.md, besluit B):
- *   zolang waar vragen Escape en backdrop eerst om bevestiging, inline in
+ * - `onopgeslagen` (frontend-review-opvolging.md, besluit U06):
+ *   zolang waar vragen alle sluitacties eerst om bevestiging, inline in
  *   dezelfde dialoog (ADR 0014: nooit een tweede overlay): "Weggooien" sluit,
  *   "Terug" (of nogmaals Escape/backdrop) laat de dialoog staan. De eigen
- *   Sluiten/Annuleren-knoppen van de consument gooien bewust wél direct weg
- *   en lopen dus niet via deze vraag. `closeBlocked` wint altijd.
+ *   Sluiten/Annuleren-knoppen gebruiken `OverlaySluitKnop` en dezelfde vraag.
+ *   `closeBlocked` wint altijd; een geslaagde opslag sluit via de featurecallback.
  * - Bij sluiten gaat de focus naar de trigger als die nog bestaat en
  *   bruikbaar is; anders naar `returnFocusFallback`, het actieve tabpanel of
  *   `main`. Bij een overgang A → B blijft de oorspronkelijke trigger gelden.
@@ -105,7 +114,7 @@ export function Overlay({
    *  getoond. Eigen knoppen van de consument blijven diens zaak. */
   closeBlocked?: boolean;
   closeBlockedMessage?: string;
-  /** Er is invoer die nog niet is opgeslagen: Escape en backdrop vragen
+  /** Er is invoer die nog niet is opgeslagen: alle sluitacties vragen
    *  eerst om bevestiging. Alleen waar als de invoer afwijkt van de laatst
    *  opgeslagen waarde (zie `src/lib/opslaan.ts`). */
   onopgeslagen?: boolean;
@@ -157,16 +166,17 @@ export function Overlay({
     confirmingRef.current = confirmingDiscard;
   });
 
-  // Eén sluitverzoek voor Escape en backdrop: bij `closeBlocked` geen
+  // Eén sluitverzoek voor Escape, backdrop en expliciete sluitknoppen: bij `closeBlocked` geen
   // `onClose`, wel de melding. De focus blijft waar hij is. Bij onopgeslagen
   // invoer eerst de inline vraag; tijdens die vraag betekent nogmaals
   // Escape/backdrop "terug", nooit stil weggooien.
-  const requestCloseRef = useRef(() => {
+  const requestCloseRef = useRef((source: "implicit" | "explicit" = "implicit") => {
     if (closeBlockedRef.current) setBlockedAttempt(true);
-    else if (confirmingRef.current) setConfirmingDiscard(false);
+    else if (confirmingRef.current && source === "implicit") setConfirmingDiscard(false);
     else if (onopgeslagenRef.current) setConfirmingDiscard(true);
     else onCloseRef.current();
   });
+  const explicitCloseRef = useRef(() => requestCloseRef.current("explicit"));
 
   useEffect(() => {
     if (!closeBlocked) setBlockedAttempt(false);
@@ -329,7 +339,7 @@ export function Overlay({
       id={titleId}
       ref={titleRef}
       tabIndex={titleRef ? -1 : undefined}
-      className="text-[19px] font-extrabold tracking-tight text-ink outline-none"
+      className="text-dialog-title font-extrabold tracking-tight text-ink outline-none"
     >
       {title}
     </h2>
@@ -340,7 +350,7 @@ export function Overlay({
       className={
         isSheet
           ? "text-sm font-medium leading-relaxed text-muted"
-          : "text-[12.5px] font-semibold leading-relaxed text-muted"
+          : "text-metadata font-semibold leading-relaxed text-muted"
       }
     >
       {description}
@@ -350,7 +360,7 @@ export function Overlay({
     <button
       type="button"
       disabled={closeBlocked}
-      onClick={onClose}
+      onClick={explicitCloseRef.current}
       className={`flex h-11 flex-none items-center justify-center rounded-control px-4 text-sm font-bold ${KNOP_RAND}`}
     >
       Sluiten
@@ -387,7 +397,8 @@ export function Overlay({
           <div className="flex gap-2.5">
             <button
               type="button"
-              onClick={() => onCloseRef.current()}
+              disabled={closeBlocked}
+              onClick={() => { if (!closeBlockedRef.current) onCloseRef.current(); }}
               className="flex h-11 flex-1 items-center justify-center rounded-control border border-danger bg-white text-sm font-bold text-danger transition-colors hover:bg-canvas"
             >
               {WEGGOOIEN_KNOP}
@@ -409,7 +420,7 @@ export function Overlay({
         role="status"
         className={
           closeBlocked && blockedAttempt
-            ? "text-center text-[12.5px] font-semibold text-muted"
+            ? "text-center text-metadata font-semibold text-muted"
             : "sr-only"
         }
       >
@@ -419,6 +430,7 @@ export function Overlay({
   );
 
   const dialog = (
+    <OverlayCloseContext.Provider value={explicitCloseRef.current}>
     <div
       ref={dialogRef}
       role="dialog"
@@ -429,16 +441,16 @@ export function Overlay({
       tabIndex={-1}
       className={
         isSheet
-          ? "mx-auto flex max-h-[88vh] w-full max-w-[560px] flex-col gap-[14px] overflow-auto rounded-t-[28px] bg-canvas px-[22px] pb-7 pt-[22px] text-ink focus:outline-none motion-safe:animate-sheet-in"
+          ? "mx-auto flex max-h-[88vh] w-full max-w-[560px] flex-col gap-[14px] overflow-auto [&>*]:shrink-0 rounded-t-[28px] bg-canvas px-[22px] pb-7 pt-[22px] text-ink focus:outline-none motion-safe:animate-sheet-in"
           : detailModal
-            ? "flex max-h-[88vh] w-full max-w-[640px] flex-col overflow-hidden rounded-[20px] pb-5 bg-white text-ink shadow-[0_30px_70px_-20px_rgba(0,0,0,0.55)] focus:outline-none"
-            : "flex max-h-[88vh] w-full max-w-[460px] flex-col gap-4 overflow-auto rounded-[20px] bg-white p-[26px] text-ink shadow-[0_30px_70px_-20px_rgba(0,0,0,0.55)] focus:outline-none"
+            ? "flex max-h-[88vh] w-full max-w-[640px] flex-col overflow-hidden rounded-[20px] pb-5 bg-white text-ink shadow-dialog focus:outline-none"
+            : "flex max-h-[88vh] w-full max-w-[460px] flex-col gap-4 overflow-auto [&>*]:shrink-0 rounded-[20px] bg-white p-[26px] text-ink shadow-dialog focus:outline-none"
       }
     >
       {detailModal ? (
         <>
           <div className="flex-none border-b border-border-subtle px-[26px] pb-4 pt-[26px]">{kop}</div>
-          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto px-[26px] py-4">{children}</div>
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto [&>*]:shrink-0 px-[26px] py-4">{children}</div>
           <div className="flex flex-none flex-col gap-3 px-[26px]">{onderkant}</div>
         </>
       ) : (
@@ -449,6 +461,7 @@ export function Overlay({
         </>
       )}
     </div>
+    </OverlayCloseContext.Provider>
   );
 
   switch (shell.overlay) {

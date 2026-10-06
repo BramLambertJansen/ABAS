@@ -1,0 +1,27 @@
+{
+  "fixtureProvenance": {
+    "dataKind": "synthetic browser fixtures only",
+    "personalAndFinancialData": "Names, email addresses, balances and transactions are invented test data; no production records.",
+    "source": [
+      "e2e/helpers/supabaseMock.ts (USER and fakeSession)",
+      "e2e/helpers/frontendReview.ts (reviewFixture)",
+      "docs/audits/2026-10-06-componenten-tokens/tools/screen-audit.cjs (PRODUCTS and TRANSACTIONS mocks)",
+      "docs/audits/2026-10-06-componenten-tokens/tools/interaction-audit.cjs (local route mocks)"
+    ],
+    "networkIsolation": "Local app only; unmocked external browser requests aborted."
+  },
+  "id": "16-geld-herstel-na-herladen",
+  "file": "screenshots/16-geld-herstel-na-herladen.png",
+  "note": "Na herladen: serverherstel of definitief annuleren, met uitleg dat annuleren geen boeking terugdraait.",
+  "url": "http://127.0.0.1:3100/beheer",
+  "snapshot": "- alert\n- region \"Eerdere geldacties\":\n  - status: Een eerdere actie heeft nog geen bevestigde uitkomst.\n  - paragraph: Is de actie al verwerkt, dan blijft die bestaan. Annuleren draait geen boeking terug.\n  - button \"Eerdere nieuw lid veilig afronden\"\n  - button \"Eerdere nieuw lid definitief annuleren\"\n- main:\n  - tablist \"Beheer-navigatie\":\n    - tab \"Assortiment\" [selected]\n    - tab \"Leden\"\n    - tab \"Instellingen\"\n    - tab \"Diensten\"\n    - tab \"Logboek\"\n  - text: Ingelogd als Femke Bos BEHEER\n  - button \"Uitloggen\"\n  - tabpanel \"Assortiment\":\n    - heading \"Assortiment\" [level=1]\n    - button \"nieuw product\"\n    - status\n    - text: Zoek product op naam of categorie\n    - searchbox \"Zoek product op naam of categorie\"\n    - group \"Status\":\n      - button \"Actief 1\" [pressed]\n      - button \"Uit assortiment 0\"\n    - paragraph: 1 van 1 producten\n    - list:\n      - listitem:\n        - button \"Pils Bier · € 2,50\"",
+  "focus": {
+    "tag": "BODY",
+    "text": null,
+    "label": null
+  },
+  "calls": 3,
+  "health": "Goede basis; presentatie verbeteren — U05",
+  "auditNote": "Expliciet afronden/annuleren en de juiste uitleg verschijnen. Herladen start geen tweede aanmaakactie; de oorspronkelijke naam/het bedrag ontbreken in de banner.",
+  "visuallyInspected": true
+}

@@ -87,3 +87,6 @@ export function bedragFoutTekst(
 
 export const EMAIL_ONGELDIG_TEKST =
   "Dit lijkt geen e-mailadres. Controleer het adres, bijvoorbeeld naam@voorbeeld.nl.";
+
+/** Verplichte namen delen hetzelfde lokale feedbackcontract. */
+export const NAAM_VERPLICHT_TEKST = "Vul een naam in.";

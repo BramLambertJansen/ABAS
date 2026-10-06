@@ -15,7 +15,7 @@ import {
  * `page.route()`. Een RPC wordt met opzet vastgehouden (`houdVast`) zodat
  * "pending" deterministisch is. Wat dit níét toetst: de 30 seconden time-out
  * (zie de aanvulling-spec en de unit-test voor de waarde), Safari/touch/schermlezer (handmatig,
- * Tester), en echte dubbele boeking (geen idempotentie, apart ticket).
+ * Tester), en echte database-receipts (afzonderlijk financieel testplan).
  */
 
 const LID = {
@@ -32,7 +32,7 @@ const LID = {
 const PRODUCT = { id: "p1", name: "Pils", category: "Bier", price_cents: 250, archived: false };
 
 const MELDING = "Even wachten, de actie wordt nog verwerkt.";
-const ONBEKEND = "De uitkomst is onbekend. Controleer eerst het saldo of de transacties voordat je opnieuw probeert.";
+const ONBEKEND = "De uitkomst is onbekend. Controleer het eerdere resultaat, rond dezelfde actie veilig af of annuleer de onbevestigde actie definitief.";
 
 test("Nieuw lid: verloren antwoord blijft na herladen met dezelfde sleutel herstelbaar", async ({ page }) => {
   await mockBeheerder(page);
@@ -117,6 +117,7 @@ async function mockBeheerder(page: Page) {
   await page.route(/\/rest\/v1\/products(\?|$)/, (route) => json(route, 200, [PRODUCT]));
   await page.route(/\/rest\/v1\/rpc\/list_members_admin(\?|$)/, (route) => json(route, 200, [LID]));
   await mockBarSessie(page);
+  await page.route(/\/rest\/v1\/rpc\/inspect_money_request(\?|$)/, (route) => json(route, 200, { status: "missing" }));
 }
 
 async function naarBeheer(page: Page, tab: "Assortiment" | "Leden") {
@@ -255,7 +256,7 @@ test("Lid beheren: de fout van de ene actie wordt niet verdrongen door een ander
   await expect(dialog.getByLabel("Naam", { exact: true })).toHaveValue("Jori");
 });
 
-test("Nieuw product: Escape en backdrop vragen om bevestiging, Annuleren niet", async ({ page }) => {
+test("Nieuw product: alle sluitacties vragen om bevestiging bij gewijzigde invoer", async ({ page }) => {
   await mockBeheerder(page);
   await naarBeheer(page, "Assortiment");
   await page.getByRole("button", { name: /nieuw product/i }).click();
@@ -286,10 +287,16 @@ test("Nieuw product: Escape en backdrop vragen om bevestiging, Annuleren niet", 
   await dialog.getByRole("button", { name: "Weggooien" }).click();
   await expect(dialog).toHaveCount(0);
 
-  // De bewuste Annuleren-knop gooit zonder vraag weg.
+  // Ook Annuleren vraagt; Terug bewaart invoer en herstelt focus.
   await page.getByRole("button", { name: /nieuw product/i }).click();
   await dialog.getByLabel("Naam").fill("Cola");
   await dialog.getByRole("button", { name: "Annuleren" }).click();
+  await expect(dialog.getByRole("button", { name: "Terug" })).toBeFocused();
+  await dialog.getByRole("button", { name: "Terug" }).click();
+  await expect(dialog.getByRole("button", { name: "Annuleren" })).toBeFocused();
+  await expect(dialog.getByLabel("Naam")).toHaveValue("Cola");
+  await dialog.getByRole("button", { name: "Annuleren" }).click();
+  await dialog.getByRole("button", { name: "Weggooien" }).click();
   await expect(dialog).toHaveCount(0);
 });
 
@@ -314,9 +321,10 @@ test("Nieuw lid: afgebroken create_member toont de controletekst, geen 'probeer 
   await page.waitForTimeout(1000);
   expect(aanroepen).toBe(1);
 
-  // Pas na een bewuste controle kan opnieuw.
-  await dialog.getByRole("button", { name: "Ik heb gecontroleerd" }).click();
-  await expect(dialog.getByRole("button", { name: "Toevoegen" })).toBeEnabled();
+  // Alleen controleren boekt niets en maakt de oorspronkelijke submit niet vrij.
+  await dialog.getByRole("button", { name: "Resultaat controleren" }).click();
+  await expect(dialog.getByRole("button", { name: "Toevoegen" })).toBeDisabled();
+  expect(aanroepen).toBe(1);
   expect(await page.evaluate(() => document.activeElement === document.body)).toBe(false);
 });
 
@@ -345,12 +353,12 @@ test("Nieuw lid: geen time-out voor geld: na 30 s blijft de dialoog geblokkeerd"
     await expect(dialog).toBeVisible();
     await expect(dialog.getByRole("button", { name: "Annuleren" })).toBeDisabled();
     await expect(dialog.getByText(ONBEKEND)).toHaveCount(0);
-    await expect(dialog.getByRole("button", { name: "Ik heb gecontroleerd" })).toHaveCount(0);
+    await expect(dialog.getByRole("button", { name: "Resultaat controleren" })).toHaveCount(0);
   }
   expect(aanroepen).toBe(1);
 
   // Pas na een echte fout verschijnt de onbekende uitkomst.
   laatDoor();
   await expect(alertOf(page)).toHaveText(ONBEKEND);
-  await expect(dialog.getByRole("button", { name: "Ik heb gecontroleerd" })).toBeEnabled();
+  await expect(dialog.getByRole("button", { name: "Resultaat controleren" })).toBeEnabled();
 });

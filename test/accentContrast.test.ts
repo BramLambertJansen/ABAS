@@ -127,6 +127,10 @@ export function slechteParen(classes: string[]): string[] {
   }
   // Grote tekst (WCAG 1.4.3): >= 24px, of vet >= 18,66px -> drempel 3:1.
   const maten: Record<string, number> = { "text-xl": 20, "text-2xl": 24, "text-3xl": 30, "text-4xl": 36 };
+  const rollen = config.theme?.extend?.fontSize as Record<string, string> | undefined;
+  for (const [rol, maat] of Object.entries(rollen ?? {})) {
+    if (/^\d+(?:\.\d+)?px$/.test(maat)) maten[`text-${rol}`] = parseFloat(maat);
+  }
   let px = 14;
   for (const c of classes) {
     const arb = c.match(/^text-\[(\d+(?:\.\d+)?)px\]$/);
@@ -237,7 +241,10 @@ test("kleurparen binnen één JSX-element mogen niet over meerdere literals verd
       if (!/\btext-white\b/.test(regel)) continue;
       if (!/(^|[\s"'`:])(?:hover:|active:|focus:)?bg-accent(?:-hover)?(?=[\s"'`]|$)/.test(regel)) continue;
       const px = regel.match(/text-\[(\d+(?:\.\d+)?)px\]/);
-      const groot = /text-(2xl|3xl|4xl)/.test(regel) || (px && Number(px[1]) >= 18.66 && /font-(bold|extrabold|black)/.test(regel));
+      const rollen = config.theme?.extend?.fontSize as Record<string, string> | undefined;
+      const rolPx = Object.entries(rollen ?? {}).filter(([rol]) => regel.split(/\s+/).includes(`text-${rol}`)).map(([, maat]) => parseFloat(maat));
+      const maat = Math.max(px ? Number(px[1]) : 0, ...rolPx);
+      const groot = /text-(2xl|3xl|4xl)/.test(regel) || (maat >= 18.66 && /font-(bold|extrabold|black)/.test(regel));
       if (!groot) fouten.push(`${file}: ${regel.trim().slice(0, 140)}`);
     }
   }

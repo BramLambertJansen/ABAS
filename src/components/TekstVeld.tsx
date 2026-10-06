@@ -2,6 +2,8 @@
 
 import { useId, type InputHTMLAttributes, type ReactNode, type Ref } from "react";
 
+const MATEN = { "44": "h-11", "48": "h-12", "52": "h-[52px]", "54": "h-[54px]" } as const;
+
 const TONES = {
   rail: {
     label: "text-xs font-bold text-rail-muted",
@@ -19,7 +21,10 @@ const TONES = {
  * Label + tekstinvoer. `tone="rail"` (standaard) is de opmaak van de donkere
  * rail-schermen (`BeheerLogin`, `TabletKoppelen`); `tone="light"` die van de
  * lichte portal-sheets (`NaamWijzigenSheet`, #17). Alleen opmaak en de label-koppeling
- * (`htmlFor`/`id`, via `useId`): geen validatie, geen eigen state. Alle
+ * (`htmlFor`/`id`, via `useId`): geen validatie, geen eigen state.
+ * Een expliciete id blijft behouden. `maat` bewaart bestaande
+ * beheervelden (44/48px); prefix is decoratief, validatie blijft bij de
+ * consument. `readOnly` blijft focusbaar; `disabled` verlaat de tabvolgorde.
  * gewone input-attributen gaan ongewijzigd door naar de `<input>`.
  * `children` komen onder het veld, binnen dezelfde groep (bv. de
  * "Wachtwoord vergeten?"-knop). Uit `BeheerLogin.tsx` getild toen het
@@ -35,9 +40,19 @@ export function TekstVeld({
   foutAlert = false,
   hint,
   "aria-describedby": describedBy,
+  id: eigenId,
+  maat,
+  prefix,
+  labelVerborgen = false,
+  className = "",
   ...inputProps
 }: {
   label: string;
+  maat?: "44" | "48" | "52" | "54";
+  prefix?: ReactNode;
+  labelVerborgen?: boolean;
+  /** Alleen de veldgroep/layout; inputpresentatie komt uit tone/maat. */
+  className?: string;
   tone?: keyof typeof TONES;
   inputRef?: Ref<HTMLInputElement>;
   children?: ReactNode;
@@ -49,26 +64,35 @@ export function TekstVeld({
   foutAlert?: boolean;
   /** Vaste uitleg onder het veld, ook als er geen fout is. */
   hint?: string;
-} & Omit<InputHTMLAttributes<HTMLInputElement>, "id" | "className">) {
-  const id = useId();
+} & Omit<InputHTMLAttributes<HTMLInputElement>, "className" | "prefix">) {
+  const automatischId = useId();
+  const id = eigenId ?? automatischId;
   const foutId = `${id}-fout`;
   const hintId = `${id}-hint`;
   const beschrijving =
     [describedBy, hint ? hintId : null, fout ? foutId : null].filter(Boolean).join(" ") ||
     undefined;
   return (
-    <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className={TONES[tone].label}>
+    <div className={`flex min-w-0 flex-col gap-1.5 ${className}`}>
+      <label htmlFor={id} className={labelVerborgen ? "sr-only" : TONES[tone].label}>
         {label}
       </label>
-      <input
-        ref={inputRef}
-        id={id}
-        {...inputProps}
-        aria-invalid={fout ? true : inputProps["aria-invalid"]}
-        aria-describedby={beschrijving}
-        className={TONES[tone].input}
-      />
+      {prefix ? (
+        <div className={`flex min-w-0 items-center gap-2 rounded-control border px-3.5 focus-within:border-accent ${tone === "rail" ? "border-rail-border bg-rail" : "border-border bg-white"}`}>
+          <span aria-hidden="true" className={`text-sm font-bold ${tone === "rail" ? "text-rail-muted" : "text-muted"}`}>{prefix}</span>
+          <input ref={inputRef} id={id} {...inputProps}
+            aria-invalid={fout ? true : inputProps["aria-invalid"]}
+            aria-describedby={beschrijving}
+            className={`${MATEN[maat ?? "44"]} min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none ${tone === "rail" ? "text-white" : "text-ink"}`} />
+        </div>
+      ) : (
+        <input ref={inputRef} id={id} {...inputProps}
+          aria-invalid={fout ? true : inputProps["aria-invalid"]}
+          aria-describedby={beschrijving}
+          className={maat
+            ? `${MATEN[maat]} rounded-control border px-3.5 text-sm font-semibold outline-none focus:border-accent ${tone === "rail" ? "border-rail-border bg-rail text-white" : "border-border bg-white text-ink"}`
+            : TONES[tone].input} />
+      )}
       {hint && (
         <p id={hintId} className="text-xs font-semibold text-muted">
           {hint}

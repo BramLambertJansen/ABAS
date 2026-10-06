@@ -1,0 +1,106 @@
+{
+  "portalManualActivation": {
+    "active": "true",
+    "focus": {
+      "tag": "BUTTON",
+      "label": null,
+      "text": "Account"
+    }
+  },
+  "dialogTrap": [
+    {
+      "focus": {
+        "tag": "INPUT",
+        "label": null,
+        "text": ""
+      },
+      "inside": true
+    },
+    {
+      "focus": {
+        "tag": "BUTTON",
+        "label": null,
+        "text": "Annuleren"
+      },
+      "inside": true
+    },
+    {
+      "focus": {
+        "tag": "BUTTON",
+        "label": null,
+        "text": "Opslaan"
+      },
+      "inside": true
+    },
+    {
+      "focus": {
+        "tag": "INPUT",
+        "label": null,
+        "text": ""
+      },
+      "inside": true
+    },
+    {
+      "focus": {
+        "tag": "BUTTON",
+        "label": null,
+        "text": "Annuleren"
+      },
+      "inside": true
+    },
+    {
+      "focus": {
+        "tag": "BUTTON",
+        "label": null,
+        "text": "Opslaan"
+      },
+      "inside": true
+    },
+    {
+      "focus": {
+        "tag": "INPUT",
+        "label": null,
+        "text": ""
+      },
+      "inside": true
+    }
+  ],
+  "escapeRestore": {
+    "tag": "BUTTON",
+    "label": null,
+    "text": "Naam wijzigen\nFemke Bos\n›"
+  },
+  "memberSelection": {
+    "focus": {
+      "tag": "BODY",
+      "label": null,
+      "text": "A\nDIENST\nVerkoop\nDienst\n\nIngelogd als Femke Bos\n\nUitloggen\nBar\nJD\nJoris\n+\nZoek p"
+    },
+    "triggerRemoved": true
+  },
+  "barAutomaticActivation": {
+    "selected": "true",
+    "focus": {
+      "tag": "BUTTON",
+      "label": null,
+      "text": "Dienst"
+    }
+  },
+  "backgroundShield": {
+    "insideDialog": true,
+    "backgroundInert": true
+  },
+  "passwordScroll": {
+    "focus": {
+      "tag": "BUTTON",
+      "label": null,
+      "text": "Annuleren"
+    },
+    "button": {
+      "x": 22,
+      "y": 440,
+      "width": 169,
+      "height": 52
+    }
+  }
+}

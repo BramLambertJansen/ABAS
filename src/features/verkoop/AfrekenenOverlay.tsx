@@ -13,7 +13,7 @@ import type { MemberOption } from "@/hooks/queries/useMembers";
 import type { ShiftMember } from "@/hooks/queries/useShiftMembers";
 import type { CartDisplayLine } from "./types";
 import { insufficientBalanceMessage, placeOrderErrorMessage } from "./messages";
-import { KNOP_ACCENT_WIT, KNOP_RAND } from "@/components/knopStijlen";
+import { KNOP_ACCENT_WIT, KNOP_RAND, KNOP_DIALOOG_MAAT } from "@/components/knopStijlen";
 
 /**
  * Afrekenbevestiging (modal, `src/components/Overlay.tsx` — de tweede
@@ -68,11 +68,9 @@ export function AfrekenenOverlay({
   // Geld: geen time-out, de blokkade blijft tot het verzoek klaar is.
   const { closeBlocked } = useOpslaanBlokkade(pending, { metTimeout: false });
   // Een tweede geldopdracht blijft geblokkeerd zolang de eerste kan slagen.
-  const inVlucht = pending;
-  // Onbekende uitkomst (netwerk, onbekende fout): pas weer afrekenen
-  // nadat de gebruiker bewust "Ik heb gecontroleerd" koos (besluit C).
-  const [gecontroleerd, setGecontroleerd] = useState(false);
-  const uitkomstOnbekend = submitErrorCode === "unknown" && !gecontroleerd;
+  // Herstel is expliciet en blijft gekoppeld aan de oorspronkelijke sleutel.
+  const uitkomstOnbekend = submitErrorCode === "unknown";
+  const inVlucht = pending || uitkomstOnbekend;
   const confirmDisabled =
     !ready || insufficientFunds || !effectiveServedBy || inVlucht || uitkomstOnbekend;
 
@@ -84,7 +82,6 @@ export function AfrekenenOverlay({
   // bestelling, dubbele saldo-afschrijving). Reviewbot op PR #41.
   async function handleConfirm() {
     if (!ready || !effectiveServedBy || inVlucht || uitkomstOnbekend) return;
-    setGecontroleerd(false);
 
     const result = await placeOrderMutation.placeOrder(
       shiftId,
@@ -138,16 +135,11 @@ export function AfrekenenOverlay({
     >
       {uitkomstOnbekend ? (
         <OnbekendeUitkomstMelding
-          hangend={pending}
-          onGecontroleerd={() => {
-            setGecontroleerd(true);
-            setSubmitErrorCode(null);
-            onRefetchMembers();
-            herstelFocus(
-              knopRef.current?.disabled
-                ? knopRef.current.closest<HTMLElement>('[role="dialog"]')
-                : knopRef.current
-            );
+          operation="place_order"
+          context={`Bestelling voor ${member.name} · ${formatCents(subtotalCents)}`}
+          onResolved={(resolution) => {
+            if (resolution.status === "completed") onSuccess(Number(resolution.result.total_cents));
+            else { setSubmitErrorCode("request_cancelled"); onRefetchMembers(); herstelFocus(knopRef.current); }
           }}
         />
       ) : (
@@ -208,6 +200,7 @@ export function AfrekenenOverlay({
           crew={crew}
           selectedId={servedBy}
           onSelect={setServedBy}
+          disabled={inVlucht}
         />
       )}
 
@@ -216,7 +209,7 @@ export function AfrekenenOverlay({
           type="button"
           disabled={closeBlocked}
           onClick={onClose}
-          className={`flex h-[50px] flex-1 items-center justify-center rounded-2xl text-sm font-bold ${KNOP_RAND}`}
+          className={`flex ${KNOP_DIALOOG_MAAT} flex-1 items-center justify-center text-sm font-bold ${KNOP_RAND}`}
         >
           annuleren
         </button>
@@ -225,7 +218,7 @@ export function AfrekenenOverlay({
           ref={knopRef}
           disabled={confirmDisabled}
           onClick={handleConfirm}
-          className={`flex h-[50px] flex-1 items-center justify-center rounded-2xl text-sm font-bold ${KNOP_ACCENT_WIT}`}
+          className={`flex ${KNOP_DIALOOG_MAAT} flex-1 items-center justify-center text-sm font-bold ${KNOP_ACCENT_WIT}`}
         >
           {pending ? "bezig…" : "ja, afrekenen"}
         </button>

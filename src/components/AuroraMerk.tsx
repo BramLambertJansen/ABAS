@@ -15,7 +15,7 @@ export function AuroraMerk({
 }) {
   return (
     <div className="flex flex-col items-center gap-1.5 text-center">
-      <div className="mb-2 flex h-[52px] w-[52px] items-center justify-center rounded-card bg-accent text-2xl font-extrabold text-white shadow-[0_10px_26px_-6px_rgba(238,90,36,0.7)]">
+      <div className="mb-2 flex h-[52px] w-[52px] items-center justify-center rounded-card bg-accent text-2xl font-extrabold text-white shadow-brand">
         A
       </div>
       <span

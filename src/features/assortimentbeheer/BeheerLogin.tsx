@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
+import { StartScherm } from "@/components/StartScherm";
 import { AuroraMerk } from "@/components/AuroraMerk";
 import { TekstVeld } from "@/components/TekstVeld";
 import { RATE_LIMITED_MESSAGE } from "@/lib/authErrors";
@@ -137,11 +138,7 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
   }
 
   return (
-    <main className="relative isolate flex min-h-screen w-full flex-col items-center justify-center gap-6 overflow-auto bg-rail px-6 py-8 font-sans text-white">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_0%,rgba(238,90,36,0.16),transparent_60%)]"
-      />
+    <StartScherm>
       <AuroraMerk tone="dark">
         {/* Neutrale kop, geen "Beheer" meer vóór een modus gekozen is —
             docs/features/auth-methode-per-lid.md → Schermflow stap 1: dit
@@ -353,6 +350,6 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
           </Link>
         </form>
       )}
-    </main>
+    </StartScherm>
   );
 }
