@@ -93,6 +93,9 @@ export function ActiviteitstypesInstellingen() {
   const annulerenRef = useRef<HTMLButtonElement>(null);
   const waarschuwingId = useId();
   const herstelFocus = useHerstelFocus();
+  // Na een geslaagde archive/herstel ververst de lijst en unmount de rij met
+  // de knop (status `loading`). De doel-id wacht tot de lijst weer `ready` is.
+  const focusNaVerversen = useRef<{ id: string; ladingGezien: boolean } | null>(null);
   // Het type waarvoor de "laatste actieve"-waarschuwing openstaat.
   const [bevestig, setBevestig] = useState<string | null>(null);
   const editNameId = useId();
@@ -142,6 +145,17 @@ export function ActiviteitstypesInstellingen() {
   const toonWaarschuwing =
     bevestigType !== undefined && isLaatsteActieveType(alleTypes, bevestigType.id);
 
+  useEffect(() => {
+    const wacht = focusNaVerversen.current;
+    if (!wacht) return;
+    if (types.status === "loading") {
+      wacht.ladingGezien = true;
+    } else if (wacht.ladingGezien) {
+      focusNaVerversen.current = null;
+      if (types.status === "ready") herstelFocus(archiveRefs.current.get(wacht.id) ?? null);
+    }
+  }, [types.status, herstelFocus]);
+
   // Focus naar de veilige keuze als de waarschuwing opent.
   useEffect(() => {
     if (toonWaarschuwing) annulerenRef.current?.focus();
@@ -170,9 +184,11 @@ export function ActiviteitstypesInstellingen() {
       !type.archived
     );
     if (updated) {
+      focusNaVerversen.current = { id: type.id, ladingGezien: false };
       types.refetch();
+    } else {
+      herstelFocus(archiveRefs.current.get(type.id) ?? null);
     }
-    herstelFocus(archiveRefs.current.get(type.id) ?? null);
   }
 
   const errorMessage =

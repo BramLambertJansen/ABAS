@@ -54,5 +54,9 @@ export function leegReden(
 ): LeegReden {
   if (producten.length === 0) return "geen-producten";
   if (filterBeheerProducten(producten, { query, status }).length > 0) return null;
-  return normaliseer(query) !== "" ? "geen-treffers" : "leeg-filter";
+  // Zoekterm die in de andere status wél matcht: geen "geen treffers" (de
+  // teller van de andere chip toont ze), maar de verwijzing van `leeg-filter`.
+  const term = normaliseer(query);
+  if (term === "") return "leeg-filter";
+  return producten.some((p) => matchtZoekterm(p, term)) ? "leeg-filter" : "geen-treffers";
 }

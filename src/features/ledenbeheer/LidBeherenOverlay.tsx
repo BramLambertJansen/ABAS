@@ -288,7 +288,8 @@ export function LidBeherenOverlay({
       setMember((current) => ({ ...current, email: savedEmail, invitedAt, hasAccount }));
       setEmailInput(savedEmail ?? "");
       onChanged();
-      setGelukt((g) => ({ ...g, email: true }));
+      // Een ongeldig geworden uitnodiging mag niet meer als verstuurd gelden.
+      setGelukt((g) => ({ ...g, email: true, invite: invitedAt ? g.invite : false }));
     } else if (result.errorCode === "member_not_found") {
       onChanged();
     }

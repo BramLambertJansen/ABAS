@@ -47,6 +47,12 @@ describe("leegReden", () => {
     assert.equal(leegReden([P[0]], { query: "", status: "uit" }), "leeg-filter");
     assert.equal(leegReden(P, { query: "", status: "actief" }), null);
   });
+  it("zoekterm die alleen in de andere status matcht is geen 'geen treffers'", () => {
+    assert.equal(leegReden(P, { query: "witbier", status: "actief" }), "leeg-filter");
+    assert.equal(leegReden(P, { query: "  WITBIER ", status: "actief" }), "leeg-filter");
+    assert.equal(leegReden(P, { query: "pils", status: "uit" }), "leeg-filter");
+    assert.equal(leegReden(P, { query: "witbier", status: "uit" }), null);
+  });
 });
 
 describe("isLaatsteActieveType", () => {

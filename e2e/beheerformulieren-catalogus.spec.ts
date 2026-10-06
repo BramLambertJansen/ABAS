@@ -304,6 +304,29 @@ test("Contactadres: ander adres wist de openstaande uitnodiging, de status volgt
   await expect(contact).not.toContainText("openstaande uitnodiging");
 });
 
+test("Contactadres: na een verstuurde uitnodiging wist een ander adres 'Uitnodiging verstuurd'", async ({ page }) => {
+  await mockBeheerder(page);
+  await page.route(/\/beheer\/invite(\?|$)/, (route) =>
+    route.request().method() === "POST"
+      ? json(route, 200, { ok: true, invited: true, invitedAt: "2026-09-20T10:00:00Z" })
+      : route.fallback()
+  );
+  await page.route(/\/rest\/v1\/rpc\/update_member_email(\?|$)/, (route) =>
+    json(route, 200, { ...LID, email: "nieuw@aurora.local", invited_at: null })
+  );
+  const dialog = await openLid(page);
+  const contact = dialog.getByRole("group", { name: "Contactadres wijzigen" });
+
+  await dialog.getByRole("button", { name: "Invite versturen" }).click();
+  await expect(dialog.getByText("Uitnodiging verstuurd")).toBeVisible();
+
+  await dialog.getByLabel("Contactadres", { exact: true }).fill("nieuw@aurora.local");
+  await contact.getByRole("button", { name: "Opslaan" }).click();
+  await expect(contact.getByRole("status")).toHaveText("Contactadres opgeslagen.");
+  await expect(dialog.getByText("nog niet uitgenodigd")).toBeVisible();
+  await expect(dialog.getByText("Uitnodiging verstuurd")).toHaveCount(0);
+});
+
 test("Archief in Lid beheren: status Gearchiveerd/Teruggezet in de eigen sectie en de herstelroute", async ({ page }) => {
   const mock = await mockBeheerder(page);
   await page.route(/\/rest\/v1\/rpc\/set_member_archived(\?|$)/, (route) => {
@@ -367,6 +390,15 @@ test("Producten: de drie lege uitkomsten en Zoekopdracht wissen", async ({ page 
 
   await page.getByRole("button", { name: /^Uit assortiment/ }).click();
   await expect(page.getByText("Geen producten uit assortiment.")).toBeVisible();
+});
+
+test("Producten: zoekterm die alleen in de andere status matcht meldt geen 'geen treffers'", async ({ page }) => {
+  await mockBeheerder(page);
+  await naarBeheer(page, "Assortiment");
+  await page.getByLabel("Zoek product op naam of categorie").fill("Witbier");
+  await expect(page.getByRole("button", { name: /^Uit assortiment/ })).toContainText("1");
+  await expect(page.getByText(/Geen producten gevonden voor/)).toHaveCount(0);
+  await expect(page.getByText("Geen actieve producten. Bekijk Uit assortiment.")).toBeVisible();
 });
 
 test("Producten: geen actieve producten verwijst naar Uit assortiment", async ({ page }) => {
