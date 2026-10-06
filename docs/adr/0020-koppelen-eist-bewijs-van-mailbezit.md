@@ -14,7 +14,7 @@ staan. Raakt [ADR 0005](0005-wachtwoord-verplicht-pin-optionele-snelkoppeling.md
 **Uitgebreid door** [ADR 0022](0022-token-van-beeindigde-sessie-leest-en-schrijft-niets.md)
 (2026-10-05): Beslissing 8 geldt voortaan voor elke niet-globale leespolicy,
 `require_session` en de guardvrije client-RPC's; het Restrisico (lezen tot
-het token verloopt) vervalt daarmee zodra `0041` gebouwd is.
+het token verloopt) is daarmee vervallen (`0041`, PR #163).
 
 ## Herziening (2026-10-05, na review van de bouw in 73edbbf)
 

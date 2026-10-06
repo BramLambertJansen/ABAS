@@ -510,8 +510,8 @@ spec `docs/features/leespolicies-allowlist.md`. Vervangt de
 `(select caller_has_bar_role()) or <eigen rij>` (initplan: één evaluatie
 per statement) op `members`, `orders`, `order_lines`,
 `top_ups` en `order_reversals`. Brede leestoegang alleen voor een gekoppelde,
-niet-gearchiveerde bardienst/beheerder (geen actieve bar-sessie vereist; dat
-hoort bij het latere item "JWT na afmelden"). Ieder ander ziet eigen rijen, een
+niet-gearchiveerde bardienst/beheerder (geen actieve bar-sessie vereist; wel
+een levende Auth-sessie sinds `0041`, zie hieronder). Ieder ander ziet eigen rijen, een
 account zonder gekoppeld lid ziet niets. `caller_is_lid()` is gedropt.
 `using (true)` blijft alleen voor `products`, `app_settings`, `shifts`,
 `shift_members` en `activity_types`. De gate
@@ -519,7 +519,7 @@ account zonder gekoppeld lid ziet niets. `caller_is_lid()` is gedropt.
 nieuwe `using (true)`-tabel bijkomt.
 
 **Een token van een beëindigde sessie leest en schrijft niets (besloten
-2026-10-05, te bouwen in `0041`)**: ADR [0022](adr/0022-token-van-beeindigde-sessie-leest-en-schrijft-niets.md),
+2026-10-05, gebouwd in `0041`, PR #163)**: ADR [0022](adr/0022-token-van-beeindigde-sessie-leest-en-schrijft-niets.md),
 spec `docs/features/sessie-na-afmelden.md`. Een access token blijft voor
 PostgREST geldig tot `jwt_expiry`, ook als de rij in `auth.sessions` weg is
 (afmelden, wachtwoordherstel, wachtwoordwijziging, koppelen). Eén helper,
@@ -533,7 +533,10 @@ sluit bar-sessies waarvan de Auth-sessie buiten onze RPC's om verdween
 trigger op het `auth`-schema. `jwt_expiry` blijft 3600 s. Portal-uitlog is
 `scope: local`; wachtwoordherstel blijft globaal. Gates: `rls_leespolicies`
 (helper in elke niet-globale leespolicy) en `rpc_catalogus` (guardvrij =
-helper of een reden).
+helper of een reden). De portal- en beheersessiehooks controleren bij een
+lege eigen rij eerst de sessie bij GoTrue (`src/lib/sessieBevestigen.ts`;
+in de portal via `sessieBevestigd` in `src/lib/portalSessie.ts`): niet
+bevestigd → `signed-out` in plaats van "niet gekoppeld".
 
 **Settled (2026-08-24)**:
 - **Single organization.** ABAS is for Aurora only — no `org_id`, no
