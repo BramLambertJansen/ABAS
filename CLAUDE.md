@@ -25,7 +25,7 @@ pre-commit hook draait `check:fast` (alles zonder database); `build`,
 | `check:policy` | geen queries of storage-aanroepen buiten de datalaag, geen device-sniffing, geen kale `console.error` in `src/hooks/queries/` (fouten via `src/lib/clientErrors.ts`) |
 | `check:rls` | elke tabel RLS, elke policy een negatieve test, geldtabellen REVOKED, elke bucket een type- en groottelimiet, elke storage-policy een negatieve test |
 | `check:a11y` | WCAG-AA (axe-core, elk shell-entrypoint) + `eslint-plugin-jsx-a11y`, `lint` faalt op warnings |
-| `test` | de pure client-logica (`src/lib/money.ts`, mandjelogica), contrast van de accent-tokens |
+| `test` | de pure client-logica (`src/lib/money.ts`, mandjelogica), contrast van de accent-tokens en van kleurparen (`bg-*` met `text-*`) binnen één klasse-literal in `src/` (rust, hover, active); geen dekking voor paren verdeeld over `clsx`/ternaries, alpha-varianten of arbitraire kleuren |
 | `db:test` | de negatieve tests zelf, tegen een echte database; plus `rpc_catalogus`: elke functie in `public` ingedeeld als client/server/intern met de bijpassende rechten, elke client-RPC via een `require_*`-guard (guardvrij: sessiecheck of reden), `search_path` op elke security definer; plus `rls_leespolicies`: leespolicies zijn een allowlist (geen `not caller_…`-tak, `using (true)` alleen op de vaste globale tabellen, elke andere bevat `caller_session_alive()`) |
 | `test:integration` | koppel- en sessiegedrag tegen de echte GoTrue (`amr` uit maillinks, wissen van inloggegevens bij koppelen, geen bar-sessie of PIN met een token van een verwijderde sessie; token van een beëindigde sessie leest niets, cron sluit verweesde bar-sessies) |
 

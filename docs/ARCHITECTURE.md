@@ -1414,3 +1414,27 @@ hover per button. `test/accentContrast.test.ts` (part of `npm test`) guards
 the three pairs in use: `text-rail` on `accent` and on `accent-hover`, and
 white on `accent-active`. The rule stays: dark text → `bg-accent` +
 `hover:bg-accent-hover`; white/light text → `bg-accent-active`.
+
+**Update na T12 (#132, PR #171, `7e61185`)**: the two rules above are now one
+rule and are guarded per actually used pair. White text sits on
+`accent-active` at rest and on the new `accent.pressed` (`#b93d15`, 5.61:1) for
+hover and active, so hover gets *darker*; dark text stays on `accent` and
+`accent-hover`. White on `accent`/`accent-hover` (3.43/2.95:1) is forbidden,
+also as a hover colour. The shared classes are plain string constants in
+`src/components/knopStijlen.ts` (`KNOP_ACCENT_WIT`, `KNOP_ACCENT_DONKER`,
+`KNOP_RAND`, `KNOP_DIALOOG_MAAT`; no component, size and shadow stay with the
+caller), and `test/accentContrast.test.ts` scans all class literals in
+`src/` (one string literal at a time) instead of three fixed pairs.
+
+**Focus, font, portal width (T12)**: `globals.css` has one global
+`:focus-visible:focus-visible` rule (2px `accent` outline, 2px offset;
+specificity 0,2,0 so a bare `outline-none` cannot hide it; Tailwind v3 `@layer`
+only orders, it is not a cascade layer) plus a second rule that suppresses the
+ring on headings/blocks with `tabindex="-1"`. Fields with their own ring set
+`focus-visible:outline-none`. Manrope is self-hosted via `next/font/local`
+(`src/app/layout.tsx`, `src/app/fonts/`, latin subset, SIL OFL; variable
+`--font-manrope`, used by `fontFamily.sans`), so there is no request to Google.
+All portal screens (`PortalDashboard`, loading/error states in
+`PortalShellHome`, `PortalWachtwoordHerstellen`) and the portal sheet in
+`Overlay` are capped at `max-w-[560px]`, centred, with `sm:border-x`.
+Details and known gaps: `docs/features/contrast-controls-taal-portalbreedte.md`.
