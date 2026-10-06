@@ -9,8 +9,9 @@ if (!["localhost", "127.0.0.1", "[::1]"].includes(new URL(url).hostname)) throw 
 const options = { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } };
 const admin = createClient(url, process.env.SUPABASE_SECRET_KEY!, options);
 const bar = createClient(url, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, options);
+const secondBar = createClient(url, process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!, options);
 
-test("concurrent real requests commit one top-up and one order; lost response replays original price", async () => {
+test("concurrent distinct Auth sessions commit one top-up and one order; lost response replays original price", async () => {
   const actor = randomUUID(), member = randomUUID(), shift = randomUUID(), product = randomUUID();
   const email = `receipt-${randomUUID()}@example.test`, password = `Test-${randomUUID()}!`;
   let userId: string | undefined;
@@ -24,17 +25,22 @@ test("concurrent real requests commit one top-up and one order; lost response re
     assert.equal((await bar.auth.signInWithPassword({ email, password })).error, null);
     assert.equal((await bar.rpc("register_bar_session", { p_mode: "bar" })).error, null);
     const session = await admin.from("bar_sessions").select("id").eq("member_id", actor).single(); assert.equal(session.error, null);
+    assert.equal((await secondBar.auth.signInWithPassword({ email, password })).error, null);
+    assert.equal((await secondBar.rpc("register_bar_session", { p_mode: "bar" })).error, null);
+    const secondSession = await admin.from("bar_sessions").select("id").eq("member_id", actor).neq("id", session.data!.id).single();
+    assert.equal(secondSession.error, null);
+    assert.notEqual(secondSession.data!.id, session.data!.id);
     await insert("shifts", { id: shift, started_by: actor });
     await insert("shift_members", { shift_id: shift, member_id: actor });
-    await insert("shift_sessions", { shift_id: shift, bar_session_id: session.data!.id });
+    await insert("shift_sessions", [{ shift_id: shift, bar_session_id: session.data!.id }, { shift_id: shift, bar_session_id: secondSession.data!.id }]);
     await insert("products", { id: product, name: "Receipt test product", category: "test", price_cents: 300 });
     const topArgs = { p_request_id: randomUUID(), p_shift_id: shift, p_member_id: member, p_amount_cents: 100, p_method: "cash", p_served_by: actor };
-    const top = await Promise.all([bar.rpc("top_up_once", topArgs), bar.rpc("top_up_once", topArgs)]);
+    const top = await Promise.all([bar.rpc("top_up_once", topArgs), secondBar.rpc("top_up_once", topArgs)]);
     for (const result of top) assert.equal(result.error, null);
     assert.equal(top[0].data.id, top[1].data.id);
     const topRows = await admin.from("top_ups").select("id").eq("member_id", member); assert.equal(topRows.error, null); assert.equal(topRows.data!.length, 1);
     const orderArgs = { p_request_id: randomUUID(), p_shift_id: shift, p_member_id: member, p_lines: [{ product_id: product, qty: 1 }], p_served_by: actor };
-    const orders = await Promise.all([bar.rpc("place_order_once", orderArgs), bar.rpc("place_order_once", orderArgs)]);
+    const orders = await Promise.all([bar.rpc("place_order_once", orderArgs), secondBar.rpc("place_order_once", orderArgs)]);
     for (const result of orders) assert.equal(result.error, null);
     assert.equal(orders[0].data.id, orders[1].data.id);
     assert.equal((await admin.from("products").update({ price_cents: 900 }).eq("id", product)).error, null);
@@ -45,7 +51,7 @@ test("concurrent real requests commit one top-up and one order; lost response re
     const raceArgs = { ...topArgs, p_request_id: randomUUID(), p_amount_cents: 77 };
     const [booking, cancellation] = await Promise.all([
       bar.rpc("top_up_once", raceArgs),
-      bar.rpc("inspect_money_request", { p_request_id: raceArgs.p_request_id, p_operation: "top_up",
+      secondBar.rpc("inspect_money_request", { p_request_id: raceArgs.p_request_id, p_operation: "top_up",
         p_payload: [shift, member, 77, "cash", actor], p_cancel: true }),
     ]);
     assert.equal(cancellation.error, null);
