@@ -26,6 +26,6 @@ en een nieuwe outputmap. Deze helper heeft oudere fixturedata; de automatische
 regressies in e2e/frontend-review.spec.ts zijn het actuele contract.
 
 De 51 PNG-bestanden blijven vooralsnog in de lokale auditmap; publicatie wordt
-door de automatische goedkeuringscontrole geblokkeerd zonder expliciet akkoord.
+door de automatische goedkeuringscontrole geblokkeerd; Bram koos ze voor nu lokaal te houden.
 De `file`-paden in captures en PNG-hashes in sha256.json verwijzen naar dit lokaal
 beschikbare beeldbewijs. JSON-captures en testlogs zijn wel gepubliceerd.

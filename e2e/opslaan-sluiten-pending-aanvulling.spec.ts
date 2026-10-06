@@ -2,12 +2,15 @@ import { test, expect, type Page, type Route } from "@playwright/test";
 import {
   USER,
   alertOf,
+  bodyIsNiet,
   fakeSession,
   json,
   loginMetWachtwoord,
   mockBarSessie,
   portalLoginMetWachtwoord,
 } from "./helpers/supabaseMock";
+import { houdVast } from "./helpers/pendingOverlay";
+import { kiesLid, mockKassa, openOpwaarderen } from "./helpers/kassa";
 
 /**
  * Aanvulling op e2e/opslaan-sluiten-pending.spec.ts (#126, T06): de gaten die
@@ -16,8 +19,7 @@ import {
  * 30 seconden (alleen zonder geld; geldoverlays hebben geen time-out). Zonder echte database: Supabase via `page.route()`, de time-out
  * met `page.clock` (fastForward) tegen een met opzet hangend verzoek.
  *
- * Wat dit níét toetst: Safari/touch/schermlezer (handmatig) en echte dubbele
- * boeking (geen idempotentie, apart ticket; de UI claimt dat ook niet).
+ * Wat dit níét toetst: Safari/touch/schermlezer (handmatig) en echte databaseboekingen (apart geverifieerd met pgTAP en integratietests).
  */
 
 const MELDING = "Even wachten, de actie wordt nog verwerkt.";
@@ -26,17 +28,6 @@ const ONBEKEND_GELD =
 const ONBEKEND_BEHEER =
   "De uitkomst is onbekend. Controleer eerst de actuele gegevens voordat je opnieuw probeert.";
 const WEGGOOIEN = "Niet-opgeslagen wijziging weggooien?";
-
-function houdVast() {
-  let release!: () => void;
-  const poort = new Promise<void>((resolve) => (release = resolve));
-  return { poort, laatDoor: release };
-}
-
-const bodyIsNiet = (route: Route) => {
-  const accept = route.request().headers()["accept"] ?? "";
-  return accept.includes("vnd.pgrst.object");
-};
 
 async function geenFocusOpBody(page: Page) {
   expect(await page.evaluate(() => document.activeElement === document.body)).toBe(false);
@@ -364,59 +355,6 @@ test("Portal Pincode: pending blokkeert sluiten en toetsen; één aanroep; onopg
 
 // ── Afrekenen en Opwaarderen: onbekende uitkomst en time-out ─────────────
 
-const ANNA = { id: "00000000-0000-4000-8000-0000000000d3", name: "Anna de Vries" };
-const TOM = { id: "00000000-0000-4000-8000-0000000000d2", name: "Tom Willems" };
-const BAR_SHIFT = "00000000-0000-4000-8000-0000000000d1";
-
-type Geld = (route: Route, n: number) => Promise<unknown> | unknown;
-
-async function openKassa(page: Page, geld: { place_order?: Geld; top_up?: Geld }) {
-  const calls = { place_order: 0, top_up: 0 };
-  const startedAt = new Date().toISOString();
-  await page.route(/\/auth\/v1\/token(\?|$)/, (route) => json(route, 200, fakeSession()));
-  await page.route(/\/auth\/v1\/user(\?|$)/, (route) => json(route, 200, USER));
-  await page.route(/\/rest\/v1\//, (route) => json(route, 200, bodyIsNiet(route) ? null : []));
-  await page.route(/\/rest\/v1\/shifts(\?|$)/, (route) =>
-    json(route, 200, { id: BAR_SHIFT, started_at: startedAt, members: { name: TOM.name }, activity_types: { name: "Training" } })
-  );
-  await page.route(/\/rest\/v1\/shift_members(\?|$)/, (route) =>
-    json(route, 200, [{ member_id: TOM.id, added_at: startedAt, members: { name: TOM.name } }])
-  );
-  await page.route(/\/rest\/v1\/products(\?|$)/, (route) =>
-    json(route, 200, [{ id: "00000000-0000-4000-8000-0000000000e1", name: "Pils", category: "Bier", price_cents: 250 }])
-  );
-  await page.route(/\/rest\/v1\/members(\?|$)/, (route) =>
-    json(route, 200, [{ id: ANNA.id, name: ANNA.name, balance_cents: 1240 }])
-  );
-  await page.route(/\/rest\/v1\/app_settings(\?|$)/, (route) =>
-    json(route, 200, { negative_limit_cents: 0, low_balance_threshold_cents: 1000 })
-  );
-  for (const rpc of ["place_order", "top_up"] as const) {
-    await page.route(new RegExp(`/rest/v1/rpc/${rpc}_once(\\?|$)`), (route) => {
-      const n = calls[rpc]++;
-      const handler = geld[rpc];
-      if (handler) return handler(route, n);
-      return json(route, 200, rpc === "place_order" ? { total_cents: 250 } : { amount_cents: 500 });
-    });
-  }
-  await mockBarSessie(page, {
-    naam: TOM.name,
-    rol: "bardienst",
-    voorgeregistreerd: "bar",
-    bevestigd: true,
-    shift: { id: BAR_SHIFT, startedAt, startedByName: TOM.name, activityTypeName: "Training" },
-  });
-  await page.route(/\/rest\/v1\/rpc\/inspect_money_request(\?|$)/, (route) => json(route, 200, { status: "missing" }));
-  await loginMetWachtwoord(page, USER.email, "Aurora#2026");
-  await page.getByRole("tab", { name: "Verkoop" }).waitFor({ state: "visible", timeout: 15_000 });
-  return calls;
-}
-
-async function kiesLid(page: Page) {
-  await page.getByLabel("Zoek lid op naam").fill("Anna");
-  await page.getByRole("option", { name: /Anna de Vries/ }).click();
-}
-
 async function openAfrekenen(page: Page) {
   await page.getByRole("button", { name: /^Pils,/ }).click();
   await kiesLid(page);
@@ -426,17 +364,8 @@ async function openAfrekenen(page: Page) {
   return dialog;
 }
 
-async function openOpwaarderen(page: Page) {
-  await kiesLid(page);
-  await page.getByRole("button", { name: /opwaarderen/i }).click();
-  const dialog = page.getByRole("dialog", { name: /^Saldo opwaarderen bij/ });
-  await expect(dialog).toBeVisible();
-  await dialog.getByLabel("Ander bedrag").fill("5");
-  return dialog;
-}
-
 test("Afrekenen: afgebroken place_order toont de controletekst, geen 'probeer opnieuw', geen automatische retry na resultaatcontrole", async ({ page }) => {
-  const calls = await openKassa(page, { place_order: (route) => route.abort("failed") });
+  const calls = await mockKassa(page, { place_order: (route) => route.abort("failed") });
   const dialog = await openAfrekenen(page);
   await dialog.getByRole("button", { name: "ja, afrekenen" }).click();
 
@@ -456,7 +385,7 @@ test("Afrekenen: afgebroken place_order toont de controletekst, geen 'probeer op
 });
 
 test("Afrekenen: focus blijft na 'Resultaat controleren' in de dialoog", async ({ page }) => {
-  await openKassa(page, { place_order: (route) => route.abort("failed") });
+  await mockKassa(page, { place_order: (route) => route.abort("failed") });
   const dialog = await openAfrekenen(page);
   await dialog.getByRole("button", { name: "ja, afrekenen" }).click();
   await dialog.getByRole("button", { name: "Resultaat controleren" }).click();
@@ -465,7 +394,7 @@ test("Afrekenen: focus blijft na 'Resultaat controleren' in de dialoog", async (
 });
 
 test("Afrekenen: een domeinfout (insufficient_balance) is géén onbekende uitkomst en vraagt geen controle", async ({ page }) => {
-  const calls = await openKassa(page, {
+  const calls = await mockKassa(page, {
     place_order: (route) => json(route, 400, { code: "P0001", message: "insufficient_balance", details: null, hint: null }),
   });
   const dialog = await openAfrekenen(page);
@@ -478,7 +407,7 @@ test("Afrekenen: een domeinfout (insufficient_balance) is géén onbekende uitko
 test("Afrekenen: geen time-out voor geld: na 30 s blijft de dialoog geblokkeerd, geen onbekende uitkomst, één request", async ({ page }) => {
   await page.clock.install();
   const vast = houdVast();
-  const calls = await openKassa(page, {
+  const calls = await mockKassa(page, {
     place_order: async (route) => {
       await vast.poort;
       return json(route, 200, { total_cents: 250 });
@@ -508,7 +437,7 @@ test("Afrekenen: geen time-out voor geld: na 30 s blijft de dialoog geblokkeerd,
 test("Afrekenen: hangend verzoek faalt pas na 30 s: dan pas onbekende uitkomst, controle vereist, geen tweede request", async ({ page }) => {
   await page.clock.install();
   const vast = houdVast();
-  const calls = await openKassa(page, {
+  const calls = await mockKassa(page, {
     place_order: async (route) => {
       await vast.poort;
       return route.abort("failed");
@@ -534,7 +463,7 @@ test("Afrekenen: hangend verzoek faalt pas na 30 s: dan pas onbekende uitkomst, 
 });
 
 test("Opwaarderen: afgebroken top_up toont de controletekst, geen 'probeer opnieuw', geen automatische retry na resultaatcontrole", async ({ page }) => {
-  const calls = await openKassa(page, { top_up: (route) => route.abort("failed") });
+  const calls = await mockKassa(page, { top_up: (route) => route.abort("failed") });
   const dialog = await openOpwaarderen(page);
   await dialog.getByRole("button", { name: "boeken", exact: true }).click();
 
@@ -552,7 +481,7 @@ test("Opwaarderen: afgebroken top_up toont de controletekst, geen 'probeer opnie
 });
 
 test("Opwaarderen: focus blijft na 'Resultaat controleren' in de dialoog", async ({ page }) => {
-  await openKassa(page, { top_up: (route) => route.abort("failed") });
+  await mockKassa(page, { top_up: (route) => route.abort("failed") });
   const dialog = await openOpwaarderen(page);
   await dialog.getByRole("button", { name: "boeken", exact: true }).click();
   await dialog.getByRole("button", { name: "Resultaat controleren" }).click();
@@ -563,7 +492,7 @@ test("Opwaarderen: focus blijft na 'Resultaat controleren' in de dialoog", async
 test("Opwaarderen: geen time-out voor geld: pending blokkeert sluiten, na 30 s nog steeds, één aanroep", async ({ page }) => {
   await page.clock.install();
   const vast = houdVast();
-  const calls = await openKassa(page, {
+  const calls = await mockKassa(page, {
     top_up: async (route) => {
       await vast.poort;
       return json(route, 200, { amount_cents: 500 });
@@ -591,7 +520,7 @@ test("Opwaarderen: geen time-out voor geld: pending blokkeert sluiten, na 30 s n
 test("Opwaarderen: hangend verzoek faalt pas na 30 s: dan pas onbekende uitkomst, controle vereist, geen tweede request", async ({ page }) => {
   await page.clock.install();
   const vast = houdVast();
-  const calls = await openKassa(page, {
+  const calls = await mockKassa(page, {
     top_up: async (route) => {
       await vast.poort;
       return route.abort("failed");

@@ -121,5 +121,13 @@
     "tailwind.config.ts": "764df228348beefb352c22bf6fe9bb63f2f38b2ce2a9c53404538d1ec3883e9c",
     "test/accentContrast.test.ts": "b604aa83c66b0a6a3d1996071e468fae5a34f12ea96eb7804d85312bd9577a57",
     "test/moneyRequest.test.ts": "cdf93c76e9efac7cebc3c3d1b0aa94440b4fd9f10403513f36158ee1a0d81924"
+  },
+  "publicationFollowUp": {
+    "baseCommit": "d42a67836b83b94a80c4332d55a41d2ed09f3909",
+    "pullRequest": "https://github.com/BramLambertJansen/ABAS/pull/183",
+    "sourceSha256Scope": "Initial local implementation before merging updated main; PR CI verifies final source.",
+    "screenshotsPublished": false,
+    "screenshotsOmittedByUser": true,
+    "testHelperIntegration": "Keep the newly shared mockKassa helpers from main and explicit receipt-inspection fixture from the frontend fixes."
   }
 }

@@ -559,13 +559,13 @@ met de rail als `nav` "Bar" ervoor.
 
 **Niet gedaan of niet bewezen:**
 
-- **Pending-E2E** is alleen voor Afrekenen en Lid-bestellingen in beheer
-  (`LidBestellingenOverlay`, de terugdraaiflow in beheer). Opwaarderen, Dienst
-  afsluiten, Overnemen, Afmelden en de bar-`TerugdraaienOverlay` hebben
-  `closeBlocked` maar nog geen eigen pending-E2E: vervolgwerk
-  [#140](https://github.com/BramLambertJansen/ABAS/issues/140). De spec
-  vroeg dat de bescherming na omzetting aantoonbaar blijft werken; voor die vijf
-  is dat dus nog niet aangetoond.
+- **Pending-E2E** voor Afrekenen en Lid-bestellingen in beheer
+  (`LidBestellingenOverlay`, de terugdraaiflow in beheer) staat in deze
+  feature; voor Opwaarderen, Dienst afsluiten, Overnemen, Afmelden en de
+  bar-`TerugdraaienOverlay` is het gebouwd in
+  [#140](https://github.com/BramLambertJansen/ABAS/issues/140) (PR #181,
+  `e2e/overlays-pending-sluiten.spec.ts`; zie
+  `docs/features/pending-e2e-overlays.md`).
 - **Handmatige reeks** (echte tablet en telefoon, Safari/iPadOS, touch,
   VoiceOver/TalkBack) is niet uitgevoerd. Deze feature claimt geen werking op
   Safari, touch of schermlezers, en geen WCAG-conformiteit.

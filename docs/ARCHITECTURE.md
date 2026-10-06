@@ -288,10 +288,12 @@ Escape/backdrop/focus-trap. A dialog built outside `Overlay` isn't counted.
   300px panel. Deliberately no `@tailwindcss/container-queries`. Covered by
   `e2e/tablet-bruikbaarheid.spec.ts`; no physical-tablet check yet.
 - Not built: a `check:policy` rule against `role="dialog"`/`role="tablist"`
-  outside these components (Bram's decision, open); pending E2E for the four
-  overlays other than Afrekenen/Terugdraaien (#140); the manual Safari/iPadOS/
+  outside these components (Bram's decision, open); the manual Safari/iPadOS/
   touch/screen-reader run. Nothing here claims behaviour on those or WCAG
   conformance.
+  Pending E2E for the other overlays (Opwaarderen, Dienst afsluiten, Overnemen,
+  Afmelden, bar-Terugdraaien) is built in #140 (PR #181,
+  `e2e/overlays-pending-sluiten.spec.ts`; `docs/features/pending-e2e-overlays.md`).
 
 **Opslaan, sluiten en gelijktijdige acties (built and merged, #126, PR #142,
 2026-10-02; `docs/features/opslaan-sluiten-pending.md`)**: no ADR, ADR 0014

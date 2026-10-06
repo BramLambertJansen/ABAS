@@ -8,7 +8,8 @@ ABAS heeft een bruikbare gedeelde componentlaag. Vooral dialogen, tabs, avatars,
 
 **Publicatie van beeldbewijs:** de 51 screenshots zijn lokaal vastgelegd en visueel
 gecontroleerd, maar worden nog niet naar GitHub gepubliceerd. De automatische
-goedkeuringscontrole vereist expliciete toestemming voor die afbeeldingen. De
+goedkeuringscontrole blokkeerde die upload; Bram koos vervolgens om de afbeeldingen
+voor nu lokaal te houden. De
 JSON-captures, metingen, testlogs en bronhashes zijn wel onderdeel van deze PR.
 Afbeeldingsnamen hieronder verwijzen voorlopig naar de lokale auditmap.
 
@@ -52,6 +53,13 @@ captures. [Logs, testgevallen, screenshots en bronhashes](execution-evidence/REA
 staan naast het historische bewijs. Reactcontrole: directe imports, hooks op vaste
 plaatsen, effecten met opruiming, guards bij callbacks, stabiele focus-/statusdoelen;
 geen nieuwe dependency of server/client-grenswijziging.
+
+**Publicatie:** [PR #183](https://github.com/BramLambertJansen/ABAS/pull/183).
+De actuele main `d42a6783…` is overgenomen, inclusief de nieuwe gedeelde
+E2E-helpers en aanvullende receipt-/pendingtests. De eerdere lokale bronhashes
+blijven een opname van de oorspronkelijke implementatiecontrole; PR-CI verifieert
+de uiteindelijke mergecommit. De Vercel-previewguard blokkeert builds omdat er nog
+geen aparte previewdatabase is; die bestaande productiebeveiliging blijft intact.
 
 **Nog te verifiëren vóór merge:** volledige `check:all`, waaronder de financiële
 receipt-/annuleringsproef en live a11y tegen een geïsoleerde seeded Supabase-stack.
