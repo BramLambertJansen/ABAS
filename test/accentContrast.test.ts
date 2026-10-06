@@ -201,3 +201,45 @@ test("taal: geen 'Invite' of 'Annuleer' in UI-tekst (JSX-tekst en stringliterale
   }
   assert.deepEqual(fouten, []);
 });
+
+// --- Aanvulling tester (T12) --------------------------------------------
+
+test("scan: wit op hover/accent en wit op accent-hover worden gevangen, donker op accent-hover niet", () => {
+  assert.equal(slechteParen("bg-accent text-white".split(" ")).length, 1);
+  assert.equal(slechteParen("bg-accent-active text-white hover:bg-accent-hover".split(" ")).length, 1);
+  assert.deepEqual(slechteParen("bg-accent text-rail hover:bg-accent-hover".split(" ")), []);
+  // kleine tekst (arbitraire maat, vet < 18,66px) op accent met wit faalt; groot en vet mag (3:1)
+  assert.equal(slechteParen("bg-accent text-white text-[12px] font-bold".split(" ")).length, 1);
+  assert.deepEqual(slechteParen("bg-accent text-white text-2xl font-extrabold".split(" ")), []);
+});
+
+test("Manrope: woff2 is geldig, licentie staat erbij en er is geen extern fontverzoek in de broncode", () => {
+  const woff = readFileSync("src/app/fonts/Manrope-Variable.woff2");
+  assert.equal(woff.subarray(0, 4).toString("latin1"), "wOF2");
+  assert.ok(woff.length > 10_000);
+  assert.match(readFileSync("src/app/fonts/OFL.txt", "utf8"), /SIL OPEN FONT LICENSE Version 1\.1/i);
+  for (const file of [...walk("src"), "tailwind.config.ts"]) {
+    const bron = readFileSync(file, "utf8");
+    assert.ok(!/fonts\.(googleapis|gstatic)\.com|next\/font\/google/.test(bron), `${file} verwijst naar Google Fonts`);
+  }
+  const fam = (config.theme?.extend as { fontFamily: { sans: string[] } }).fontFamily.sans;
+  assert.equal(fam[0], "var(--font-manrope)");
+  assert.ok(fam.includes("sans-serif"), "fallback ontbreekt");
+});
+
+test("kleurparen binnen één JSX-element mogen niet over meerdere literals verdeeld zijn: wit op bg-accent/accent-hover", () => {
+  // Beperking van de scan (alleen losse literals): deze test pakt per bestand
+  // elke regel waar text-white en een kale accent-/accent-hover-achtergrond in
+  // dezelfde className staan, ongeacht literal-grenzen, en eist grote tekst.
+  const fouten: string[] = [];
+  for (const file of walk("src")) {
+    for (const regel of readFileSync(file, "utf8").split("\n")) {
+      if (!/\btext-white\b/.test(regel)) continue;
+      if (!/(^|[\s"'`:])(?:hover:|active:|focus:)?bg-accent(?:-hover)?(?=[\s"'`]|$)/.test(regel)) continue;
+      const px = regel.match(/text-\[(\d+(?:\.\d+)?)px\]/);
+      const groot = /text-(2xl|3xl|4xl)/.test(regel) || (px && Number(px[1]) >= 18.66 && /font-(bold|extrabold|black)/.test(regel));
+      if (!groot) fouten.push(`${file}: ${regel.trim().slice(0, 140)}`);
+    }
+  }
+  assert.deepEqual(fouten, []);
+});
