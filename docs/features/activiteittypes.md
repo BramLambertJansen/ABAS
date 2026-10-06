@@ -62,7 +62,8 @@ Randvoorwaarden:
     dropdown ("Kies een activiteit…"), met de rand die oranje kleurt zolang
     er niets gekozen is — een visuele, niet alleen functionele, verplicht-
     markering. Instellingen kreeg daarnaast een teller ("x in gebruik") en
-    een waarschuwing als er geen actief type meer over is.
+    een waarschuwing als er geen actief type meer over is (de waarschuwing is
+    later alsnog gebouwd, PR #169; de teller niet).
   - `chat38.md`: activiteittypes zijn ook bewerkbaar (inline hernoemen),
     archiveren/herstellen als icoonknop, archiveren in de "danger"-kleur.
   Deze chats zijn volgens `docs/ARCHITECTURE.md` "useful for *why*, not
@@ -522,10 +523,10 @@ staan nu in een responsief, scrollbaar raster"), geen tabbalk-uitbreiding
   gebruikt hebben; geen acceptatiecriterium vraagt hierom, en het voegt een
   leesafhankelijkheid toe die de rest van deze spec niet nodig heeft. Kan een
   latere, kleine toevoeging zijn.
-- **Geen "geen actief type meer over"-waarschuwing** op deze kaart zelf (het
-  ontwerp had die ook, `chat37.md`) — dat signaal hoort thuis in de
-  dienst-starten-stap die daadwerkelijk geraakt wordt (Schermflow §2,
-  Randgevallen), niet hier nogmaals gebouwd.
+- **(Bijgewerkt, `beheerformulieren-catalogus.md`, PR #169)** ~~Geen "geen
+  actief type meer over"-waarschuwing op deze kaart zelf.~~ Die is alsnog
+  gebouwd, zie "Waarschuwing bij het laatste actieve type" hieronder. De
+  dienst-starten-stap (Schermflow §2) blijft ongewijzigd.
 
 **(bouw) Twee WCAG-contrastfixes op de "Opslaan"/"toevoegen"-knoppen, niet
 in de spec-schets hierboven.** `check:a11y` op CI vond, ná de eerste push:
@@ -656,6 +657,33 @@ heeft (bij "verplicht") altijd een activiteittype.
   vraagt erom en het raakt een al gemergede spec/component die deze spec niet
   zonder reden wil heropenen. Zie Expliciet buiten scope.
 
+## Waarschuwing bij het laatste actieve type (PR #169)
+
+Toegevoegd door [`beheerformulieren-catalogus.md`](beheerformulieren-catalogus.md)
+(issue #131, besluit 9, B6 van Bram). Een waarschuwing met hersteloptie, geen
+hard verbod.
+
+- **Inline blok bij het laatste actieve type.** Klik op archiveren bij het
+  enige actieve type (`isLaatsteActieveType`, afgeleid van de geladen lijst)
+  archiveert niet direct, maar opent in de rij een `role="group"` met "Dit is
+  het laatste actieve activiteitstype. Zonder actief type kan niemand een
+  dienst starten." en drie knoppen: **Annuleren** (krijgt de focus, de veilige
+  keuze), **Eerst een type toevoegen** (sluit het blok, zet de focus op het
+  veld "Nieuw activiteittype", archiveert niet) en **Toch archiveren**. Alle
+  andere archiveringen en herstellen blijven direct, zonder bevestiging.
+- **Vaste melding bij nul actief.** Is de lijst geladen, niet leeg en zijn alle
+  types gearchiveerd, dan staat bovenin de kaart een `role="status"`-melding:
+  "Er is geen actief activiteitstype. Er kan geen dienst worden gestart.
+  Herstel een type hieronder of voeg een nieuw type toe." Niet tijdens laden,
+  niet bij een leesfout en niet bij een lege lijst.
+- **Focus.** Na annuleren, een mislukte archivering of een geslaagde
+  archivering/herstelactie gaat de focus terug naar de archiveerknop van de
+  rij; na een geslaagde actie pas zodra de lijst weer `ready` is.
+- **Geen hard verbod.** De server blijft archiveren van het laatste actieve
+  type toestaan. Een server-guard is een apart ticket als dat gewenst is.
+- **Bekende beperking:** de waarschuwing blijft gezet als een andere beheerder
+  intussen een type toevoegt, tot de lijst ververst.
+
 ## Expliciet buiten scope
 
 - **Rapportage/filtering per activiteittype, elke koppeling met het
@@ -666,8 +694,9 @@ heeft (bij "verplicht") altijd een activiteittype.
   dienst-overzicht (#12)** — zie "Besloten door de Architect" hierboven.
 - **Kleur/icoon per activiteittype** — het ontwerp heeft dit niet, alleen
   `name`/`archived` (zie "Onderzocht in /designs/").
-- **Een "x in gebruik"-teller of "geen actief type meer"-waarschuwing op de
-  Instellingen-kaart** — zie Schermflow §1.
+- **Een "x in gebruik"-teller op de Instellingen-kaart** — zie Schermflow §1.
+  (De "geen actief type meer"-waarschuwing is sinds PR #169 gebouwd, zie
+  hieronder.)
 - **Wijzigen van het activiteittype van een dienst nádat de dienst al
   gestart is** — onveranderlijk zodra gezet, zelfde soort onveranderlijkheid
   als `shifts.started_by`/`started_at`. Geen "activiteit corrigeren

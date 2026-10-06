@@ -1,13 +1,112 @@
 # Beheerformulieren en catalogus duidelijker
 
-**Status: goedgekeurd door Bram** ("Pak aanbevelingen": alle aanbevelingen
-van de vragen 1 t/m 6 overgenomen, zie "Besluiten van Bram" onderaan).
+**Status: gebouwd** (PR #169, merge `5610f7c`). Goedgekeurd door Bram ("Pak
+aanbevelingen": alle aanbevelingen van de vragen 1 t/m 6 overgenomen, zie
+"Besluiten van Bram" onderaan). Waar de bouw van de spec hieronder afwijkt,
+staat de waarheid in "Zoals gebouwd" direct hierna.
 
 Spec voor [issue #131](https://github.com/BramLambertJansen/ABAS/issues/131)
 (frontend T11 · P2/P3, epic #121, findings F23, F24, F25, F26; productbesluit
 D5). Gevalideerd tegen `main` op `2116633` (2026-10-05, na T05 #125, T06 #126,
 T07 #127, T09 #129, T10 #130 en #115). Alleen frontend: geen RPC, migratie,
 schema, RLS of auth-beleid.
+
+## Zoals gebouwd
+
+Gebouwd in PR #169 (issue #131, T11, epic #121), merge `5610f7c`. Alleen
+frontend, geen RPC, migratie, RLS of auth-beleid. Wat hieronder staat gaat
+voor op de spec-tekst verderop waar die afwijkt.
+
+### Afwijkingen van de spec
+
+- **Naam niet in `meta`.** `LidBeherenOverlay` zet de naam niet in het
+  `meta`-slot, maar in de bestaande beschrijving "Wijzigingen aan {naam}.".
+  `meta` bevat de rolbadge (BAR/BEHEER), "GEARCHIVEERD" indien van
+  toepassing en "Saldo € x,xx" (`formatCents`).
+- **Groepen en sectienamen.** De `h3`-groepen zijn Profiel, Toegang,
+  Bestellingen en Archief, zoals gespecificeerd. De `OpslaanSectie`-groepen
+  daarbinnen heten (via de nieuwe `label`-prop, `role="group"`): "Naam
+  wijzigen", "Contactadres wijzigen", "Rechten wijzigen", "Inloggegevens" en
+  "Archiveren".
+- **`Overlay variant="detail"` in sheet-vorm.** De spec zei dat `detail` in de
+  portal-sheet niets doet. Gebouwd: in sheet-vorm toont `detail` wel de vaste
+  kop (titel, beschrijving, `meta`, Sluiten-knop), maar zonder het gesplitste
+  scrollende lichaam; de modal-vorm (`max-w-[640px]`, vaste kop, scrollend
+  lichaam, onderkant met weggooien-vraag en statusregel) is alleen voor
+  `detailModal`. Niet bereikbaar zolang alleen de bar-shell "Lid beheren"
+  gebruikt; er is geen portalconsument.
+- **Sectiestatus.** `sectieStatus` (`src/lib/opslaan.ts`) is de pure helper
+  (`onopgeslagen` wint van `opgeslagen`; een fout geeft `null`).
+  `OpslaanSectie` kreeg `label`, `kop`, `status` en `statusTekst`. De
+  statusregel (`role="status"`) is altijd gemount met gereserveerde hoogte.
+  De losse toast in "Lid beheren" is vervallen. Contactadres gebruikt
+  `statusTekst` "Contactadres opgeslagen." resp. "Contactadres opgeslagen.
+  Het inlogadres is niet gewijzigd." (bij account); archiveren toont
+  "Gearchiveerd"/"Teruggezet".
+- **Contactadresteksten** staan in
+  `src/features/ledenbeheer/contactadresTeksten.ts`, gedeeld door
+  `LidBeherenOverlay` en `NieuwLidOverlay` (label, uitleg altijd, extra bij
+  account, extra bij openstaande uitnodiging, extra zonder adres, opgeslagen-
+  teksten).
+- **Herstelroutetekst.** Productoverlay: "Het product verdwijnt van het
+  verkoopscherm. Verkoophistorie blijft bestaan. Terugzetten kan onder
+  ‘Uit assortiment’." Lidoverlay (sectie Archief): "Het lid verdwijnt uit de
+  verkoopzoeker. Saldo en bestellingen blijven bewaard. Terugzetten kan onder
+  ‘Archief’ in de ledenlijst." Voor een al gearchiveerd lid blijft de bestaande
+  tekst "lid kan weer tikken en opwaarderen".
+- **`ZoekVeld` en `StatusFilter`** zijn uit `LedenLijst` getild en staan in
+  `src/components/`; beide lijsten gebruiken ze. Filterlogica staat in
+  `src/features/assortimentbeheer/beheerProductFilter.ts` (zonder imports,
+  feature-eigen, onafhankelijk van `features/verkoop`),
+  `isLaatsteActieveType` in `laatsteActieveType.ts` (los bestand, niet in
+  `ActiviteitstypesInstellingen`).
+
+### Fixes na Codex-review
+
+- **Invite-succesvlag.** `saveEmail` neemt `email`, `invitedAt` en `hasAccount`
+  uit de RPC-return over en wist de succesvlag "Uitnodiging verstuurd" als
+  `invitedAt` leeg is (de uitnodiging is dan vervallen).
+- **`leegReden` kijkt over alle statussen.** Matcht de zoekterm alleen in de
+  andere status, dan geeft `leegReden` `leeg-filter` (verwijzing naar de
+  andere chip) in plaats van `geen-treffers`. De bestaande tekst is gebruikt:
+  "Geen actieve producten. Bekijk Uit assortiment." resp. "Geen producten uit
+  assortiment." Een preciezere formulering (bijvoorbeeld met de zoekterm of
+  het aantal treffers in de andere chip) is een **open vraag aan Bram**.
+- **Focusherstel activiteitstype.** Na archiveren/herstellen unmount de rij
+  tijdens het verversen; de focus wordt pas hersteld als de lijst weer `ready`
+  is (ref `focusNaVerversen` + `useHerstelFocus`). Bij een mislukte
+  archivering en bij "Annuleren" gaat de focus direct terug naar de knop van
+  de rij.
+
+### Wat niet is gedaan
+
+- Echte tablet (768 en 1024) met schermtoetsenbord open in "Lid beheren".
+- Schermlezer (VoiceOver/TalkBack): of de sectiestatus wordt aangekondigd.
+- Echte uitnodigingsmail (de fixture bewijst geen bezorging).
+- Live `check:a11y` en `db:test` door CI zijn niet door de Docs-stap
+  gecontroleerd (geen backend gewijzigd, dus `db:test` verwacht ongewijzigd).
+- De catalogusgrootte is onbekend (vraag 4/B4); er is geen categoriefilter of
+  sorteerkeuze gebouwd.
+
+### Bekende beperkingen en follow-ups (Tester, zonder fix)
+
+- Na een mislukte opslag heeft `sectieStatus` geen "Niet opgeslagen"-label
+  (`fout` geeft `null`): de foutregel van de sectie vervangt de status, zoals de
+  spec zei, maar de gebruiker ziet bij de fout niet dat de invoer niet is
+  opgeslagen.
+- De `timedOut`-alert ("onbekende uitkomst") in "Lid beheren" staat in het
+  scrollende lichaam en kan bij een lang profiel buiten beeld staan.
+- Een nieuw product dat buiten het actieve zoekfilter of de gekozen chip valt
+  is na toevoegen niet zichtbaar (zelfde gedrag als `LedenLijst`).
+- De "laatste type"-waarschuwing blijft gezet (`bevestig`-staat) als een
+  andere beheerder intussen een type toevoegt. Het blok is afgeleid van de
+  geladen lijst en verdwijnt dus pas na een verversing; tot dan kan "Toch
+  archiveren" nog getoond worden, en de staat kan terugkomen als het type
+  later weer het enige actieve is.
+- Geen hard verbod op archiveren van het laatste actieve type: een apart
+  server-guard-ticket als dat gewenst is (B6).
+
+Epic #121: #131 sluit via PR #169; #121 blijft open (T12, #132, resteert).
 
 ## Doel
 
