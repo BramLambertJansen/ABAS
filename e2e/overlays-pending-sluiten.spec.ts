@@ -1,4 +1,4 @@
-import { test, expect, type Locator, type Page } from "@playwright/test";
+import { test, expect, type Locator, type Page, type Route } from "@playwright/test";
 import {
   USER,
   bodyIsNiet,
@@ -178,40 +178,42 @@ async function openElders(page: Page) {
 }
 
 test.describe("Dienst afsluiten (beheerder, admin_end_shift)", () => {
-  test("mislukt (shift_not_open) en daarna geslaagd, elk met één aanroep", async ({ page }) => {
+  // De RPC-route moet ná `openElders` komen: de algemene mock daarin wint
+  // anders als laatst geregistreerde route.
+  async function openBeheerderAfsluiten(page: Page, antwoord: (route: Route) => Promise<unknown> | unknown) {
     await openElders(page);
-    const afsluiten = page.getByRole("button", { name: "Afsluiten", exact: true });
-
-    // Pad 1: de dienst blijkt al gesloten.
-    const mislukt = await vertraagRpc(page, "admin_end_shift", (route) => domeinFout(route, "shift_not_open"));
-    await afsluiten.click();
+    const rpc = await vertraagRpc(page, "admin_end_shift", antwoord);
+    await page.getByRole("button", { name: "Afsluiten", exact: true }).click();
     const dialog = page.getByRole("dialog", { name: "Dienst afsluiten" });
     await expect(dialog).toBeVisible();
+    return { dialog, rpc };
+  }
+
+  test("geslaagd: geblokkeerd tijdens pending, één admin_end_shift, daarna sluit de dialoog", async ({ page }) => {
+    const { dialog, rpc } = await openBeheerderAfsluiten(page, (route) => json(route, 200, null));
     await expectGeblokkeerdTijdensPending(page, dialog, {
       ...afsluitKnoppen(dialog),
-      aanroepen: mislukt.aanroepen,
-      vast: mislukt.vast,
+      aanroepen: rpc.aanroepen,
+      vast: rpc.vast,
     });
-    mislukt.vast.laatDoor();
+    rpc.vast.laatDoor();
+    await expect(dialog).toHaveCount(0);
+    await expect(page.locator("[inert]")).toHaveCount(0);
+    expect(rpc.payloads).toEqual([{ p_shift_id: BAR_SHIFT }]);
+  });
+
+  test("mislukt (shift_not_open): foutregel, dialoog blijft open en is weer sluitbaar", async ({ page }) => {
+    const { dialog, rpc } = await openBeheerderAfsluiten(page, (route) => domeinFout(route, "shift_not_open"));
+    await expectGeblokkeerdTijdensPending(page, dialog, {
+      ...afsluitKnoppen(dialog),
+      aanroepen: rpc.aanroepen,
+      vast: rpc.vast,
+    });
+    rpc.vast.laatDoor();
     await expect(dialog.locator('[role="alert"]').filter({ hasText: DIENST_AL_DICHT })).toBeVisible();
     await expect(dialog.getByRole("button", { name: "annuleren" })).toBeEnabled();
     await expectSluitbaarNaPending(page, dialog);
-    expect(mislukt.aanroepen()).toBe(1);
-
-    // Pad 2: slaagt, de dialoog sluit zelf.
-    const geslaagd = await vertraagRpc(page, "admin_end_shift", (route) => json(route, 200, null));
-    await afsluiten.click();
-    await expect(dialog).toBeVisible();
-    await expectGeblokkeerdTijdensPending(page, dialog, {
-      ...afsluitKnoppen(dialog),
-      aanroepen: geslaagd.aanroepen,
-      vast: geslaagd.vast,
-    });
-    geslaagd.vast.laatDoor();
-    await expect(dialog).toHaveCount(0);
-    await expect(page.locator("[inert]")).toHaveCount(0);
-    expect(geslaagd.payloads).toEqual([{ p_shift_id: BAR_SHIFT }]);
-    expect(mislukt.aanroepen()).toBe(1);
+    expect(rpc.aanroepen()).toBe(1);
   });
 });
 
@@ -305,6 +307,11 @@ test.describe("Afmelden (admin_end_bar_session)", () => {
     const rpc = await vertraagRpc(page, "admin_end_bar_session", (route) =>
       route.fulfill({ status: 204, body: "" })
     );
+    let toestandLezingen = 0;
+    await page.route(/\/rest\/v1\/rpc\/my_bar_state(\?|$)/, (route) => {
+      toestandLezingen++;
+      return route.fallback();
+    });
 
     await expectGeblokkeerdTijdensPending(page, dialog, {
       bevestig: dialog.getByRole("button", { name: "Afmelden", exact: true }),
@@ -317,7 +324,8 @@ test.describe("Afmelden (admin_end_bar_session)", () => {
     // `sessie.ververs()` loopt ook na een succes: de toast blijft staan.
     const toast = page.getByRole("status").filter({ hasText: "Apparaat afgemeld" });
     await expect(toast).toBeVisible();
-    await page.waitForTimeout(500);
+    // Wacht op de verversing zelf (geen vaste pauze) en toets daarna opnieuw.
+    await expect.poll(() => toestandLezingen).toBeGreaterThan(0);
     await expect(toast).toBeVisible();
     expect(rpc.payloads).toEqual([{ p_bar_session_id: EVA_SESSIE }]);
   });

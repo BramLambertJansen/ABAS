@@ -127,9 +127,13 @@ export async function expectGeblokkeerdTijdensPending(
     }
 
     // (a) en (b): herhaalde sluitpogingen, ook op de disabled knoppen.
-    for (let i = 0; i < 3; i++) {
+    // Elke poging afzonderlijk: een dialoog die toch sluit faalt hier met een
+    // duidelijke assertie, niet pas op een klik op een element dat weg is.
+    for (let i = 1; i <= 3; i++) {
       await page.keyboard.press("Escape");
+      await expect(dialog, `dialoog blijft open na Escape (poging ${i})`).toBeVisible();
       await page.mouse.click(5, 5);
+      await expect(dialog, `dialoog blijft open na backdrop-klik (poging ${i})`).toBeVisible();
     }
     await pendingKnop.click({ force: true });
     for (const knop of await sluitknoppen.all()) await knop.click({ force: true });

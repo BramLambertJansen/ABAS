@@ -341,9 +341,10 @@ mislukt-test (d), met de vertraging in de route en zonder `page.clock`.
 
 **Afwijkingen en toevoegingen:**
 
-- **11 tests, niet tien (vraag 4):** de beheerder-variant van Dienst afsluiten
-  staat in één test (eerst `shift_not_open`, dan geslaagd), zoals de spec bij
-  "Test 3 (B)" al voorschreef.
+- **12 tests, niet tien (vraag 4):** Dienst afsluiten heeft twee varianten
+  (eigen en beheerder) met elk een geslaagd- en een mislukt-test. De spec
+  schreef bij "Test 3 (B)" één gebundelde test voor; die is gesplitst zodat een
+  falend pad het andere niet verbergt.
 - **Extra verplaatst:** `openOpwaarderen` (naast `kiesLid`) naar `kassa.ts`,
   want de nieuwe spec heeft hem ook nodig; zuivere verplaatsing.
 - **Extra helpers in `pendingOverlay.ts`:** `vertraagRpc` (houdt één RPC vast,
@@ -370,16 +371,29 @@ mislukt-test (d), met de vertraging in de route en zonder `page.clock`.
 - Overnemen en Afmelden hebben geen "bezig…"-label (vraag 5): die tests leunen
   op `aria-busy`, disabled en focus.
 
-**Lokaal bewezen:** de nieuwe spec slaagt met `--repeat-each=5`; de specs
+**Lokaal bewezen:** de nieuwe spec (12 tests) slaagt met `--repeat-each=5`; de specs
 waaruit helpers verplaatst zijn geven dezelfde uitkomst; `check:fast` groen. De
 tests vonden geen productgat.
 
 **Niet gedaan / open punten:**
 
-- **Mutatiecheck** (een overlay tijdelijk `closeBlocked={false}` geven om te
-  zien dat de test dan faalt) is door de Developer niet gedraaid; dat de tests
-  bij een kapot contract rood worden is dus niet aangetoond. De Tester probeert
-  het.
+- **Mutatiecheck (door de Tester, lokaal, niet gecommit):** `closeBlocked`
+  uit in de vijf overlays: alle 11 toenmalige tests rood; `Overlay` sluit
+  toch bij Escape en backdrop: alle rood; annuleerknop niet disabled in
+  Overnemen en Terugdraaien: 4 van 4 rood. Niet gemuteerd, alleen door lezen
+  beoordeeld: de focus-trap-logica en de tekst van de `role="status"`-regio.
+  De sluitpogingen worden sinds de review per Escape en per backdrop-klik
+  afzonderlijk getoetst, zodat een dialoog die toch sluit snel en duidelijk
+  faalt.
+- **Overlay-`Sluiten`-knop:** die staat in `Overlay.tsx` (`sluitKnop`) alleen in
+  `variant="detail"`, niet in de standaard-bar-overlays van deze spec, en de
+  portal-sheets gebruiken hem niet (eigen "Annuleren"). Het pending-gedrag
+  ervan is bedekt door `dialogen-tabs-landmarks-negatief.spec.ts:326`,
+  `opslaan-sluiten-pending.spec.ts:169` en `:226` en
+  `productafbeeldingen.spec.ts:140`; deze bar-spec bewijst hem niet.
+- Afmelden-geslaagd wacht niet meer op een vaste pauze maar op de verversing
+  van `my_bar_state`; een toast die pas ná die lezing verdwijnt, zou nog
+  net ontsnappen aan de assertie.
 - De 30 s-poll van de bar-sessie tijdens pending is niet getest (geen
   `page.clock`, zie Productbevindingen 2).
 - De `UitloggenKnop`-keuzedialoog heeft een eigen `onClose` en valt buiten het
