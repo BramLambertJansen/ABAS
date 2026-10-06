@@ -6,7 +6,7 @@ gemerged.** Bram gaf akkoord samen met de spec
 (spec → Besluit 1, 5 en 6; het akkoord is via de coördinator doorgegeven).
 Punt 3 geldt onder voorwaarde: Bram controleert vóór `supabase db push`
 zelf op het gehoste project dat `postgres` daar `TRIGGER` heeft op de
-storage-tabellen (spec → Migratie `0041` → Voorwaarde, query 2 en 4).
+storage-tabellen (spec → Migratie `0042` → Voorwaarde, query 2 en 4).
 - Geldt dat voor geen enkele tabel, of niet voor `storage.objects`
   (query 2), dan vervalt punt 3 en geldt het besloten restrisico (spec →
   Besluit 1, optie B).
@@ -107,7 +107,7 @@ Twee eigenschappen maken dit meer dan een eenmalige fix:
 - Een migratie die een tabel in `public` aanmaakt, hoeft niets extra's te
   doen. Een migratie die een extensie in `public` installeert of zelf een
   `grant all` doet, laat de invariant falen.
-- De guardlijst wordt één keer bepaald, toen `0041` draaide. Een
+- De guardlijst wordt één keer bepaald, toen `0042` draaide. Een
   storage-tabel die later bijkomt, krijgt geen guard:
   - in CI (een upgrade van de Supabase-CLI) wordt de invariant rood tot een
     migratie de guard erop zet. De CLI-versie in CI staat vast, dus dat
@@ -126,7 +126,7 @@ Twee eigenschappen maken dit meer dan een eenmalige fix:
   API-pad. REFERENCES is zonder `CREATE` op een schema niet te gebruiken.
 - Op het gehoste project moet `postgres` `TRIGGER` hebben op de
   storage-tabellen. Bram controleert dat zelf vóór `supabase db push`, met
-  read-only queries in de SQL-editor (spec → Migratie `0041` → Voorwaarde).
+  read-only queries in de SQL-editor (spec → Migratie `0042` → Voorwaarde).
   De werkstraat heeft geen toegang tot het gehoste project. Ontbreekt het
   op `storage.objects`, dan vervalt punt 3; ontbreekt het op een deel van
   de tabellen, dan geldt spec → Besluit 6. In beide gevallen wordt dit ADR

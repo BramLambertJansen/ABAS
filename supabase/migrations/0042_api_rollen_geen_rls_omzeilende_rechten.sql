@@ -1,5 +1,5 @@
 -- API-rollen krijgen geen tabelrechten die RLS omzeilen
--- (docs/features/tabelrechten-api-rollen.md, Bram 2026-10-02; ADR 0022).
+-- (docs/features/tabelrechten-api-rollen.md, Bram 2026-10-02; ADR 0023).
 --
 -- De standaardrechten van Supabase geven elke nieuwe tabel `arwdDxt` voor
 -- `anon`, `authenticated` en `service_role`. Onze migraties trokken
@@ -15,7 +15,7 @@
 -- echt afdwingt (supabase/tests/tabelrechten_api_rollen.test.sql).
 --
 -- `service_role` blijft bewust ongemoeid (spec → "service_role: niet
--- aanraken", ADR 0022 → punt 4).
+-- aanraken", ADR 0023 → punt 4).
 
 -- ── 1. public: intrekken voor wat er is ─────────────────────────────────
 
@@ -67,9 +67,9 @@ alter default privileges in schema storage
 -- en heeft alleen rechten met grant option. Een `revoke` door een
 -- niet-eigenaar trekt alleen in wat die rol zelf gaf: zo'n regel meldt
 -- `REVOKE` zonder fout en verandert niets. Een regel die niets doet en toch
--- "revoke" heet, is erger dan geen regel (spec → Migratie 0041 punt 3).
+-- "revoke" heet, is erger dan geen regel (spec → Migratie 0042 punt 3).
 
--- ── 4. storage: de BEFORE TRUNCATE-guard (spec → Besluit 1, ADR 0022 → 3) ─
+-- ── 4. storage: de BEFORE TRUNCATE-guard (spec → Besluit 1, ADR 0023 → 3) ─
 --
 -- `postgres` heeft wél TRIGGER (met grant option) op de storage-tabellen, en
 -- een statement-trigger gaat af vóór de tabel geleegd wordt. Hetzelfde
@@ -100,7 +100,7 @@ $$;
 revoke execute on function forbid_api_role_truncate() from public, anon, authenticated, service_role;
 
 -- De lijst komt uit de catalogus van de database waartegen de migratie
--- draait, niet uit een handgetypte lijst (spec → Migratie 0041 punt 4):
+-- draait, niet uit een handgetypte lijst (spec → Migratie 0042 punt 4):
 -- lokaal en in CI zijn dat `objects`, `buckets` en `buckets_analytics`, maar
 -- de storage-versie van het gehoste project kan andere tabellen hebben. Elke
 -- tabel in `storage` waarop `anon` of `authenticated` TRUNCATE heeft, krijgt

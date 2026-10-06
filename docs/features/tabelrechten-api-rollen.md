@@ -7,7 +7,7 @@ alternatief. De vragen
 en antwoorden staan onder "Besluiten van Bram". Verwijzingen als
 "(Besluit 2)" in de tekst wijzen daarnaar. De Developer kan beginnen. Eén
 voorwaarde ligt bij Bram zelf: de controle op het gehoste project vóór
-`supabase db push` (zie Migratie `0041`). Wijkt de bouw af van een besluit,
+`supabase db push` (zie Migratie `0042`). Wijkt de bouw af van een besluit,
 dan gaat dat terug naar de Architect en wordt het niet zelf ingevuld.
 
 Gevonden bij de review van PR #146 (productafbeeldingen, gemerged als
@@ -15,14 +15,14 @@ Gevonden bij de review van PR #146 (productafbeeldingen, gemerged als
 `origin/main` `7efc6ad`.
 
 Er komt een nieuwe architectuurbeslissing bij:
-[ADR 0022](../adr/0022-api-rollen-geen-rls-omzeilende-tabelrechten.md)
+[ADR 0023](../adr/0023-api-rollen-geen-rls-omzeilende-tabelrechten.md)
 (Besluit 5).
 
 **Changelog.** 2026-10-02, na de bouw (PR #150) en een interpretatievraag
 van de Developer:
 - Besluit 6 toegevoegd: het tussengeval van query 4 (gedeeltelijke guard).
-- De guardlijst wordt bij het draaien van `0041` uit de catalogus bepaald,
-  niet bij het bouwen (Migratie `0041` → punt 4). Dat was de bedoeling van
+- De guardlijst wordt bij het draaien van `0042` uit de catalogus bepaald,
+  niet bij het bouwen (Migratie `0042` → punt 4). Dat was de bedoeling van
   "uit de catalogus", maar het stond er dubbelzinnig.
 - Query 4 toegevoegd aan de voorwaarde vóór `supabase db push`.
 - Twee kanttekeningen (later bijkomende storage-tabellen, een fout
@@ -137,7 +137,8 @@ de app.
   en `allowed_mime_types`, bewaakt door `check:rls`. Deze spec verplaatst de
   echte bewaking van punt 3 naar de database. ADR 0018 verandert niet.
 - Open PR's #148 en #137 raken geen bestanden onder `supabase/`. Geen
-  andere remote branch heeft een migratie `0041` of hoger.
+  andere remote branch had toen een migratie in dit bereik. PR #163 reserveert
+  inmiddels 0041; deze rechtenwijziging gebruikt daarom 0042.
 
 ## Doel
 
@@ -170,11 +171,11 @@ saldocontrole en geen `served_by`. De motivatie:
 - Attributie (`served_by` uit de bezetting) raakt dit niet. Er wordt geen
   functie en geen policy aangepast.
 
-## Migratie `0041`
+## Migratie `0042`
 
-Het volgende vrije nummer is `0041` (hoogste op `origin/main` is `0038`;
-`0013` bestaat niet en blijft leeg, zie `check:migrations`). Naam
-bijvoorbeeld `0041_api_rollen_geen_rls_omzeilende_rechten.sql`. De
+Deze reparatie gebruikt `0042` na de voorrangsmigratie 0041 uit PR #163.
+`0013` bestaat niet en blijft leeg, zie `check:migrations`. Naam
+`0042_api_rollen_geen_rls_omzeilende_rechten.sql`. De
 migratie-eigenaar is `postgres`: alle tabellen in `public` zijn van
 `postgres`, en `supabase db push` en de lokale `supabase start` draaien de
 migraties als die rol.
@@ -228,7 +229,7 @@ eigen storage-tabellen (van `supabase_storage_admin`) raken ze niet.
 niet (Aanleiding punt 3) en hoort daarom **niet** in de migratie. Een regel
 die niets doet en toch "revoke" heet, is erger dan geen regel.
 
-**4. `storage`: de `BEFORE TRUNCATE`-guard (Besluit 1, ADR 0022 → punt 3).**
+**4. `storage`: de `BEFORE TRUNCATE`-guard (Besluit 1, ADR 0023 → punt 3).**
 - Eén triggerfunctie in `public`, `language plpgsql`, `security invoker`
   (geen `security definer`: hij leest alleen `current_user`), met `set
   search_path`. Hij weigert met een eigen foutcode (bv. `raise exception
@@ -255,7 +256,7 @@ Wij (Architect, Developer, Reviewer, Tester) hebben geen toegang tot het
 gehoste project. **Bram draait de vier queries hieronder zelf**, read-only,
 in de SQL-editor van het dashboard (die draait als `postgres`). De Developer
 bouwt en test de guard lokaal en in CI zoals beschreven. Maar migratie
-`0041` gaat pas naar productie nadat Bram het resultaat heeft bekeken.
+`0042` gaat pas naar productie nadat Bram het resultaat heeft bekeken.
 Lokaal en gehost horen gelijk te lopen, maar Supabase beheert de
 storage-rechten zelf en de gehoste versie kan afwijken:
 
@@ -267,7 +268,7 @@ select pg_get_userbyid(defaclrole), defaclacl from pg_default_acl
  where defaclnamespace = 'public'::regnamespace and defaclobjtype = 'r';
 ```
 
-Query 4 gebruikt dezelfde selectie als de `do`-lus in `0041`. Het
+Query 4 gebruikt dezelfde selectie als de `do`-lus in `0042`. Het
 resultaat is dus precies de lijst die de guard krijgt, met per tabel of dat
 gaat lukken. Query 2 toetst alleen `storage.objects`; query 4 toetst ze
 allemaal.
@@ -290,7 +291,7 @@ Verwacht:
    `postgres=a*r*w*d*D*x*t*` (met grant option);
 2. `true`;
 3. een regel voor `postgres` met `arwdDxt` voor `anon` en `authenticated`;
-4. in **elke** rij `postgres_trigger = t`. Lokaal (CLI 2.109, vóór `0041`)
+4. in **elke** rij `postgres_trigger = t`. Lokaal (CLI 2.109, vóór `0042`)
    geeft dit drie rijen, `buckets`, `buckets_analytics` en `objects`, alle
    drie `t | t | t`. Op het gehoste project mogen er meer of andere rijen
    staan (een andere storage-versie); dat is geen afwijking, zolang
@@ -301,7 +302,7 @@ Verwacht:
 **Wijkt query 1 of 2 af, dan valt de guard terug op optie B** (Besluit 1:
 besloten restrisico, geen guard; de invariant legt de uitzondering vast, zie
 Gates). De migratie gaat dan niet met de guard naar productie. Het gaat
-terug naar de Architect, die de spec en ADR 0022 bijwerkt. De Developer
+terug naar de Architect, die de spec en ADR 0023 bijwerkt. De Developer
 vult dat niet zelf in. Wijkt alleen query 3 af, dan blijft de guard staan,
 maar gaat de migratie evenmin naar productie: de `alter default
 privileges`-regels gaan uit van die standaardrechten, en ook dat gaat terug
@@ -309,7 +310,7 @@ naar de Architect. Dat query 3 nodig is, bevestigt de Tester: een verse
 `supabase db start` met CLI 2.109 geeft andere standaardrechten dan de
 gedeelde database en CI (zie Randgevallen).
 
-**Toont query 4 een rij met `postgres_trigger = f`**, dan faalt `0041` bij
+**Toont query 4 een rij met `postgres_trigger = f`**, dan faalt `0042` bij
 de push. Niet pushen. Dan geldt Besluit 6, de gedeeltelijke guard: de
 Architect zet de tabellen waarop het niet kan met naam in de spec en in ADR
 0019, en de migratie en de invariant noemen ze als expliciete uitzondering.
@@ -360,7 +361,7 @@ de catalogus (dekt ook een tabel van morgen) plus een paar benoemde checks
    `authenticated` geeft de foutcode van de guard (`throws_ok`, binnen de
    transactie van de test), en als `anon` ook.
 
-   Valt de guard terug op optie B (Migratie `0041` → Voorwaarde), dan wordt
+   Valt de guard terug op optie B (Migratie `0042` → Voorwaarde), dan wordt
    dit een assertie die de bekende uitzondering vastlegt: API-rollen hebben
    hier TRUNCATE, en dat is besloten restrisico. Die wordt rood zodra
    Supabase het zelf intrekt, en dan kan de uitzondering weg. Die omzetting
@@ -435,8 +436,8 @@ Twee wijzigingen, en één die bewust niet gebeurt (Besluit 4):
   `extensions` zetten.
 - **Een toekomstige tabel met een eigen `grant all ... to authenticated`**
   geeft TRUNCATE alsnog. De invariant wordt rood. Dat is de bedoeling.
-- **Storage-tabellen die na `0041` bijkomen** krijgen geen guard: de lijst
-  wordt één keer bepaald, toen `0041` draaide. Twee gevallen:
+- **Storage-tabellen die na `0042` bijkomen** krijgen geen guard: de lijst
+  wordt één keer bepaald, toen `0042` draaide. Twee gevallen:
   - **In CI**, door een upgrade van de Supabase-CLI: invariant 1 deel 2 wordt
     rood (tabel zonder guard). De CLI-versie in CI staat vast, dus dit
     gebeurt alleen bij een bewuste upgrade, en dan hoort er een migratie bij
@@ -447,7 +448,7 @@ Twee wijzigingen, en één die bewust niet gebeurt (Besluit 4):
     `supabase db push` toont query 4 het wel, als Bram hem opnieuw draait.
 - **Een fout halverwege de push.** Niet geverifieerd is of `supabase db push`
   elk migratiebestand in één transactie draait. Zo niet, dan kan een fout in
-  de `do`-lus de revokes uit punt 1 en 2 laten staan, zonder dat `0041` als
+  de `do`-lus de revokes uit punt 1 en 2 laten staan, zonder dat `0042` als
   toegepast geregistreerd is. Een tweede push faalt dan op `create
   function`, omdat de functie al bestaat. Query 4 voorkomt dit geval vooraf.
   Wil de Developer zekerheid, dan controleert hij hoe de CLI een
@@ -491,7 +492,7 @@ Twee wijzigingen, en één die bewust niet gebeurt (Besluit 4):
   `anon`, `authenticated` én `service_role` (lokaal geverifieerd in
   `pg_auth_members`). Wie in die sessie willekeurige SQL kan draaien, kan
   met `set role service_role` RLS, de tabelrechten en deze guard allemaal
-  omzeilen. Dat valt buiten het aanvalsmodel van ADR 0022. Die maatregelen
+  omzeilen. Dat valt buiten het aanvalsmodel van ADR 0023. Die maatregelen
   gelden voor SQL die als `anon` of `authenticated` draait zonder die
   rolwissel. Een SQL-injectie in de PostgREST-sessie is daarom geen geval
   dat deze spec dekt. De echte grens daar blijft dat elke RPC vaste SQL
@@ -511,7 +512,7 @@ Twee wijzigingen, en één die bewust niet gebeurt (Besluit 4):
 
 ## ADR
 
-[ADR 0022](../adr/0022-api-rollen-geen-rls-omzeilende-tabelrechten.md),
+[ADR 0023](../adr/0023-api-rollen-geen-rls-omzeilende-tabelrechten.md),
 geaccordeerd met deze spec (Besluit 5), nog niet geïmplementeerd.
 
 ## Documentatie na de bouw
@@ -542,7 +543,7 @@ Een `revoke` werkt daar niet (Aanleiding punt 3).
   is. Een `BEFORE TRUNCATE ... FOR EACH STATEMENT`-trigger op elke
   storage-tabel waar die rollen TRUNCATE hebben (nu `objects`, `buckets`,
   `buckets_analytics`). Lokaal bewezen dat het werkt. Nadeel: we hangen iets
-  aan een tabel die Supabase beheert, en dat is een eerste keer (ADR 0022).
+  aan een tabel die Supabase beheert, en dat is een eerste keer (ADR 0023).
   Werkt alleen als de verificatie op het gehoste project `TRIGGER` voor
   `postgres` laat zien.
 - **Optie B: besloten restrisico.** Geen guard. De spec en ARCHITECTURE.md
@@ -559,7 +560,7 @@ test), volgt het mechanisme dat Supabase zelf gebruikt
 recht dat de Reviewer vond, gaat dicht.
 
 **Besluit 1 (Bram, 2026-10-02): optie A, de `BEFORE TRUNCATE`-guard**, op
-voorwaarde dat de controle op het gehoste project slaagt (Migratie `0041` →
+voorwaarde dat de controle op het gehoste project slaagt (Migratie `0042` →
 Voorwaarde). Bram draait die queries zelf. Slaagt de controle niet, dan
 geldt optie B en gaat het terug naar de Architect.
 
@@ -623,7 +624,7 @@ niet leeg, geen wildcard.
 - **Optie 2: ja.** De geldtabelregel eist voortaan `truncate`, `references`
   en `trigger` in een `revoke ... from authenticated`. Geeft al bij de
   pre-commit hook een fout, maar is lexicaal net zo te omzeilen als de
-  bucketregel, en is na de projectbrede `revoke ... on all tables` van `0041`
+  bucketregel, en is na de projectbrede `revoke ... on all tables` van `0042`
   meteen voldaan zonder dat het iets bewijst.
 
 **Aanbeveling van de Architect: optie 1.** Eén plek die het bewijst (de
@@ -633,7 +634,7 @@ database), en één structurele check dat die plek niet verdwijnt.
 
 ### Besluit 5: is een ADR nodig?
 
-- **Optie 1: ja, ADR 0022** (concept staat er). Het legt vast wat geen gate
+- **Optie 1: ja, ADR 0023** (concept staat er). Het legt vast wat geen gate
   afdwingt en wat een volgende feature zou kunnen tegenspreken: dat
   `service_role` bewust buiten de regel valt, dat wij bij optie A van
   Besluit 1 een guard aan een Supabase-tabel hangen (en waarom een `revoke` daar niets
@@ -649,22 +650,22 @@ Een guard op een tabel van Supabase is een precedent dat een volgende sessie
 zonder ADR als "rommel in andermans schema" kan weghalen. Bij optie B is er
 geen nieuwe beslissing: dan volstaat ARCHITECTURE.md en vervalt het concept.
 
-**Besluit 5 (Bram, 2026-10-02): optie 1, ADR 0022.** Geaccordeerd, nog
+**Besluit 5 (Bram, 2026-10-02): optie 1, ADR 0023.** Geaccordeerd, nog
 niet geïmplementeerd. Valt Besluit 1 terug op optie B, dan herziet de
-Architect ADR 0022 → punt 3 voordat de migratie naar productie gaat.
+Architect ADR 0023 → punt 3 voordat de migratie naar productie gaat.
 
 ### Besluit 6: wat als query 4 een tabel toont waarop de guard niet kan?
 
 Na de bouw (PR #150) gevraagd. De guardlijst wordt bij het draaien bepaald
-(Migratie `0041` → punt 4). Heeft het gehoste project een storage-tabel
+(Migratie `0042` → punt 4). Heeft het gehoste project een storage-tabel
 waarop een API-rol TRUNCATE heeft en `postgres` geen TRIGGER, dan faalt
-`0041` bij de push. Besluit 1 dekte alleen "de controle slaagt" en "de
+`0042` bij de push. Besluit 1 dekte alleen "de controle slaagt" en "de
 controle faalt", niet dit tussengeval: de guard kan wel op `objects` en
 `buckets`, maar niet op een andere tabel.
 
 - **Optie A: gedeeltelijke guard.** De guard komt op elke tabel waar het
   kan. De tabellen waar het niet kan, worden besloten restrisico. Dat gaat
-  niet stil: de Architect zet ze met naam in de spec en in ADR 0022, en de
+  niet stil: de Architect zet ze met naam in de spec en in ADR 0023, en de
   migratie en de invariant noemen ze als expliciete uitzondering. De
   migratie blijft falen op elke tabel die niet in die lijst staat.
 - **Optie B: volledige terugval**, zoals Besluit 1 bij een mislukte
@@ -682,14 +683,14 @@ naam vast.
 **Besluit 6 (Bram, 2026-10-02): optie A, de gedeeltelijke guard.** Speelt
 alleen als query 4 een rij met `postgres_trigger = f` toont. Dan past de
 Developer de migratie en de invariant aan, nadat de Architect de
-uitzonderingen met naam in de spec en in ADR 0022 heeft gezet. Wijken
+uitzonderingen met naam in de spec en in ADR 0023 heeft gezet. Wijken
 query 1 of 2 af, dan blijft Besluit 1 gelden (optie B).
 
 ## Rebase op main 0040 (2026-10-05)
 
 Alleen de rechtenwijziging en tests uit PR #150 (f14a5de) zijn overgenomen.
 De oude branch bevat ook verkoop-draftwijzigingen: die zijn buiten deze
-rebase gehouden. Migratie 0039 is hernummerd naar 0041 en ADR 0019 naar 0022.
+rebase gehouden. Migratie 0039 is hernummerd naar 0042 en ADR 0019 naar 0023.
 De catalogustests van huidig main zijn behouden met één extra interne functie.
 Dit is een hernummering van een bestaande goedgekeurde migratie, geen nieuw
 schemaontwerp. Voor nieuwe migraties blijft de CLI verplicht.
@@ -699,3 +700,15 @@ storage-tabellen. Postgres 17 voegt het ACL-recht MAINTAIN toe; de oude
 letterlijke ACL-verwachting (arwdDxt) moet daardoor arwdDxtm accepteren.
 De checks op de afzonderlijke rechten blijven bepalend. De download-/CI-
 blokkade betekent dat deze herbouw nog niet bewezen geteste productiecode is.
+
+## Gehoste preflight 2026-10-06
+
+De aangesloten Supabase-MCP geeft inmiddels read-only toegang tot productie.
+De vier controles zijn uitgevoerd: Storage-grantor is supabase_storage_admin,
+postgres heeft alle tabelrechten met grant option, postgres TRIGGER is true,
+en default privileges voor postgres geven anon/authenticated de verwachte
+rechten. PostgreSQL 17 voegt MAINTAIN (`m`) toe aan de historische ACL-weergave.
+Alle drie geselecteerde Storage-tabellen (buckets, objects, buckets_analytics)
+geven postgres TRIGGER. Geen uitzondering of gedeeltelijke guard nodig.
+Dit is een preflight, geen migratiepush; voor uitrol blijven review, volledige
+CI na #163 en een recente herstelbare backup vereist.

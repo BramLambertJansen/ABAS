@@ -1,4 +1,4 @@
--- Transactional receipts and negative authorization tests, ADR 0023.
+-- Transactional receipts and negative authorization tests, ADR 0024.
 create extension if not exists pgtap with schema extensions;
 begin;
 select plan(36);

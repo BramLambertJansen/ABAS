@@ -1,5 +1,5 @@
--- CLI-created 20261005133018, renumbered per check:migrations (0042).
--- Approved 2026-10-05: docs/features/geldverzoeken-idempotent.md, ADR 0023.
+-- CLI-created 20261005133018, renumbered per check:migrations (0043).
+-- Approved 2026-10-05: docs/features/geldverzoeken-idempotent.md, ADR 0024.
 -- Additive wrappers preserve the old RPCs for the currently deployed app.
 create table money_requests (
   request_id uuid primary key,

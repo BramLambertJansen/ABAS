@@ -10,7 +10,7 @@ financiële testboekingen op productie gedaan.
 Read-only preflight op 2026-10-06: Postgres 17.6, hoogste migratie 0040, nul
 actieve barsessies en geen money_requests-tabel. De drie Storage-tabellen
 waarop API-rollen TRUNCATE hebben, geven postgres het benodigde TRIGGER-recht.
-Dit bewijst de voorwaarden voor 0041; het voert die migratie niet uit.
+Dit bewijst de voorwaarden voor 0042; het voert die migratie niet uit.
 
 ## Reparatiebranch
 
@@ -20,8 +20,8 @@ Dit bewijst de voorwaarden voor 0041; het voert die migratie niet uit.
   productie en preview mogen niet dezelfde database gebruiken.
 - Node 24, Postgres 17 in CI, Next.js 15.5.27, Sharp 0.35.5 en PostCSS 8.5.29.
   Server-only-grenzen en de AST-importcontrole uit main blijven behouden.
-- Rechten uit #150 als migratie 0041/ADR 0022, inclusief negatieve tests.
-- Goedgekeurde financiële idempotentie (#143), migratie 0042/ADR 0023:
+- Rechten uit #150 als migratie 0042/ADR 0023, inclusief negatieve tests.
+- Goedgekeurde financiële idempotentie (#143), migratie 0043/ADR 0024:
   transactiereceipts, behouden startsaldo, UUID bij retries, expliciet herstel
   na sessiewissel en definitieve annulering die late boekingen blokkeert.
 - Versleutelde backupexportcode en herstelprocedure; handmatige releaseworkflow
@@ -56,10 +56,16 @@ gevalideerde Tailwind-upgrade.
   nog productie; nieuwe previewbuilds worden daarom door de guard geweigerd.
 - Vercel Deployment Checks zijn niet geactiveerd; releaseworkflowcredentials
   ontbreken. Native Git-auto-deploy blijft actief.
-- 0041 en 0042 zijn niet op productie toegepast. Uitrol vereist de volledige
+- 0042 en 0043 zijn niet op productie toegepast. Uitrol vereist de volledige
   groene CI, review en een recente herstelbare backup volgens het runbook.
 - Op verzoek zijn alleen backupcode en procedure voorbereid. Geen echte
   productie-export, externe opslag, scheduler of restoreproef uitgevoerd.
 
 Zie [platformrunbook](../operations/platform-runbook.md) en
 [backup en herstel](../operations/backup-restore.md) voor de concrete procedures.
+
+PR #163 reserveert 0041/ADR 0022 en gaat eerst naar main. De reparaties zijn
+hernummerd naar 0042/0043 en ADR 0023/0024. Integratie met die sessieguard,
+fixtures en RPC-catalogus plus volledige CI blijft een releasevoorwaarde.
+De actuele dependency-audit telt ook twee matige dev-toolmeldingen via
+postcss-selector-parser naast de zeven hoge meldingen via braces.

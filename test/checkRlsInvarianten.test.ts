@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
 /**
- * check:rls eist dat de twee database-invarianten van ADR 0022 bestaan en
+ * check:rls eist dat de twee database-invarianten van ADR 0023 bestaan en
  * hun kern nog bevatten (docs/features/tabelrechten-api-rollen.md → Gates →
  * check:rls). Dat is een negatieve eis: deze tests bewijzen dat het script
  * rood wordt als een invariant ontbreekt, leeggemaakt is, of zijn kern

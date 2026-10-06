@@ -118,7 +118,8 @@ na zo'n geslaagde test.
 - Dependencies: volledige `npm audit` én `npm audit --omit=dev`. Deze PR
   patcht Next.js naar 15.5.27, Sharp naar 0.35.5 en Next's PostCSS via een
   override naar 8.5.29. Herbeoordeel de override bij een volgende Next-upgrade.
-  Zeven hoge meldingen blijven in dev-tooling via `braces`; npm stelt een
+  Zeven hoge meldingen via `braces` en twee matige via
+  `postcss-selector-parser` blijven in dev-tooling; npm stelt een
   grote Tailwind-upgrade voor. Plan die met CSS-/a11y-regressiecontrole.
 
 ## Open reviewacties
@@ -131,8 +132,8 @@ na zo'n geslaagde test.
 | Eigen previewdatabase | Free-aanmaak geweigerd: twee actieve projecten; geen ander project gewijzigd |
 | Externe backup + restoreproef | Bestanden + herstelprocedure voorbereid; automatische opslag bewust uitgesteld |
 | CI verplicht vóór merge/deploy | Vercel Deployment Check activeren of releaseworkflow configureren |
-| TRUNCATE/TRIGGER-grants | Rechten uit PR #150 op main overgenomen als 0041/ADR 0022; CI vereist |
-| Geld-RPC-idempotentie | Voorstel goedgekeurd; 0042/ADR 0023, clientherstel en concurrencytests voorbereid |
+| TRUNCATE/TRIGGER-grants | Rechten uit PR #150 op main overgenomen als 0042/ADR 0023; CI vereist |
+| Geld-RPC-idempotentie | Voorstel goedgekeurd; 0043/ADR 0024, clientherstel en concurrencytests voorbereid |
 | Postgres 15 lokaal versus 17 productie | Config op 17; volledige CI moet de stack bewijzen |
 
 ## Vervolgronde — besluiten en activering
@@ -143,14 +144,14 @@ gepauzeerd of opgewaardeerd. De previewguard weigert nieuwe builds met de
 productie-URL. Bestaande previewdeployments blijven naar productie wijzen;
 een guard is geen bewijs van werkende volledige isolatie.
 
-Nieuwe financiële wrappers vereisen migratie 0042 vóór de nieuwe app. Het
+Nieuwe financiële wrappers vereisen migratie 0043 vóór de nieuwe app. Het
 buildcontract controleert hun namen en argumenten. De oude RPC's blijven
 bestaan voor een compatibele overgang. Hun oorspronkelijke retryrisico verdwijnt
 pas zodra alle clients de nieuwe versie gebruiken. Wrappers hebben EXECUTE
 voor authenticated en service_role zodat de server-side schemacontrole ze kan
 zien; beide doorlopen dezelfde sessieguards. De receipt-tabel en interne
 helpers geven geen API-rol toegang. De migratie is door de CLI aangemaakt en
-naar 0042 hernummerd volgens de repo-conventie.
+naar 0043 hernummerd volgens de repo-conventie.
 
 Voor backups koos Bram uitsluitend de bestanden en procedure voor te bereiden.
 Zie [backup-restore](backup-restore.md) en `scripts/backup-platform.mjs`.
@@ -190,5 +191,19 @@ tweede factor vereisen; een bardienst kan zijn eigen baracties herstellen.
 Productiepreflight 2026-10-06 (alleen lezen): versie 0040, nul actieve
 barsessies, money_requests nog afwezig. De Storage-tabellen met API-TRUNCATE
 (buckets, objects, buckets_analytics) bieden postgres het benodigde TRIGGER-recht.
-Geen 0041/0042 toegepast. De concrete CI-status staat bij PR #162; oudere
+Geen 0042/0043 toegepast. De concrete CI-status staat bij PR #162; oudere
 groene deelcontroles zijn geen goedkeuring voor een nieuwere head.
+
+### Volgorde met sessiebeveiliging (#163)
+
+PR #163 reserveert migratie 0041 en ADR 0022 en gaat vóór deze PR naar main.
+De rechtenmigratie gebruikt daarom 0042/ADR 0023, financiële receipts
+0043/ADR 0024. Na de merge van #163 moet deze branch opnieuw met main worden
+samengevoegd, inclusief auth.sessions-fixtures, de uitgebreidere RPC-catalogus
+en volledige CI. De huidige CI tegen 0040 bewijst die combinatie nog niet.
+Geen productiepush vanuit deze branch zolang 0041 ontbreekt.
+
+Voor 0042 gelden bovendien de vier read-only preflightqueries uit de
+goedgekeurde rechtenspec (ACL/grantor Storage, postgres TRIGGER, default ACL
+public en alle Storage-tabellen met API-TRUNCATE). Bewaar hun resultaat voor
+review vóór de push; een afwijking volgt de vastgelegde terugvalbesluiten.

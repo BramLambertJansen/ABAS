@@ -142,7 +142,7 @@ select ok(
   'reverse_order_as_admin blijft aanroepbaar voor een ingelogde sessie'
 );
 
--- Added for 0022_lid_account_koppelen.sql (#15, docs/features/portal-login.md):
+-- Added for 0023_lid_account_koppelen.sql (#15, docs/features/portal-login.md):
 -- named checks naast the blanket "geen enkele functie in public"-assertions
 -- above (die dekken deze functie al automatisch, maar een falende run zou
 -- daar alleen "er zijn er N te veel" tonen, niet wélke — vandaar ook hier

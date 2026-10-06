@@ -502,7 +502,7 @@ reset role;
 
 -- ── Blok 7: als anon ─────────────────────────────────────────────────────
 -- De anon-key staat in elke client. Alle vijf de leespolicies zijn `to
--- authenticated`. Sinds 0041 ontbreken bovendien de tabelrechten voor
+-- authenticated`. Sinds 0042 ontbreken bovendien de tabelrechten voor
 -- anon: de database weigert SELECT voordat een leespolicy wordt toegepast.
 -- Dat anon de helper niet kan uitvoeren staat in rpc_execute_grants.test.sql.
 

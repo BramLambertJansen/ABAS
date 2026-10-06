@@ -12,7 +12,7 @@
 // over de broncode van de migraties ze niet kan zien: dat geen API-rol een
 // tabelrecht heeft dat RLS omzeilt (TRUNCATE, REFERENCES, TRIGGER, en voor
 // `anon` elk recht), en dat elke bucket werkzame limieten heeft. Die toetst
-// de database zelf, in twee pgTAP-invarianten (ADR 0022,
+// de database zelf, in twee pgTAP-invarianten (ADR 0023,
 // docs/features/tabelrechten-api-rollen.md → Gates). Dit script eist alleen
 // dat die invarianten er zijn en hun kern nog bevatten (zie onderaan); of ze
 // kloppen, bewijst `db:test`.
@@ -60,10 +60,10 @@ for (const table of tables) {
 // Money tables: REVOKE must be explicit somewhere in migrations, per
 // CLAUDE.md → Architectuurbeslissingen. Names hardcoded because "which
 // tables are money tables" is a judgment call a script can't infer.
-// Bewust geen eis op `truncate`/`references`/`trigger` hier (ADR 0022,
+// Bewust geen eis op `truncate`/`references`/`trigger` hier (ADR 0023,
 // spec → Besluit 4): de invariant in tabelrechten_api_rollen.test.sql dekt
 // de geldtabellen al, net als elke andere tabel, en een lexicale eis zou na
-// de projectbrede revoke van 0041 meteen voldaan zijn zonder iets te bewijzen.
+// de projectbrede revoke van 0042 meteen voldaan zijn zonder iets te bewijzen.
 const MONEY_TABLES = ["orders", "order_lines", "top_ups", "members", "order_reversals"];
 for (const table of MONEY_TABLES) {
   if (tables.includes(table)) {
@@ -92,7 +92,7 @@ for (const table of MONEY_TABLES) {
 // een latere `update storage.buckets set file_size_limit = null` glipt er
 // lexicaal langs. De echte gate is de invariant in
 // supabase/tests/storage_bucket_limieten.test.sql, die elke rij van
-// storage.buckets na alle migraties toetst (ADR 0022, spec → Besluit 3).
+// storage.buckets na alle migraties toetst (ADR 0023, spec → Besluit 3).
 const migrationSqlNoComments = migrationSql.replace(/--.*$/gm, "");
 const bucketInsertRe = /insert\s+into\s+storage\.buckets\b([^;]*);/gi;
 const buckets = [];
@@ -125,7 +125,7 @@ for (const policy of storagePolicies) {
   }
 }
 
-// Invarianten in de database (ADR 0022, docs/features/tabelrechten-api-
+// Invarianten in de database (ADR 0023, docs/features/tabelrechten-api-
 // rollen.md → Gates → check:rls). Verplicht: wie een van de twee bestanden
 // weghaalt of uitkleedt, krijgt al bij de pre-commit hook een fout. Lexicaal
 // en daarmee zwak, maar het doel is beperkt: of de invariant klopt, bewijst
@@ -145,13 +145,13 @@ const INVARIANTS = [
 for (const { file, what, needles } of INVARIANTS) {
   const path = join(testsDir, file);
   if (!existsSync(path)) {
-    problems.push(`supabase/tests/${file}: ontbreekt — de invariant "${what}" is verplicht (ADR 0022)`);
+    problems.push(`supabase/tests/${file}: ontbreekt — de invariant "${what}" is verplicht (ADR 0023)`);
     continue;
   }
   const sql = readFileSync(path, "utf8").replace(/--.*$/gm, "");
   for (const needle of needles) {
     if (!sql.includes(needle)) {
-      problems.push(`supabase/tests/${file}: noemt ${needle} niet meer (buiten commentaar) — de invariant "${what}" is uitgekleed (ADR 0022)`);
+      problems.push(`supabase/tests/${file}: noemt ${needle} niet meer (buiten commentaar) — de invariant "${what}" is uitgekleed (ADR 0023)`);
     }
   }
 }

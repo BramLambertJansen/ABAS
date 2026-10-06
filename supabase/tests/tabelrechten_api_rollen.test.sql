@@ -1,6 +1,6 @@
 -- Invariant: API-rollen hebben geen tabelrechten die RLS omzeilen
--- (docs/features/tabelrechten-api-rollen.md → Gates, invariant 1; ADR 0022;
--- migratie 0041). Run met `npm run db:test`.
+-- (docs/features/tabelrechten-api-rollen.md → Gates, invariant 1; ADR 0023;
+-- migratie 0042). Run met `npm run db:test`.
 --
 -- Zelfde opbouw als rpc_execute_grants.test.sql, dat hetzelfde probleem voor
 -- functies bewaakt:
@@ -15,7 +15,7 @@
 -- PUBLIC of een rollidmaatschap binnenkomt), zonder iets te legen.
 --
 -- `service_role` en `postgres` vallen bewust buiten de tellende asserties
--- (spec → "service_role: niet aanraken", ADR 0022 → punt 4). Sectie 4 toetst
+-- (spec → "service_role: niet aanraken", ADR 0023 → punt 4). Sectie 4 toetst
 -- juist dat `service_role` zijn rechten houdt.
 
 create extension if not exists pgtap with schema extensions;
@@ -26,7 +26,7 @@ select plan(22);
 -- Elke relatie in public die een API-rol zou kunnen raken: tabellen,
 -- gepartitioneerde tabellen, views, materialized views, foreign tables.
 -- Ook een relatie van een extensie telt mee: die valt buiten de `alter
--- default privileges` van 0041, en dan hoort deze invariant rood te worden.
+-- default privileges` van 0042, en dan hoort deze invariant rood te worden.
 create temp view api_relaties as
   select c.oid, c.relname::text as naam
     from pg_class c
@@ -54,8 +54,8 @@ select is(
 
 -- ── 2) storage: TRUNCATE is geblokkeerd door de guard ────────────────────
 --
--- Op de storage-tabellen (van supabase_storage_admin) kan 0041 de rechten
--- niet intrekken; daar staat een BEFORE TRUNCATE-guard (ADR 0022 → punt 3).
+-- Op de storage-tabellen (van supabase_storage_admin) kan 0042 de rechten
+-- niet intrekken; daar staat een BEFORE TRUNCATE-guard (ADR 0023 → punt 3).
 -- Elke storage-tabel waarop anon of authenticated TRUNCATE heeft, moet die
 -- guard hebben, ingeschakeld, vóór, per statement. Een Supabase-upgrade
 -- die een storage-tabel toevoegt, maakt dit rood tot de guard erop staat.
@@ -99,7 +99,7 @@ select throws_ok(
 reset role;
 
 -- De guard weigert alleen API-rollen. service_role (en de eigenaar, en
--- postgres) gaan erdoor (spec → Migratie 0041 punt 4). Als laatste in deze
+-- postgres) gaan erdoor (spec → Migratie 0042 punt 4). Als laatste in deze
 -- sectie: hierna is storage.objects binnen deze transactie leeg.
 set local role service_role;
 select lives_ok(

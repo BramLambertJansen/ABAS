@@ -1,5 +1,5 @@
 -- Negatieve gedragstests bij invariant 1 (tabelrechten_api_rollen.test.sql)
--- (docs/features/tabelrechten-api-rollen.md; ADR 0022; migratie 0041).
+-- (docs/features/tabelrechten-api-rollen.md; ADR 0023; migratie 0042).
 -- Run met `npm run db:test`.
 --
 -- De invariant leest de catalogus. Dit bestand doet wat een aanvaller zou
@@ -7,7 +7,7 @@
 -- te hangen, te lezen en sequences te verzetten, en toetst dat het faalt.
 -- Plus de randen van de storage-guard (omzeilen via cascade, `only`,
 -- uitschakelen, weghalen, replica-modus, rolwissel) en de default privileges
--- voor een tabel die na 0041 wordt aangemaakt.
+-- voor een tabel die na 0042 wordt aangemaakt.
 --
 -- Alles binnen de transactie van de test: wat hier toch zou slagen, rolt het
 -- einde van dit bestand terug.
@@ -166,7 +166,7 @@ reset role;
 
 -- Precies de "policy per ongeluk" uit 0027 en Besluit 2: een policy zonder
 -- `to`-clausule geldt voor PUBLIC, dus ook voor anon. Met de tabelrechten
--- van vóór 0041 stond products dan open voor de publishable key.
+-- van vóór 0042 stond products dan open voor de publishable key.
 create policy tst_per_ongeluk_open on public.products for select using (true);
 
 set local role anon;
@@ -232,7 +232,7 @@ select throws_ok(
 -- toetst SET ROLE tegen de sessiegebruiker, en die is in pgTAP `postgres`,
 -- dus de test zou niets bewijzen. Via PostgREST is de sessiegebruiker
 -- `authenticator`, dat lid is van service_role: wie daar willekeurige SQL
--- kan draaien, staat buiten het model van deze guard (ADR 0022).
+-- kan draaien, staat buiten het model van deze guard (ADR 0023).
 reset role;
 
 set local role anon;
@@ -263,22 +263,22 @@ select lives_ok($$ truncate storage.buckets cascade $$,
 select is((select count(*) from storage.buckets where id = 'tst-guard'), 0::bigint,
   'en de truncate van postgres leegde storage.buckets echt');
 
--- ── 4) Een tabel van na 0041 krijgt de verkeerde rechten niet ────────────
+-- ── 4) Een tabel van na 0042 krijgt de verkeerde rechten niet ────────────
 --
--- `alter default privileges` uit 0041 (rol postgres, schema public). Een
+-- `alter default privileges` uit 0042 (rol postgres, schema public). Een
 -- nieuwe tabel met een identity-kolom (dus ook een nieuwe sequence) en een
 -- view, aangemaakt zoals een volgende migratie dat doet.
 
-create table public.tst_na_0041 (
+create table public.tst_na_0042 (
   id bigint generated always as identity primary key,
   naam text
 );
-create view public.tst_na_0041_view as select id, naam from public.tst_na_0041;
+create view public.tst_na_0042_view as select id, naam from public.tst_na_0042;
 
 select is(
   (select coalesce(array_agg(format('%s: %s %s', o.naam, g.rol, p.recht)
                              order by o.naam, g.rol, p.recht), '{}')
-     from (values ('tst_na_0041'), ('tst_na_0041_view')) as o(naam)
+     from (values ('tst_na_0042'), ('tst_na_0042_view')) as o(naam)
      cross join (values ('public'), ('anon'), ('authenticated')) as g(rol)
      cross join (values ('TRUNCATE'), ('TRIGGER'), ('REFERENCES')) as p(recht)
     where has_table_privilege(g.rol, format('public.%I', o.naam), p.recht)),
@@ -288,7 +288,7 @@ select is(
 
 select is(
   (select coalesce(array_agg(format('%s: %s', o.naam, p.recht) order by o.naam, p.recht), '{}')
-     from (values ('tst_na_0041'), ('tst_na_0041_view')) as o(naam)
+     from (values ('tst_na_0042'), ('tst_na_0042_view')) as o(naam)
      cross join (values ('SELECT'), ('INSERT'), ('UPDATE'), ('DELETE'),
                         ('TRUNCATE'), ('REFERENCES'), ('TRIGGER')) as p(recht)
     where has_table_privilege('anon', format('public.%I', o.naam), p.recht)),
@@ -301,22 +301,22 @@ select is(
      from (values ('public'), ('anon'), ('authenticated')) as g(rol)
      cross join (values ('USAGE'), ('SELECT'), ('UPDATE')) as p(recht)
     where has_sequence_privilege(g.rol,
-            pg_get_serial_sequence('public.tst_na_0041', 'id'), p.recht)),
+            pg_get_serial_sequence('public.tst_na_0042', 'id'), p.recht)),
   '{}'::text[],
   'de sequence van een nieuwe identity-kolom geeft PUBLIC, anon en authenticated geen recht'
 );
 
 set local role authenticated;
-select throws_ok($$ truncate public.tst_na_0041 $$, '42501', 'permission denied for table tst_na_0041',
-  'authenticated kan een tabel van na 0041 niet legen');
+select throws_ok($$ truncate public.tst_na_0042 $$, '42501', 'permission denied for table tst_na_0042',
+  'authenticated kan een tabel van na 0042 niet legen');
 reset role;
 
--- ── 5) Geld: 0041 verandert niets aan de geld-RPC's ──────────────────────
+-- ── 5) Geld: 0042 verandert niets aan de geld-RPC's ──────────────────────
 --
 -- De motivatie in de spec ("Raakt het geld: nee") steunt erop dat deze
 -- functies security definer zijn en als postgres draaien: dan raakt een
 -- revoke op de API-rollen ze niet. Zou er een security invoker worden, dan
--- heeft de aanroeper na 0041 geen schrijfrecht en valt de bar om.
+-- heeft de aanroeper na 0042 geen schrijfrecht en valt de bar om.
 
 select is(
   (select coalesce(array_agg(f.sig order by f.sig), '{}')
