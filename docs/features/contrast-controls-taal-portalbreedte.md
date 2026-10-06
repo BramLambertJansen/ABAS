@@ -283,8 +283,11 @@ nieuwe e2e-specs `contrast-controls-bar`, `contrast-controls-portal` en
   zetten geen kale `outline-none` meer).
 - **"annuleer" wordt "annuleren"** ook in `LidBestellingenOverlay` (bar-huisstijl
   met kleine letters, dus niet "Annuleren").
-- **Scantest is hoofdletterongevoelig** voor de taalcontrole ("Invite",
-  "Annuleer", "cash").
+- **Taalcontrole in `test/accentContrast.test.ts`:** "Annuleer" wordt
+  hoofdletterongevoelig gezocht (`/\bAnnuleer\b/i`), "Invite" alleen met
+  hoofdletter (`/\bInvite\b/`, dus een kleine-letter "invite" in UI-tekst zou
+  niet gevangen worden) en "cash" wordt niet in UI-tekst gescand: de enige
+  cash-controle is `methodLabel("cash") === "contant"`.
 - **Font:** Manrope zelf gehost; de terugvaloptie (systeemstack, besluit 14)
   is niet nodig geweest. Bestand: latin-subset (variabel, 200-800) uit
   `@fontsource-variable/manrope@5.3.0` (SIL OFL 1.1, tarball-integriteit tegen
