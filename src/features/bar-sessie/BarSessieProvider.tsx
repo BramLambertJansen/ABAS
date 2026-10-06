@@ -352,7 +352,7 @@ function BarSessieScope({ children, auth, melding, setMelding, bevestigLogin }: 
   return (
     <BarSessieContext.Provider value={waarde}>
       {children}
-      {fase === "actief" && <EerdereGeldActie />}
+      {fase === "actief" && <EerdereGeldActie key={waarde.session?.id} />}
       {melding && <SessieMeldingOverlay melding={melding} onClose={() => setMelding(null)} />}
       {toast && (
         <div

@@ -25,7 +25,7 @@ test("lost response, remount, reset and reload reuse a persisted UUID", async ()
   await runMoneyRequest(f.client, "top_up", args, { ...f.environment });
   assert.equal(f.calls[0].p_request_id, f.calls[1].p_request_id);
   assert.equal(f.calls[0].name, "top_up_once");
-  f.response({ data: { id: "booking" }, error: null });
+  f.response({ data: { id: "booking", amount_cents: 100 }, error: null });
   await runMoneyRequest(f.client, "top_up", args, f.environment);
   assert.equal(f.storage.size, 0);
   await runMoneyRequest(f.client, "top_up", args, f.environment);
@@ -67,7 +67,7 @@ test("overlapping requests acquire the same intent before either response arrive
   const f = fixture();
   let release!: () => void;
   const pending = new Promise<void>((resolve) => { release = resolve; });
-  f.client.rpc = async (name, args) => { f.calls.push({ name, ...args }); await pending; return { data: { id: "one" }, error: null }; };
+  f.client.rpc = async (name, args) => { f.calls.push({ name, ...args }); await pending; return { data: { id: "one", amount_cents: 100 }, error: null }; };
   const one = runMoneyRequest(f.client, "top_up", args, f.environment);
   const two = runMoneyRequest(f.client, "top_up", args, f.environment);
   await new Promise((resolve) => setTimeout(resolve, 0));
@@ -96,9 +96,9 @@ test("lookup of completed booking releases intent, session or transport errors p
   f.response({ data: null, error: { message: "session_ended", code: "P0001" } });
   await inspectPendingMoneyRequest(f.client, "top_up", false, f.environment);
   assert.equal(f.storage.size, 1);
-  f.response({ data: { status: "completed", result: { id: "original" } }, error: null });
+  f.response({ data: { status: "completed", result: { id: "original", amount_cents: 100 } }, error: null });
   const result = await inspectPendingMoneyRequest(f.client, "top_up", false, f.environment);
-  assert.deepEqual(result.data, { status: "completed", result: { id: "original" } });
+  assert.deepEqual(result.data, { status: "completed", result: { id: "original", amount_cents: 100 } });
   assert.equal(f.storage.size, 0);
 });
 
@@ -128,4 +128,12 @@ test("a retry queued behind cancellation keeps the original key instead of silen
   finish(); await Promise.all([cancel, retry]);
   assert.equal(f.calls[2].p_request_id, original);
   assert.equal(f.storage.size, 0);
+});
+
+test("a malformed success response cannot discard an unresolved intent", async () => {
+  const f = fixture();
+  f.response({ data: {}, error: null });
+  const result = await runMoneyRequest(f.client, "top_up", args, f.environment);
+  assert.equal(result.error?.message, "invalid_money_response");
+  assert.equal(f.storage.size, 1);
 });

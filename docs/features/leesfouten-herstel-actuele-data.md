@@ -1,7 +1,9 @@
 # Herstelbare leesfouten en actuele portaldata
 
-**Status: deels gebouwd (PR #159, a34bed6): alles behalve het
-PortalShellHome-deel, dat wacht op #115.** Zie "Zoals gebouwd" onderaan.
+**Status: gebouwd. PR #159 (a34bed6) bouwde alles behalve het
+PortalShellHome-deel; dat is gebouwd in PR #164 (d9c86f8, #115, zie
+[`portal-sessielookup-laadfout.md`](portal-sessielookup-laadfout.md)).** Zie
+"Zoals gebouwd" onderaan.
 Goedgekeurd door de Architect namens Bram (2026-10-05). Bram heeft voor dit
 ticket uitdrukkelijk gezegd dat de Architect de keuzes zelf maakt (de "stel de
 vraag en wacht"-regel uit `CLAUDE.md` is hier opgeheven); de keuzes staan onder
@@ -549,8 +551,8 @@ vertraagde en onderschepte routes via `page.route`), negatieve gevallen
 eerst:**
 1. Portal, `members`-lookup geeft 500, daarna netwerkfout: geen "niet
    gekoppeld" (dat blijft voor de ongekoppelde account, bestaande spec), wel
-   de laad-/serverfout met "Opnieuw proberen" (de assertie hangt aan #115;
-   T08 test alleen dat dit blijft). Retry herstelt zonder login.
+   de laad-/serverfout met "Opnieuw proberen" (gebouwd in #115, getest in
+   `e2e/leesfouten-herstel.spec.ts`). Retry herstelt zonder login.
 2. Portal, saldo-/transactie-/instellingenlezing faalt: `LeesFout`; retry
    herstelt; foutmelding verschilt tussen verbinding en server (code
    zichtbaar, geen ruwe fout).
@@ -609,7 +611,7 @@ eerst:**
 ## Expliciet buiten scope
 
 - Alles uit "Niet gebouwd, losse follow-ups".
-- De foutclassificatie van `usePortalSession` zelf (#115).
+- De foutclassificatie van `usePortalSession` zelf (gebouwd in #115, PR #164).
 - #78, #51, #67 (zie hierboven).
 - Realtime, polling, een gedeelde cache/query-client, offline- of
   PWA-uitbreiding, offlineboekingen, service-worker-caching.
@@ -687,27 +689,30 @@ staan er expliciet bij.
 ### Besluiten
 
 De 15 besluiten onder "Besluiten Architect" zijn namens Bram door de Architect
-genomen (2026-10-05) en zijn zo gebouwd, behalve de besluiten (of delen
-daarvan) die aan `usePortalSession` en `PortalShellHome` hangen en op #115
-wachten (zie "Niet gebouwd" hieronder):
+genomen (2026-10-05) en zijn zo gebouwd. De besluiten die aan
+`usePortalSession` en `PortalShellHome` hangen (1, 6 en 14) zijn in PR #164
+(#115) gebouwd; de afwijkingen staan in
+[`portal-sessielookup-laadfout.md`](portal-sessielookup-laadfout.md) →
+"Zoals gebouwd":
 
-- **Besluit 1:** de foutclassificatie van `usePortalSession` is van #115 en dus
-  niet gebouwd.
-- **Besluit 6, deels:** de laatste-request-wint-guard in de portalhooks is er;
-  `key={userId}` op `PortalDashboard` niet.
-- **Besluit 14:** de achtergrondlookup die een ingelogd dashboard laat staan
-  (geen terugval naar `loading` of fout) is niet gebouwd. Zolang #115 openstaat
-  geldt dit gedrag dus nog niet; de randgevallenregel "Auth-event bij
-  tabterugkeer terwijl lookup faalt" beschrijft het beoogde, nog niet gebouwde
-  gedrag.
+- **Besluit 1:** de foutclassificatie van `usePortalSession` is gebouwd
+  (`status: "error"` met `loadErrorMessage`; `denied` is alleen "geen rij").
+- **Besluit 6:** de laatste-request-wint-guard in de portalhooks is er, en
+  `usePortalSession` heeft nu ook een `request`-teller plus `inflight`;
+  `userId` in `signed-in` en `key={userId}` op `PortalDashboard` zijn gebouwd.
+- **Besluit 14:** een mislukte achtergrondlookup (en een mislukte
+  `getSession()` bij `signed-in`) laat het dashboard staan; een verdwenen rij
+  is `denied`. Gebouwd, met als aanvulling dat `INITIAL_SESSION` zonder sessie
+  wordt genegeerd.
 
-### Niet gebouwd: wacht op #115
+### Het `PortalShellHome`-deel (voorheen "wacht op #115")
 
-Het `PortalShellHome`-deel: `userId` in de `signed-in`-staat plus
-`key={userId}` op `PortalDashboard`, de achtergrondlookup die niet terugvalt
-naar `loading`/fout, de `getSession`-catch, en de foutclassificatie van
-`usePortalSession`. `usePortalSession.ts` en `PortalShellHome.tsx` zijn
-onaangeroerd; #115 is de eigenaar.
+Gebouwd in #164: `userId` plus `key={userId}`, de achtergrondlookup, de
+`getSession`-catch, de foutclassificatie, het foutscherm (`LeesFout` met
+"Opnieuw proberen" en "Uitloggen") en de focus naar de dashboardkop of de
+`denied`-melding. Daarmee zijn de `PortalShellHome`-delen van epic #128 klaar.
+Niet handmatig getest: vliegtuigmodus op een telefoon, en een tabwissel met
+wegvallend netwerk.
 
 ### Bewust buiten scope gebleven
 
@@ -747,7 +752,6 @@ De gemockte tests dekken dit niet; er wordt niets over beweerd.
 - Stale-while-revalidate op de bar (nu bewust fail-closed, besluit 2).
 - Verlopen-sessiemelding.
 - De module-vlag in `useFocusNaFaseFout` robuuster maken.
-- Het `PortalShellHome`-deel na #115.
 
 ### ADR
 

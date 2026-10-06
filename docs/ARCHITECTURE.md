@@ -302,6 +302,26 @@ stands. Shared pieces, all additive to the T05 contract:
 Consequence: a truly hanging money request keeps its dialog blocked until
 reload. Not covered: `TweestapSheet`, manual Safari/touch/screen-reader run.
 
+**Beheerformulieren en catalogus (built and merged, #131, PR #169, `5610f7c`;
+`docs/features/beheerformulieren-catalogus.md`)**: no ADR, frontend only (no
+database, RPC, policy or auth change). Additive to the T05/T06 contract:
+- `Overlay` props **`variant`** (`"standaard" | "detail"`) and **`meta`**: in the
+  modal form `detail` is wider with a fixed header (title, description, `meta`,
+  Sluiten) and a scrolling body; focus, inert, scroll-lock and close rules run
+  through the same code. In sheet form `detail` shows the detail header (with Sluiten) but it is not
+  fixed: header, body and footer scroll together in the sheet's single
+  scroll container (no portal consumer yet). Only "Lid beheren" uses it.
+- `OpslaanSectie` props `label`, `kop`, `status`, `statusTekst` and the pure
+  `sectieStatus` in `src/lib/opslaan.ts`: a visible "Niet opgeslagen"/"Opgeslagen"
+  line per section replaces the toast in "Lid beheren".
+- `src/components/ZoekVeld.tsx` and `StatusFilter.tsx`, lifted from
+  `LedenLijst` and also used by `ProductenLijst`; other search fields keep their
+  own variants.
+- Feature-local pure logic: `assortimentbeheer/beheerProductFilter.ts`,
+  `assortimentbeheer/laatsteActieveType.ts`,
+  `ledenbeheer/contactadresTeksten.ts`. The inline warning for archiving the
+  last active activity type is a warning, not a ban (no server guard).
+
 **Invoerfeedback, ledenzoeker en productfilters (built and merged, #127, PR #152,
 `3a8d13e`; `docs/features/invoerfeedback-zoeken-filters.md`)**: no ADR, no
 database, RPC or policy change. Shared pieces:
@@ -334,7 +354,7 @@ database, RPC or policy change. Shared pieces:
   (which shows the inline confirmation first): a member switch clears a filled
   cart only for another member.
 
-**Recoverable read errors and current portal data (T08, #128; built in part,
+**Recoverable read errors and current portal data (T08, #128; built,
 `docs/features/leesfouten-herstel-actuele-data.md`)**: no ADR (the spec's
 "ADR nodig?" says no), no RPC, RLS, migration, schema or auth change; only
 existing reads are issued more often. Shared pieces:
@@ -373,13 +393,28 @@ existing reads are issued more often. Shared pieces:
   names load and when they fail. The parameter hooks (`useShiftMembers`,
   `useShiftLedger`, `useShiftSummary`, `useMemberOrders`) have a last-request-wins
   counter.
-- *Not built yet*: the `PortalShellHome` part (`userId` plus `key={userId}` on
-  `PortalDashboard`, a background lookup that does not fall back, the
-  `getSession` catch and the error classification of `usePortalSession`). It
-  waits for #115, which owns that hook; `usePortalSession.ts` and `PortalShellHome.tsx` are untouched. Also out
-  of scope: `useBeheerSession`, #78, #51, #67, a session-expired message. Not
-  verified live: a real booking on the bar followed by a portal refresh,
-  flight mode, Safari/Android behaviour of `visibilitychange`/`online`.
+- `PortalShellHome` part (built in #115, PR #164,
+  `docs/features/portal-sessielookup-laadfout.md`): `usePortalSession` has a
+  separate `error` state (`loadErrorMessage`; `denied` now only means "lookup
+  succeeded, no `members` row"), `userId` in `signed-in` with
+  `key={userId}` on `PortalDashboard`, a request counter plus in-flight skip,
+  and a background lookup (same `userId` already `signed-in`) whose failure
+  leaves the dashboard standing. The decision table is the pure, unit-tested
+  `src/lib/portalSessie.ts` (no React, no Supabase). `INITIAL_SESSION` without
+  a session is ignored; `getSession()` decides, and a retryable fetch error
+  there (`isAuthRetryableFetchError`) is `error`, not `signed-out`. Module
+  boundaries: `src/lib/supabase/authErrors.ts` re-exports that one pure
+  function so hooks need not import a Supabase package (`check:arch`);
+  `portalClient.ts` exports `wisPortalSessieLokaal()` (clears only the
+  `PORTAL_COOKIE` `sb-portal-v2-auth-token` and its `.N` chunks, never the
+  bar/beheer cookie, ADR 0009), used as the `signOut` fallback when
+  `auth.signOut()` returns an `{error}` before auth-js removes the session.
+  supabase-js serves a failed token refresh from cache for 60 s, so a retry
+  within that minute stays an error screen. Still out of scope:
+  `useBeheerSession`, #78, #51, #67, a session-expired message. Not verified
+  live: a real booking on the bar followed by a portal refresh, flight mode on a
+  phone, a tab switch with the network dropping, Safari/Android behaviour of
+  `visibilitychange`/`online`.
 
 **First multi-screen bar navigation (settled, 2026-08-26)**: issue #8 is the
 first time `shells/bar` needed more than one screen behind an open shift.
@@ -1259,14 +1294,37 @@ ADR (ADR 0010/0012 dekken de zichtbaarheid van `reversed_by_name`).
 - *Tijdzone*: `dateLabel` en `monthKey`/`monthLabel` in `transacties.ts`
   gebruiken vast `PORTAL_TIME_ZONE` (`Europe/Amsterdam`) via `Intl.DateTimeFormat`
   met `timeZone`, niet de zone van het apparaat of de CI-runner. Dit is een
-  lokale conventie van het portaltransacties-scherm: `src/lib/date.ts`
-  (`formatDate`, `formatTime`) volgt nog de apparaatzone en is niet
-  aangepast. Geen gate; een unittest (`test/transacties.test.ts`) bewaakt
-  de grenzen.
+  conventie van het portaltransacties-scherm; de constante staat in
+  `src/lib/verversen.ts`. `src/lib/date.ts` heeft sinds #130 (PR #166) ook
+  zone-helpers op diezelfde constante, zie "Datum en tijd in vaste zone"
+  hieronder; `formatDate` en `formatTime` volgen nog de apparaatzone. Geen
+  gate; een unittest (`test/transacties.test.ts`) bewaakt de grenzen.
 - *Navigatie*: `PortalDashboard` blijft eigenaar van `tab`. "Alle
   transacties" roept `onShowAll` aan; na de statuswissel zet een effect de
   focus op `tabElementId(idBase, "transacties")` (bestaande export van
   `src/components/Tabs.tsx`).
+
+## Datum en tijd in vaste zone (gebouwd, #130, PR #166)
+
+Spec: `docs/features/logboek-chronologisch-reikwijdte.md` ("Zoals gebouwd").
+
+- `src/lib/date.ts`: `dagSleutel`, `dagKop(iso, nu)` en `klokTijd` rekenen
+  vast in `Europe/Amsterdam` (`PORTAL_TIME_ZONE` uit `src/lib/verversen.ts`,
+  één constante), niet in de apparaat- of CI-zone. Gebruikers: Logboek en
+  `LidBestellingenOverlay`. `formatDate`, `formatTime` en `ledger.ts`'s
+  `clockLabel` blijven apparaatzone. Een gate die datumweergave zonder
+  `timeZone` weert bestaat nog niet (apart ticket).
+- `src/lib/betaalmethode.ts`: `methodLabel` ("cash" wordt "contant"), gedeeld
+  door portal, dienst-overzicht en Logboek.
+- Logboek-leesbron: `useLogboek` doet drie selects (`orders`, `top_ups`,
+  `order_reversals`), elk met `LOGBOEK_LIMIT + 1` rijen, en voegt samen via de
+  pure `src/hooks/queries/logboekSamenvoegen.ts`. Die staat in de hooklaag
+  omdat `src/hooks/queries/` niets uit `src/features/` importeert (alleen
+  de andere richting; het bestand importeert enkel het type `LogboekEntry`).
+  De presentatielogica (`describeRow`, daggroepen, filters) blijft in
+  `src/features/logboek/logboek.ts`. `useMemberOrders` haalt op dezelfde wijze
+  limiet + 1 op en levert `beperkt`.
+- Geen RPC, migratie of RLS-wijziging.
 
 ## Server/client-grens (settled 2026-10-05)
 
@@ -1302,7 +1360,8 @@ zonder een spec in `docs/features/<naam>.md`:
 
 Inmiddels gebouwd en dus niet meer in deze lijst: het Logboek-scherm (#19,
 PR #85, `docs/features/logboek.md` — alleen beheerder, org-breed, geld en
-aandacht, maximaal 200 rijen) en bestelling terugdraaien (zie Money &
+aandacht, maximaal 200 gebeurtenissen, sinds #130 een chronologische tijdlijn;
+zie "Datum en tijd in vaste zone") en bestelling terugdraaien (zie Money &
 attribution → Bestelling terugdraaien, `docs/features/bestelling-terugdraaien.md`).
 
 ## Design reference

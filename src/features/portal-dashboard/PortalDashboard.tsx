@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type RefObject } from "react";
 import { TabList, TabPanel, tabElementId, type TabItem } from "@/components/Tabs";
 import { SaldoTab } from "./SaldoTab";
 import { TransactiesTab } from "./TransactiesTab";
@@ -44,7 +44,10 @@ export function PortalDashboard({
   email,
   onSignOut,
   onProfileChanged,
+  kopRef,
 }: {
+  /** Focusdoel na een geslaagde retry van de sessielookup (#115). */
+  kopRef?: RefObject<HTMLHeadingElement | null>;
   name: string;
   email: string;
   onSignOut: () => void;
@@ -71,7 +74,11 @@ export function PortalDashboard({
     <main className="flex min-h-screen w-full flex-col bg-canvas font-sans text-ink antialiased">
       <header className="flex flex-none items-center justify-between gap-3 border-b border-border bg-white px-5 py-4">
         <div className="flex min-w-0 flex-col">
-          <h1 className="truncate text-lg font-extrabold tracking-tight text-ink">
+          <h1
+            ref={kopRef}
+            tabIndex={-1}
+            className="truncate text-lg font-extrabold tracking-tight text-ink focus:outline-none"
+          >
             Hoi {firstName}
           </h1>
           {/* Zelfde tekst als de vervangen placeholder (PortalShellHome.tsx)

@@ -509,7 +509,7 @@ test("Nieuw lid: startsaldo en e-mail tonen hun fout bij blur of poging, niet op
   await page.getByRole("button", { name: "nieuw lid" }).click();
   const dialog = page.getByRole("dialog", { name: "Nieuw lid" });
   const saldo = dialog.getByLabel("Startsaldo (optioneel)");
-  const email = dialog.getByLabel("E-mailadres (optioneel)");
+  const email = dialog.getByLabel("Contactadres (optioneel)");
   const toevoegen = dialog.getByRole("button", { name: "Toevoegen" });
 
   await expect(dialog.locator("p.text-danger:not([role=alert])")).toHaveCount(0);
@@ -586,7 +586,7 @@ test("Lid beheren: een ongeldig e-mailadres toont de melding bij blur en poging"
   const rpcs = await beheer(page, "Leden");
   await page.getByRole("button", { name: LID.name }).click();
   const dialog = page.getByRole("dialog", { name: "Lid beheren" });
-  const email = dialog.getByLabel("E-mailadres", { exact: true });
+  const email = dialog.getByLabel("Contactadres", { exact: true });
   await email.fill("naam@voorbeeld");
   await email.blur();
   await expect(dialog.getByText("Dit lijkt geen e-mailadres.", { exact: false })).toBeVisible();

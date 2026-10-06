@@ -117,6 +117,9 @@ select throws_ok($test$select top_up_once('00000000-0000-4000-8000-000000009201'
 set local role service_role;
 select throws_ok('select * from money_requests', '42501', null, 'service role has no receipt table grant');
 reset role;
+-- Recovery of a bar booking remains available to a bardienst, without
+-- silently requiring beheerder privileges in the shared session guard.
+update members set role = 'bardienst' where id = '00000000-0000-4000-8000-000000009101';
 select pg_temp.act_as_bar('00000000-0000-4000-8000-000000009101', '00000000-0000-4000-8000-000000009110', '00000000-0000-4000-8000-000000009140');
 select is((inspect_money_request('00000000-0000-4000-8000-000000009201', 'top_up', jsonb_build_array('00000000-0000-4000-8000-000000009110', '00000000-0000-4000-8000-000000009102', 100, 'cash', '00000000-0000-4000-8000-000000009101'), false))->>'status', 'completed', 'new session can inspect old completed request');
 select is((inspect_money_request('00000000-0000-4000-8000-000000009206', 'top_up', jsonb_build_array('00000000-0000-4000-8000-000000009110', '00000000-0000-4000-8000-000000009102', 100, 'cash', '00000000-0000-4000-8000-000000009101'), false))->>'status', 'missing', 'absent receipt is not evidence of failure');

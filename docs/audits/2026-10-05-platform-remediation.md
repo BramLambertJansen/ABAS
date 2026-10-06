@@ -1,72 +1,65 @@
-# Eerste herstelronde platformreview — 2026-10-05
+# Platformherstel ABAS — bijgewerkt 2026-10-06
 
-## Live uitgevoerd
+## Productie en uitgevoerde wijzigingen
 
-Supabase `zlyysbywrvaolpslcbid`: de bestaande main-migraties 0038, 0039 en
-0040 toegepast. Vooraf: nul actieve barsessies en nul openstaande invites.
-De migratiehistorie is gecontroleerd op overeenkomst met de viercijferige
-repositoryversies. Na afloop: hoogste versie 0040; beide nieuwe kolommen,
-beide RPC-signaturen, productbucket en caller_has_bar_role aanwezig; oude
-caller_is_lid-helper en denylist-leespolicies verdwenen; anonieme EXECUTE op
-public-RPC's nul. Geen financiële transacties uitgevoerd.
+Het bestaande Supabase-project `zlyysbywrvaolpslcbid` is productie. Hier zijn
+uitsluitend de bestaande main-migraties 0038–0040 toegepast en gecontroleerd.
+De Vercel-frameworkinstelling is gecorrigeerd naar Next.js. Er zijn geen
+financiële testboekingen op productie gedaan.
 
-Vercel: frameworkinstelling van `vite` naar `nextjs` gecorrigeerd.
-De functionregio `dub1` is een repositorywijziging, actief na deployment.
+Read-only preflight op 2026-10-06: Postgres 17.6, hoogste migratie 0040, nul
+actieve barsessies en geen money_requests-tabel. De drie Storage-tabellen
+waarop API-rollen TRUNCATE hebben, geven postgres het benodigde TRIGGER-recht.
+Dit bewijst de voorwaarden voor 0041; het voert die migratie niet uit.
 
-## Gebouwd in deze branch
+## Reparatiebranch
 
-Server-only-markeringen en transitieve importgate volgens de bestaande
-Architect-spec/ADR 0021. Read-only deployment-contractcheck vóór Vercel-build,
-ook in CI tegen de lokale database. Node 24 gelijk voor CI en productie.
-Next.js 15.5.27, Sharp exact 0.35.5, PostCSS-override 8.5.29 en compatibele
-transitieve patches. README en platformrunbook bijgewerkt.
+[PR #162](https://github.com/BramLambertJansen/ABAS/pull/162) bevat:
 
-## Lokaal bewijs
+- Read-only PostgREST-schema- en omgevingscontrole vóór deployment;
+  productie en preview mogen niet dezelfde database gebruiken.
+- Node 24, Postgres 17 in CI, Next.js 15.5.27, Sharp 0.35.5 en PostCSS 8.5.29.
+  Server-only-grenzen en de AST-importcontrole uit main blijven behouden.
+- Rechten uit #150 als migratie 0041/ADR 0022, inclusief negatieve tests.
+- Goedgekeurde financiële idempotentie (#143), migratie 0042/ADR 0023:
+  transactiereceipts, behouden startsaldo, UUID bij retries, expliciet herstel
+  na sessiewissel en definitieve annulering die late boekingen blokkeert.
+- Versleutelde backupexportcode en herstelprocedure; handmatige releaseworkflow
+  die alleen de actuele main-SHA met succesvolle volledige CI accepteert.
 
-- check:fast groen: lint, typecheck, 642 tests en alle architectuur/policy/
-  RLS/migratie/ADR-gates.
-- Productiebuild met lokale placeholder-configuratie groen (geen live login).
-- Tijdelijke import van sendMemberInvite in de clientcomponent
-  Assortimentbeheer liet Next.js falen op server-only. Importtrace:
-  admin.ts → inviteMember.ts → Assortimentbeheer.tsx. check:arch faalde met
-  dezelfde keten voor admin.ts en server.ts. Tijdelijke wijziging hersteld.
-- npm audit --omit=dev: nul bekende kwetsbaarheden. Volledige audit: zeven
-  hoge meldingen in ontwikkeltools via braces; geen compatibele patch
-  beschikbaar. Grote Tailwind-upgrade apart beoordelen.
+Wijzigingen voor portal-herstel, chronologisch logboek en beheerformulieren
+uit main `17792ede` zijn samengevoegd; de oorspronkelijke werkcheckout is niet
+overschreven. Nieuwe database-RPC's zijn additief voor de overgang.
 
-De volledige CI moet het contract tegen echte PostgREST en de browser-,
-pgTAP- en GoTrue-tests nog bewijzen. De live REST-probe met de door MCP
-geleverde publieke key antwoordde HTTP 401; dit bewijst de HTTP-contractcheck
-op productie niet. De live database is wel rechtstreeks via SQL gecontroleerd.
+## Verificatie
 
-## Nog open
+Lokale lint-, type- en unitcontroles plus architectuur-, policy-, RLS-,
+migratie- en ADR-gates slagen. De productiebuild met lokale placeholderconfig
+slaagde vóór de laatste main-samenvoeging; CI moet de actuele combinatie toetsen.
 
-Zie docs/operations/platform-runbook.md: aparte previewdatabase, afdwingbare
-CI-gate, externe backups + restoreproef, PR #150 (grants, rebase/nummers),
-issue #143 (idempotentie), Postgres-versies gelijkzetten. Geen nieuw betaald
-project, planwijziging of backupopslag aangemaakt.
+CI vond eerst drie verouderde browsermocks en daarna twee databaseproblemen:
+een herstelguard vroeg onbedoeld beheerdersrechten; een oude test verwachtte
+nog anonieme SELECT-rechten. De mocks, guard en tests zijn aangepast. Geen
+volledige CI-goedkeuring of productie-uitrol claimen voordat de actuele head
+ook pgTAP, GoTrue, concurrency en Playwright heeft doorlopen.
 
-## Vervolgronde
+De GPG/tar-exportketen is getest met tijdelijke sleutels en fictieve bestanden;
+CLI-dumpopties zijn gecontroleerd met een dry-run. Dit is geen productiebackup
+of herstelproef. Runtime-audit: nul bekende kwetsbaarheden bij de laatste
+controle; zeven hoge dev-toolmeldingen via braces vragen een afzonderlijk
+gevalideerde Tailwind-upgrade.
 
-Rechten uit #150 uitsluitend overgenomen en op main afgestemd als migratie
-0041/ADR 0022; catalogus en negatieve tests behouden en uitgebreid. Geen merge
-van de oude branch met andere verkoopwijzigingen. Lokale/CI Postgres-major naar 17.
+## Open activering
 
-Bram keurde het financiële voorstel goed met behoud van startsaldo. Nieuwe
-0042/ADR 0023 bevat transactiereceipts en additieve wrappers; browseropslag,
-herstelknop, pgTAP-tests en echte concurrentie-HTTP-tests toegevoegd. De
-Supabase CLI heeft de migratie aangemaakt; vervolgens hernummerd naar 0042.
-Nieuwe previewguard verbiedt productie-URL; productieguard verbiedt staging.
-Backupexportcode en herstelrunbook voorbereid, zonder automatische opslag of
-werkelijke export (keuze Bram). Releaseworkflow met actuele-main-CI-check klaar;
-native Git-auto-deploy blijft actief tot een bewezen alternatief is ingesteld.
+- Free-projectaanmaak voor ABAS Preview is geweigerd op het quotum. Geen ander
+  project is gepauzeerd, verwijderd of opgewaardeerd. Bestaande previews delen
+  nog productie; nieuwe previewbuilds worden daarom door de guard geweigerd.
+- Vercel Deployment Checks zijn niet geactiveerd; releaseworkflowcredentials
+  ontbreken. Native Git-auto-deploy blijft actief.
+- 0041 en 0042 zijn niet op productie toegepast. Uitrol vereist de volledige
+  groene CI, review en een recente herstelbare backup volgens het runbook.
+- Op verzoek zijn alleen backupcode en procedure voorbereid. Geen echte
+  productie-export, externe opslag, scheduler of restoreproef uitgevoerd.
 
-ABAS Preview-aanmaak in PANGU tegen $0/Free geprobeerd na kostenbevestiging.
-Supabase weigerde wegens de limiet van twee actieve Free-projecten. Geen
-bestaand project gepauzeerd, verwijderd of opgewaardeerd. Nieuwe projectchecks
-kunnen niet via de beschikbare Vercel MCP-tools worden aangemaakt.
-
-De eerdere automatische goedkeuringsfout (`Selected model is at capacity`)
-is in deze vervolgronde hersteld: CLI-download en tests konden weer draaien.
-GitHub-publicatie en volledige CI moeten de aanvullende SQL/browserflow bewijzen.
-0041 en 0042 zijn op dit moment niet op productie toegepast.
+Zie [platformrunbook](../operations/platform-runbook.md) en
+[backup en herstel](../operations/backup-restore.md) voor de concrete procedures.

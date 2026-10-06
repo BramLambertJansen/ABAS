@@ -1,6 +1,6 @@
 # ABAS platformrunbook
 
-Gecontroleerd op 2026-10-05. Open acties staan expliciet gemarkeerd.
+Bijgewerkt op 2026-10-06. Het bestaande ABAS-project is productie. Open acties staan expliciet gemarkeerd.
 
 ## Omgevingen
 
@@ -58,7 +58,8 @@ logs. Nieuwe env-vars werken pas na een nieuwe deployment.
 
 `check:deployment` leest met de server-key alleen het PostgREST OpenAPI-schema.
 Hij vereist `products.image_path`, `members.invited_auth_user_id`,
-`set_product_image` en de tweeargumentige `mark_member_invite_sent`.
+`set_product_image`, de tweeargumentige `mark_member_invite_sent`, de drie
+financiële `*_once`-wrappers en `inspect_money_request`, met hun argumenten.
 Hij faalt gesloten bij ontbrekende velden/signaturen, ontbrekende env-vars,
 netwerk-/authfouten of onverwachte antwoorden. Geen datareads of RPC-calls.
 Werk het contract bij als de app nieuwe databasevereisten krijgt.
@@ -175,3 +176,19 @@ Deze workflow alleen stopt de huidige native Git-auto-deploy niet. Schakel die
 pas uit nadat de alternatieve route aantoonbaar werkt, of activeer de native
 Deployment Check. Tot die activering is CI als releasevoorwaarde niet volledig
 afgedwongen; maak `main` hiervoor niet openbaar en wijzig geen betaald plan.
+
+### Financiële herstelcontrole
+
+Een nieuwe bevoegde sessie van hetzelfde account mag via
+`inspect_money_request` het eerdere resultaat opvragen. Een ontbrekend receipt
+bewijst geen mislukking: de client bewaart de sleutel. Expliciete annulering
+schrijft onder dezelfde transactielock een blijvend annuleringsbewijs; een
+late boeking met die sleutel wordt geweigerd. Een bestaande boeking blijft
+bestaan en levert haar eerdere resultaat op. Beheeracties blijven beheer en
+tweede factor vereisen; een bardienst kan zijn eigen baracties herstellen.
+
+Productiepreflight 2026-10-06 (alleen lezen): versie 0040, nul actieve
+barsessies, money_requests nog afwezig. De Storage-tabellen met API-TRUNCATE
+(buckets, objects, buckets_analytics) bieden postgres het benodigde TRIGGER-recht.
+Geen 0041/0042 toegepast. De concrete CI-status staat bij PR #162; oudere
+groene deelcontroles zijn geen goedkeuring voor een nieuwere head.

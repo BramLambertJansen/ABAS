@@ -235,6 +235,41 @@ test.describe("portal (a11y)", () => {
   });
 
   /**
+   * docs/features/portal-sessielookup-laadfout.md (#115) → Teststrategie 11:
+   * de foutstaat van `PortalShellHome`. Echte login (Anna de Vries), alleen
+   * de sessielookup (`members` met `auth_user_id`, zonder `balance_cents`)
+   * krijgt een 500, zodat `usePortalSession` op `error` komt.
+   */
+  test("portal (/portal) sessielookup-foutstaat has no WCAG2A/AA violations", async ({ page }) => {
+    await page.route(/\/rest\/v1\/members\?/, (route) => {
+      const url = decodeURIComponent(route.request().url());
+      if (!url.includes("auth_user_id=eq.") || url.includes("balance_cents")) return route.fallback();
+      return route.fulfill({
+        status: 500,
+        contentType: "application/json",
+        headers: { "access-control-allow-origin": "*" },
+        body: JSON.stringify({ code: "PGRST301", message: "kapot", details: null, hint: null }),
+      });
+    });
+    await portalLoginMetWachtwoord(page, "anna.de.vries@aurora.local", "local-lid-dev-only");
+    const fout = page.locator('[role="alert"]:not(#__next-route-announcer__)');
+    await expect(fout).toContainText("Kan je account niet laden.", { timeout: 15_000 });
+    await expect(page.getByRole("button", { name: "Opnieuw proberen" })).toBeVisible();
+    await expect(page.getByText("Dit account is niet gekoppeld aan een lid.")).toHaveCount(0);
+    for (const knop of ["Opnieuw proberen", "Uitloggen"]) {
+      const box = await page.getByRole("button", { name: knop }).boundingBox();
+      expect(box!.height).toBeGreaterThanOrEqual(44);
+    }
+
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+
+    expect(results.violations, JSON.stringify(results.violations, null, 2))
+      .toEqual([]);
+  });
+
+  /**
    * docs/features/portal-dashboard.md (#16) → Randgevallen → "a11y": de
    * laag-saldo-variant, nog niet gedekt door het scenario hierboven (Anna
    * de Vries zit boven de €10-drempel). Piet Bakker (seeded `lid`,
@@ -579,6 +614,34 @@ test.describe("beheer ingelogde staat (a11y)", () => {
       .toEqual([]);
   });
 
+  /**
+   * docs/features/beheerformulieren-catalogus.md (#131) → Teststrategie →
+   * A11y: de nieuwe zoek- en chipsbalk van de productenlijst, in de
+   * standaardstand en met een zoekterm zonder treffers (lege uitkomst met
+   * "Zoekopdracht wissen").
+   */
+  test("beheer (/beheer) Assortiment-tab met zoeken en statuschips has no WCAG2A/AA violations", async ({
+    page,
+  }) => {
+    await loginAsBeheerder(page);
+    await page
+      .getByRole("heading", { name: "Assortiment" })
+      .waitFor({ state: "visible", timeout: 15_000 });
+
+    await page.getByRole("button", { name: /^Uit assortiment/ }).click();
+    await page.getByLabel("Zoek product op naam of categorie").fill("zzzzzz-geen-treffer");
+    await page
+      .getByRole("button", { name: "Zoekopdracht wissen" })
+      .waitFor({ state: "visible", timeout: 15_000 });
+
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa"])
+      .analyze();
+
+    expect(results.violations, JSON.stringify(results.violations, null, 2))
+      .toEqual([]);
+  });
+
   test("beheer (/beheer) Instellingen-tab (ingelogd) has no WCAG2A/AA violations", async ({
     page,
   }) => {
@@ -776,7 +839,7 @@ test.describe("beheer ingelogde staat (a11y)", () => {
    * "one test per screen, several passes as the screen's own state changes"
    * shape as the Dienst-scherm test's open-filter-dropdown second pass
    * above — because the spec's Randgevallen table also calls out the
-   * Assortiment-/Leden-filterchip's "Nog niets vastgelegd"-lege-staat (geen
+   * Assortiment-/Leden-filterchip's "Nog niet geregistreerd"-lege-staat (geen
    * databron, geen foutmelding) as a state worth covering here, not a new
    * scenario type of its own.
    */
@@ -804,10 +867,10 @@ test.describe("beheer ingelogde staat (a11y)", () => {
       .toEqual([]);
 
     // Randgevallen → "Assortiment-/Leden-filter aangetikt": geen databron,
-    // dus de "Nog niets vastgelegd"-lege-staat — geen foutmelding.
+    // dus de eerlijke "Nog niet geregistreerd"-lege-staat — geen foutmelding.
     await page.getByRole("button", { name: "Assortiment" }).click();
     await page
-      .getByText("Nog niets vastgelegd")
+      .getByText("Nog niet geregistreerd")
       .waitFor({ state: "visible", timeout: 15_000 });
 
     const filteredResults = await new AxeBuilder({ page })

@@ -6,6 +6,8 @@ import { useLeesHerstel } from "@/hooks/useLeesHerstel";
 import { useAlleLeden, type LedenbeheerLid } from "@/hooks/queries/useAlleLeden";
 import { useAppSettings } from "@/hooks/queries/useAppSettings";
 import { formatCents } from "@/lib/money";
+import { ZoekVeld } from "@/components/ZoekVeld";
+import { StatusFilter as StatusChips } from "@/components/StatusFilter";
 import { InitialsAvatar } from "@/components/InitialsAvatar";
 import { NieuwLidOverlay } from "./NieuwLidOverlay";
 import { LidBeherenOverlay } from "./LidBeherenOverlay";
@@ -116,55 +118,23 @@ export function LedenLijst() {
         )}
       </div>
 
-      <div className="relative flex flex-none items-center">
-          <svg
-            width="17"
-            height="17"
-            viewBox="0 0 17 17"
-            fill="none"
-            aria-hidden="true"
-            className="pointer-events-none absolute left-[19px] top-1/2 -translate-y-1/2"
-          >
-            <circle cx="7.2" cy="7.2" r="5" stroke="#aca69e" strokeWidth="1.7" />
-            <line x1="11" y1="11" x2="15" y2="15" stroke="#aca69e" strokeWidth="1.7" strokeLinecap="round" />
-          </svg>
-        <label htmlFor="ledenbeheer-search" className="sr-only">
-          Zoek lid op naam
-        </label>
-        <input
-          id="ledenbeheer-search"
-          type="search"
-          placeholder="Zoek lid op naam"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          className="h-[52px] w-full rounded-[14px] border border-border bg-white pl-[46px] pr-[18px] text-[14.5px] font-medium text-ink outline-none placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
-        />
-      </div>
+      <ZoekVeld
+        id="ledenbeheer-search"
+        label="Zoek lid op naam"
+        placeholder="Zoek lid op naam"
+        waarde={query}
+        onChange={setQuery}
+      />
 
-      <div className="flex flex-none flex-wrap gap-2" role="group" aria-label="Status">
-        {STATUS_FILTERS.map((f) => (
-          <button
-            key={f.id}
-            type="button"
-            aria-pressed={filter === f.id}
-            onClick={() => setFilter(f.id)}
-            className={`flex h-11 items-center gap-2 whitespace-nowrap rounded-full border px-[18px] text-[13.5px] font-bold transition-colors ${
-              filter === f.id
-                ? "border-ink bg-ink text-white"
-                : "border-border bg-white text-muted-strong hover:border-ink"
-            }`}
-          >
-            {f.label}
-            <span
-              className={`text-[11px] font-extrabold ${
-                filter === f.id ? "text-white/70" : "text-muted"
-              }`}
-            >
-              {counts[f.id]}
-            </span>
-          </button>
-        ))}
-      </div>
+      <StatusChips
+        opties={STATUS_FILTERS.map((f) => ({
+          id: f.id,
+          label: f.label,
+          aantal: counts[f.id],
+          actief: filter === f.id,
+          onKies: () => setFilter(f.id),
+        }))}
+      />
 
       {members.status === "loading" && !herstel.toonFout && (
         <p className="text-sm font-semibold text-muted" role="status">

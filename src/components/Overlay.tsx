@@ -92,6 +92,8 @@ export function Overlay({
   closeBlockedMessage = DEFAULT_CLOSE_BLOCKED_MESSAGE,
   onopgeslagen = false,
   returnFocusFallback,
+  variant = "standaard",
+  meta,
   children,
 }: {
   title: string;
@@ -108,6 +110,16 @@ export function Overlay({
   onopgeslagen?: boolean;
   /** Opvolger voor de focus als de trigger bij sluiten niet meer bestaat. */
   returnFocusFallback?: RefObject<HTMLElement | null>;
+  /** `detail` (docs/features/beheerformulieren-catalogus.md, besluit 1):
+   *  voor een groot formulier. In de modal-vorm breder, met een vaste kop
+   *  (titel, beschrijving, `meta` en een Sluiten-knop) en een scrollend
+   *  lichaam; de weggooien-vraag en de statusregel blijven buiten het
+   *  scrollgebied zichtbaar. De Sluiten-knop zit dan in de kop: de
+   *  aanroeper rendert er zelf geen. Focus-, inert-, scrolllock- en
+   *  sluitregels zijn dezelfde als bij `standaard`. */
+  variant?: "standaard" | "detail";
+  /** Alleen bij `detail`: vaste context onder de titel (bv. rol en saldo). */
+  meta?: ReactNode;
   children: ReactNode;
 }) {
   const shell = useShell();
@@ -308,45 +320,60 @@ export function Overlay({
   }, []);
 
   const isSheet = shell.overlay === "sheet";
+  const isDetail = variant === "detail";
+  const detailModal = isDetail && !isSheet;
 
-  const dialog = (
-    <div
-      ref={dialogRef}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={titleId}
-      aria-describedby={description ? descriptionId : undefined}
-      aria-busy={closeBlocked ? true : undefined}
-      tabIndex={-1}
+  const titel = (
+    <h2
+      id={titleId}
+      ref={titleRef}
+      tabIndex={titleRef ? -1 : undefined}
+      className="text-[19px] font-extrabold tracking-tight text-ink outline-none"
+    >
+      {title}
+    </h2>
+  );
+  const beschrijving = description && (
+    <p
+      id={descriptionId}
       className={
         isSheet
-          ? "flex max-h-[88vh] w-full flex-col gap-[14px] overflow-auto rounded-t-[28px] bg-canvas px-[22px] pb-7 pt-[22px] text-ink focus:outline-none motion-safe:animate-sheet-in"
-          : "flex max-h-[88vh] w-full max-w-[460px] flex-col gap-4 overflow-auto rounded-[20px] bg-white p-[26px] text-ink shadow-[0_30px_70px_-20px_rgba(0,0,0,0.55)] focus:outline-none"
+          ? "text-sm font-medium leading-relaxed text-muted"
+          : "text-[12.5px] font-semibold leading-relaxed text-muted"
       }
     >
-      <div className="flex flex-col gap-1">
-        <h2
-          id={titleId}
-          ref={titleRef}
-          tabIndex={titleRef ? -1 : undefined}
-          className="text-[19px] font-extrabold tracking-tight text-ink outline-none"
-        >
-          {title}
-        </h2>
-        {description && (
-          <p
-            id={descriptionId}
-            className={
-              isSheet
-                ? "text-sm font-medium leading-relaxed text-muted"
-                : "text-[12.5px] font-semibold leading-relaxed text-muted"
-            }
-          >
-            {description}
-          </p>
-        )}
+      {description}
+    </p>
+  );
+  const sluitKnop = (
+    <button
+      type="button"
+      disabled={closeBlocked}
+      onClick={onClose}
+      className="flex h-11 flex-none items-center justify-center rounded-control border border-border bg-white px-4 text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
+    >
+      Sluiten
+    </button>
+  );
+
+  const kop = isDetail ? (
+    <div className="flex flex-col gap-1">
+      <div className="flex items-start justify-between gap-3">
+        {titel}
+        {sluitKnop}
       </div>
-      {children}
+      {beschrijving}
+      {meta}
+    </div>
+  ) : (
+    <div className="flex flex-col gap-1">
+      {titel}
+      {beschrijving}
+    </div>
+  );
+
+  const onderkant = (
+    <>
       {confirmingDiscard && (
         <div
           role="group"
@@ -387,6 +414,39 @@ export function Overlay({
       >
         {closeBlocked && blockedAttempt ? closeBlockedMessage : ""}
       </p>
+    </>
+  );
+
+  const dialog = (
+    <div
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
+      aria-describedby={description ? descriptionId : undefined}
+      aria-busy={closeBlocked ? true : undefined}
+      tabIndex={-1}
+      className={
+        isSheet
+          ? "flex max-h-[88vh] w-full flex-col gap-[14px] overflow-auto rounded-t-[28px] bg-canvas px-[22px] pb-7 pt-[22px] text-ink focus:outline-none motion-safe:animate-sheet-in"
+          : detailModal
+            ? "flex max-h-[88vh] w-full max-w-[640px] flex-col overflow-hidden rounded-[20px] pb-5 bg-white text-ink shadow-[0_30px_70px_-20px_rgba(0,0,0,0.55)] focus:outline-none"
+            : "flex max-h-[88vh] w-full max-w-[460px] flex-col gap-4 overflow-auto rounded-[20px] bg-white p-[26px] text-ink shadow-[0_30px_70px_-20px_rgba(0,0,0,0.55)] focus:outline-none"
+      }
+    >
+      {detailModal ? (
+        <>
+          <div className="flex-none border-b border-border-subtle px-[26px] pb-4 pt-[26px]">{kop}</div>
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto px-[26px] py-4">{children}</div>
+          <div className="flex flex-none flex-col gap-3 px-[26px]">{onderkant}</div>
+        </>
+      ) : (
+        <>
+          {kop}
+          {children}
+          {onderkant}
+        </>
+      )}
     </div>
   );
 

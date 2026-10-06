@@ -58,6 +58,13 @@ const PAYLOAD_KEYS = {
   top_up: ["p_shift_id", "p_member_id", "p_amount_cents", "p_method", "p_served_by"],
   create_member: ["p_name", "p_starting_balance_cents", "p_email"],
 };
+function validMoneyResult(operation: MoneyOperation, data: unknown): boolean {
+  if (!data || typeof data !== "object" || Array.isArray(data)) return false;
+  const row = data as Record<string, unknown>;
+  const amount = operation === "place_order" ? row.total_cents : operation === "top_up" ? row.amount_cents : row.balance_cents;
+  return Number.isSafeInteger(amount) && (amount as number) >= (operation === "top_up" ? 1 : 0) &&
+    (operation !== "create_member" || (typeof row.id === "string" && typeof row.name === "string"));
+}
 
 /** Terminal server proof is required to release a pending intent. An absent
  * receipt by itself proves nothing about a delayed request. Explicit cancellation
@@ -75,6 +82,9 @@ export async function inspectPendingMoneyRequest(client: Client, operation: Mone
     const result = await client.rpc("inspect_money_request", { p_request_id: intent.id, p_operation: operation,
       p_payload: PAYLOAD_KEYS[operation].map((name) => args[name] ?? null), p_cancel: cancel });
     const status = (result.data as { status?: string } | null)?.status;
+    if (!result.error && status === "completed" && !validMoneyResult(operation, (result.data as { result?: unknown }).result)) {
+      return { data: null, error: { message: "invalid_money_response" } };
+    }
     if (!result.error && ["completed", "cancelled"].includes(status ?? "")) {
       try { context.storage.removeItem(key); } catch { /* Stale storage remains safe. */ }
     }
@@ -109,6 +119,7 @@ export async function runMoneyRequest(client: Client, operation: "place_order" |
   });
   if (!intent) return { data: null, error: { message: "pending_request", code: "P0001" } };
   const result = await client.rpc(`${operation}_once`, { ...args, p_request_id: intent.id });
+  if (!result.error && !validMoneyResult(operation, result.data)) return { data: null, error: { message: "invalid_money_response" } };
   const definiteRejection = result.error?.code === "P0001" &&
     !isSessionErrorCode(result.error.message) && result.error.message !== "request_id_conflict";
   if ((!result.error && result.data != null) || definiteRejection) {

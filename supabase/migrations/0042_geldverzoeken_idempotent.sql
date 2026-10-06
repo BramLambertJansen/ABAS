@@ -41,7 +41,7 @@ create function inspect_money_request(p_request_id uuid, p_operation text, p_pay
 returns jsonb language plpgsql security definer set search_path = public as $$
 declare v_result jsonb; v_session bar_sessions;
 begin
-  v_session := require_session(array['bar', 'beheer'], true);
+  v_session := require_session(array['bar', 'beheer']);
   if v_session.mode = 'beheer' or p_operation = 'create_member' then
     perform require_beheer_session();
   end if;
