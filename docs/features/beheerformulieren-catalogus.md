@@ -29,9 +29,10 @@ voor op de spec-tekst verderop waar die afwijkt.
   wijzigen", "Contactadres wijzigen", "Rechten wijzigen", "Inloggegevens" en
   "Archiveren".
 - **`Overlay variant="detail"` in sheet-vorm.** De spec zei dat `detail` in de
-  portal-sheet niets doet. Gebouwd: in sheet-vorm toont `detail` wel de vaste
-  kop (titel, beschrijving, `meta`, Sluiten-knop), maar zonder het gesplitste
-  scrollende lichaam; de modal-vorm (`max-w-[640px]`, vaste kop, scrollend
+  portal-sheet niets doet. Gebouwd: in sheet-vorm toont `detail` wel de
+  detail-kop (titel, beschrijving, `meta`, Sluiten-knop), maar die is daar
+  **niet vast**: kop, lichaam en onderkant zitten in de ene scrollende
+  container van de sheet en scrollen mee; de modal-vorm (`max-w-[640px]`, vaste kop, scrollend
   lichaam, onderkant met weggooien-vraag en statusregel) is alleen voor
   `detailModal`. Niet bereikbaar zolang alleen de bar-shell "Lid beheren"
   gebruikt; er is geen portalconsument.
@@ -264,7 +265,7 @@ effect. Features blijven shell-onwetend (`check:arch`).
    verandert en dat het lid blijft inloggen met het adres van zijn account.
    Extra regel als een uitnodiging openstaat (`invitedAt !== null`, geen account):
    dat een ander adres de openstaande uitnodiging laat vervallen. Het
-   Auth-adres wordt nergens getoond (zou een nieuwe RPC vragen: PII,
+   Auth-adres wordt in "Lid beheren" en "Nieuw lid" nergens getoond (zou een nieuwe RPC vragen: PII,
    ADR 0004; zie vraag 3). Geen link of knop voor "inlogadres wijzigen"
    omdat die flow niet bestaat.
 3. **Presentatiefix `invitedAt`/`hasAccount` na opslaan e-mail**: `saveEmail`

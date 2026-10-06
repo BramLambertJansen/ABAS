@@ -297,8 +297,9 @@ database, RPC, policy or auth change). Additive to the T05/T06 contract:
 - `Overlay` props **`variant`** (`"standaard" | "detail"`) and **`meta`**: in the
   modal form `detail` is wider with a fixed header (title, description, `meta`,
   Sluiten) and a scrolling body; focus, inert, scroll-lock and close rules run
-  through the same code. In sheet form `detail` shows the fixed header but
-  not the split body (no portal consumer yet). Only "Lid beheren" uses it.
+  through the same code. In sheet form `detail` shows the detail header (with Sluiten) but it is not
+  fixed: header, body and footer scroll together in the sheet's single
+  scroll container (no portal consumer yet). Only "Lid beheren" uses it.
 - `OpslaanSectie` props `label`, `kop`, `status`, `statusTekst` and the pure
   `sectieStatus` in `src/lib/opslaan.ts`: a visible "Niet opgeslagen"/"Opgeslagen"
   line per section replaces the toast in "Lid beheren".

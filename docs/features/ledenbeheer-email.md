@@ -417,7 +417,9 @@ sectie "Contactadres wijzigen" ("Contactadres opgeslagen." resp. "Contactadres
 opgeslagen. Het inlogadres is niet gewijzigd." bij een lid met account). Na
 opslaan neemt de overlay `email`, `invitedAt` en `hasAccount` uit de RPC-return
 over, zodat een vervallen uitnodiging niet meer wordt getoond. Het
-Auth-inlogadres wordt nergens getoond of gewijzigd. De Schermflow hieronder
+Auth-inlogadres wordt in "Lid beheren" en "Nieuw lid" nergens getoond of
+gewijzigd (de portal toont het eigen sessie-adres wel, onder "Mijn account",
+`src/features/portal-profiel/AccountTab.tsx`). De Schermflow hieronder
 beschrijft de oorspronkelijke bouw; labels en toast daarin zijn achterhaald.
 
 ## Schermflow

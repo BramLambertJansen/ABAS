@@ -14,7 +14,7 @@ see CLAUDE.md → "Componenten zijn herbruikbaar totdat bewezen anders."
   tellers bij.
 - `Overlay`: prop `variant="detail"` voor een groot formulier (modal: breder,
   vaste kop met titel, beschrijving, `meta` en Sluiten, scrollend lichaam; in
-  sheet-vorm alleen de vaste kop). Bij `detail` rendert de aanroeper zelf geen
+  sheet-vorm alleen de detail-kop, die daar niet vast is maar meescrolt). Bij `detail` rendert de aanroeper zelf geen
   Sluiten-knop. `meta` (alleen `detail`) is vaste context onder de titel.
 - `OpslaanSectie`: optioneel `label` (maakt de sectie een `role="group"`),
   `kop`, `status` (`SectieStatus` uit `src/lib/opslaan.ts`: `"onopgeslagen"`,
