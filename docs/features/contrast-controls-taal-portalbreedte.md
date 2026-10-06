@@ -1,6 +1,8 @@
 # Contrast, controls, taal en portalbreedte harmoniseren
 
-**Status: goedgekeurd door Bram (architect-keuzes geaccepteerd).** Bram zei
+**Status: gebouwd (PR #171, merge `7e61185`).** Zie "Zoals gebouwd" en
+"Backlog en follow-ups" onderaan; de rest van dit document is de spec zoals
+die vooraf goedgekeurd werd. Goedkeuring: Bram zei
 op 2026-10-06: "Laat architect kiezen, ik accepteer voorstellen." Alle
 besluiten hieronder zijn dus namens Bram door de Architect genomen en vallen
 onder dat akkoord. Er zijn geen open vragen over geld, beleid, auth of
@@ -244,16 +246,108 @@ gedragsverschil. Features blijven shell-onwetend (`check:arch`).
     hoeft er geen zin in CLAUDE.md. Een lint-regel tegen "Invite"/"cash"
     in UI-tekst is niet de moeite waard (één plek, twee woorden).
 
-## Bouwnotities (Developer)
+## Zoals gebouwd
 
-- **Font:** Manrope zelf gehost is gebouwd, de terugvaloptie (systeemstack)
-  is niet nodig geweest. Bestand: latin-subset uit het npm-pakket
-  `@fontsource-variable/manrope@5.3.0` (SIL OFL 1.1; tarball-integriteit tegen
-  het register gecontroleerd; zie `src/app/fonts/README.md`, licentie in
-  `src/app/fonts/OFL.txt`). Layouttests op 768/1024/1280 (tablet) en 320/390
+Gebouwd in PR #171 (issue #132, T12, epic #121), merge `7e61185` (vorige
+main `17792ed`). Eén PR in plaats van twee (besluit 17 liet beide toe; de
+branchnaam lag vast). Geen RPC, migratie, RLS of auth geraakt.
+
+Gebouwd zoals gespecificeerd: token `accent.pressed` (`#b93d15`),
+`src/components/knopStijlen.ts` (`KNOP_ACCENT_WIT`, `KNOP_ACCENT_DONKER`,
+`KNOP_RAND`, `KNOP_DIALOOG_MAAT`, woordenlijst als commentaar en in
+`src/components/README.md`), de elf witte accentknop-bestanden omgezet,
+"Annuleer" en "Invite" gecorrigeerd, portalkolom `max-w-[560px]` met
+`sm:border-x` (`PortalDashboard`, `PortalShellHome` laad- en foutstaat,
+`PortalWachtwoordHerstellen`, portal-sheet in `Overlay`), `Uitloggen` en
+"Alle transacties" naar `h-11`, contrastscan in `test/accentContrast.test.ts`,
+nieuwe e2e-specs `contrast-controls-bar`, `contrast-controls-portal` en
+`contrast-controls-portal-aanvulling`.
+
+### Afwijkingen en aanscherpingen t.o.v. de spec
+
+- **Focusregel is `:focus-visible:focus-visible`** in `globals.css`
+  (`@layer base`), specificiteit 0,2,0, en niet een kale `:focus-visible`.
+  Reden: Tailwind v3 gebruikt `@layer` alleen voor volgorde, het is geen
+  CSS-cascadelaag; een kale regel (0,1,0) verliest van `.outline-none`
+  (0,1,0, later in de CSS) en een kale `outline-none` zou de ring dus
+  uitschakelen. Met 0,2,0 wint de globale ring van een kale `outline-none`;
+  eigen `focus-visible:outline-*`/`focus:outline-none` (ook 0,2,0, later in de
+  CSS) winnen nog wel.
+- **Tweede focusregel**: niet-interactieve koppen en blokken met
+  `tabindex="-1"` (`h1`-`h6`, `p`, `span`, `div`, `section`; waar focus
+  programmatisch heen gaat) tonen geen ring. Knoppen met een roving tabindex
+  houden de ring.
+- **11 velden met eigen ring** (`focus:ring-*`/randwissel) kregen
+  `focus-visible:outline-none`, om geen dubbele ring te tonen. De
+  `invalid`-tak van `Select.tsx` krijgt de globale ring (de triggerklassen
+  zetten geen kale `outline-none` meer).
+- **"annuleer" wordt "annuleren"** ook in `LidBestellingenOverlay` (bar-huisstijl
+  met kleine letters, dus niet "Annuleren").
+- **Scantest is hoofdletterongevoelig** voor de taalcontrole ("Invite",
+  "Annuleer", "cash").
+- **Font:** Manrope zelf gehost; de terugvaloptie (systeemstack, besluit 14)
+  is niet nodig geweest. Bestand: latin-subset (variabel, 200-800) uit
+  `@fontsource-variable/manrope@5.3.0` (SIL OFL 1.1, tarball-integriteit tegen
+  het register gecontroleerd), in `src/app/fonts/` met `OFL.txt` en `README.md`.
+  Alleen de latin-subset: tekens daarbuiten (zoals "ł", "ş" in namen) vallen
+  terug op het systeemfont. Layouttests op 768/1024/1280 (tablet) en 320/390
   (portal) zijn groen met het geladen font.
-- **Controlmaten:** `KNOP_DIALOOG_MAAT` bestaat als constante maar de
-  bestaande dialoogknoppen zijn bewust niet omgezet (besluit 12).
+
+### Bewust of nog niet gedaan, en niet aangetoond
+
+Niet gedaan:
+- De bestaande losse `rounded-[Npx]`/`h-[5Npx]`-varianten zijn niet omgezet
+  (besluit 12).
+- `KNOP_DIALOOG_MAAT` bestaat, maar de bestaande dialoogknoppen gebruiken hem
+  niet (ze houden hun eigen `h-[50px] rounded-2xl`).
+- `SheetKnoppen` en `LidBestellingenOverlay` (`h-9`) zijn niet naar `h-11`
+  omgezet: ze staan niet in de lijst van besluit 13.
+- Geen iOS-inputzoomfix (bewust, besluit "buiten scope").
+
+Niet aangetoond (geen bewijs geleverd, ook niet door CI):
+- Echte hover-, focus- en ingedrukt-screenshots (handmatige oogcontrole).
+- Een toetsenbordronde door een bar-scherm, een dialoog en het dashboard.
+- Schermlezer.
+- Een echt iOS-toestel.
+- Live `check:a11y` en `db:test` door CI; lokaal zijn die niet gedraaid. Dat
+  het gemerged is betekent dat de PR-CI groen was; deze doc claimt daar
+  verder niets over.
+
+Epic #121: met #132 is T12 gebouwd. De repo houdt geen centrale
+ticketlijst bij; de featuredocs van T04 en T05 t/m T11 noemen hun ticket als
+gebouwd en die van T11 noemde T12 als enige resterende. Ik verzin geen status
+voor T01-T03 buiten wat die docs zeggen; of #121 zelf gesloten is, staat op
+GitHub, niet hier.
+
+## Backlog en follow-ups
+
+Niet gefixt, door Tester/Reviewer gevonden:
+
+1. **`/design`** (`src/app/design/DesignBrowser.tsx`, ca. r. 56 en 81) heeft
+   kleine `text-accent underline`-links van ca. 3,4:1, onder AA. Fix:
+   `text-accent-active`. Staat niet in de axe-scan.
+2. **Portal-tabbalk** `h-10 flex-1` (`PortalDashboard.tsx`/`TransactiesTab`)
+   is 40px en steekt bij 200% tekstgrootte op 390px 25px buiten beeld. Bestond
+   al voor T12; de test staat als `test.fixme` in
+   `e2e/contrast-controls-portal-aanvulling.spec.ts`.
+3. **Uitgeschakeld-stijl**: ca. 10 plekken gebruiken `disabled:opacity-50` in
+   plaats van `bg-track text-muted` (`PortalLogin`, `BeheerLogin`,
+   `DienstElders`, `SheetKnoppen`, ...). Inconsistentie, geen contrastfout.
+4. **Reikwijdte van de scantest** (`test/accentContrast.test.ts`): ziet alleen
+   kleurparen binnen één string-literal. Paren verdeeld over `clsx` of een
+   ternary, alpha-varianten en arbitraire kleuren ziet hij niet; de
+   regel-gebaseerde aanvulling vangt één regel.
+5. **Flake** `e2e/dialogen-tabs-landmarks-negatief.spec.ts:319`: strict-mode,
+   `dialog.locator('p[role="status"]')` vindt twee elementen; faalt ook op
+   schone main (ca. 4 van 12 runs). Fix: scope naar `p.sr-only[role="status"]`.
+6. `npx eslint e2e test` geeft 2 `rules-of-hooks`-fouten in
+   `test/moneyHooksFoutlogging.test.ts` (bestaand; `next lint` over `src` is
+   schoon).
+7. Oudere featurespecs (`portal-profiel`, `lid-account-invite`, `portal-login`,
+   `dienst-te-lang-open`) noemen nog "Annuleer"/"Invite" als historische
+   tekst; niet aangepast.
+8. Lokaal draaien: Playwright `reuseExistingServer` hergebruikt een oude
+   next-server op poort 3100; eerst die server stoppen.
 
 ## Datamodel, RPC's, ADR
 
