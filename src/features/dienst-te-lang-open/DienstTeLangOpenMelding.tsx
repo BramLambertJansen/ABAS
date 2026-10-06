@@ -6,6 +6,7 @@ import { useOpenOverlayCount } from "@/components/OverlayPresence";
 import { DienstAfsluitenOverlay } from "@/features/dienst-afsluiten/DienstAfsluitenOverlay";
 import type { OpenShift } from "@/hooks/queries/useMijnDienst";
 import { openHours, shouldWarn } from "@/lib/dienstTeLangOpen";
+import { KNOP_ACCENT_WIT, KNOP_RAND } from "@/components/knopStijlen";
 
 /** Zelfde waarde als `DURATION_TICK_MS` in DienstActief.tsx (spec → Tijdbron
  *  en timer). */
@@ -108,14 +109,14 @@ export function DienstTeLangOpenMelding({
         <button
           type="button"
           onClick={snoozeNow}
-          className="flex h-[50px] flex-1 items-center justify-center rounded-2xl border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
+          className={`flex h-[50px] flex-1 items-center justify-center rounded-2xl text-sm font-bold ${KNOP_RAND}`}
         >
           Nog bezig
         </button>
         <button
           type="button"
           onClick={() => setView("afsluiten")}
-          className="flex h-[50px] flex-1 items-center justify-center rounded-2xl bg-accent-active text-sm font-bold text-white transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:bg-track disabled:text-muted"
+          className={`flex h-[50px] flex-1 items-center justify-center rounded-2xl text-sm font-bold ${KNOP_ACCENT_WIT}`}
         >
           Dienst afsluiten
         </button>

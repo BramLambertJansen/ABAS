@@ -23,6 +23,7 @@ import {
   topUpConfirmQuestion,
   topUpErrorMessage,
 } from "./messages";
+import { KNOP_ACCENT_WIT } from "@/components/knopStijlen";
 
 /**
  * Opwaardeer-overlay (modal, `src/components/Overlay.tsx` — de derde
@@ -298,7 +299,7 @@ export function OpwaarderenOverlay({
             ref={knopRef}
             disabled={bookDisabled}
             onClick={handleBook}
-            className="flex h-12 flex-none items-center justify-center rounded-[13px] bg-accent-active px-[18px] text-[13.5px] font-extrabold text-white transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:bg-track disabled:text-muted"
+            className={`flex h-12 flex-none items-center justify-center rounded-[13px] px-[18px] text-[13.5px] font-extrabold ${KNOP_ACCENT_WIT}`}
           >
             {pending
               ? "bezig…"

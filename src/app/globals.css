@@ -6,6 +6,17 @@
   body {
     @apply bg-canvas text-ink font-sans antialiased;
   }
+
+  /*
+   * Eén zichtbare focusstijl (T12, #132): 2px accent met 2px afstand.
+   * Accent is 3,43:1 op wit en 5,18:1 op rail, genoeg voor een UI-component
+   * (WCAG 1.4.11, 3:1). Alleen :focus-visible, dus geen ring na een muisklik.
+   * Eigen `outline-*`/`focus:ring`-klassen (utilities) gaan hier boven.
+   */
+  :focus-visible {
+    outline: 2px solid theme("colors.accent.DEFAULT");
+    outline-offset: 2px;
+  }
 }
 
 /*

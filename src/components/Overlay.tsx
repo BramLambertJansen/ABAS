@@ -5,6 +5,7 @@ import { useShell } from "@/lib/shell/ShellProvider";
 import { useRegisterOverlay } from "./OverlayPresence";
 import { acquireOverlay } from "./overlayShield";
 import { WEGGOOIEN_KNOP, WEGGOOIEN_TERUG_KNOP, WEGGOOIEN_VRAAG } from "@/lib/opslaan";
+import { KNOP_RAND } from "@/components/knopStijlen";
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -350,7 +351,7 @@ export function Overlay({
       type="button"
       disabled={closeBlocked}
       onClick={onClose}
-      className="flex h-11 flex-none items-center justify-center rounded-control border border-border bg-white px-4 text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
+      className={`flex h-11 flex-none items-center justify-center rounded-control px-4 text-sm font-bold ${KNOP_RAND}`}
     >
       Sluiten
     </button>

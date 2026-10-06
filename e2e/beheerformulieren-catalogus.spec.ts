@@ -291,7 +291,7 @@ test("Contactadres: ander adres wist de openstaande uitnodiging, de status volgt
   const contact = dialog.getByRole("group", { name: "Contactadres wijzigen" });
 
   await expect(dialog.getByText(/uitgenodigd op .*nog geen account/)).toBeVisible();
-  await expect(dialog.getByRole("button", { name: "Invite opnieuw versturen" })).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Uitnodiging opnieuw versturen" })).toBeVisible();
   await expect(contact).toContainText("Een ander adres laat de openstaande uitnodiging vervallen");
 
   await dialog.getByLabel("Contactadres", { exact: true }).fill("nieuw@aurora.local");
@@ -300,7 +300,7 @@ test("Contactadres: ander adres wist de openstaande uitnodiging, de status volgt
 
   await expect(dialog.getByText("nog niet uitgenodigd")).toBeVisible();
   await expect(dialog.getByText(/uitgenodigd op/)).toHaveCount(0);
-  await expect(dialog.getByRole("button", { name: "Invite versturen" })).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Uitnodiging versturen" })).toBeVisible();
   await expect(contact).not.toContainText("openstaande uitnodiging");
 });
 
@@ -317,7 +317,7 @@ test("Contactadres: na een verstuurde uitnodiging wist een ander adres 'Uitnodig
   const dialog = await openLid(page);
   const contact = dialog.getByRole("group", { name: "Contactadres wijzigen" });
 
-  await dialog.getByRole("button", { name: "Invite versturen" }).click();
+  await dialog.getByRole("button", { name: "Uitnodiging versturen" }).click();
   await expect(dialog.getByText("Uitnodiging verstuurd")).toBeVisible();
 
   await dialog.getByLabel("Contactadres", { exact: true }).fill("nieuw@aurora.local");
