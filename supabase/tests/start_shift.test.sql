@@ -48,6 +48,15 @@ begin
     values (p_shift, v_session)
     on conflict do nothing;
   end if;
+  -- De Auth-sessie uit het token: elke leespolicy en require_session eisen
+  -- haar (0041, ADR 0022). Niet voor een al gesloten bar-sessie:
+  -- close_bar_session_internal heeft die Auth-sessie verwijderd.
+  insert into auth.sessions (id, user_id, created_at, updated_at)
+  select coalesce(p_session, p_member), v_auth, now(), now()
+   where not exists (select 1 from bar_sessions
+                      where auth_session_id = coalesce(p_session, p_member)
+                        and ended_at is not null)
+  on conflict (id) do nothing;
   perform set_config('request.jwt.claim.sub', v_auth::text, true);
   perform set_config(
     'request.jwt.claims',

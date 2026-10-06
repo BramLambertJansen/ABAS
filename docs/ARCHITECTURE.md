@@ -518,6 +518,23 @@ account zonder gekoppeld lid ziet niets. `caller_is_lid()` is gedropt.
 `supabase/tests/rls_leespolicies.test.sql` bewaakt dat er geen denylist-tak of
 nieuwe `using (true)`-tabel bijkomt.
 
+**Een token van een beëindigde sessie leest en schrijft niets (besloten
+2026-10-05, te bouwen in `0041`)**: ADR [0022](adr/0022-token-van-beeindigde-sessie-leest-en-schrijft-niets.md),
+spec `docs/features/sessie-na-afmelden.md`. Een access token blijft voor
+PostgREST geldig tot `jwt_expiry`, ook als de rij in `auth.sessions` weg is
+(afmelden, wachtwoordherstel, wachtwoordwijziging, koppelen). Eén helper,
+`caller_session_alive()` (rij in `auth.sessions` met `id` = `session_id`-claim
+en `user_id` = `auth.uid()`), staat als initplan-conjunctie vóór elke
+leespolicy die niet `using (true)` is, in `require_session` (`session_ended`)
+en in de guardvrije client-RPC's (`log_client_error` en de RLS-helpers
+bewust niet). Een cron-job (`close_signed_out_bar_sessions`, elke minuut)
+sluit bar-sessies waarvan de Auth-sessie buiten onze RPC's om verdween
+(sluitreden `elders_uitgelogd`, voor koppeling en melding `uitgelogd`). Geen
+trigger op het `auth`-schema. `jwt_expiry` blijft 3600 s. Portal-uitlog is
+`scope: local`; wachtwoordherstel blijft globaal. Gates: `rls_leespolicies`
+(helper in elke niet-globale leespolicy) en `rpc_catalogus` (guardvrij =
+helper of een reden).
+
 **Settled (2026-08-24)**:
 - **Single organization.** ABAS is for Aurora only — no `org_id`, no
   multi-tenant scoping. RLS policies are written against a single club's
@@ -1315,7 +1332,7 @@ Spec: `docs/features/logboek-chronologisch-reikwijdte.md` ("Zoals gebouwd").
   limiet + 1 op en levert `beperkt`.
 - Geen RPC, migratie of RLS-wijziging.
 
-## Server/client-grens (settled 2026-10-05)
+## Server/client-grens (settled 2026-10-05, gebouwd in PR #160)
 
 Een module die alleen op de server mag draaien, begint met
 `import "server-only";` ([ADR 0021](adr/0021-server-only-markering-is-de-grens-client-server.md),
@@ -1324,8 +1341,14 @@ Een module die alleen op de server mag draaien, begint met
 (servercookies). Elke module die er één importeert, is daarmee transitief
 server-only en krijgt geen eigen markering. `next build` faalt als zo'n module
 in een clientbundel komt. `check:arch` volgt de importgraaf vanaf elke
-clientmodule (statisch, kaal, `import()`, `require()`, met of zonder
-extensie; type-only telt niet) en meldt de keten. Types en pure regels die
+clientmodule en meldt de kortste keten. Imports herkent hij via de
+TypeScript-AST (`scripts/lib/scan.mjs`), niet via regex: statisch, kaal,
+`import()`, `require()`, met of zonder extensie; type-only (ook
+`import("a").T`) telt niet, comments en strings nooit. Een specifier lost
+eerst op naar het exacte pad. Verder faalt `check:arch` op een verplicht
+bestand zonder de markering als eerste statement, een niet-letterlijke
+`import()`/`require()` in `src/`, en `SUPABASE_SECRET_KEY` buiten
+`admin.ts`. `"use server"` is geen uitzondering (fail closed). Types en pure regels die
 clientcode nodig heeft, staan in een eigen module (`barLoginTypes.ts`,
 `productImageRules.ts`). Een nieuw secret krijgt een eigen gemarkeerde module
 en een plek in de verplichte lijst van `check:arch`.

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { isAuthRetryableFetchError } from "@/lib/supabase/authErrors";
 import { createClient, wisPortalSessieLokaal } from "@/lib/supabase/portalClient";
 import { logLocalError, reportClientError } from "@/lib/clientErrors";
+import { bevestigSessieOfMeldAf } from "@/lib/sessieBevestigen";
 import {
   sessieOphaalFoutStaat,
   metRetryBezig,
@@ -35,6 +36,17 @@ export type { PortalMemberRole, PortalSessionState };
  * geldt de eigen-rij-tak van de leespolicies voor iedereen, ook gearchiveerd
  * ("een gearchiveerd lid dat nog een sessie heeft moet zijn eigen historie
  * kunnen inzien") — dezelfde grens geldt hier voor de sessie-gate zelf.
+ *
+ * Een lege eigen rij is sinds ADR 0022 niet altijd "niet gekoppeld": een
+ * token van een elders beëindigde Auth-sessie (uitgelogd, wachtwoord
+ * hersteld of gewijzigd op een ander apparaat) leest niets meer. Daarom eerst
+ * de sessie bij GoTrue nagaan (`bevestigSessieOfMeldAf`); is die weg, dan
+ * lokaal afmelden en `signed-out` in plaats van `denied`
+ * (docs/features/sessie-na-afmelden.md → keuze 9).
+ *
+ * Uitloggen geldt alleen voor dit apparaat (`scope: "local"`, keuze 8),
+ * zoals op `/beheer` en de bar: een globale uitlog zou ook een lopende
+ * bar-sessie van hetzelfde lid op de tablet beëindigen.
  *
  * Cookie-isolatie (ADR 0009) maakt dit hook onbereikbaar voor de gedeelde
  * bar-tablet-device-sessie: `sb-portal-auth-token` bestaat pas na een
@@ -94,6 +106,12 @@ export function usePortalSession(): PortalSessionState & {
             .maybeSingle();
           if (error) throw error;
           if (cancelled || ronde !== request) return;
+          // Lege eigen rij: eerst de sessie bij GoTrue nagaan (ADR 0022,
+          // keuze 9); is die weg, dan is dit apparaat al lokaal afgemeld.
+          const sessieBevestigd = data
+            ? true
+            : await bevestigSessieOfMeldAf(supabase.auth, "usePortalSession");
+          if (cancelled || ronde !== request) return;
           commit(
             volgendeSessieStaat(
               stateRef.current,
@@ -108,7 +126,7 @@ export function usePortalSession(): PortalSessionState & {
                       archived: data.archived as boolean,
                     },
                   }
-                : { soort: "geen-rij", userId },
+                : { soort: "geen-rij", userId, sessieBevestigd },
             ),
           );
         } catch (err) {
@@ -185,7 +203,9 @@ export function usePortalSession(): PortalSessionState & {
   async function signOut() {
     try {
       const supabase = createClient();
-      const { error } = await supabase.auth.signOut();
+      // Alleen dit apparaat (ADR 0022, keuze 8); wachtwoordherstel blijft
+      // bewust globaal.
+      const { error } = await supabase.auth.signOut({ scope: "local" });
       if (error) {
         // auth-js `_signOut` geeft bij een sessionError `{error}` terug vóór
         // `_removeSession()`: de cookie blijft, er komt geen SIGNED_OUT. Lokaal

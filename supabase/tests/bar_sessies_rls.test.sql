@@ -67,7 +67,16 @@ insert into admin_notifications (id, kind, reason, shift_id, bar_session_id) val
 
 -- ── Lezen: bar-rollen zien sessies en koppelingen ─────────────────────────
 
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000d010', true);
+-- Een levende Auth-sessie per account (id = het auth-id): elke leespolicy
+-- en de guardvrije RPC's eisen haar (0041, ADR 0022).
+insert into auth.sessions (id, user_id, created_at, updated_at) values
+  ('00000000-0000-0000-0000-00000000d010', '00000000-0000-0000-0000-00000000d010', now(), now()),
+  ('00000000-0000-0000-0000-00000000d011', '00000000-0000-0000-0000-00000000d011', now(), now()),
+  ('00000000-0000-0000-0000-00000000d012', '00000000-0000-0000-0000-00000000d012', now(), now()),
+  ('00000000-0000-0000-0000-00000000d013', '00000000-0000-0000-0000-00000000d013', now(), now()),
+  ('00000000-0000-0000-0000-00000000d014', '00000000-0000-0000-0000-00000000d014', now(), now());
+
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000d010","session_id":"00000000-0000-0000-0000-00000000d010"}', true);
 set local role authenticated;
 
 select is(
@@ -89,7 +98,7 @@ select is(
 -- ── Lezen: een beheerder ziet ook de meldingen ────────────────────────────
 
 reset role;
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000d011', true);
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000d011","session_id":"00000000-0000-0000-0000-00000000d011"}', true);
 set local role authenticated;
 
 select is(
@@ -106,7 +115,7 @@ select is(
 -- ── Lezen: een lid ziet niets ─────────────────────────────────────────────
 
 reset role;
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000d012', true);
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000d012","session_id":"00000000-0000-0000-0000-00000000d012"}', true);
 set local role authenticated;
 
 select is((select count(*)::int from bar_sessions), 0, 'een lid leest geen bar_sessions');
@@ -116,7 +125,7 @@ select is((select count(*)::int from admin_notifications), 0, 'een lid leest gee
 -- ── Lezen: een sessie zonder lid (het device-account) ziet niets ─────────
 
 reset role;
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000d013', true);
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000d013","session_id":"00000000-0000-0000-0000-00000000d013"}', true);
 set local role authenticated;
 
 select is((select count(*)::int from bar_sessions), 0, 'een account zonder lid leest geen bar_sessions');
@@ -126,7 +135,7 @@ select is((select count(*)::int from admin_notifications), 0, 'een account zonde
 -- ── Lezen: een gearchiveerd lid ziet niets ────────────────────────────────
 
 reset role;
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000d014', true);
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000d014","session_id":"00000000-0000-0000-0000-00000000d014"}', true);
 set local role authenticated;
 
 select is((select count(*)::int from bar_sessions), 0, 'een gearchiveerd lid leest geen bar_sessions');
@@ -146,7 +155,7 @@ reset role;
 
 -- ── Schrijven: nooit, voor geen API-rol, ook niet voor een beheerder ─────
 
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000d011', true);
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000d011","session_id":"00000000-0000-0000-0000-00000000d011"}', true);
 set local role authenticated;
 
 select throws_ok(
@@ -285,8 +294,10 @@ insert into auth.users (
 insert into members (id, name, role, pin_hash, balance_cents, archived, auth_user_id) values
   ('00000000-0000-0000-0000-00000000d024', 'RLS Beheerder Gearchiveerd', 'beheerder', null, 0, true,
    '00000000-0000-0000-0000-00000000d015');
+insert into auth.sessions (id, user_id, created_at, updated_at) values
+  ('00000000-0000-0000-0000-00000000d015', '00000000-0000-0000-0000-00000000d015', now(), now());
 
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-00000000d015', true);
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000d015","session_id":"00000000-0000-0000-0000-00000000d015"}', true);
 set local role authenticated;
 select is((select count(*)::int from admin_notifications), 0, 'een gearchiveerde beheerder leest geen admin_notifications');
 select is((select count(*)::int from bar_sessions), 0, 'een gearchiveerde beheerder leest geen bar_sessions');

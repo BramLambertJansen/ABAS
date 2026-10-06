@@ -61,6 +61,15 @@ begin
     values (p_shift, v_session)
     on conflict do nothing;
   end if;
+  -- De Auth-sessie uit het token: elke leespolicy en require_session eisen
+  -- haar (0041, ADR 0022). Niet voor een al gesloten bar-sessie:
+  -- close_bar_session_internal heeft die Auth-sessie verwijderd.
+  insert into auth.sessions (id, user_id, created_at, updated_at)
+  select coalesce(p_session, p_member), v_auth, now(), now()
+   where not exists (select 1 from bar_sessions
+                      where auth_session_id = coalesce(p_session, p_member)
+                        and ended_at is not null)
+  on conflict (id) do nothing;
   perform set_config('request.jwt.claim.sub', v_auth::text, true);
   perform set_config(
     'request.jwt.claims',
@@ -82,6 +91,16 @@ begin
   insert into bar_sessions (auth_session_id, member_id, mode)
   values (p_session, p_member, p_mode)
   on conflict (auth_session_id) do nothing;
+  -- De Auth-sessie uit het token: elke leespolicy en require_session eisen
+  -- haar (0041, ADR 0022). Niet voor een al gesloten bar-sessie:
+  -- close_bar_session_internal heeft die Auth-sessie verwijderd.
+  if v_auth is not null then
+    insert into auth.sessions (id, user_id, created_at, updated_at)
+    select p_session, v_auth, now(), now()
+     where not exists (select 1 from bar_sessions
+                        where auth_session_id = p_session and ended_at is not null)
+    on conflict (id) do nothing;
+  end if;
   perform set_config('request.jwt.claim.sub', v_auth::text, true);
   perform set_config(
     'request.jwt.claims',
@@ -209,10 +228,18 @@ select throws_ok(c.sql, 'P0001', 'no_bar_role', c.name || ' weigert een lid dat 
 update members set role = 'beheerder' where id = '00000000-0000-0000-0000-000000008010';
 
 -- ── Ronde 8: sessie van een ander account ────────────────────────────────
--- De sessie d0 van de beheerder, met het account van de bardienst.
+-- Een bar-sessie (d9) van de beheerder, terwijl de Auth-sessie d9 van het
+-- account van de bardienst is. Sinds 0041 moet de Auth-sessie bij auth.uid()
+-- horen (anders session_ended, zie sessie_na_afmelden.test.sql); deze ronde
+-- toetst de controle daarna: het lid van de bar-sessie hoort bij een ander
+-- account.
+insert into auth.sessions (id, user_id, created_at, updated_at)
+values ('00000000-0000-0000-0000-0000000080d9', '00000000-0000-0000-0000-000000008011', now(), now());
+insert into bar_sessions (auth_session_id, member_id, mode)
+values ('00000000-0000-0000-0000-0000000080d9', '00000000-0000-0000-0000-000000008010', 'bar');
 select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000008011', true);
 select set_config('request.jwt.claims',
-  '{"sub":"00000000-0000-0000-0000-000000008011","session_id":"00000000-0000-0000-0000-0000000080d0"}', true);
+  '{"sub":"00000000-0000-0000-0000-000000008011","session_id":"00000000-0000-0000-0000-0000000080d9"}', true);
 select throws_ok(c.sql, 'P0001', 'no_bar_role', c.name || ' weigert een sessie die niet bij het account van het lid hoort (no_bar_role)')
   from pg_temp.calls() c;
 

@@ -4,8 +4,9 @@
 -- `npm run db:test` (= `supabase test db`, vereist `supabase start` /
 -- Docker lokaal).
 --
--- Actorpatroon: dezelfde superuser + request.jwt.claim.sub-simulatie van
--- auth.uid() als reverse_order.test.sql/lid_account_koppelen.test.sql. De
+-- Actorpatroon: dezelfde superuser + claims-simulatie van auth.uid() (sinds
+-- 0041 via request.jwt.claims met `session_id` en een rij in auth.sessions,
+-- ADR 0022) als reverse_order.test.sql/lid_account_koppelen.test.sql. De
 -- toegangscontrole hier zit ín de RPC-body (`caller_member_id()`, zelf
 -- SECURITY DEFINER, 0015), niet in een RLS-policy die voor de aanroepende
 -- rol wordt geëvalueerd — dus geen `set local role authenticated` nodig
@@ -112,7 +113,16 @@ insert into orders (id, shift_id, member_id, served_by, total_cents, created_at)
 
 -- ── Blok 1: lid A ────────────────────────────────────────────────────────
 
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000fa0', true);
+-- Een levende Auth-sessie per account (id = het auth-id): elke leespolicy
+-- en de guardvrije RPC's eisen haar (0041, ADR 0022).
+insert into auth.sessions (id, user_id, created_at, updated_at) values
+  ('00000000-0000-0000-0000-000000000fa0', '00000000-0000-0000-0000-000000000fa0', now(), now()),
+  ('00000000-0000-0000-0000-000000000fa1', '00000000-0000-0000-0000-000000000fa1', now(), now()),
+  ('00000000-0000-0000-0000-000000000fa2', '00000000-0000-0000-0000-000000000fa2', now(), now()),
+  ('00000000-0000-0000-0000-000000000fa3', '00000000-0000-0000-0000-000000000fa3', now(), now()),
+  ('00000000-0000-0000-0000-000000000fa4', '00000000-0000-0000-0000-000000000fa4', now(), now());
+
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000fa0","session_id":"00000000-0000-0000-0000-000000000fa0"}', true);
 
 -- Volledigheid + volgorde in één bewering: precies de vier eigen rijen,
 -- nieuwste eerst (created_at: fd0 > fd3 > fd1 > fd2).
@@ -180,7 +190,7 @@ select results_eq(
 
 -- ── Blok 2: lid B — het spiegelbeeld van blok 1 ─────────────────────────
 
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000fa1', true);
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000fa1","session_id":"00000000-0000-0000-0000-000000000fa1"}', true);
 
 select is(
   (select count(*)::integer from list_own_transactions()),
@@ -196,7 +206,7 @@ select is(
 
 -- ── Blok 3: gedeelde device-sessie (geen gekoppeld lid) ─────────────────
 
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000fa2', true);
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000fa2","session_id":"00000000-0000-0000-0000-000000000fa2"}', true);
 
 select is(
   (select count(*)::integer from list_own_transactions()),
@@ -211,7 +221,7 @@ select lives_ok(
 
 -- ── Blok 4: bardienst/beheerder-achtige sessie zonder eigen lid-rij ─────
 
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000fa3', true);
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000fa3","session_id":"00000000-0000-0000-0000-000000000fa3"}', true);
 
 select is(
   (select count(*)::integer from list_own_transactions()),
@@ -224,7 +234,7 @@ select is(
 -- terugkrijgen, nooit die van een ander lid" — dat is hier geen aanname
 -- meer.
 
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000fa4', true);
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000fa4","session_id":"00000000-0000-0000-0000-000000000fa4"}', true);
 
 select results_eq(
   $$ select id from list_own_transactions() $$,

@@ -1,8 +1,10 @@
 # Server-only modules hard afschermen van clientbundels
 
-**Status: goedgekeurd (2026-10-05), nog niet gebouwd.** Bram heeft de keuzes
-voor deze opdracht bij de Architect gelegd: de spec geldt als goedgekeurd
-zodra hij geschreven is. Item C van de review van 2026-10-05.
+**Status: gebouwd (PR #160, gemerged 2026-10-05).** Bram heeft de keuzes
+voor deze opdracht bij de Architect gelegd: de spec gold als goedgekeurd
+zodra hij geschreven was. Item C van de review van 2026-10-05. Wat er
+uiteindelijk staat, wijkt op de importherkenning af van de eerste versie
+van deze spec; zie "Herziening" en "Wat er gebouwd is".
 Architectuurbeslissing:
 [ADR 0021](../adr/0021-server-only-markering-is-de-grens-client-server.md).
 
@@ -130,7 +132,8 @@ regel.
 
 **3a. `scripts/lib/scan.mjs`: imports volledig herkennen.** (Herzien:
 AST in plaats van regex, zie "Herziening".) Nieuwe export
-`importRefsOf(source)` die op `stripComments(source)` draait en per import
+`importRefsOf(source, fileName)` die de TypeScript-AST van het bestand
+doorloopt en per import
 `{ spec, typeOnly }` teruggeeft. Herkende vormen:
 
 | Vorm | Voorbeeld | `typeOnly` |
@@ -217,10 +220,12 @@ geen clientmodule er een bereikt. Dat de build faalt, bewijst de Developer
 
 ## Herziening (2026-10-05, na Codex-review op PR #160)
 
-Drie bevindingen op de regex-aanpak uit 3a/3b, alle drie in
-`scripts/lib/scan.mjs`. Besloten door de orchestrator van de werkstraat;
-de keuzes en regels hierboven blijven staan, alleen de herkenning en de
-oplosvolgorde veranderen.
+Bevindingen op de regex-aanpak uit 3a/3b (`scripts/lib/scan.mjs`), plus
+twee preciseringen die bij de bouw ontstonden. Besloten door de
+orchestrator van de werkstraat, binnen het mandaat dat Bram voor deze
+opdracht gaf (de Architect beslist, zie Status). De keuzes en regels
+hierboven blijven staan; alleen de herkenning, de oplosvolgorde en de
+strengheid van de markeringscontrole veranderen.
 
 - **Importherkenning via de TypeScript-AST, niet via regex.** Vals
   negatief: `stripComments` was niet lexicaal, dus `const l = "x//y";`
@@ -233,9 +238,10 @@ oplosvolgorde veranderen.
   `import type x = require("a")` zijn type-only; `import x = require("a")`
   wordt gevolgd. Ongewijzigd: inline `{ type T }` blijft een gewone
   import (ook als elke specifier inline `type` is), een template literal
-  blijft niet-letterlijk. Dit haalt de "volwaardige parser" uit
-  "Expliciet buiten scope" naar binnen, zoals die alinea voor dit geval
-  al voorzag. `stripComments` blijft voor de andere regels
+  blijft niet-letterlijk. De eerste versie van de spec zette een
+  volwaardige parser nog onder "Expliciet buiten scope", tenzij de regex
+  vals-positief of vals-negatief zou gaan; dat moment kwam hier, dus die
+  uitsluiting is vervallen. `stripComments` blijft voor de andere regels
   (`check:policy`, `"use client"`, `SUPABASE_SECRET_KEY`).
 - **Oplossen: eerst het exacte pad (3b).** `@/lib/dual.tsx` werd gestript
   en `.ts` eerst geprobeerd, dus volgde de gate `dual.ts` terwijl Next
@@ -245,8 +251,53 @@ oplosvolgorde veranderen.
   specifier met trailing slash (of `.`/`..`) is een map: alleen
   `<map>/index.<ext>`, nooit een gelijknamig bestand.
 
+- **Markering als eerste statement.** "Gemarkeerd" voor de verplichte
+  lijst (3c) is strenger dan "bevat een kale import van `server-only`":
+  `startsWithServerOnly` eist dat `import "server-only"` het eerste
+  statement is, met alleen directives (`"use strict";`) en comments ervoor.
+  Voor het transitieve bereik telt de markering waar dan ook in het bestand
+  (daar faalt `next build` ook op).
+- **`"use server"` krijgt wel een test.** De randgevalregel "geen extra test
+  daarvoor" is vervallen: test 24 bewijst dat een `"use server"`-module die
+  een gemarkeerde module bereikt, gemeld wordt (fail closed, ADR 0021 punt 6).
+
 Op de huidige tree (212 bestanden, 843 imports) geeft de AST exact
 dezelfde refs als de oude regex.
+
+## Wat er gebouwd is (PR #160)
+
+- `server-only@0.0.1` (exact, `dependencies`); `import "server-only";` als
+  eerste statement van `src/lib/supabase/admin.ts`, `server.ts` en
+  `portalServer.ts`. De header van `admin.ts` en de comment in
+  `test/fakes/resolve-hooks.mjs` zijn bijgewerkt (keuze 4).
+- `scripts/lib/scan.mjs`: `importRefsOf`, `hasNonLiteralImport` en
+  `startsWithServerOnly` op de TypeScript-AST; `resolveSpec` met het exacte
+  pad eerst (zie Herziening). `stripComments` blijft bestaan voor de
+  overige tekstregels.
+- `scripts/check-arch.mjs`: regel 4 (`ADMIN_CLIENT_RE`) vervangen door de
+  transitieve zoektocht vanaf elke clientmodule, met de kortste keten in de
+  melding; `REQUIRED_SERVER_ONLY` (ontbrekend bestand of markering niet als
+  eerste statement = fout); niet-letterlijke `import()`/`require()` in
+  `src/` = fout; `SUPABASE_SECRET_KEY` alleen in `admin.ts`; `"use server"`
+  zonder uitzondering (fail closed). Regels 1-3 en 5 gebruiken dezelfde
+  herkenning en vangen dus ook dynamische imports en `require`.
+- `test/checkArchServerOnly.test.ts`: 38 tests, end-to-end tegen de echte
+  gate in tijdelijke mappen. Naast de 13 scenario's uit het Testplan ook:
+  markering niet als eerste statement (9b/9c), toegestane server-importen
+  (18), `"use server"` (24), regels 1/2/3/5 met dynamische imports (25-28),
+  oplosvolgorde (29-29c) en de AST-gevallen uit de Codex-review (30-33).
+
+### Bekende restpunten (voor een volgende gate-PR)
+
+- `(require)("…")` en `const r = require; r("…")` ziet de AST-herkenning
+  niet als import of als niet-letterlijke aanroep. `next build` vangt een
+  server-only module langs die weg alsnog.
+- De `SUPABASE_SECRET_KEY`-regel en de `check:policy`-controles lezen nog
+  uit de `stripComments`-tekst, met de bekende zwakte daarvan (niet
+  lexicaal: `//` in een string).
+- Regel 1 (shells geïsoleerd) en regel 2 (features shell-onwetend) vangen
+  een relatieve shell-import (`../bar/X`) niet; ze kijken naar de
+  specifier, niet naar het opgeloste pad.
 
 ## Datamodel
 
@@ -288,8 +339,9 @@ Niet van toepassing.
   keuze 2.
 - **Clientmodule importeert een `"use server"`-module die een gemarkeerde
   module bereikt:** gemeld, zoals elke andere import (ADR 0021, punt 6).
-  Geen speciale behandeling van de directive in de zoektocht en geen extra
-  test daarvoor; vandaag staat er nergens `"use server"` in `src/`.
+  Geen speciale behandeling van de directive in de zoektocht; test 24 in
+  `test/checkArchServerOnly.test.ts` bewijst dat. Vandaag staat er nergens
+  `"use server"` in `src/`.
 
 ## Testplan
 
@@ -362,15 +414,12 @@ terugdraaien. Plak beide foutmeldingen in de PR-beschrijving.
   bij de alinea "er is vandaag geen gate".
 - `docs/ARCHITECTURE.md`: nieuwe sectie "Server/client-grens".
 
-Na de merge (Docs-rol): `CLAUDE.md` → Verificatie, rij `check:arch` (keuze
-4); status hier en in ADR 0021 naar gebouwd.
+Na de merge (Docs-rol, gedaan): `CLAUDE.md` → Verificatie, rij `check:arch`
+(keuze 4); status hier en in ADR 0021 naar gebouwd; ARCHITECTURE.md
+bijgewerkt naar de AST-herkenning.
 
 ## Expliciet buiten scope
 
-- Een volwaardige parser (TypeScript-AST) voor `scan.mjs`. De regex-aanpak
-  blijft, uitgebreid met de vormen uit 3a en getest met fixtures. Gaat hij
-  vals-positief of vals-negatief op iets dat ertoe doet, dan is dat het
-  moment voor een parser (scan.mjs-header).
 - Een negatieve `next build` in CI (keuze 5).
 - `client-only`-markering voor de omgekeerde richting (browser-API's in
   servercode). Geen aanleiding gevonden.

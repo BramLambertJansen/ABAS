@@ -1,6 +1,6 @@
 # 0021 — De grens tussen server- en clientcode is de `server-only`-markering; `check:arch` volgt de importgraaf transitief
 
-Status: **geaccepteerd (2026-10-05)**. Bram heeft de keuzes voor deze
+Status: **geaccepteerd (2026-10-05), geïmplementeerd (PR #160)**. Bram heeft de keuzes voor deze
 opdracht bij de Architect gelegd (item C van de review van 2026-10-05); de
 spec [`docs/features/server-only-afscherming.md`](../features/server-only-afscherming.md)
 geldt daarmee als goedgekeurd. Vult [ADR 0006](0006-privileged-auth-admin-calls-via-server-actie-naast-rpc.md)
@@ -91,5 +91,7 @@ regex over comment-vrije bron. De regex-versie miste een import na een
 string met `//` en zag `import("…").T` in een type als runtime-import.
 Type-only telt dus ook voor import-types (`import("a").T`,
 `typeof import("a")`). Een specifier met expliciete extensie lost eerst op
-naar precies dat bestand, net als in Next. Details in de spec, onder
-"Herziening".
+naar precies dat bestand, net als in Next. Voor de verplichte lijst moet de
+markering het eerste statement zijn. Details, bekende restpunten en de
+tests (`test/checkArchServerOnly.test.ts`) in de spec, onder "Herziening"
+en "Wat er gebouwd is".

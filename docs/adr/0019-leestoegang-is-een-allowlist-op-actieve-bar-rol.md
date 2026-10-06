@@ -9,6 +9,9 @@ geldt daarmee als goedgekeurd. Gebouwd in migratie `0039` (PR #156, gemerged 202
 (reikwijdte, gastverkoop, `SECURITY DEFINER`-helpers) blijft staan. Vult
 [ADR 0012](0012-portal-eigen-data-voor-elke-rol.md) aan; Beslissing 2 daarvan
 (portal-queries scopen expliciet) blijft onveranderd nodig.
+**Aangevuld door** [ADR 0022](0022-token-van-beeindigde-sessie-leest-en-schrijft-niets.md)
+(2026-10-05): elke leespolicy die niet `using (true)` is, eist daarnaast een
+levende Auth-sessie (`(select caller_session_alive()) and (...)`).
 
 ## Context
 

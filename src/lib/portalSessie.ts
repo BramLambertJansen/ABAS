@@ -37,7 +37,16 @@ export type LookupUitkomst =
       email: string;
       rij: { name: string; role: PortalMemberRole; archived: boolean };
     }
-  | { soort: "geen-rij"; userId: string }
+  | {
+      soort: "geen-rij";
+      userId: string;
+      /**
+       * Uitkomst van `bevestigSessieOfMeldAf` (ADR 0022,
+       * docs/features/sessie-na-afmelden.md → keuze 9): `false` betekent een
+       * elders beëindigde sessie, die de hook al lokaal heeft afgemeld.
+       */
+      sessieBevestigd: boolean;
+    }
   | { soort: "fout"; userId: string; err: unknown };
 
 /** Achtergrond: de huidige staat is `signed-in` met dezelfde `userId`. */
@@ -62,6 +71,9 @@ export function volgendeSessieStaat(
         archived: uitkomst.rij.archived,
       };
     case "geen-rij":
+      // Lege eigen rij met een sessie die GoTrue niet meer kent: geen
+      // "niet gekoppeld" maar uitgelogd (ADR 0022, keuze 9).
+      if (!uitkomst.sessieBevestigd) return { status: "signed-out" };
       return { status: "denied", message: DENIED_MESSAGE };
     case "fout":
       if (achtergrond) return huidig;

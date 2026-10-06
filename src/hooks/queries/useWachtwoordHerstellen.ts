@@ -119,6 +119,11 @@ export function useNieuwWachtwoordInstellen(tokenHash: string | null) {
       // Terug naar het inlogscherm, opnieuw inloggen (spec → besluit 2).
       // src/middleware.ts herstelt daarna de gedeelde tablet-sessie, net
       // als na een gewone /beheer-uitlog.
+      // Bewust globaal (geen `scope`): wie zijn wachtwoord herstelt, wil
+      // alle sessies eruit, ook een lopende bar-sessie op de tablet. Die
+      // weigeren de guards daarna meteen en de cron-job sluit haar binnen
+      // een minuut, met melding (ADR 0022). Niet "gelijktrekken" naar
+      // `scope: "local"` zoals bij gewoon uitloggen.
       await supabase.auth.signOut();
       setState({ status: "done" });
       return true;

@@ -116,6 +116,11 @@ export function usePortalNieuwWachtwoordInstellen(tokenHash: string | null) {
 
       // Terug naar het inlogscherm, opnieuw inloggen (spec → "Wachtwoord
       // vergeten", zelfde besluit als wachtwoord-vergeten.md besluit 2).
+      // Bewust globaal (geen `scope`): wie zijn wachtwoord herstelt, wil
+      // alle sessies eruit, ook een lopende bar-sessie op de tablet. Die
+      // weigeren de guards daarna meteen en de cron-job sluit haar binnen
+      // een minuut, met melding (ADR 0022). Niet "gelijktrekken" naar
+      // `scope: "local"` zoals bij gewoon uitloggen.
       await supabase.auth.signOut();
       setState({ status: "done" });
       return true;
