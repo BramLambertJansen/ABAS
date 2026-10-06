@@ -20,7 +20,7 @@
 create extension if not exists pgtap with schema extensions;
 
 begin;
-select plan(8);
+select plan(9);
 
 create temp table catalogus (naam text primary key, klasse text not null,
   guardvrij_omdat text, zonder_sessie_omdat text) on commit drop;
@@ -107,6 +107,7 @@ insert into catalogus (naam, klasse, guardvrij_omdat) values
   ('member_has_verified_factor','intern', null),
   ('notify_orphan_shift',       'intern', null),
   ('purge_client_errors',       'intern', null),
+  ('purge_idempotency_keys',    'intern', null),
   ('purge_login_throttle',      'intern', null),
   ('require_bar_session',       'intern', null),
   ('require_beheer_session',    'intern', null),
@@ -220,6 +221,22 @@ select is(
                        where c like 'search_path=%')),
   '{}'::name[],
   'elke security definer-functie zet een eigen search_path'
+);
+
+-- ── 6) Geen overloads van de geld-RPC's (ADR 0023) ───────────────────────
+--
+-- Een oude signatuur naast de nieuwe geeft bij PostgREST PGRST203 op alle
+-- bar-verkoop; 0042 dropt de oude expliciet.
+
+select is(
+  (select coalesce(array_agg(naam order by naam), '{}') from (
+     select p.proname as naam
+       from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public'
+        and p.proname in ('place_order', 'top_up', 'create_member')
+      group by p.proname having count(*) > 1) o),
+  '{}'::name[],
+  'place_order, top_up en create_member bestaan elk met precies één signatuur (geen overload)'
 );
 
 select * from finish();

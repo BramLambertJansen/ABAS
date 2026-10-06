@@ -62,12 +62,12 @@ select is(
 -- enige echte authenticatiemoment in de bar-flow, end_shift sluit 'm af.
 
 select ok(
-  not has_function_privilege('anon', 'public.place_order(uuid,uuid,jsonb,uuid)', 'EXECUTE'),
+  not has_function_privilege('anon', 'public.place_order(uuid,uuid,jsonb,uuid,uuid)', 'EXECUTE'),
   'place_order is niet aanroepbaar zonder sessie'
 );
 
 select ok(
-  not has_function_privilege('anon', 'public.top_up(uuid,uuid,integer,text,uuid)', 'EXECUTE'),
+  not has_function_privilege('anon', 'public.top_up(uuid,uuid,integer,text,uuid,uuid)', 'EXECUTE'),
   'top_up is niet aanroepbaar zonder sessie'
 );
 
@@ -89,12 +89,12 @@ select ok(
 -- assertie's hierboven niet blijken. Vandaar beide richtingen.
 
 select ok(
-  has_function_privilege('authenticated', 'public.place_order(uuid,uuid,jsonb,uuid)', 'EXECUTE'),
+  has_function_privilege('authenticated', 'public.place_order(uuid,uuid,jsonb,uuid,uuid)', 'EXECUTE'),
   'place_order blijft aanroepbaar voor een ingelogde sessie'
 );
 
 select ok(
-  has_function_privilege('authenticated', 'public.top_up(uuid,uuid,integer,text,uuid)', 'EXECUTE'),
+  has_function_privilege('authenticated', 'public.top_up(uuid,uuid,integer,text,uuid,uuid)', 'EXECUTE'),
   'top_up blijft aanroepbaar voor een ingelogde sessie'
 );
 
@@ -315,7 +315,7 @@ select ok(
         'public.update_product_price(uuid,integer)',
         'public.set_product_archived(uuid,boolean)',
         'public.update_negative_limit(integer)',
-        'public.create_member(text,integer,text)',
+        'public.create_member(text,integer,text,uuid)',
         'public.update_member_name(uuid,text)',
         'public.set_member_archived(uuid,boolean)',
         'public.set_member_role(uuid,text)',
