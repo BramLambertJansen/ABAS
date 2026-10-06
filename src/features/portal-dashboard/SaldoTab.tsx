@@ -169,7 +169,7 @@ export function SaldoTab({ onShowAll }: { onShowAll: () => void }) {
                 <button
                   type="button"
                   onClick={onShowAll}
-                  className="flex h-9 flex-none items-center whitespace-nowrap rounded-[10px] px-2 text-xs font-extrabold text-accent-active underline"
+                  className="flex h-11 flex-none items-center whitespace-nowrap rounded-[10px] px-2 text-xs font-extrabold text-accent-active underline"
                 >
                   Alle transacties
                 </button>

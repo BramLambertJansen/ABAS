@@ -14,6 +14,7 @@ import {
   placeOrderErrorMessage,
 } from "./messages";
 import { lidwisselWistMandje } from "./cart";
+import { KNOP_ACCENT_WIT } from "@/components/knopStijlen";
 
 /**
  * Rechterkant/mandje-paneel, permanent zichtbaar: ledenkeuze, mandje-
@@ -179,14 +180,14 @@ export function Mandje({
               type="button"
               disabled={topupDisabled}
               onClick={onOpenTopup}
-              className="flex h-10 flex-1 items-center justify-center rounded-[11px] border border-border text-[12.5px] font-bold text-ink transition-colors hover:border-accent hover:text-accent-active disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-11 flex-1 items-center justify-center rounded-[11px] border border-border text-[12.5px] font-bold text-ink transition-colors hover:border-accent hover:text-accent-active disabled:cursor-not-allowed disabled:opacity-50"
             >
               saldo opwaarderen
             </button>
             <button
               type="button"
               onClick={onClearMember}
-              className="flex h-10 flex-none items-center justify-center rounded-[11px] border border-border px-4 text-[12.5px] font-bold text-muted transition-colors hover:border-ink hover:text-ink"
+              className="flex h-11 flex-none items-center justify-center rounded-[11px] border border-border px-4 text-[12.5px] font-bold text-muted transition-colors hover:border-ink hover:text-ink"
             >
               wissel
             </button>
@@ -383,7 +384,7 @@ export function Mandje({
         type="button"
         disabled={checkoutDisabled}
         onClick={onOpenCheckout}
-        className="flex h-[54px] flex-none items-center justify-center gap-2.5 rounded-card bg-accent-active text-[15.5px] font-extrabold tracking-[-0.01em] text-white shadow-[0_12px_26px_-12px_rgba(238,90,36,1)] transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:bg-track disabled:text-muted disabled:shadow-none"
+        className={`flex h-[54px] flex-none items-center justify-center gap-2.5 rounded-card text-[15.5px] font-extrabold tracking-[-0.01em] shadow-[0_12px_26px_-12px_rgba(238,90,36,1)] disabled:shadow-none ${KNOP_ACCENT_WIT}`}
       >
         <span>
           Tik afrekenen

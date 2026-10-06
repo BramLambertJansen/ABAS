@@ -8,6 +8,7 @@ import {
 import { SESSION_CODE_INLINE_MESSAGE, isSessionErrorCode } from "@/lib/barSessie";
 import { BEHEERDER_INGREEP, afmeldenUitleg } from "./teksten";
 import { useBarSessie } from "./BarSessieContext";
+import { KNOP_ACCENT_WIT, KNOP_RAND } from "@/components/knopStijlen";
 
 function foutTekst(code: AdminEndBarSessionErrorCode): string {
   if (isSessionErrorCode(code)) return SESSION_CODE_INLINE_MESSAGE;
@@ -58,7 +59,7 @@ export function AfmeldenOverlay({
           type="button"
           disabled={pending}
           onClick={onClose}
-          className="flex h-[50px] flex-1 items-center justify-center rounded-2xl border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
+          className={`flex h-[50px] flex-1 items-center justify-center rounded-2xl text-sm font-bold ${KNOP_RAND}`}
         >
           {BEHEERDER_INGREEP.annuleren}
         </button>
@@ -66,7 +67,7 @@ export function AfmeldenOverlay({
           type="button"
           disabled={pending}
           onClick={bevestig}
-          className="flex h-[50px] flex-1 items-center justify-center rounded-2xl bg-accent-active text-sm font-bold text-white transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:bg-track disabled:text-muted"
+          className={`flex h-[50px] flex-1 items-center justify-center rounded-2xl text-sm font-bold ${KNOP_ACCENT_WIT}`}
         >
           {BEHEERDER_INGREEP.afmeldenKnop}
         </button>

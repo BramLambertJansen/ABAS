@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Annuleer + primaire actie onderaan elke profiel-sheet (prototype
+ * Annuleren + primaire actie onderaan elke profiel-sheet (prototype
  * designs/Lid App.dc.html: twee knoppen naast elkaar, 52px hoog). De
  * primaire knop is een submit-knop van het omringende `<form>` en gebruikt
  * `aria-disabled` in plaats van `disabled` (#77-patroon): hij blijft
@@ -17,7 +17,7 @@ export function SheetKnoppen({
   submitLabel: string;
   disabled: boolean;
   onCancel: () => void;
-  /** Tijdens een lopende opslag (`closeBlocked`) sluit ook Annuleer niet. */
+  /** Tijdens een lopende opslag (`closeBlocked`) sluit ook Annuleren niet. */
   cancelDisabled?: boolean;
 }) {
   return (
@@ -28,7 +28,7 @@ export function SheetKnoppen({
         onClick={onCancel}
         className="flex h-[52px] flex-1 items-center justify-center rounded-2xl border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
       >
-        Annuleer
+        Annuleren
       </button>
       <button
         type="submit"

@@ -20,7 +20,7 @@ test("concurrent real requests commit one top-up and one order; lost response re
   try {
     const user = await admin.auth.admin.createUser({ email, password, email_confirm: true });
     assert.equal(user.error, null); userId = user.data.user!.id;
-    await insert("members", [{ id: actor, name: "Receipt tester", role: "bardienst", auth_user_id: userId }, { id: member, name: "Receipt target", role: "lid", balance_cents: 5000 }]);
+    await insert("members", [{ id: actor, name: "Receipt tester", role: "bardienst", auth_user_id: userId, balance_cents: 0 }, { id: member, name: "Receipt target", role: "lid", balance_cents: 5000 }]);
     assert.equal((await bar.auth.signInWithPassword({ email, password })).error, null);
     assert.equal((await bar.rpc("register_bar_session", { p_mode: "bar" })).error, null);
     const session = await admin.from("bar_sessions").select("id").eq("member_id", actor).single(); assert.equal(session.error, null);

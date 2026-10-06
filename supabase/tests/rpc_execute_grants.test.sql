@@ -220,7 +220,9 @@ select ok(
         'public.close_inactive_bar_sessions()',
         -- 0034/0035 (ADR 0017)
         'public.member_has_verified_factor(uuid)',
-        'public.purge_login_throttle()'
+        'public.purge_login_throttle()',
+        -- 0041 (ADR 0022): de cron-job voor elders beëindigde sessies
+        'public.close_signed_out_bar_sessions()'
       ]) as f(sig)
      where has_function_privilege('anon', f.sig, 'EXECUTE')
         or has_function_privilege('authenticated', f.sig, 'EXECUTE')
@@ -260,7 +262,11 @@ select ok(
         'public.admin_take_over_shift(uuid)',
         'public.admin_end_bar_session(uuid)',
         'public.resume_orphan_shift(uuid)',
-        'public.start_shift(uuid)'
+        'public.start_shift(uuid)',
+        -- 0041 (ADR 0022): de sessiehelper van de leespolicies; zonder deze
+        -- grant faalt elke select op een tabel met een leespolicy die niet
+        -- `true` is (zelfde reden als caller_has_bar_role hierboven)
+        'public.caller_session_alive()'
       ]) as f(sig)
      where has_function_privilege('anon', f.sig, 'EXECUTE')
         or has_function_privilege('public', f.sig, 'EXECUTE')

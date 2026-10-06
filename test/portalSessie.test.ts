@@ -47,10 +47,22 @@ test("andere userId tijdens signed-in is voorgrond: fout geeft error", () => {
   assert.equal(s.status, "error");
 });
 
-test("geen rij is denied, voor- en achtergrond", () => {
+test("geen rij met bevestigde sessie is denied, voor- en achtergrond", () => {
   const expected = { status: "denied", message: DENIED_MESSAGE };
-  assert.deepEqual(volgendeSessieStaat({ status: "loading" }, { soort: "geen-rij", userId: "u1" }), expected);
-  assert.deepEqual(volgendeSessieStaat(IN, { soort: "geen-rij", userId: "u1" }), expected);
+  const uitkomst = { soort: "geen-rij" as const, userId: "u1", sessieBevestigd: true };
+  assert.deepEqual(volgendeSessieStaat({ status: "loading" }, uitkomst), expected);
+  assert.deepEqual(volgendeSessieStaat(IN, uitkomst), expected);
+});
+
+test("geen rij met niet-bevestigde sessie is signed-out (ADR 0022), voor- en achtergrond", () => {
+  const uitkomst = { soort: "geen-rij" as const, userId: "u1", sessieBevestigd: false };
+  for (const huidig of [
+    { status: "loading" },
+    { status: "error", message: "x", bezig: true },
+    IN,
+  ] as PortalSessionState[]) {
+    assert.deepEqual(volgendeSessieStaat(huidig, uitkomst), { status: "signed-out" });
+  }
 });
 
 test("rij gevonden: signed-in met userId; achtergrond ververst de gegevens", () => {

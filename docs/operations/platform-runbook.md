@@ -196,11 +196,12 @@ groene deelcontroles zijn geen goedkeuring voor een nieuwere head.
 
 ### Volgorde met sessiebeveiliging (#163)
 
-PR #163 reserveert migratie 0041 en ADR 0022 en gaat vóór deze PR naar main.
+PR #163 is naar main gemerged en gebruikt migratie 0041 en ADR 0022.
 De rechtenmigratie gebruikt daarom 0042/ADR 0023, financiële receipts
-0043/ADR 0024. Na de merge van #163 moet deze branch opnieuw met main worden
-samengevoegd, inclusief auth.sessions-fixtures, de uitgebreidere RPC-catalogus
-en volledige CI. De huidige CI tegen 0040 bewijst die combinatie nog niet.
+0043/ADR 0024. De branch is samengevoegd met main `74737e41`, inclusief
+auth.sessions-fixtures, de uitgebreidere RPC-catalogus en vier negatieve
+financiële tests voor ingetrokken Auth-sessies. Volledige CI moet de combinatie
+bewijzen; de eerdere groene CI-deelcontroles tegen 0040 volstaan niet.
 Geen productiepush vanuit deze branch zolang 0041 ontbreekt.
 
 Voor 0042 gelden bovendien de vier read-only preflightqueries uit de

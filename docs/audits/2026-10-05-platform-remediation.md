@@ -28,7 +28,7 @@ Dit bewijst de voorwaarden voor 0042; het voert die migratie niet uit.
   die alleen de actuele main-SHA met succesvolle volledige CI accepteert.
 
 Wijzigingen voor portal-herstel, chronologisch logboek en beheerformulieren
-uit main `17792ede` zijn samengevoegd; de oorspronkelijke werkcheckout is niet
+uit main `74737e41` zijn samengevoegd; de oorspronkelijke werkcheckout is niet
 overschreven. Nieuwe database-RPC's zijn additief voor de overgang.
 
 ## Verificatie
@@ -64,8 +64,11 @@ gevalideerde Tailwind-upgrade.
 Zie [platformrunbook](../operations/platform-runbook.md) en
 [backup en herstel](../operations/backup-restore.md) voor de concrete procedures.
 
-PR #163 reserveert 0041/ADR 0022 en gaat eerst naar main. De reparaties zijn
-hernummerd naar 0042/0043 en ADR 0023/0024. Integratie met die sessieguard,
-fixtures en RPC-catalogus plus volledige CI blijft een releasevoorwaarde.
+PR #163 is gemerged en meegenomen, met levende Auth-sessies in de financiële
+fixtures en de uitgebreidere RPC-catalogus. De reparaties gebruiken
+0042/0043 en ADR 0023/0024. Lokaal 798 tests en alle statische gates groen.
+Eerdere CI: 1.589 databasetests groen; integratie faalde op een ontbrekend
+startsaldoveld in een testfixture. Dat veld is aangevuld. De nieuwe volledige
+CI moet ook vier extra tests voor ingetrokken Auth-sessies en de browsers bewijzen.
 De actuele dependency-audit telt ook twee matige dev-toolmeldingen via
 postcss-selector-parser naast de zeven hoge meldingen via braces.

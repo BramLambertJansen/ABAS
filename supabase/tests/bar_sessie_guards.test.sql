@@ -59,6 +59,15 @@ begin
     values (p_shift, v_session)
     on conflict do nothing;
   end if;
+  -- De Auth-sessie uit het token: elke leespolicy en require_session eisen
+  -- haar (0041, ADR 0022). Niet voor een al gesloten bar-sessie:
+  -- close_bar_session_internal heeft die Auth-sessie verwijderd.
+  insert into auth.sessions (id, user_id, created_at, updated_at)
+  select coalesce(p_session, p_member), v_auth, now(), now()
+   where not exists (select 1 from bar_sessions
+                      where auth_session_id = coalesce(p_session, p_member)
+                        and ended_at is not null)
+  on conflict (id) do nothing;
   perform set_config('request.jwt.claim.sub', v_auth::text, true);
   perform set_config(
     'request.jwt.claims',
@@ -167,10 +176,16 @@ select throws_ok(c.sql, 'P0001', 'session_not_on_shift', c.name || ' weigert een
   from pg_temp.calls() c where c.has_shift;
 
 -- ── Ronde 4: sessie van een ander account dan het lid ────────────────────
--- Sessie A, maar met de sub van een ander account: de sessie hoort niet meer
--- bij het account van het lid.
+-- Een bar-sessie (e9) van lid A, terwijl de Auth-sessie e9 van het account
+-- van B is: de sessie hoort niet bij het account van het lid. Sinds 0041
+-- moet de Auth-sessie bij auth.uid() horen (anders session_ended, zie
+-- sessie_na_afmelden.test.sql); deze ronde toetst de controle daarna.
+insert into auth.sessions (id, user_id, created_at, updated_at)
+values ('00000000-0000-0000-0000-00000000a0e9', '00000000-0000-0000-0000-00000000a011', now(), now());
+insert into bar_sessions (auth_session_id, member_id, mode)
+values ('00000000-0000-0000-0000-00000000a0e9', '00000000-0000-0000-0000-00000000a010', 'bar');
 select set_config('request.jwt.claims',
-  '{"sub":"00000000-0000-0000-0000-00000000a011","session_id":"00000000-0000-0000-0000-00000000a010"}', true);
+  '{"sub":"00000000-0000-0000-0000-00000000a011","session_id":"00000000-0000-0000-0000-00000000a0e9"}', true);
 select throws_ok(c.sql, 'P0001', 'no_bar_role', c.name || ' weigert een sessie die niet bij het account van het lid hoort (no_bar_role)')
   from pg_temp.calls() c;
 

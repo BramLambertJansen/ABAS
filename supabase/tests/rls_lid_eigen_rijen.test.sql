@@ -26,6 +26,10 @@
 -- auth.uid() zijn 1-op-1 overgenomen uit ledenbeheer.test.sql /
 -- assortimentbeheer.test.sql — zie assortimentbeheer.test.sql voor de twee
 -- aannames die alle auth.uid()-tests in deze repo delen.
+-- Sinds 0041 (ADR 0022) eist elke leespolicy ook een levende Auth-sessie:
+-- de claims gaan via request.jwt.claims met `sub` én `session_id`, en elk
+-- account heeft een rij in auth.sessions. De dode sessie zelf toetst
+-- sessie_na_afmelden.test.sql.
 --
 -- Sinds 0039 (ADR 0019) legt blok 3 vast dat een account zonder gekoppeld
 -- lid uit de vijf tabellen niets leest; vóór 0039 las zo'n account alles
@@ -181,7 +185,17 @@ select set_config('abas.n_top_ups_gearch', (
 
 -- ── Blok 1: als lid A ────────────────────────────────────────────────────
 
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000002a0', true);
+-- Een levende Auth-sessie per account (id = het auth-id): elke leespolicy
+-- en de guardvrije RPC's eisen haar (0041, ADR 0022).
+insert into auth.sessions (id, user_id, created_at, updated_at) values
+  ('00000000-0000-0000-0000-0000000002a0', '00000000-0000-0000-0000-0000000002a0', now(), now()),
+  ('00000000-0000-0000-0000-0000000002a2', '00000000-0000-0000-0000-0000000002a2', now(), now()),
+  ('00000000-0000-0000-0000-0000000002a5', '00000000-0000-0000-0000-0000000002a5', now(), now()),
+  ('00000000-0000-0000-0000-0000000002a3', '00000000-0000-0000-0000-0000000002a3', now(), now()),
+  ('00000000-0000-0000-0000-0000000002a4', '00000000-0000-0000-0000-0000000002a4', now(), now()),
+  ('00000000-0000-0000-0000-0000000002a6', '00000000-0000-0000-0000-0000000002a6', now(), now());
+
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000002a0","session_id":"00000000-0000-0000-0000-0000000002a0"}', true);
 set local role authenticated;
 
 select is(
@@ -258,7 +272,7 @@ reset role;
 -- verkoopscherm om (useMembers/useShiftSummary lezen alle leden en alle
 -- orders).
 
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000002a2', true);
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000002a2","session_id":"00000000-0000-0000-0000-0000000002a2"}', true);
 set local role authenticated;
 
 select is(
@@ -296,7 +310,7 @@ reset role;
 -- ── Blok 2b: als actieve beheerder ───────────────────────────────────────
 -- Beheerder is een superset van bardienst: ook brede tak.
 
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000002a5', true);
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000002a5","session_id":"00000000-0000-0000-0000-0000000002a5"}', true);
 set local role authenticated;
 
 select is(
@@ -338,7 +352,7 @@ reset role;
 -- De globale tabellen (shifts, products, …) blijven leesbaar (ADR 0019,
 -- keuze 6 in docs/features/leespolicies-allowlist.md).
 
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000002a3', true);
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000002a3","session_id":"00000000-0000-0000-0000-0000000002a3"}', true);
 set local role authenticated;
 
 select is(
@@ -390,7 +404,7 @@ reset role;
 -- (`caller_is_lid()` negeerde `archived`). Nu: alleen de eigen rijen, net
 -- als een lid — de eigen historie blijft in de portal zichtbaar.
 
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000002a4', true);
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000002a4","session_id":"00000000-0000-0000-0000-0000000002a4"}', true);
 set local role authenticated;
 
 select is(
@@ -443,7 +457,7 @@ reset role;
 -- beheerder in de brede tak. Hij heeft zelf geen bestellingen, dus "eigen
 -- rijen" is hier absoluut 0: geen seed-rij hoort bij …02b6.
 
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000002a6', true);
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000002a6","session_id":"00000000-0000-0000-0000-0000000002a6"}', true);
 set local role authenticated;
 
 select is(
@@ -477,7 +491,7 @@ reset role;
 
 update members set role = 'lid' where id = '00000000-0000-0000-0000-0000000002b2';
 
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-0000000002a2', true);
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000002a2","session_id":"00000000-0000-0000-0000-0000000002a2"}', true);
 set local role authenticated;
 
 select is(

@@ -206,7 +206,7 @@ test("Portal Naam wijzigen: pending blokkeert sluiten, bevriest het veld, Enter-
   await expect(dialog).toHaveAttribute("aria-busy", "true");
   await expect(veld).toHaveAttribute("readonly", "");
   await expect(dialog.getByRole("button", { name: "Opslaan…" })).toBeVisible();
-  await expect(dialog.getByRole("button", { name: "Annuleer" })).toBeDisabled();
+  await expect(dialog.getByRole("button", { name: "Annuleren" })).toBeDisabled();
 
   // Enter-herhaling en een tweede klik tijdens pending.
   await veld.press("Enter");
@@ -215,7 +215,7 @@ test("Portal Naam wijzigen: pending blokkeert sluiten, bevriest het veld, Enter-
 
   await page.keyboard.press("Escape");
   await page.mouse.click(3, 3);
-  await dialog.getByRole("button", { name: "Annuleer" }).click({ force: true });
+  await dialog.getByRole("button", { name: "Annuleren" }).click({ force: true });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole("status").filter({ hasText: MELDING })).toBeVisible();
   await geenFocusOpBody(page);
@@ -227,7 +227,7 @@ test("Portal Naam wijzigen: pending blokkeert sluiten, bevriest het veld, Enter-
   expect(aanroepen).toBe(1);
 });
 
-test("Portal Naam wijzigen: onopgeslagen vraagt bij Escape/backdrop, niet bij ongewijzigd of Annuleer", async ({ page }) => {
+test("Portal Naam wijzigen: onopgeslagen vraagt bij Escape/backdrop, niet bij ongewijzigd of Annuleren", async ({ page }) => {
   await mockPortal(page, LID, {});
   const dialog = await openNaamSheet(page);
 
@@ -246,10 +246,10 @@ test("Portal Naam wijzigen: onopgeslagen vraagt bij Escape/backdrop, niet bij on
   await dialog.getByRole("button", { name: "Weggooien" }).click();
   await expect(dialog).toHaveCount(0);
 
-  // Terug naar de oude waarde telt niet als onopgeslagen; bewuste Annuleer gooit zonder vraag weg.
+  // Terug naar de oude waarde telt niet als onopgeslagen; bewuste Annuleren gooit zonder vraag weg.
   await page.getByRole("button", { name: /^Naam wijzigen/ }).click();
   await dialog.getByLabel("Volledige naam").fill("Iets anders");
-  await dialog.getByRole("button", { name: "Annuleer" }).click();
+  await dialog.getByRole("button", { name: "Annuleren" }).click();
   await expect(dialog).toHaveCount(0);
 });
 
@@ -270,11 +270,11 @@ test("Portal Naam wijzigen: na 30 s valt de blokkade, onbekende uitkomst, geen a
   await expect(dialog).toHaveAttribute("aria-busy", "true");
 
   await page.clock.fastForward(29_000);
-  await expect(dialog.getByRole("button", { name: "Annuleer" })).toBeDisabled();
+  await expect(dialog.getByRole("button", { name: "Annuleren" })).toBeDisabled();
 
   await page.clock.fastForward(1_500);
   await expect(alertOf(page).filter({ hasText: ONBEKEND_BEHEER })).toBeVisible();
-  await expect(dialog.getByRole("button", { name: "Annuleer" })).toBeEnabled();
+  await expect(dialog.getByRole("button", { name: "Annuleren" })).toBeEnabled();
   await page.clock.fastForward(60_000);
   expect(aanroepen).toBe(1);
   await expect(page.getByText("probeer het opnieuw")).toHaveCount(0);
@@ -301,7 +301,7 @@ test("Portal Wachtwoord wijzigen: pending blokkeert sluiten en bevriest de velde
   await expect(dialog).toHaveAttribute("aria-busy", "true");
   await expect(dialog.getByLabel("Nieuw wachtwoord")).toHaveAttribute("readonly", "");
   await expect(dialog.getByLabel("Herhaal wachtwoord")).toHaveAttribute("readonly", "");
-  await expect(dialog.getByRole("button", { name: "Annuleer" })).toBeDisabled();
+  await expect(dialog.getByRole("button", { name: "Annuleren" })).toBeDisabled();
   await dialog.getByRole("button", { name: "Opslaan…" }).click({ force: true });
   await page.keyboard.press("Escape");
   await page.mouse.click(3, 3);

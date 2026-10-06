@@ -8,29 +8,22 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // DEFAULT (#ee5a24) is 5.19:1 for dark text (text-rail, e.g. the
-        // "beheerder" role badge) but only 3.42:1 for white/light bold text
-        // at small sizes (e.g. a "Klaar" button or an icon-sized checkmark)
-        // — fails WCAG AA there (needs 4.5:1). One background shade can't
-        // satisfy both a dark-text and a white-text use at once, so: keep
-        // DEFAULT for dark-text-on-accent (unchanged, already compliant),
-        // and use `active` (4.83:1) instead of DEFAULT for any white/light
-        // bold text under ~18px — see BezettingOverlay.tsx for the pattern.
-        // Caught by check:a11y once a real CI run could finally reach a
-        // rendered button for the first time (docs/ARCHITECTURE.md →
-        // "Local/CI device account").
-        //
-        // `hover` is the hover shade for dark-text-on-accent buttons
-        // (`bg-accent text-rail hover:bg-accent-hover`) and is therefore
-        // *lighter* than DEFAULT: 6.03:1 with text-rail. It used to be a
-        // darker #d94d1a, which fails AA for dark text (4.25:1) and for white
-        // text (4.18:1) alike (#66). White-text buttons don't use `hover`;
-        // they sit on `active`. test/accentContrast.test.ts guards all of
-        // these pairs.
+        // Regel (T12, #132): witte tekst staat op `active` (rust, 4.83:1) en
+        // `pressed` (hover en ingedrukt, 5.61:1) — de hover wordt dus
+        // donkerder. Donkere tekst (`text-rail`) staat op DEFAULT en `hover`
+        // (5.19 en 6.03:1; `hover` is bewust lichter). DEFAULT (#ee5a24)
+        // haalt met wit maar 3.42:1 en `hover` 2.95:1: wit nooit op die twee,
+        // ook niet als hoverkleur. De gedeelde klassen staan in
+        // src/components/knopStijlen.ts (KNOP_ACCENT_WIT, KNOP_ACCENT_DONKER).
+        // test/accentContrast.test.ts rekent rust-, hover-, active- en
+        // focus-paren door over alle klasse-literals in src/. Het oude
+        // #d94d1a-testje blijft als negatieve bewaking.
         accent: {
           DEFAULT: "#ee5a24",
           hover: "#f1703f",
           active: "#c9451a",
+          // Hover en ingedrukt voor witte-tekst-knoppen: 5.61:1 met wit.
+          pressed: "#b93d15",
           // Zachte accent-ondergrond ("+"-knoppen, aantal-pillen, gekozen
           // rij) — altijd met `text-danger`/`text-accent-active` erop, nooit
           // met accent.DEFAULT als tekstkleur (te weinig contrast).
@@ -88,7 +81,7 @@ const config: Config = {
       },
       fontFamily: {
         sans: [
-          "Manrope",
+          "var(--font-manrope)",
           "-apple-system",
           "BlinkMacSystemFont",
           "sans-serif",

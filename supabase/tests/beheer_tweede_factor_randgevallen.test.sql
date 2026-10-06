@@ -93,6 +93,11 @@ update bar_devices set last_seen_at = now() - interval '3 days'
 insert into bar_sessions (auth_session_id, member_id, mode, last_activity_at) values
   ('00000000-0000-0000-0000-0000000f3e01', '00000000-0000-0000-0000-0000000f3b01', 'beheer',
    now() - interval '5 minutes');
+-- Met een levende Auth-sessie (require_session eist haar sinds 0041, ADR
+-- 0022), net als de portal-sessie e02 van dezelfde beheerder.
+insert into auth.sessions (id, user_id, created_at, updated_at) values
+  ('00000000-0000-0000-0000-0000000f3e01', '00000000-0000-0000-0000-0000000f3a01', now(), now()),
+  ('00000000-0000-0000-0000-0000000f3e02', '00000000-0000-0000-0000-0000000f3a01', now(), now());
 
 -- JWT-claims van een Auth-sessie; p_aal null = geen aal-claim.
 create function pg_temp.claims(p_sub uuid, p_session uuid, p_aal text)
@@ -285,6 +290,8 @@ select is(
 
 insert into bar_sessions (auth_session_id, member_id, mode) values
   ('00000000-0000-0000-0000-0000000f3e07', '00000000-0000-0000-0000-0000000f3b02', 'bar');
+insert into auth.sessions (id, user_id, created_at, updated_at) values
+  ('00000000-0000-0000-0000-0000000f3e07', '00000000-0000-0000-0000-0000000f3a02', now(), now());
 select pg_temp.claims('00000000-0000-0000-0000-0000000f3a02', '00000000-0000-0000-0000-0000000f3e07', 'aal1');
 select is(
   (select (my_bar_state() -> 'session' ->> 'resumable')::boolean),
@@ -299,8 +306,7 @@ insert into bar_sessions (auth_session_id, member_id, mode) values
   ('00000000-0000-0000-0000-0000000f3e08', '00000000-0000-0000-0000-0000000f3b06', 'bar');
 insert into auth.sessions (id, user_id, created_at, updated_at) values
   ('00000000-0000-0000-0000-0000000f3e08', '00000000-0000-0000-0000-0000000f3a06', now(), now()),
-  ('00000000-0000-0000-0000-0000000f3e09', '00000000-0000-0000-0000-0000000f3a06', now(), now()),
-  ('00000000-0000-0000-0000-0000000f3e01', '00000000-0000-0000-0000-0000000f3a01', now(), now());
+  ('00000000-0000-0000-0000-0000000f3e09', '00000000-0000-0000-0000-0000000f3a06', now(), now());
 
 select pg_temp.claims('00000000-0000-0000-0000-0000000f3a06', '00000000-0000-0000-0000-0000000f3e08', 'aal1');
 select lives_ok($$ select end_bar_session(false) $$, 'stap: de bardienst logt uit op de bar');

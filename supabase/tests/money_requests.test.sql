@@ -1,7 +1,7 @@
 -- Transactional receipts and negative authorization tests, ADR 0024.
 create extension if not exists pgtap with schema extensions;
 begin;
-select plan(36);
+select plan(40);
 create function pg_temp.act_as_bar(p_member uuid, p_shift uuid default null, p_session uuid default null)
 returns void
 language plpgsql
@@ -32,6 +32,12 @@ begin
     values (p_shift, v_session)
     on conflict do nothing;
   end if;
+  insert into auth.sessions(id, user_id, created_at, updated_at)
+  select coalesce(p_session, p_member), v_auth, now(), now()
+   where not exists (select 1 from bar_sessions
+                     where auth_session_id = coalesce(p_session, p_member)
+                       and ended_at is not null)
+  on conflict (id) do nothing;
   perform set_config('request.jwt.claim.sub', v_auth::text, true);
   perform set_config(
     'request.jwt.claims',
@@ -90,6 +96,7 @@ select throws_ok($test$select place_order_once('00000000-0000-4000-8000-00000000
 
 update members set role = 'beheerder' where id = '00000000-0000-4000-8000-000000009101';
 insert into bar_sessions(auth_session_id, member_id, mode) values ('00000000-0000-4000-8000-000000009130', '00000000-0000-4000-8000-000000009101', 'beheer');
+insert into auth.sessions(id, user_id, created_at, updated_at) values ('00000000-0000-4000-8000-000000009130', '00000000-0000-4000-8000-000000009101', now(), now());
 select set_config('request.jwt.claims', json_build_object('sub', '00000000-0000-4000-8000-000000009101', 'session_id', '00000000-0000-4000-8000-000000009130', 'aal', 'aal2')::text, true);
 select is((create_member_once('00000000-0000-4000-8000-000000009205', 'Retry member', 400, null)).id, (create_member_once('00000000-0000-4000-8000-000000009205', 'Retry member', 400, null)).id, 'member replay returns same id');
 
@@ -130,5 +137,15 @@ select is((select count(*) from top_ups where member_id = '00000000-0000-4000-80
 select is((inspect_money_request('00000000-0000-4000-8000-000000009201', 'top_up', jsonb_build_array('00000000-0000-4000-8000-000000009110', '00000000-0000-4000-8000-000000009102', 100, 'cash', '00000000-0000-4000-8000-000000009101'), true))->>'status', 'completed', 'cancelling an already booked request returns success, never reverses money');
 select pg_temp.act_as_bar('00000000-0000-4000-8000-000000009103', '00000000-0000-4000-8000-000000009110');
 select throws_ok($test$select inspect_money_request('00000000-0000-4000-8000-000000009206', 'top_up', jsonb_build_array('00000000-0000-4000-8000-000000009110', '00000000-0000-4000-8000-000000009102', 100, 'cash', '00000000-0000-4000-8000-000000009101'), false)$test$, 'P0001', 'request_id_conflict', 'other actor cannot inspect cancellation proof');
+-- Receipts do not restore authorization to a revoked Auth session (ADR 0022).
+select pg_temp.act_as_bar('00000000-0000-4000-8000-000000009101', '00000000-0000-4000-8000-000000009110', '00000000-0000-4000-8000-000000009140');
+delete from auth.sessions where id = '00000000-0000-4000-8000-000000009140';
+select throws_ok($test$select inspect_money_request('00000000-0000-4000-8000-000000009201', 'top_up', '[]', false)$test$, 'P0001', 'session_ended', 'revoked Auth session cannot inspect a receipt');
+select throws_ok($test$select top_up_once('00000000-0000-4000-8000-000000009201', '00000000-0000-4000-8000-000000009110', '00000000-0000-4000-8000-000000009102', 100, 'cash', '00000000-0000-4000-8000-000000009101')$test$, 'P0001', 'session_ended', 'revoked Auth session cannot replay a top-up');
+select throws_ok($test$select place_order_once('00000000-0000-4000-8000-000000009203', '00000000-0000-4000-8000-000000009110', '00000000-0000-4000-8000-000000009102', '[{"product_id":"00000000-0000-4000-8000-000000009120","qty":1}]'::jsonb, '00000000-0000-4000-8000-000000009101')$test$, 'P0001', 'session_ended', 'revoked Auth session cannot replay an order');
+update members set role = 'beheerder' where id = '00000000-0000-4000-8000-000000009101';
+select set_config('request.jwt.claims', json_build_object('sub', '00000000-0000-4000-8000-000000009101', 'session_id', '00000000-0000-4000-8000-000000009130', 'aal', 'aal2')::text, true);
+delete from auth.sessions where id = '00000000-0000-4000-8000-000000009130';
+select throws_ok($test$select create_member_once('00000000-0000-4000-8000-000000009205', 'Retry member', 400, null)$test$, 'P0001', 'session_ended', 'revoked Auth session cannot replay member creation');
 select * from finish();
 rollback;

@@ -89,7 +89,7 @@ export function TweestapSheet({
       onClick={onClose}
       className="flex h-[52px] w-full items-center justify-center rounded-2xl border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
     >
-      Annuleer
+      Annuleren
     </button>
   );
 
@@ -138,7 +138,7 @@ export function TweestapSheet({
                 onClick={onClose}
                 className="flex h-[52px] flex-1 items-center justify-center rounded-2xl border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink"
               >
-                Annuleer
+                Annuleren
               </button>
               <button
                 type="button"

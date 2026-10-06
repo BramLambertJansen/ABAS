@@ -107,6 +107,11 @@ type PortalStaat = {
   naam: string;
   /** De gebruiker die `/auth/v1/token` teruggeeft en de sessielookup herkent. */
   gebruiker: typeof USER;
+  /** `GET /auth/v1/user` kent de sessie (ADR 0022): bij een lege eigen rij
+   *  vraagt `usePortalSession` de sessie na; `false` = elders beëindigd. */
+  sessieBijGoTrue: boolean;
+  /** Aantal `GET /auth/v1/user`-aanroepen. */
+  nGetUser: number;
 };
 
 /** Houdt de antwoorden van `bron` vast tot de teruggegeven functie wordt aangeroepen. */
@@ -134,6 +139,8 @@ async function mockPortal(page: Page): Promise<PortalStaat> {
     poort: { balance: null, tx: null },
     naam: "Mock Lid",
     gebruiker: USER,
+    sessieBijGoTrue: true,
+    nGetUser: 0,
   };
   const objectOrList = (route: Route, modus: Modus, row: unknown) => {
     const accept = route.request().headers()["accept"] ?? "";
@@ -144,6 +151,15 @@ async function mockPortal(page: Page): Promise<PortalStaat> {
     return json(route, 200, fakeSession({ user: staat.gebruiker }));
   });
   await page.route(/\/auth\/v1\/logout(\?|$)/, (route) => route.fulfill({ status: 204, headers: SUPABASE_HEADERS }));
+  // Sessiebevestiging bij een lege eigen rij (ADR 0022, keuze 9).
+  await page.route(/\/auth\/v1\/user(\?|$)/, (route) => {
+    if (route.request().method() !== "GET") return route.fallback();
+    staat.nGetUser++;
+    if (!staat.sessieBijGoTrue) {
+      return json(route, 403, { code: "session_not_found", msg: "Session from session_id claim in JWT does not exist" });
+    }
+    return json(route, 200, staat.gebruiker);
+  });
   await page.route(/\/rest\/v1\//, (route) => json(route, 200, []));
   await page.route(/\/rest\/v1\/members(\?|$)/, async (route) => {
     const url = decodeURIComponent(route.request().url());
@@ -555,6 +571,18 @@ test.describe("portal: sessielookup (#115)", () => {
     await expect(page.getByRole("group", { name: "Saldo" })).toContainText("15,00");
     await expect(sessieFout(page)).toHaveCount(0);
     await expect(nietGekoppeld(page)).toHaveCount(0);
+  });
+
+  test("lookup slaagt zonder rij, sessie elders beëindigd: inlogscherm, geen denied (ADR 0022)", async ({ page }) => {
+    const staat = await mockPortalZonderLogin(page);
+    staat.sessie = "geen-rij";
+    staat.sessieBijGoTrue = false;
+    await portalLoginMetWachtwoord(page, USER.email, "Aurora#2026");
+    await expect.poll(() => staat.nGetUser, { timeout: 15_000 }).toBeGreaterThanOrEqual(1);
+    await expect(page.locator('input[type="email"]')).toBeVisible();
+    await rustig(page);
+    await expect(nietGekoppeld(page)).toHaveCount(0);
+    await expect(sessieFout(page)).toHaveCount(0);
   });
 
   test("achtergrond, rij verdwenen: denied", async ({ page }) => {

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { logLocalError, reportClientError } from "@/lib/clientErrors";
+import { bevestigSessieOfMeldAf } from "@/lib/sessieBevestigen";
 
 /**
  * Tracks whether `/beheer` has an actual bardienst/beheerder session, not
@@ -27,6 +28,13 @@ import { logLocalError, reportClientError } from "@/lib/clientErrors";
  * bardienst/beheerder member (→ `BeheerLogin.tsx` shows a Nederlandse
  * foutmelding + the login form), "signed-in" only once a real
  * bardienst/beheerder session is confirmed.
+ *
+ * An empty own-row lookup is, since ADR 0022, not always "not linked": a
+ * token of an Auth session that ended elsewhere (signed out, password reset
+ * or changed on another device) reads nothing anymore. So that branch first
+ * confirms the session with GoTrue (`bevestigSessieOfMeldAf`); if it is
+ * gone, this device signs out locally and the state becomes "signed-out"
+ * instead of "denied" (docs/features/sessie-na-afmelden.md → keuze 9).
  *
  * Whether the session is registered as a bar session, in which mode, and
  * whether it is still active, is not this hook's concern: that is
@@ -78,6 +86,14 @@ export function useBeheerSession(): BeheerSessionState & {
           if (cancelled || huidigeRequest !== request) return;
           if (error) throw error;
           if (!data) {
+            // Eerst: leeft de sessie nog? Een dood token ziet geen rij
+            // (ADR 0022); dan lokaal afmelden in plaats van "niet gekoppeld".
+            const bevestigd = await bevestigSessieOfMeldAf(supabase.auth, "useBeheerSession");
+            if (cancelled || huidigeRequest !== request) return;
+            if (!bevestigd) {
+              setState({ status: "signed-out" });
+              return;
+            }
             // Same case as the RPC's own `actor_not_found` — no active
             // `members` row references this auth account at all. Covers
             // both the shared device account (never linked to a member)

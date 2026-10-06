@@ -56,6 +56,16 @@ begin
     values (p_auth_user, v_member, p_mode)
     on conflict (auth_session_id) do nothing;
   end if;
+  -- De Auth-sessie uit het token: elke leespolicy en require_session eisen
+  -- haar (0041, ADR 0022). Alleen voor een bestaand account (FK), en niet
+  -- voor een al gesloten bar-sessie: close_bar_session_internal heeft die
+  -- Auth-sessie verwijderd.
+  insert into auth.sessions (id, user_id, created_at, updated_at)
+  select p_auth_user, p_auth_user, now(), now()
+   where exists (select 1 from auth.users where id = p_auth_user)
+     and not exists (select 1 from bar_sessions
+                      where auth_session_id = p_auth_user and ended_at is not null)
+  on conflict (id) do nothing;
   perform set_config('request.jwt.claim.sub', p_auth_user::text, true);
   -- Een beheersessie is altijd aal2: register_bar_session('beheer') en
   -- require_beheer_session eisen dat (ADR 0017, 0034).
@@ -103,6 +113,15 @@ begin
     values (p_shift, v_session)
     on conflict do nothing;
   end if;
+  -- De Auth-sessie uit het token: elke leespolicy en require_session eisen
+  -- haar (0041, ADR 0022). Niet voor een al gesloten bar-sessie:
+  -- close_bar_session_internal heeft die Auth-sessie verwijderd.
+  insert into auth.sessions (id, user_id, created_at, updated_at)
+  select coalesce(p_session, p_member), v_auth, now(), now()
+   where not exists (select 1 from bar_sessions
+                      where auth_session_id = coalesce(p_session, p_member)
+                        and ended_at is not null)
+  on conflict (id) do nothing;
   perform set_config('request.jwt.claim.sub', v_auth::text, true);
   perform set_config(
     'request.jwt.claims',

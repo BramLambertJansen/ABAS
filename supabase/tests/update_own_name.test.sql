@@ -4,7 +4,9 @@
 -- vereist `supabase start` / Docker lokaal).
 --
 -- Fixture- en assertiestijl als set_own_pin.test.sql: auth.users-rijen als
--- minimale FK-doelen, auth.uid() gesimuleerd via request.jwt.claim.sub.
+-- minimale FK-doelen, auth.uid() gesimuleerd via request.jwt.claims met
+-- `sub` en `session_id`, plus een levende rij in auth.sessions (sinds 0041,
+-- ADR 0022; de dode sessie toetst sessie_na_afmelden.test.sql).
 -- Foutcodes letterlijk uit 0026: actor_not_found, invalid_name.
 
 create extension if not exists pgtap with schema extensions;
@@ -78,7 +80,16 @@ select is(
 
 -- ── 1) actor_not_found: geen gekoppelde members-rij ───────────────────
 
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000215', true);
+-- Een levende Auth-sessie per account (id = het auth-id): elke leespolicy
+-- en de guardvrije RPC's eisen haar (0041, ADR 0022).
+insert into auth.sessions (id, user_id, created_at, updated_at) values
+  ('00000000-0000-0000-0000-000000000215', '00000000-0000-0000-0000-000000000215', now(), now()),
+  ('00000000-0000-0000-0000-000000000214', '00000000-0000-0000-0000-000000000214', now(), now()),
+  ('00000000-0000-0000-0000-000000000210', '00000000-0000-0000-0000-000000000210', now(), now()),
+  ('00000000-0000-0000-0000-000000000212', '00000000-0000-0000-0000-000000000212', now(), now()),
+  ('00000000-0000-0000-0000-000000000213', '00000000-0000-0000-0000-000000000213', now(), now());
+
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000215","session_id":"00000000-0000-0000-0000-000000000215"}', true);
 select throws_ok(
   $$ select update_own_name('Iemand') $$,
   'P0001', 'actor_not_found',
@@ -87,7 +98,7 @@ select throws_ok(
 
 -- ── 2) actor_not_found: gearchiveerd lid, naam onveranderd ────────────
 
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000214', true);
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000214","session_id":"00000000-0000-0000-0000-000000000214"}', true);
 select throws_ok(
   $$ select update_own_name('Nieuwe Naam') $$,
   'P0001', 'actor_not_found',
@@ -101,7 +112,7 @@ select is(
 
 -- ── 3) invalid_name: leeg, alleen spaties, null ───────────────────────
 
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000210', true);
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000210","session_id":"00000000-0000-0000-0000-000000000210"}', true);
 select throws_ok(
   $$ select update_own_name('') $$,
   'P0001', 'invalid_name',
@@ -180,7 +191,7 @@ select is(
 
 -- ── 7) positief voor bardienst en beheerder ───────────────────────────
 
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000212', true);
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000212","session_id":"00000000-0000-0000-0000-000000000212"}', true);
 select is(
   (select (update_own_name('Bart Dienst')).id),
   '00000000-0000-0000-0000-000000000222'::uuid,
@@ -203,7 +214,7 @@ select ok(
   'de opgeslagen pin_hash van de bardienst is onveranderd'
 );
 
-select set_config('request.jwt.claim.sub', '00000000-0000-0000-0000-000000000213', true);
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-000000000213","session_id":"00000000-0000-0000-0000-000000000213"}', true);
 select lives_ok(
   $$ select update_own_name('Bea Heerder') $$,
   'een beheerder kan de eigen naam wijzigen'

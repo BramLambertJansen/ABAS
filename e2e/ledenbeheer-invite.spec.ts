@@ -77,27 +77,27 @@ async function openLidBeheren(page: Page) {
   await page.getByRole("button", { name: "Beheer" }).click();
   await page.getByRole("tab", { name: "Leden" }).click();
   await page.getByRole("button", { name: LID.name }).click();
-  await expect(page.getByRole("button", { name: "Invite versturen" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Uitnodiging versturen" })).toBeVisible();
 }
 
 test("invite: rate_limited → de gedeelde 'te veel pogingen'-tekst (#73)", async ({ page }) => {
   const calls = await mockBeheerder(page, [200, { ok: false, errorCode: "rate_limited" }]);
   await openLidBeheren(page);
 
-  await page.getByRole("button", { name: "Invite versturen" }).click();
+  await page.getByRole("button", { name: "Uitnodiging versturen" }).click();
 
   await expect(alertOf(page)).toHaveText(RATE_LIMITED_TEXT);
   expect(calls).toEqual([{ memberId: LID.id }]);
   // Mislukt: geen "uitgenodigd op …", knop blijft bruikbaar voor een nieuwe poging.
   await expect(page.getByText("nog niet uitgenodigd")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Invite versturen" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Uitnodiging versturen" })).toBeEnabled();
 });
 
 test("invite: andere fout (unknown) → géén 'te veel pogingen'-tekst", async ({ page }) => {
   await mockBeheerder(page, [500, { ok: false, errorCode: "iets_onbekends" }]);
   await openLidBeheren(page);
 
-  await page.getByRole("button", { name: "Invite versturen" }).click();
+  await page.getByRole("button", { name: "Uitnodiging versturen" }).click();
 
   await expect(alertOf(page)).toHaveText("er ging iets mis, probeer het opnieuw");
   await expect(page.getByText("te veel pogingen")).toHaveCount(0);

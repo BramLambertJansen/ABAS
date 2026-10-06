@@ -1,9 +1,21 @@
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
-import { execSync } from "node:child_process";
-import { createHmac, randomBytes } from "node:crypto";
+import { createHmac } from "node:crypto";
 
-import { createClient, type Session, type SupabaseClient } from "@supabase/supabase-js";
+import type { Session, SupabaseClient } from "@supabase/supabase-js";
+
+import {
+  aangemaakteAccounts,
+  aangemaakteLeden,
+  admin,
+  gebruiker,
+  metToken,
+  opruimen,
+  sessieId,
+  tokenClaims,
+  uniekAdres,
+  wachtwoord,
+} from "./hulpjes.ts";
 
 /**
  * Integratietest tegen de echte GoTrue van de lokale stack (`supabase
@@ -30,118 +42,18 @@ import { createClient, type Session, type SupabaseClient } from "@supabase/supab
  * wachtwoordsessie een `auth.sessions`-rij met het `session_id` uit het
  * token heeft (register_bar_session slaagt), scenario 3 dat het overgebleven
  * token van de aanvaller geen bar-sessie registreert en geen PIN zet.
+ *
+ * De gedeelde hulpjes (omgeving, clients, opruimen, tokens) staan in
+ * integration/hulpjes.ts, samen met sessie-na-afmelden.test.ts.
  */
 
-type Omgeving = { url: string; publishableKey: string; secretKey: string };
-
-function omgeving(): Omgeving {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-  const secretKey = process.env.SUPABASE_SECRET_KEY;
-  if (url && publishableKey && secretKey) return { url, publishableKey, secretKey };
-
-  // Lokaal, buiten CI: dezelfde bron als de CI-stap "Export local Supabase
-  // env vars" en e2e/helpers/supabaseAdmin.ts.
-  let raw: string;
-  try {
-    raw = execSync("supabase status -o json", { encoding: "utf8" });
-  } catch {
-    raw = execSync("npx supabase status -o json", { encoding: "utf8" });
-  }
-  const status = JSON.parse(raw) as {
-    API_URL: string;
-    PUBLISHABLE_KEY?: string;
-    ANON_KEY?: string;
-    SERVICE_ROLE_KEY: string;
-  };
-  const key = status.PUBLISHABLE_KEY ?? status.ANON_KEY;
-  if (!key) throw new Error("supabase status gaf geen PUBLISHABLE_KEY of ANON_KEY");
-  return { url: status.API_URL, publishableKey: key, secretKey: status.SERVICE_ROLE_KEY };
-}
-
-const env = omgeving();
-
-const clientOpties = {
-  auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-} as const;
-
-/** Service-role: opzet en controle, buiten RLS om. */
-const admin: SupabaseClient = createClient(env.url, env.secretKey, clientOpties);
-
-/** Een "gebruiker" met de publieke key, zoals de browser of een aanvaller. */
-function gebruiker(): SupabaseClient {
-  return createClient(env.url, env.publishableKey, clientOpties);
-}
-
-/** Een client die alleen een vast access token meestuurt: geen eigen
- *  sessie, dus supabase-js ververst niets stil. Zo roept de aanvaller met
- *  zijn overgebleven token PostgREST aan. */
-function metToken(accessToken: string): SupabaseClient {
-  return createClient(env.url, env.publishableKey, {
-    ...clientOpties,
-    global: { headers: { Authorization: `Bearer ${accessToken}` } },
-  });
-}
-
-// ── Opruimen ──────────────────────────────────────────────────────────────
-
-const aangemaakteLeden: string[] = [];
-const aangemaakteAccounts: string[] = [];
-
-after(async () => {
-  // Eerst de bar-sessies: bar_sessions.member_id verwijst zonder `on delete`
-  // naar members (scenario 1 registreert er een).
-  if (aangemaakteLeden.length > 0) {
-    const { error } = await admin.from("bar_sessions").delete().in("member_id", aangemaakteLeden);
-    if (error) console.error("opruimen bar_sessions:", error.message);
-  }
-  // Dan de leden: members.auth_user_id verwijst zonder `on delete` naar
-  // auth.users, dus een gekoppeld account is pas daarna te verwijderen.
-  if (aangemaakteLeden.length > 0) {
-    const { error } = await admin.from("members").delete().in("id", aangemaakteLeden);
-    if (error) console.error("opruimen members:", error.message);
-  }
-  for (const id of aangemaakteAccounts) {
-    const { error } = await admin.auth.admin.deleteUser(id);
-    if (error) console.error(`opruimen auth-account ${id}:`, error.message);
-  }
-});
-
-// ── Hulpjes ───────────────────────────────────────────────────────────────
-
-function uniekAdres(): string {
-  return `koppel-${randomBytes(8).toString("hex")}@example.test`;
-}
-
-function wachtwoord(): string {
-  return `Ww-${randomBytes(12).toString("hex")}`;
-}
-
-type TokenClaims = {
-  amr?: Array<{ method?: string } | string>;
-  session_id?: string;
-  aal?: string;
-};
-
-/** De claims uit het ondertekende access token (niet geverifieerd: alleen
- *  om te lezen wat GoTrue uitgaf). */
-function tokenClaims(session: Session): TokenClaims {
-  const payload = session.access_token.split(".")[1];
-  assert.ok(payload, "access token heeft geen payload");
-  return JSON.parse(Buffer.from(payload, "base64url").toString("utf8")) as TokenClaims;
-}
+after(opruimen);
 
 /** De `amr`-methoden uit het ondertekende access token. GoTrue zet ze als
  *  `[{method, timestamp}]`; de RFC 8176-vorm (`string[]`) wordt ook gelezen,
  *  zodat een afwijkende vorm hier zichtbaar wordt in plaats van te crashen. */
 function amrMethoden(session: Session): string[] {
   return (tokenClaims(session).amr ?? []).map((e) => (typeof e === "string" ? e : (e.method ?? "")));
-}
-
-function sessieId(session: Session): string {
-  const id = tokenClaims(session).session_id;
-  assert.ok(id, "access token heeft geen session_id-claim");
-  return id;
 }
 
 /** RFC 4648 base32 (zonder padding), zoals GoTrue het TOTP-geheim geeft. */
