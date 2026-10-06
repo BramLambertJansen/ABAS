@@ -1,8 +1,7 @@
 # Beheerformulieren en catalogus duidelijker
 
-**Status: spec, wacht op akkoord van Bram.** Niets hiervan is gebouwd. De
-open vragen onderaan (1 t/m 6) hebben elk een aanbeveling; "pak aanbevelingen"
-volstaat als antwoord.
+**Status: goedgekeurd door Bram** ("Pak aanbevelingen": alle aanbevelingen
+van de vragen 1 t/m 6 overgenomen, zie "Besluiten van Bram" onderaan).
 
 Spec voor [issue #131](https://github.com/BramLambertJansen/ABAS/issues/131)
 (frontend T11 · P2/P3, epic #121, findings F23, F24, F25, F26; productbesluit
@@ -236,7 +235,7 @@ effect. Features blijven shell-onwetend (`check:arch`).
    toont de sectiestatus het resultaat. Zie vraag 2 voor de definitieve
    teksten.
 9. **Laatste actieve activiteitstype: inline waarschuwing, geen hard verbod,
-   geen dialoog.** (Voorlopig in afwachting van vraag 6.)
+   geen dialoog.** (Bevestigd door Bram, besluit B6.)
    - Klik op "archiveren" bij het type dat het enige actieve is (afgeleid van
      de geladen lijst: `actief = !archived`, precies één) opent in de rij een
      inline blok (`role="group"`, gelabeld) met: "Dit is het laatste actieve
@@ -448,58 +447,18 @@ verwacht (geen backend).
 | `test/beheerProductFilter.test.ts`, `test/` (laatste type) | unit |
 | `e2e/beheerformulieren-catalogus.spec.ts` (nieuw), `e2e/a11y.spec.ts` | e2e en axe |
 
-## Open vragen (met aanbeveling)
+## Besluiten van Bram
 
-**1. Vorm van de ledendetailweergave.** Opties: (a) breder modal-venster met vaste
-kop en scrollend lichaam (`Overlay variant="detail"`); (b) zijpaneel rechts;
-(c) eigen detailpagina met route.
-**Aanbeveling: (a).** Het hergebruikt `Overlay` met alle T05-garanties
-(focus, inert, ADR 0014: nooit gestapelde overlays), vraagt geen routing of
-terugnavigatie-/dirtystate-logica en lost de F24-klacht (vaste titel en
-Sluiten, ruimte, groepering) volledig op. Een zijpaneel botst op 768px met het
-bar-paneel (`ZijPaneel`); een pagina is pas zinnig als het detailscherm
-leden-historie en meer gaat bevatten.
+Alle zes: aanbeveling overgenomen ("Pak aanbevelingen").
 
-**2. Teksten.** Zijn de voorgestelde teksten in "Teksten", besluit 8 en besluit
-9 akkoord (o.a. "Contactadres" in plaats van "E-mailadres", "Uit assortiment"
-als chipnaam, gelijke terminologie in NieuwLid)?
-**Aanbeveling: ja, zoals voorgesteld.** "Contactadres" benoemt precies wat het is
-zonder de verwarring met inloggen; "Uit assortiment" is al de term in de lijst
-en de overlay.
-
-**3. Vervolgstap voor inloggegevens.** Het ticket vraagt een concrete vervolgstap
-"alleen als hij echt beschikbaar is". Op main bestaat geen flow om een
-loginadres te wijzigen of te zien (geen RPC voor het Auth-adres, geen
-`updateUser({ email })`). Wil je (i) alleen de uitleg (geen knop), of (ii) een
-apart backend-/auth-ticket (RPC om het Auth-adres aan een beheerder te tonen en/of
-een veilige wijzigflow)?
-**Aanbeveling: (i) nu, (ii) niet in dit ticket.** Dit raakt auth-beleid en PII
-(ADR 0004, ADR 0020) en vraagt echte backendtests. Pas oppakken als er een
-concrete wens is (bijv. een lid dat van mailadres verandert).
-
-**4. Productcatalogus: omvang en uitbreiding.** Het ticket zegt: verifieer de
-catalogusgrootte voordat extra beheercomplexiteit wordt toegevoegd. Dat kan ik
-niet uit de repo halen. Hoeveel producten staan er nu (en hoeveel
-verwacht je)? En wil je categoriefilter, sorteerkeuze of naam-/categoriebeheer
-(laatste = nieuwe RPC, dus backend)?
-**Aanbeveling:** nu alleen zoeken (naam + categorie) en actief/uit assortiment;
-categoriefilter en sorteerkeuze pas als de lijst ruim boven ~50 producten
-komt (de lijst is al op categorie en naam gesorteerd, zoeken dekt de rest);
-naam-/categoriebeheer als apart ticket zodra daar een concrete wens voor is.
-
-**5. Standaardfilter in producten.** `Actief` (zoals Leden) of `Alle`
-(zoals nu, gearchiveerd gedempt in dezelfde lijst)?
-**Aanbeveling: `Actief`**, met een telling bij "Uit assortiment". Gelijk aan
-Leden, en de lijst blijft kort naarmate er meer uit assortiment gaan. Het
-gedrag verandert t.o.v. nu (gearchiveerd niet meer standaard zichtbaar), daarom
-is dit een expliciete vraag.
-
-**6. D5: laatste actieve type.** Bevestig het productbesluit: waarschuwen met
-hersteloptie (inline bevestiging op de laatste actieve plus vaste melding
-bij nul actief) en niet blokkeren. Daarmee komt `activiteittypes.md` ("geen
-waarschuwing, bewust buiten scope") te vervallen op dit punt.
-**Aanbeveling: waarschuwen, niet blokkeren**, zoals de epic aanbeveelt. De
-epic vraagt een hard verbod alleen na een expliciet productbesluit; archiveren is
-omkeerbaar en een beheerder kan zo een tijdelijke leegte bewust kiezen. Wil je
-toch blokkeren, dan is een server-guard (backend) beter dan alleen een
-disabled knop, en dat is een apart ticket.
+- **B1. Vorm ledendetail:** modal met `Overlay variant="detail"` (aanbeveling overgenomen).
+- **B2. Teksten:** de voorgestelde teksten (tabel "Teksten", besluit 8 en 9) zijn akkoord (aanbeveling overgenomen).
+- **B3. Loginadres:** alleen uitleg, geen Auth-adres tonen of wijzigen; een
+  eventuele backend-/authflow is een apart ticket (aanbeveling overgenomen).
+- **B4. Catalogus:** nu alleen zoeken (naam + categorie) en statuschips;
+  categoriefilter, sorteerkeuze en naam-/categoriebeheer pas later of als apart
+  backendticket. De catalogusgrootte is onbekend: geen extra's bouwen
+  (aanbeveling overgenomen).
+- **B5. Standaardfilter producten:** Actief (aanbeveling overgenomen).
+- **B6. Laatste actieve type:** waarschuwen met hersteloptie, niet blokkeren; een
+  hard verbod is een apart server-guard-ticket (aanbeveling overgenomen).

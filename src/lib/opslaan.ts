@@ -63,3 +63,22 @@ export function isPrijsOnopgeslagen(invoer: string, huidigeCenten: number): bool
 export function isNieuwOnopgeslagen(velden: ReadonlyArray<string | null | undefined>): boolean {
   return velden.some((veld) => veld != null && veld.trim() !== "");
 }
+
+/** Zichtbare opslagstatus van één sectie in een groot formulier
+ *  (docs/features/beheerformulieren-catalogus.md, besluit 5). */
+export type SectieStatus = "onopgeslagen" | "opgeslagen" | null;
+
+/** Een fout vervangt de status (de foutregel staat bij de sectie zelf);
+ *  anders wint "niet opgeslagen" van "opgeslagen" zodra de invoer weer
+ *  afwijkt; "opgeslagen" blijft staan tot de invoer wijzigt (de aanroeper
+ *  wist `gelukt` dan) of de dialoog sluit. */
+export function sectieStatus(opties: {
+  onopgeslagen: boolean;
+  gelukt: boolean;
+  fout: boolean;
+}): SectieStatus {
+  if (opties.fout) return null;
+  if (opties.onopgeslagen) return "onopgeslagen";
+  if (opties.gelukt) return "opgeslagen";
+  return null;
+}
