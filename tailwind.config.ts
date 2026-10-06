@@ -81,7 +81,7 @@ const config: Config = {
       },
       fontFamily: {
         sans: [
-          "Manrope",
+          "var(--font-manrope)",
           "-apple-system",
           "BlinkMacSystemFont",
           "sans-serif",

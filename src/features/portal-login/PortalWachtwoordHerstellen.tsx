@@ -59,7 +59,7 @@ export function PortalWachtwoordHerstellen({ tokenHash }: { tokenHash: string | 
   }
 
   return (
-    <main className="flex min-h-screen w-full flex-col items-center justify-center gap-8 bg-canvas px-6 py-10 font-sans text-ink">
+    <main className="mx-auto flex min-h-screen w-full max-w-[560px] flex-col items-center justify-center gap-8 bg-canvas px-6 py-10 font-sans text-ink sm:border-x sm:border-border">
       <AuroraMerk>
         <h1 className="text-xl font-extrabold tracking-tight">Nieuw wachtwoord instellen</h1>
       </AuroraMerk>

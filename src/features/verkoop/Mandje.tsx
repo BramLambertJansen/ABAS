@@ -180,14 +180,14 @@ export function Mandje({
               type="button"
               disabled={topupDisabled}
               onClick={onOpenTopup}
-              className="flex h-10 flex-1 items-center justify-center rounded-[11px] border border-border text-[12.5px] font-bold text-ink transition-colors hover:border-accent hover:text-accent-active disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-11 flex-1 items-center justify-center rounded-[11px] border border-border text-[12.5px] font-bold text-ink transition-colors hover:border-accent hover:text-accent-active disabled:cursor-not-allowed disabled:opacity-50"
             >
               saldo opwaarderen
             </button>
             <button
               type="button"
               onClick={onClearMember}
-              className="flex h-10 flex-none items-center justify-center rounded-[11px] border border-border px-4 text-[12.5px] font-bold text-muted transition-colors hover:border-ink hover:text-ink"
+              className="flex h-11 flex-none items-center justify-center rounded-[11px] border border-border px-4 text-[12.5px] font-bold text-muted transition-colors hover:border-ink hover:text-ink"
             >
               wissel
             </button>

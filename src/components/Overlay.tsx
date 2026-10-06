@@ -429,7 +429,7 @@ export function Overlay({
       tabIndex={-1}
       className={
         isSheet
-          ? "flex max-h-[88vh] w-full flex-col gap-[14px] overflow-auto rounded-t-[28px] bg-canvas px-[22px] pb-7 pt-[22px] text-ink focus:outline-none motion-safe:animate-sheet-in"
+          ? "mx-auto flex max-h-[88vh] w-full max-w-[560px] flex-col gap-[14px] overflow-auto rounded-t-[28px] bg-canvas px-[22px] pb-7 pt-[22px] text-ink focus:outline-none motion-safe:animate-sheet-in"
           : detailModal
             ? "flex max-h-[88vh] w-full max-w-[640px] flex-col overflow-hidden rounded-[20px] pb-5 bg-white text-ink shadow-[0_30px_70px_-20px_rgba(0,0,0,0.55)] focus:outline-none"
             : "flex max-h-[88vh] w-full max-w-[460px] flex-col gap-4 overflow-auto rounded-[20px] bg-white p-[26px] text-ink shadow-[0_30px_70px_-20px_rgba(0,0,0,0.55)] focus:outline-none"

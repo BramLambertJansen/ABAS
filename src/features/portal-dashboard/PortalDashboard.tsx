@@ -71,7 +71,7 @@ export function PortalDashboard({
   const firstName = name.trim().split(/\s+/)[0] || name;
 
   return (
-    <main className="flex min-h-screen w-full flex-col bg-canvas font-sans text-ink antialiased">
+    <main className="mx-auto flex min-h-screen w-full max-w-[560px] flex-col bg-canvas sm:border-x sm:border-border font-sans text-ink antialiased">
       <header className="flex flex-none items-center justify-between gap-3 border-b border-border bg-white px-5 py-4">
         <div className="flex min-w-0 flex-col">
           <h1
@@ -90,7 +90,7 @@ export function PortalDashboard({
         <button
           type="button"
           onClick={onSignOut}
-          className="flex h-9 flex-none items-center whitespace-nowrap rounded-[10px] border border-border px-3.5 text-xs font-extrabold text-muted transition-colors hover:border-accent hover:text-accent-active"
+          className="flex h-11 flex-none items-center whitespace-nowrap rounded-[10px] border border-border px-3.5 text-xs font-extrabold text-muted transition-colors hover:border-accent hover:text-accent-active"
         >
           Uitloggen
         </button>

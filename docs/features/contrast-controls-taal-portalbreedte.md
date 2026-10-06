@@ -244,6 +244,17 @@ gedragsverschil. Features blijven shell-onwetend (`check:arch`).
     hoeft er geen zin in CLAUDE.md. Een lint-regel tegen "Invite"/"cash"
     in UI-tekst is niet de moeite waard (één plek, twee woorden).
 
+## Bouwnotities (Developer)
+
+- **Font:** Manrope zelf gehost is gebouwd, de terugvaloptie (systeemstack)
+  is niet nodig geweest. Bestand: latin-subset uit het npm-pakket
+  `@fontsource-variable/manrope@5.3.0` (SIL OFL 1.1; tarball-integriteit tegen
+  het register gecontroleerd; zie `src/app/fonts/README.md`, licentie in
+  `src/app/fonts/OFL.txt`). Layouttests op 768/1024/1280 (tablet) en 320/390
+  (portal) zijn groen met het geladen font.
+- **Controlmaten:** `KNOP_DIALOOG_MAAT` bestaat als constante maar de
+  bestaande dialoogknoppen zijn bewust niet omgezet (besluit 12).
+
 ## Datamodel, RPC's, ADR
 
 Geen datamodelwijziging, geen nieuwe of gewijzigde RPC, geen migratie, geen
