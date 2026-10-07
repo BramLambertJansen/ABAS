@@ -8,6 +8,9 @@ Supabase- en Vercel-koppeling. Vink af in de PR die dit bestand bijwerkt.
 
 ## GitHub (repo → Settings)
 
+- [ ] **Actions draait niet.** Sinds 2026-10-06 falen alle workflowruns na 2–3 s
+  zonder logs, ook op `main` (#182 en #183 zijn met rode CI gemerged). Controleer
+  Settings → Billing → Actions (minuten, spending limit, betaalmethode).
 - [ ] **Label** `gate-wijziging` aanmaken (Issues → Labels) en op PR #184 zetten.
 - [ ] **Branch protection / ruleset op `main`:**
   - [ ] PR verplicht, geen directe push, geen force-push
