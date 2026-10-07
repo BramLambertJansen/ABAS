@@ -233,13 +233,13 @@ export function OpwaarderenOverlay({
             }}
             aria-describedby={amountTooHigh ? amountLimitId : undefined}
             aria-invalid={amountTooHigh || undefined}
-            className="h-12 min-w-0 flex-1 rounded-[13px] border border-border bg-white px-3.5 text-[13.5px] font-semibold text-ink outline-none placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
+            className="ui-field-focus h-12 min-w-0 flex-1 rounded-[13px] border border-border bg-white px-3.5 text-[13.5px] font-semibold text-ink placeholder:text-muted"
           />
           <button
             type="button"
             disabled={bookDisabled}
             onClick={handleBook}
-            className="flex h-12 flex-none items-center justify-center rounded-[13px] bg-accent-active px-[18px] text-[13.5px] font-extrabold text-white transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:bg-track disabled:text-muted"
+            className="ui-button-primary flex h-12 flex-none items-center justify-center rounded-[13px] px-[18px] text-[13.5px] font-extrabold transition-colors disabled:cursor-not-allowed"
           >
             {pending
               ? "bezig…"

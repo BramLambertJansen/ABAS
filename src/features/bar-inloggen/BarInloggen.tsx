@@ -355,7 +355,7 @@ export function BarInloggen() {
           <button
             type="submit"
             aria-disabled={login.pending}
-            className="flex h-[52px] w-full items-center justify-center rounded-[15px] bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+            className="ui-button-primary flex h-[52px] w-full items-center justify-center rounded-[15px] text-sm font-bold transition-colors aria-disabled:cursor-not-allowed"
           >
             {INLOGGEN.wachtwoordKnop}
           </button>
@@ -407,7 +407,7 @@ export function BarInloggen() {
               <button
                 type="submit"
                 disabled={login.pending}
-                className="flex h-[52px] w-full items-center justify-center rounded-[15px] bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:opacity-50"
+                className="ui-button-primary flex h-[52px] w-full items-center justify-center rounded-[15px] text-sm font-bold transition-colors"
               >
                 {INLOGGEN.vergetenKnop}
               </button>

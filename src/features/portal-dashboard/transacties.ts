@@ -53,12 +53,7 @@ function methodLabel(method: string | null): string {
   return method === "cash" ? "contant" : method;
 }
 
-/** Detail-subtitel voor één rij: itemomschrijving voor een bestelling
- *  ("2× pils, 1× chips"), "contant" voor een opwaardering. `showReversal`
- *  voegt "· teruggedraaid · {reden}" toe (Transacties-tabblad); de
- *  "Deze maand"-voorproefje op het Saldo-tabblad laat dat weg (spec →
- *  Schermflow §1 noemt alleen label/subtitel/bedrag, geen
- *  teruggedraaid-weergave voor die lijst). */
+/** Detail-subtitel; beide portal-lijsten tonen terugdraaiingen met dezelfde tekst. */
 export function transactionDetail(t: PortalTransaction, showReversal: boolean): string {
   if (t.kind === "opwaardering") return methodLabel(t.method);
   const base = t.itemsDescription && t.itemsDescription.length > 0 ? t.itemsDescription : "bestelling";

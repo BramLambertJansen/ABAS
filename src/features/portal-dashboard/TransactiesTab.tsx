@@ -85,7 +85,7 @@ export function TransactiesTab() {
             </h2>
             <ul className="rounded-[22px] border border-border bg-white px-3">
               {group.items.map((t) => (
-                <TransactieRij key={t.id} transaction={t} showReversal />
+                <TransactieRij key={t.id} transaction={t} />
               ))}
             </ul>
           </section>

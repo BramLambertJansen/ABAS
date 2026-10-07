@@ -191,13 +191,13 @@ export function ActiviteitstypesInstellingen() {
                     onChange={(event) =>
                       setEditing({ id: type.id, name: event.target.value })
                     }
-                    className="h-10 flex-1 min-w-0 rounded-control border border-border px-3 text-sm font-semibold text-ink outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
+                    className="ui-field-focus h-10 flex-1 min-w-0 rounded-control border border-border px-3 text-sm font-semibold text-ink"
                   />
                   <button
                     type="button"
                     disabled={renaming || editing.name.trim() === ""}
                     onClick={saveEdit}
-                    className="flex h-10 flex-none items-center justify-center rounded-control bg-accent px-3 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-track disabled:text-muted"
+                    className="ui-button-primary flex h-10 flex-none items-center justify-center rounded-control px-3 text-sm font-bold transition-colors disabled:cursor-not-allowed"
                   >
                     Opslaan
                   </button>
@@ -274,13 +274,13 @@ export function ActiviteitstypesInstellingen() {
             placeholder="bijv. Repetitie"
             value={newName}
             onChange={(event) => setNewName(event.target.value)}
-            className="h-11 flex-1 min-w-0 rounded-control border border-border px-3.5 text-sm font-semibold text-ink outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
+            className="ui-field-focus h-11 flex-1 min-w-0 rounded-control border border-border px-3.5 text-sm font-semibold text-ink"
           />
           <button
             type="button"
             disabled={creating || newName.trim() === ""}
             onClick={createType}
-            className="flex h-11 flex-none items-center gap-1.5 rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-track disabled:text-muted"
+            className="ui-button-primary flex h-11 flex-none items-center gap-1.5 rounded-control px-4 text-sm font-bold transition-colors disabled:cursor-not-allowed "
           >
             <span aria-hidden="true" className="text-base leading-none">
               +

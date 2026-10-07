@@ -184,7 +184,7 @@ export function NegatieveLimietInstellingen() {
           placeholder="ander bedrag"
           value={customAmount}
           onChange={(event) => setCustomAmount(event.target.value)}
-          className="h-12 flex-1 min-w-0 rounded-control border border-border px-3.5 text-sm font-semibold text-ink outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
+          className="ui-field-focus h-12 flex-1 min-w-0 rounded-control border border-border px-3.5 text-sm font-semibold text-ink"
         />
         <button
           type="button"
@@ -192,7 +192,7 @@ export function NegatieveLimietInstellingen() {
           onClick={() => {
             if (parsedCustomCents !== null) apply(parsedCustomCents);
           }}
-          className="flex h-12 items-center justify-center rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-track disabled:text-muted"
+          className="ui-button-primary flex h-12 items-center justify-center rounded-control px-4 text-sm font-bold transition-colors disabled:cursor-not-allowed"
         >
           opslaan
         </button>

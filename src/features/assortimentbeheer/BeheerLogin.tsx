@@ -221,7 +221,7 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
             <button
               type="submit"
               disabled={resetRequest.status === "pending"}
-              className="flex h-[52px] w-full items-center justify-center rounded-[15px] bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:opacity-50"
+              className="ui-button-primary flex h-[52px] w-full items-center justify-center rounded-[15px] text-sm font-bold transition-colors"
             >
               Stuur herstellink
             </button>
@@ -343,7 +343,7 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
           <button
             type="submit"
             aria-disabled={loginPending}
-            className="flex h-[52px] w-full items-center justify-center rounded-[15px] bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+            className="ui-button-primary flex h-[52px] w-full items-center justify-center rounded-[15px] text-sm font-bold transition-colors aria-disabled:cursor-not-allowed"
           >
             {method === "magic_link" ? "Stuur inloglink" : "Inloggen"}
           </button>

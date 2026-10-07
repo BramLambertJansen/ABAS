@@ -108,14 +108,14 @@ export function DienstTeLangOpenMelding({
         <button
           type="button"
           onClick={snoozeNow}
-          className="flex h-[50px] flex-1 items-center justify-center rounded-2xl border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
+          className="ui-action flex flex-1 items-center justify-center border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
         >
           Nog bezig
         </button>
         <button
           type="button"
           onClick={() => setView("afsluiten")}
-          className="flex h-[50px] flex-1 items-center justify-center rounded-2xl bg-accent-active text-sm font-bold text-white transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:bg-track disabled:text-muted"
+          className="ui-button-primary ui-action flex flex-1 items-center justify-center text-sm font-bold transition-colors disabled:cursor-not-allowed"
         >
           Dienst afsluiten
         </button>

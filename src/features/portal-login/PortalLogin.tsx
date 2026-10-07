@@ -205,14 +205,14 @@ export function PortalLogin({ deniedMessage }: { deniedMessage?: string }) {
                 required
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                className="h-[54px] rounded-2xl border border-border bg-white px-4 text-sm font-semibold text-ink outline-none focus:border-accent"
+                className="ui-field-focus h-[54px] rounded-2xl border border-border bg-white px-4 text-sm font-semibold text-ink"
               />
             </div>
 
             <button
               type="submit"
               aria-disabled={resetRequest.status === "pending"}
-              className="flex h-[54px] w-full items-center justify-center rounded-2xl bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+              className="ui-button-primary flex h-[54px] w-full items-center justify-center rounded-2xl text-sm font-bold transition-colors aria-disabled:cursor-not-allowed"
             >
               Stuur herstellink
             </button>
@@ -269,7 +269,7 @@ export function PortalLogin({ deniedMessage }: { deniedMessage?: string }) {
               required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              className="h-[54px] rounded-2xl border border-border bg-white px-4 text-sm font-semibold text-ink outline-none focus:border-accent"
+              className="ui-field-focus h-[54px] rounded-2xl border border-border bg-white px-4 text-sm font-semibold text-ink"
             />
           </div>
 
@@ -331,7 +331,7 @@ export function PortalLogin({ deniedMessage }: { deniedMessage?: string }) {
                 required
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                className="h-[54px] rounded-2xl border border-border bg-white px-4 text-sm font-semibold text-ink outline-none focus:border-accent"
+                className="ui-field-focus h-[54px] rounded-2xl border border-border bg-white px-4 text-sm font-semibold text-ink"
               />
               <button
                 type="button"
@@ -348,7 +348,7 @@ export function PortalLogin({ deniedMessage }: { deniedMessage?: string }) {
           <button
             type="submit"
             aria-disabled={loginPending}
-            className="flex h-[54px] w-full items-center justify-center rounded-2xl bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+            className="ui-button-primary flex h-[54px] w-full items-center justify-center rounded-2xl text-sm font-bold transition-colors aria-disabled:cursor-not-allowed"
           >
             {method === "magic_link" ? "Stuur mij een inloglink" : "Inloggen"}
           </button>

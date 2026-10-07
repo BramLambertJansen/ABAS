@@ -170,7 +170,7 @@ export function BezettingOverlay({
       <button
         type="button"
         onClick={onClose}
-        className="flex h-11 w-full items-center justify-center rounded-2xl bg-accent-active text-sm font-bold text-white transition-colors hover:bg-accent"
+        className="ui-action ui-button-primary flex w-full items-center justify-center text-sm font-bold transition-colors"
       >
         Klaar
       </button>

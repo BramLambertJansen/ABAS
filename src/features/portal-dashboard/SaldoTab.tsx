@@ -15,7 +15,7 @@ const RECENT_TRANSACTIONS_LIMIT = 5;
  * Schermflow §1: hero-kaart, laag-saldo-kaart (alleen strikt onder de
  * drempel, zelfde grens als `Mandje.tsx`), een altijd zichtbare, statische
  * opwaardeer-melding (geen knop/sheet, zie de spec's "Onderzocht in
- * /designs/" punt 3) en een korte "Deze maand"-lijst.
+ * /designs/" punt 3) en een korte "Recente transacties"-lijst.
  */
 export function SaldoTab() {
   const balance = usePortalBalance();
@@ -88,7 +88,7 @@ export function SaldoTab() {
           </div>
 
           <div className="flex min-h-0 flex-1 flex-col gap-2">
-            <h2 className="text-[11px] font-bold tracking-[0.1em] text-muted">DEZE MAAND</h2>
+            <h2 className="text-[11px] font-bold tracking-[0.1em] text-muted">RECENTE TRANSACTIES</h2>
 
             {transactions.status === "loading" && (
               <p className="py-6 text-center text-sm font-bold text-muted" role="status">
@@ -111,7 +111,7 @@ export function SaldoTab() {
             {transactions.status === "ready" && recent.length > 0 && (
               <ul className="rounded-[22px] border border-border bg-white px-3">
                 {recent.map((t) => (
-                  <TransactieRij key={t.id} transaction={t} showReversal={false} />
+                  <TransactieRij key={t.id} transaction={t} />
                 ))}
               </ul>
             )}

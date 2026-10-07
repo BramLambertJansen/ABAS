@@ -2,25 +2,13 @@ import { formatCents } from "@/lib/money";
 import type { PortalTransaction } from "@/hooks/queries/usePortalTransactions";
 import { dateLabel, transactionDetail, transactionLabel } from "./transacties";
 
-/**
- * Eén transactierij, gedeeld door `SaldoTab`'s "Deze maand"-voorproefje en
- * `TransactiesTab`'s volledige, gegroepeerde lijst — zelfde velden
- * (label/subtitel/bedrag), zie docs/features/portal-dashboard.md →
- * Schermflow. Alleen `TransactiesTab` toont de teruggedraaid-weergave
- * (`showReversal`): doorgestreept, subtitel aangevuld, `sr-only`-toevoeging
- * bij het bedrag (WCAG AA — niet uitsluitend doorstrepen als signaal),
- * zelfde conventie als `src/features/dienst-overzicht/Transactielijst.tsx`.
- * Geen ⤺-knop: een lid kan hier nooit iets terugdraaien (spec → Schermflow
- * §2).
- */
+/** Dezelfde teruggedraaid-weergave in het saldo-overzicht en de volledige lijst. */
 export function TransactieRij({
   transaction,
-  showReversal,
 }: {
   transaction: PortalTransaction;
-  showReversal: boolean;
 }) {
-  const reversed = showReversal && transaction.reversed;
+  const reversed = transaction.reversed;
   const isCredit = transaction.kind === "opwaardering";
 
   return (
@@ -32,7 +20,7 @@ export function TransactieRij({
           {transactionLabel(transaction)}
         </span>
         <span className="truncate text-xs font-medium text-muted">
-          {dateLabel(transaction.createdAt)} · {transactionDetail(transaction, showReversal)}
+          {dateLabel(transaction.createdAt)} · {transactionDetail(transaction, true)}
         </span>
       </div>
       <span

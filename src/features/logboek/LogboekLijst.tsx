@@ -71,7 +71,7 @@ export function LogboekLijst() {
             placeholder="Zoek op naam, product of handeling"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="h-11 w-full rounded-[12px] border border-border bg-white pl-[42px] pr-4 text-[13.5px] font-medium text-ink outline-none placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/[0.12]"
+            className="ui-field-focus h-11 w-full rounded-[12px] border border-border bg-white pl-[42px] pr-4 text-[13.5px] font-medium text-ink placeholder:text-muted"
           />
         </div>
         <div

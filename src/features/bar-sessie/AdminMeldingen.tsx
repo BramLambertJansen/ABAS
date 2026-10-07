@@ -59,7 +59,7 @@ export function AdminMeldingen({
               <button
                 type="button"
                 onClick={() => setOvernemen(melding)}
-                className="flex h-10 flex-1 items-center justify-center rounded-xl bg-accent-active text-[13px] font-bold text-white transition-colors hover:bg-accent"
+                className="ui-button-primary flex h-10 flex-1 items-center justify-center rounded-xl text-[13px] font-bold transition-colors"
               >
                 {ADMIN_MELDING.overnemen}
               </button>

@@ -44,7 +44,7 @@ export function HervatScherm() {
         <button
           type="button"
           onClick={sessie.bevestig}
-          className="flex h-[52px] w-full items-center justify-center rounded-[15px] bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover"
+          className="ui-button-primary flex h-[52px] w-full items-center justify-center rounded-[15px] text-sm font-bold transition-colors"
         >
           {HERVATTEN.verder}
         </button>

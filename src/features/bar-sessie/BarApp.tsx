@@ -56,7 +56,7 @@ function BarSchermen() {
     case "actief":
       if (beheerSessie) return <Laden />;
       if (sessie.shift) {
-        return <DienstTabs shift={sessie.shift} onShiftEnded={sessie.herlaad} />;
+        return <DienstTabs key={`${sessie.session?.id}:${sessie.shift.id}`} shift={sessie.shift} onShiftEnded={sessie.herlaad} />;
       }
       return <DienstStarten />;
   }

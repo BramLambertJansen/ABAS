@@ -72,7 +72,7 @@ export function WachtwoordHerstellen({ tokenHash }: { tokenHash: string | null }
           </p>
           <Link
             href="/beheer?wachtwoord=vergeten"
-            className="flex h-12 w-full items-center justify-center rounded-control bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover"
+            className="ui-button-primary flex h-12 w-full items-center justify-center rounded-control text-sm font-bold transition-colors"
           >
             Nieuwe link aanvragen
           </Link>
@@ -102,7 +102,7 @@ export function WachtwoordHerstellen({ tokenHash }: { tokenHash: string | null }
               herstel.status === "pending" ||
               herstel.status === "done"
             }
-            className="flex h-12 w-full items-center justify-center rounded-control bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:bg-track disabled:text-muted"
+            className="ui-button-primary flex h-12 w-full items-center justify-center rounded-control text-sm font-bold transition-colors"
           >
             Wachtwoord opslaan
           </button>

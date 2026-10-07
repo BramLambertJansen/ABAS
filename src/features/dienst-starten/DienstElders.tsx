@@ -98,7 +98,7 @@ export function DienstElders({ shift, isBeheerder }: { shift: OtherShift; isBehe
           <button
             type="button"
             onClick={() => setOvernemenOpen(true)}
-            className="flex h-[52px] flex-1 items-center justify-center rounded-[15px] bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover"
+            className="ui-button-primary flex h-[52px] flex-1 items-center justify-center rounded-[15px] text-sm font-bold transition-colors"
           >
             {DIENST_ELDERS.overnemen}
           </button>
@@ -116,7 +116,7 @@ export function DienstElders({ shift, isBeheerder }: { shift: OtherShift; isBehe
             type="button"
             disabled={hervatPending}
             onClick={hervat}
-            className="flex h-[52px] w-full items-center justify-center rounded-[15px] bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
+            className="ui-button-primary flex h-[52px] w-full items-center justify-center rounded-[15px] text-sm font-bold transition-colors disabled:cursor-not-allowed"
           >
             {DIENST_ELDERS.hervatten}
           </button>

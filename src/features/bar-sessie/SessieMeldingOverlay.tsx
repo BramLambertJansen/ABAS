@@ -28,7 +28,7 @@ export function SessieMeldingOverlay({
       <button
         type="button"
         onClick={onClose}
-        className="flex h-[50px] items-center justify-center rounded-2xl bg-accent-active text-sm font-bold text-white transition-colors hover:bg-accent"
+        className="ui-action ui-button-primary flex items-center justify-center text-sm font-bold transition-colors"
       >
         {MELDING_OK}
       </button>

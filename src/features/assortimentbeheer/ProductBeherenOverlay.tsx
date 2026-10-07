@@ -134,7 +134,7 @@ export function ProductBeherenOverlay({
           <label htmlFor={priceId} className="sr-only">
             Nieuwe prijs
           </label>
-          <div className="flex flex-1 items-center gap-2 rounded-control border border-border bg-white px-3.5 focus-within:border-accent">
+          <div className="flex flex-1 items-center gap-2 rounded-control border border-border bg-white px-3.5 ui-field-group-focus">
             <span aria-hidden="true" className="text-sm font-bold text-muted">
               €
             </span>
@@ -152,7 +152,7 @@ export function ProductBeherenOverlay({
             type="button"
             disabled={!canSavePrice}
             onClick={savePrice}
-            className="flex h-11 items-center justify-center rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:bg-track disabled:text-muted"
+            className="ui-button-primary flex h-11 items-center justify-center rounded-control px-4 text-sm font-bold transition-colors"
           >
             Opslaan
           </button>

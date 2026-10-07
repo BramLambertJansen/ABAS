@@ -298,7 +298,7 @@ function Stat({ label, value }: { label: string; value: string }) {
       <dt className="truncate text-[9px] font-extrabold leading-tight tracking-[0.1em] text-rail-muted">
         {label}
       </dt>
-      <dd className="whitespace-nowrap text-[15px] font-extrabold tracking-[-0.02em] text-[#e8eaed]">
+      <dd className="whitespace-nowrap text-[15px] font-extrabold tracking-[-0.02em] text-rail-value">
         {value}
       </dd>
     </div>

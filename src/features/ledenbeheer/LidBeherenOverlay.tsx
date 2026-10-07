@@ -355,13 +355,13 @@ export function LidBeherenOverlay({
             type="text"
             value={nameInput}
             onChange={(event) => setNameInput(event.target.value)}
-            className="h-11 flex-1 min-w-0 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink outline-none focus:border-accent"
+            className="ui-field-focus h-11 flex-1 min-w-0 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink"
           />
           <button
             type="button"
             disabled={!canSaveName}
             onClick={saveName}
-            className="flex h-11 items-center justify-center rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:bg-track disabled:text-muted"
+            className="ui-button-primary flex h-11 items-center justify-center rounded-control px-4 text-sm font-bold transition-colors"
           >
             Opslaan
           </button>
@@ -381,13 +381,13 @@ export function LidBeherenOverlay({
             type="email"
             value={emailInput}
             onChange={(event) => setEmailInput(event.target.value)}
-            className="h-11 flex-1 min-w-0 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink outline-none focus:border-accent"
+            className="ui-field-focus h-11 flex-1 min-w-0 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink"
           />
           <button
             type="button"
             disabled={!canSaveEmail}
             onClick={saveEmail}
-            className="flex h-11 items-center justify-center rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:bg-track disabled:text-muted"
+            className="ui-button-primary flex h-11 items-center justify-center rounded-control px-4 text-sm font-bold transition-colors"
           >
             Opslaan
           </button>
@@ -411,7 +411,7 @@ export function LidBeherenOverlay({
             onChange={(event) =>
               setRoleValue(event.target.value as LedenbeheerLid["role"])
             }
-            className="h-11 flex-1 min-w-0 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink outline-none focus:border-accent"
+            className="ui-field-focus h-11 flex-1 min-w-0 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink"
           >
             {ROLE_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -423,7 +423,7 @@ export function LidBeherenOverlay({
             type="button"
             disabled={!canSaveRole}
             onClick={saveRole}
-            className="flex h-11 items-center justify-center rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:bg-track disabled:text-muted"
+            className="ui-button-primary flex h-11 items-center justify-center rounded-control px-4 text-sm font-bold transition-colors"
           >
             Opslaan
           </button>
@@ -472,7 +472,7 @@ export function LidBeherenOverlay({
               type="button"
               disabled={member.hasAccount || inviteMutation.status === "pending"}
               onClick={sendInvite}
-              className="flex h-11 w-full items-center justify-center rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:bg-track disabled:text-muted"
+              className="ui-button-primary flex h-11 w-full items-center justify-center rounded-control px-4 text-sm font-bold transition-colors"
             >
               {member.invitedAt === null ? "Invite versturen" : "Invite opnieuw versturen"}
             </button>

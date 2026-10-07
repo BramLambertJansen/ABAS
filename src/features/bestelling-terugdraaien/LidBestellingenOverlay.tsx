@@ -110,7 +110,7 @@ export function LidBestellingenOverlay({
             setReason(e.target.value);
             if (errorCode === "reason_required") setErrorCode(null);
           }}
-          className="h-12 w-full rounded-[13px] border border-border bg-white px-3.5 text-[13.5px] font-semibold text-ink outline-none placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
+          className="ui-field-focus h-12 w-full rounded-[13px] border border-border bg-white px-3.5 text-[13.5px] font-semibold text-ink placeholder:text-muted"
         />
       </div>
 

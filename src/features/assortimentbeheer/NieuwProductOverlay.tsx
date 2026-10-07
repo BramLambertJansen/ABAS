@@ -82,7 +82,7 @@ export function NieuwProductOverlay({
           type="text"
           value={name}
           onChange={(event) => setName(event.target.value)}
-          className="h-12 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink outline-none focus:border-accent"
+          className="ui-field-focus h-12 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink"
         />
       </div>
 
@@ -111,7 +111,7 @@ export function NieuwProductOverlay({
         <label htmlFor={priceId} className="text-xs font-bold text-muted">
           Prijs
         </label>
-        <div className="flex items-center gap-2 rounded-control border border-border bg-white px-3.5 focus-within:border-accent">
+        <div className="flex items-center gap-2 rounded-control border border-border bg-white px-3.5 ui-field-group-focus">
           <span aria-hidden="true" className="text-sm font-bold text-muted">
             €
           </span>
@@ -131,7 +131,7 @@ export function NieuwProductOverlay({
         <button
           type="button"
           onClick={onClose}
-          className="flex h-11 flex-1 items-center justify-center rounded-control border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink"
+          className="ui-action flex flex-1 items-center justify-center border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink"
         >
           Annuleren
         </button>
@@ -139,7 +139,7 @@ export function NieuwProductOverlay({
           type="button"
           disabled={!canSubmit}
           onClick={submit}
-          className="flex h-11 flex-1 items-center justify-center rounded-control bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:bg-track disabled:text-muted"
+          className="ui-action ui-button-primary flex flex-1 items-center justify-center text-sm font-bold transition-colors"
         >
           Toevoegen
         </button>

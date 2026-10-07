@@ -100,7 +100,7 @@ export function TweestapSheet({
             <button
               type="button"
               onClick={() => void begin()}
-              className="flex h-[52px] w-full items-center justify-center rounded-2xl bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover"
+              className="ui-button-primary flex h-[52px] w-full items-center justify-center rounded-2xl text-sm font-bold transition-colors"
             >
               Opnieuw proberen
             </button>
@@ -131,7 +131,7 @@ export function TweestapSheet({
                   markeerWissel();
                   setStap({ soort: "code", factorId: stap.factorId });
                 }}
-                className="flex h-[52px] flex-1 items-center justify-center rounded-2xl bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover"
+                className="ui-button-primary flex h-[52px] flex-1 items-center justify-center rounded-2xl text-sm font-bold transition-colors"
               >
                 {TWEESTAP_TEKSTEN.stap1Knop}
               </button>
