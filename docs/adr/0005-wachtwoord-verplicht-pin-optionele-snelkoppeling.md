@@ -1,6 +1,8 @@
 # 0005 — Wachtwoord is verplicht voor bardienst/beheerder; PIN is een optionele, aanvullende snelkoppeling
 
-Status: **geaccepteerd** (Bram, 2026-09-02, naar aanleiding van de
+Status: **goedgekeurd**
+
+Toelichting: **geaccepteerd** (Bram, 2026-09-02, naar aanleiding van de
 Architect-conceptspec voor issue #42, `docs/features/auth-methode-per-lid.md`).
 Hernummerd van 0004 naar 0005 bij het mergen van `main` in deze branch
 (2026-09-20): main claimde nummer 0004 intussen voor een eigen, ongerelateerd

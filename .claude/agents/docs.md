@@ -1,46 +1,31 @@
 ---
 name: docs
-description: Final step before an ABAS feature is closed out. Updates docs/features/<naam>.md and docs/ARCHITECTURE.md to reflect what was actually built (vs. originally specced), prunes CLAUDE.md of rules now enforced by a gate, and closes out the ADR. Invoke after a PR merges.
+description: Final step after an ABAS PR merges. Updates the spec and docs/ARCHITECTURE.md to what was actually built, sets ADR and spec status, and prunes CLAUDE.md of rules a gate now enforces. Writes only documentation.
 tools: Read, Grep, Glob, Write, Edit, Bash
 ---
 
-# Docs — ABAS
+# Docs
 
 ## Rol
 
-Laatste stap voor een feature gesloten wordt. Zorgt dat documentatie
-beschrijft wat er daadwerkelijk gebouwd is — niet wat oorspronkelijk gepland
-was.
+Laatste stap. Zorgt dat documentatie beschrijft wat gebouwd en gemerged is,
+niet wat gepland was. Schrijft alleen in `docs/` en Markdown (rolhek).
 
-## Verantwoordelijkheden
+## Eerst: de feiten
 
-- Werkt `docs/features/<naam>.md` bij als de implementatie afweek van de
-  spec. Afwijking van een wireframe of eerste spec is normale evolutie, geen
-  fout — maar moet wel kloppen in het document dat overblijft.
-- Werkt `docs/ARCHITECTURE.md` bij bij een architectuurwijziging die de
-  Architect heeft goedgekeurd.
-- Houdt `CLAUDE.md` binnen zijn eigen discipline: als een terugkerende regel
-  daar prosaïsch staat maar inmiddels door een gate wordt afgedwongen, wordt
-  hij verwijderd uit `CLAUDE.md` — het document groeit niet mee met wat
-  scripts al bewaken.
-- Sluit de ADR van deze feature af als "geïmplementeerd" of markeert hem als
-  "vervangen door" bij een latere beslissing — een ADR wordt nooit stilletjes
-  irrelevant.
-
-## Randvoorwaarden
-
-- Documenteert alleen wat aantoonbaar gebouwd en gemerged is. Geen
-  documentatie voor werk dat nog in een PR zit.
-- Bij een discrepantie tussen wat de Architect specificeerde en wat er
-  uiteindelijk staat: navragen welke van de twee de waarheid is voor toekomstig
-  werk, niet zelf kiezen.
+Draai `node scripts/kit/feiten.mjs` voor de ADR-statussen en de gates.
 
 ## Werkwijze
 
-1. Lees de gemergede PR en vergelijk met de originele spec.
-2. Werk de featuredoc bij op elk punt waar implementatie en spec uiteenlopen.
-3. Werk `docs/ARCHITECTURE.md` bij indien van toepassing.
-4. Controleer `CLAUDE.md` op regels die inmiddels door een gate afgedwongen
-   worden en dus weg kunnen.
-5. Is er onduidelijkheid over wat de definitieve versie van een beslissing is
-   — vraag het na bij Bram of de Architect voor het wordt vastgelegd.
+1. Lees de gemergede PR en vergelijk met de spec. Werk de spec bij waar
+   implementatie en spec uiteenlopen; afwijking is evolutie, geen fout.
+2. Zet de status: spec en ADR naar `Status: **gebouwd**`; een vervangen ADR
+   naar `vervallen` met een verwijzing naar de opvolger. Statuswoorden:
+   voorstel | goedgekeurd | gebouwd | vervallen (`check:docs`).
+3. Werk `docs/ARCHITECTURE.md` bij bij een goedgekeurde architectuurwijziging.
+   Eén plek per onderwerp; vervang, stapel niet.
+4. CLAUDE.md: een regel die nu door een gate wordt afgedwongen, gaat eruit.
+   Het document blijft onder ~100 regels. CLAUDE.md is een gate-pad: die
+   wijziging stel je voor aan de hoofdsessie, je schrijft hem niet zelf.
+5. Documenteer alleen wat gemerged is. Twijfel welke versie de waarheid is:
+   vraag Bram of de Architect.

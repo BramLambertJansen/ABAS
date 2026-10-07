@@ -5,66 +5,53 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
+  # Eén bron (ADR 0025): CI draait `check:all` = `check:fast` + `check:slow`
+  # uit package.json, in twee stappen zodat de goedkope helft eerst faalt.
+  # Wat elke gate bewaakt: `node scripts/kit/feiten.mjs gates`.
   check-all:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      # Volledige history: check:migrations vergelijkt met origin/main
+      # (append-only).
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version-file: .nvmrc
           cache: npm
 
       - run: npm ci
 
-      - run: npm run lint
-      - run: npm run typecheck
-
-      # Node's ingebouwde testrunner (geen testframework als dependency,
-      # zie test/money.test.ts). Draait bewust vóór `supabase start`: deze
-      # suite raakt geen database en hoort dus in de goedkope, snelle helft
-      # van de pijplijn, naast lint/typecheck.
-      - run: npm test
+      # lint, typecheck, test, check:arch/policy/rls/migrations/adr/docs —
+      # zonder database, gelijk aan de pre-commit hook.
+      - run: npm run check:fast
 
       # Vaste versie, geen `latest`: `latest` vraagt bij elke run de GitHub
       # API welke release de nieuwste is, en een 500 of rate limit daarop
       # maakte CI rood zonder dat er een test faalde (PR #96, 2026-09-28).
-      # Bijwerken is een bewuste wijziging hier.
-      - uses: supabase/setup-cli@v1
+      # >= 2.102.0 nodig voor `auto_expose_new_tables` in config.toml.
+      - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1.7.3
         with:
           version: 2.118.0
 
-      # `build`/`check:a11y` need a live Supabase instance now too, not just
-      # `db:test` — e2e/a11y.spec.ts (docs/features/bezetting-beheren.md, #7)
-      # starts a real shift against supabase/seed.sql's demo bar account
-      # before scanning the bezetting-overlay. `supabase start` runs the full
-      # local stack via the Docker daemon the ubuntu-latest runner provides,
-      # and seeds supabase/seed.sql automatically (config.toml has no
-      # `[db.seed]` override, so the CLI default — enabled, `./seed.sql` —
-      # applies). So this now runs before `build`, not only before `db:test`.
-      # NOT verified from the sandbox that authored this workflow (no
-      # Docker daemon there) — first real CI run is the actual test of this
-      # job, per CLAUDE.md → Verificatie / Werkstraat.
+      # Volledige lokale stack (Docker op de runner), seedt supabase/seed.sql.
+      # build en check:a11y hebben hem nodig: e2e start een echte dienst
+      # tegen het demo-baraccount uit de seed.
       - run: supabase start
 
-      # `build` and `check:a11y` (Playwright's `webServer`, see
-      # playwright.config.ts) both run `next build`/`next start`, which reads
-      # NEXT_PUBLIC_SUPABASE_URL/NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY at build
-      # time (src/lib/supabase/client.ts) — the same two vars .env.example
-      # documents as coming from `supabase start`'s local stack. `supabase
-      # status -o json` is the CLI's own structured status output (stable
-      # field names `API_URL`/`PUBLISHABLE_KEY`, see `supabase status --help`
-      # → `-o`), read with `jq` (preinstalled on the ubuntu-latest runner
-      # image) rather than scraped from the human-readable pretty table.
-      #
-      # SUPABASE_SECRET_KEY (de `service_role`-key van de lokale stack, `supabase
-      # status -o json` → SERVICE_ROLE_KEY) is nodig voor de server-side login
-      # van de bar (src/lib/barLogin.ts, docs/features/dienst-per-sessie.md, ADR
-      # 0016): de namenlijst, het opzoeken van het e-mailadres en de
-      # service_role-only databasefuncties. Er is geen device-account of
-      # koppelcode meer (ADR 0011 is vervangen): elke e2e-test logt in vanaf de
-      # namenlijst als een seed-bardienst (e2e/helpers/barLogin.ts).
+      # `supabase status -o json` geeft stabiele veldnamen; SUPABASE_SECRET_KEY
+      # (service_role van de lokale stack) is nodig voor de server-side
+      # bar-login (src/lib/barLogin.ts, ADR 0016).
       - name: Export local Supabase env vars
         run: |
           status=$(supabase status -o json)
@@ -74,24 +61,10 @@ jobs:
             echo "SUPABASE_SECRET_KEY=$(echo "$status" | jq -r '.SERVICE_ROLE_KEY')"
           } >> "$GITHUB_ENV"
 
-      - run: npm run check:deployment
-      - run: npm run build
-      - run: npm run check:arch
-      - run: npm run check:policy
-      - run: npm run check:rls
-      - run: npm run check:migrations
-      - run: npm run check:adr
-
-      - run: npm run db:test
-
-      # Integratietest tegen de echte GoTrue van de lokale stack
-      # (integration/, docs/features/account-koppeling-bewijs.md → Tests →
-      # Integratietest, ADR 0020). Leest de env vars uit de stap "Export local
-      # Supabase env vars" hierboven; maakt eigen leden en accounts aan en
-      # ruimt ze op. Buiten `npm test`, want die draait vóór `supabase start`.
-      - run: npm run test:integration
-
       - run: npx playwright install --with-deps chromium
-      - run: npm run check:a11y
 
-      - run: supabase stop
+      # check:deployment, build, db:test, test:integration, check:a11y.
+      - run: npm run check:slow
+
+      - if: always()
+        run: supabase stop

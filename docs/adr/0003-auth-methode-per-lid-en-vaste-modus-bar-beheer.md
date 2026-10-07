@@ -34,7 +34,9 @@ zie [ADR 0004](0004-pii-kolommen-vereisen-rpc-gated-lezen.md)). Verwijzingen
 naar "ADR 0004" in commit-geschiedenis vóór deze merge bedoelen dit
 document.
 
-Status: **geïmplementeerd** voor het deel dat #14 bouwde (issue #14, PR #45,
+Status: **gebouwd**
+
+Toelichting: **geïmplementeerd** voor het deel dat #14 bouwde (issue #14, PR #45,
 gemerged 2026-08-27 — `/beheer`'s inlogflow en de scope-splitsing hieronder,
 zie `docs/features/assortimentbeheer.md`); de auth-methode-instelling per
 lid en een bar-modus bereikbaar via e-mail/wachtwoord blijven, zoals dit ADR

@@ -1,6 +1,8 @@
 # 0019 — Leestoegang is een allowlist: brede leesrechten alleen voor een actieve bar-rol, ieder ander ziet alleen eigen rijen
 
-Status: **geaccepteerd (2026-10-05), geïmplementeerd (PR #156)**. Bram heeft de keuzes voor deze opdracht
+Status: **gebouwd**
+
+Toelichting: **geaccepteerd (2026-10-05), geïmplementeerd (PR #156)**. Bram heeft de keuzes voor deze opdracht
 bij de Architect gelegd (item A van de review van 2026-10-05); de spec
 [`docs/features/leespolicies-allowlist.md`](../features/leespolicies-allowlist.md)
 geldt daarmee als goedgekeurd. Gebouwd in migratie `0039` (PR #156, gemerged 2026-10-05). Vervangt

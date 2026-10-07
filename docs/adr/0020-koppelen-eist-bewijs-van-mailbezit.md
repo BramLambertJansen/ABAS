@@ -1,6 +1,8 @@
 # 0020 — Een lid koppelen aan een auth-account eist bewijs van mailbezit in de huidige sessie, gebonden aan het uitgenodigde account
 
-Status: **geaccepteerd (2026-10-05), geïmplementeerd (PR #157)**. Bram heeft de keuzes voor deze opdracht
+Status: **gebouwd**
+
+Toelichting: **geaccepteerd (2026-10-05), geïmplementeerd (PR #157)**. Bram heeft de keuzes voor deze opdracht
 bij de Architect gelegd (item B van de review van 2026-10-05); de spec
 [`docs/features/account-koppeling-bewijs.md`](../features/account-koppeling-bewijs.md)
 geldt daarmee als goedgekeurd. Gebouwd in migratie `0040` (PR #157, gemerged

@@ -1,6 +1,8 @@
 # 0008 — Auth-maillinks werken via `token_hash`, niet via PKCE
 
-Status: **geïmplementeerd** (PR #69, gemerged 2026-09-23:
+Status: **gebouwd**
+
+Toelichting: **geïmplementeerd** (PR #69, gemerged 2026-09-23:
 `src/app/(bar)/beheer/callback/route.ts` accepteert `?token_hash=` met
 `type` `email`/`magiclink`/`invite` naast `?code=`;
 `/beheer/wachtwoord-herstellen` wisselt `type=recovery` pas bij verzenden

@@ -26,7 +26,7 @@ const PORTAL_COOKIE = "sb-portal-v2-auth-token";
  */
 export function wisPortalSessieLokaal() {
   for (const kv of document.cookie.split(";")) {
-    const naam = kv.split("=")[0].trim();
+    const naam = (kv.split("=")[0] ?? "").trim();
     if (naam === PORTAL_COOKIE || naam.startsWith(PORTAL_COOKIE + ".")) {
       document.cookie = `${naam}=; Max-Age=0; path=/`;
     }

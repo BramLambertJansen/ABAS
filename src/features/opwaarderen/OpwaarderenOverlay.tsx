@@ -71,7 +71,7 @@ export function OpwaarderenOverlay({
   const [confirming, setConfirming] = useState(false);
 
   const needsPicker = crew.length >= 2;
-  const effectiveServedBy = crew.length === 1 ? crew[0].id : servedBy;
+  const effectiveServedBy = crew.length === 1 ? (crew[0]?.id ?? null) : servedBy;
 
   // Een vrij ingetikt bedrag overschrijft een eerder gekozen chip en
   // omgekeerd — nooit allebei tegelijk als bron van waarheid. `null` bij

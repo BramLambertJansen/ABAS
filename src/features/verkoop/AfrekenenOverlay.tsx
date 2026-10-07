@@ -58,7 +58,7 @@ export function AfrekenenOverlay({
   );
 
   const needsPicker = crew.length >= 2;
-  const effectiveServedBy = crew.length === 1 ? crew[0].id :
+  const effectiveServedBy = crew.length === 1 ? (crew[0]?.id ?? null) :
     crew.some((member) => member.id === servedBy) ? servedBy : null;
 
   const insufficientFunds = subtotalCents > member.balanceCents + negativeLimitCents;

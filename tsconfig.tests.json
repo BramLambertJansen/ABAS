@@ -1,0 +1,11 @@
+{
+  // Typecheck voor test/, e2e/ en integration/ (ADR 0025). Zelfde strikte
+  // basis als tsconfig.json, behalve noUncheckedIndexedAccess: een assertie op
+  // `rows[0].x` faalt in een test al hard, de regel beschermt runtime-code.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noUncheckedIndexedAccess": false
+  },
+  "include": ["next-env.d.ts", "test/**/*.ts", "e2e/**/*.ts", "integration/**/*.ts", "playwright.config.ts"],
+  "exclude": ["node_modules"]
+}

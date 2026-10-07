@@ -1,6 +1,8 @@
-# 0019 — API-rollen krijgen geen tabelrechten die RLS omzeilen; waar een `revoke` niet kan, blokkeert een guard
+# 0023 — API-rollen krijgen geen tabelrechten die RLS omzeilen; waar een `revoke` niet kan, blokkeert een guard
 
-Status: **geaccordeerd (2026-10-02), gebouwd in PR #150, nog niet
+Status: **gebouwd**
+
+Toelichting: **geaccordeerd (2026-10-02), gebouwd in PR #150, nog niet
 gemerged.** Bram gaf akkoord samen met de spec
 [`docs/features/tabelrechten-api-rollen.md`](../features/tabelrechten-api-rollen.md)
 (spec → Besluit 1, 5 en 6; het akkoord is via de coördinator doorgegeven).

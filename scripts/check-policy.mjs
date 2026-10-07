@@ -25,11 +25,16 @@ const NO_BARE_CONSOLE_ERROR_DIR = "src/hooks/queries/";
 for (const file of files) {
   const source = stripComments(read(root, file));
 
+  // Any receiver, not only a variable named `supabase` (ADR 0025): `db.rpc(`,
+  // `admin.rpc(`, `client.from("orders")`. `.from(` only with a string
+  // literal argument, so Array.from(x)/Buffer.from(bytes) stay out; a
+  // string-literal Buffer/Array.from is excluded by name.
   const queriesOutsideDataLayer =
-    /\bsupabase\s*\.\s*(from|rpc)\s*\(/.test(source) &&
+    (/\.\s*rpc\s*\(/.test(source) ||
+      /(?<!\b(?:Array|Buffer|Uint8Array|Object)\s*)\.\s*from\s*\(\s*["'`]/.test(source)) &&
     !ALLOWED_QUERY_DIRS.some((d) => file.startsWith(d));
   if (queriesOutsideDataLayer) {
-    problems.push(`${file}: calls supabase.from()/.rpc() outside src/hooks/queries/ or src/lib/`);
+    problems.push(`${file}: calls .from("…")/.rpc() outside src/hooks/queries/ or src/lib/ — use a hook from src/hooks/queries/`);
   }
 
   // Storage (ADR 0018 → punt 6): `<client>.storage.from(` whatever the

@@ -45,7 +45,7 @@ export function TerugdraaienOverlay({
   const [errorCode, setErrorCode] = useState<ReverseOrderErrorCode | null>(null);
 
   const needsPicker = crew.length >= 2;
-  const effectiveReversedBy = crew.length === 1 ? crew[0].id : reversedBy;
+  const effectiveReversedBy = crew.length === 1 ? (crew[0]?.id ?? null) : reversedBy;
   const pending = mutation.status === "pending";
   const confirmDisabled = !reason.trim() || !effectiveReversedBy || pending;
 

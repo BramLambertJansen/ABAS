@@ -82,9 +82,26 @@ function isPortalOnlyFile(file) {
   return false;
 }
 
+// Resolved paths, not spec text: `../supabase/client` and `@/lib/supabase/client`
+// are the same module (ADR 0025). Rules 5–6 below match on the resolved path.
+const resolveSet = new Set(files);
+// Runtime imports only: a type-only import hands out no client.
+//   client/portalClient (browser clients): src/lib/, src/hooks/queries/,
+//     src/middleware.ts and route handlers.
+//   server modules (server/portalServer/admin): additionally src/app/ (Server
+//     Components); that client code never reaches them is ADR 0021's rule.
+const DATA_LAYER = (file) =>
+  file.startsWith("src/lib/") ||
+  file.startsWith("src/hooks/queries/") ||
+  file === "src/middleware.ts" ||
+  /^src\/app\/.*\/route\.ts$/.test(file);
+const SUPABASE_MODULE_ALLOWED = (file, module) =>
+  DATA_LAYER(file) || (!/^(client|portalClient)$/.test(module) && file.startsWith("src/app/"));
+
 for (const file of files) {
   const source = read(root, file);
   const specs = importsOf(source, file);
+  const runtimeSpecs = new Set(importRefsOf(source, file).filter((r) => !r.typeOnly).map((r) => r.spec));
 
   for (const spec of specs) {
     // 1. Shells isolated: shells/bar must not import from shells/portal,
@@ -118,16 +135,27 @@ for (const file of files) {
       problems.push(`${file}: imports "${spec}" directly — only src/lib/supabase/{client,server}.ts (or src/middleware.ts) may do this`);
     }
 
+    const resolved = resolveSpec(file, spec, resolveSet) ?? "";
+    const supabaseModule = /^src\/lib\/supabase\/(\w+)\.ts$/.exec(resolved)?.[1];
+
+    // 6. The Supabase client modules are private to the data layer: features,
+    //    shells and components never get a client to call .from()/.rpc() on,
+    //    whatever the variable is called (ADR 0025). Server route handlers
+    //    (src/app/**/route.ts) are data-layer entry points too.
+    if (supabaseModule && runtimeSpecs.has(spec) && !SUPABASE_MODULE_ALLOWED(file, supabaseModule)) {
+      problems.push(`${file}: imports "${spec}" — src/lib/supabase/${supabaseModule} is private to the data layer (src/lib/, src/hooks/queries/; use a hook)`);
+    }
+
     // 5. Portal/bar-beheer session cookie isolation — see PORTAL_ONLY_DIRS/
     //    isPortalOnlyFile above for the full rationale (ADR 0009).
-    if (isPortalOnlyFile(file) && /^@\/lib\/supabase\/(client|server)$/.test(spec)) {
+    if (isPortalOnlyFile(file) && (supabaseModule === "client" || supabaseModule === "server")) {
       problems.push(`${file}: imports "${spec}" — portal code must use portalClient.ts/portalServer.ts instead (ADR 0009)`);
     }
 
     if (
       !isPortalOnlyFile(file) &&
       file !== SHARED_AUTH_CALLBACK_FILE &&
-      /^@\/lib\/supabase\/(portalClient|portalServer)$/.test(spec)
+      (supabaseModule === "portalClient" || supabaseModule === "portalServer")
     ) {
       problems.push(`${file}: imports "${spec}" — only portal code (or ${SHARED_AUTH_CALLBACK_FILE}) may use portalClient.ts/portalServer.ts (ADR 0009)`);
     }

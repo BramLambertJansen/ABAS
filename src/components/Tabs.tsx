@@ -75,9 +75,9 @@ export function TabList({
     if (!target) return;
     const current = items.findIndex((i) => tabElementId(idBase, i.key) === target.id);
     const next = nextTabIndex(event.key, current, items.length, orientation);
-    if (next === null) return;
+    const key = next === null ? undefined : items[next]?.key;
+    if (key === undefined) return;
     event.preventDefault();
-    const key = items[next].key;
     buttons.current.get(key)?.focus();
     if (activation === "automatic") onSelect(key);
     else setFocusedKey(key);

@@ -1,6 +1,8 @@
 # ADR 0024 — Geldverzoeken met een transactiereceipt
 
-Status: geaccepteerd door Bram op 2026-10-05; implementatie wacht op volledige CI.
+Status: **gebouwd**
+
+Toelichting: geaccepteerd door Bram op 2026-10-05; implementatie wacht op volledige CI.
 
 ## Context
 

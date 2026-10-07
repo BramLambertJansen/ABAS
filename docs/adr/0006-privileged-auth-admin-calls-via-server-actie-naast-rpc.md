@@ -1,6 +1,8 @@
 # 0006 — Privileged Supabase Auth Admin-calls lopen via een server-side actie met een eigen service-role-bestand, niet via een SQL-RPC
 
-Status: **geïmplementeerd** (issue #24, commits `699480a`/`f00540b`,
+Status: **gebouwd**
+
+Toelichting: **geïmplementeerd** (issue #24, commits `699480a`/`f00540b`,
 2026-09-21 — `src/lib/supabase/admin.ts`, `src/lib/inviteMember.ts`,
 `src/app/(bar)/beheer/invite/route.ts`, migratie
 `0012_lid_account_uitnodigen.sql`, zie

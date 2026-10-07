@@ -1,6 +1,8 @@
 # 0007 — Een sessie met rol `lid` leest alleen de eigen rijen; de brede select-policy geldt alleen nog voor bar- en device-sessies
 
-Status: **geïmplementeerd** (app-review 2026-09-21, migratie
+Status: **gebouwd**
+
+Toelichting: **geïmplementeerd** (app-review 2026-09-21, migratie
 `0015_lid_leest_alleen_eigen_rijen.sql`, negatieve tests in
 `supabase/tests/rls_lid_eigen_rijen.test.sql`). Besloten door Bram bij die
 review, inclusief de reikwijdte (welke tabellen wel en niet). Vult ADR 0004

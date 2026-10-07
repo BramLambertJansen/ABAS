@@ -3,5 +3,10 @@
   "buildCommand": "npm run check:deployment && npm run build",
   "regions": [
     "dub1"
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "main": false
+    }
+  }
 }

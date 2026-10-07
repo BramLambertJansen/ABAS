@@ -1,0 +1,45 @@
+{
+  "$comment": "ABAS-specifieke invulling van rolhek.mjs. Regex-strings, getest tegen repo-relatieve paden met '/'. Wijzigen = gate-wijziging (label gate-wijziging). jsonGates: bestand -> sleutels die als gate gelden (alleen een wijziging in die sleutels vraagt het label).",
+  "gates": [
+    "^scripts/check-",
+    "^scripts/kit/",
+    "^supabase/tests/",
+    "^\\.github/",
+    "^\\.claude/",
+    "^\\.husky/",
+    "^\\.kit/",
+    "^eslint\\.config\\.",
+    "^tsconfig.*\\.json$",
+    "^playwright\\.config\\.",
+    "^CLAUDE\\.md$",
+    "^eslint-suppressions\\.json$",
+    "^next\\.config\\.",
+    "^vercel\\.json$",
+    "^osv-scanner\\.toml$"
+  ],
+  "jsonGates": {
+    "package.json": [
+      "scripts"
+    ]
+  },
+  "schrijfrecht": {
+    "architect": [
+      "^docs/features/",
+      "^docs/adr/",
+      "^docs/ARCHITECTURE\\.md$"
+    ],
+    "reviewer": [],
+    "docs": [
+      "^docs/",
+      "^README\\.md$",
+      "^src/components/README\\.md$"
+    ],
+    "tester": [
+      "^supabase/tests/",
+      "^e2e/",
+      "^test/",
+      "^integration/"
+    ],
+    "developer": null
+  }
+}

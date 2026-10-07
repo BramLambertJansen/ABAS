@@ -1,0 +1,30 @@
+# Wekelijkse update-PR's, gegroepeerd (ADR 0025). Een update gaat door
+# dezelfde CI als elke PR; een gepinde action (SHA) wordt hier bijgewerkt.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      productie:
+        dependency-type: production
+        update-types: [minor, patch]
+      ontwikkeling:
+        dependency-type: development
+        update-types: [minor, patch]
+    ignore:
+      # Exact gepind: de strict-configs zijn niet semver-stabiel; bijwerken
+      # is een bewuste PR met een nieuwe suppressie-baseline.
+      - dependency-name: typescript-eslint
+      - dependency-name: eslint-plugin-better-tailwindcss
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        patterns: ["*"]

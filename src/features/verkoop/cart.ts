@@ -13,10 +13,11 @@ export function applyDelta(
   delta: number
 ): CartLine[] {
   const index = lines.findIndex((line) => line.productId === productId);
-  if (index === -1) {
+  const huidig = lines[index];
+  if (index === -1 || !huidig) {
     return delta > 0 ? [...lines, { productId, qty: delta }] : lines;
   }
-  const nextQty = lines[index].qty + delta;
+  const nextQty = huidig.qty + delta;
   if (nextQty <= 0) {
     return lines.filter((_, i) => i !== index);
   }

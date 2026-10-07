@@ -1,6 +1,8 @@
 # 0001 — Beheerder-only RPC-writes verifiëren de aanroeper opnieuw, per call
 
-Status: **vervangen door [ADR 0002](0002-beheeracties-vereisen-eigen-e-mail-sessie.md)**
+Status: **vervallen**
+
+Toelichting: **vervangen door [ADR 0002](0002-beheeracties-vereisen-eigen-e-mail-sessie.md)**
 (2026-08-26). Bram heeft de aanname waarop dit ADR rustte — geen
 per-operator sessie, dus verifieer per RPC-call met een PIN — zelf
 gecorrigeerd: een beheerder-identiteit is niet gedeeld en krijgt een eigen

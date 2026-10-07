@@ -1,0 +1,36 @@
+name: Diff-guard
+
+# Een PR die gates of bestaande tests wijzigt, heeft het label
+# `gate-wijziging` nodig (ADR 0025). Draait opnieuw bij (de)labelen.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+
+permissions:
+  contents: read
+
+jobs:
+  diff-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+      # Script en gatelijst van de basis, zodat een PR zijn eigen bewaker niet
+      # kan afzwakken. Bestaan ze op de basis nog niet (de PR die ze invoert),
+      # dan die van de PR zelf.
+      - name: Bewaker van de basisbranch
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/guard"
+          git show "$BASE_SHA:scripts/kit/diff-guard.mjs" > "$RUNNER_TEMP/guard/diff-guard.mjs" 2>/dev/null \
+            || cp scripts/kit/diff-guard.mjs "$RUNNER_TEMP/guard/diff-guard.mjs"
+          git show "$BASE_SHA:.claude/hooks/rolhek.lokaal.json" > "$RUNNER_TEMP/guard/gates.json" 2>/dev/null \
+            || cp .claude/hooks/rolhek.lokaal.json "$RUNNER_TEMP/guard/gates.json"
+      - name: Controleer gate-wijzigingen
+        env:
+          PR_LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node "$RUNNER_TEMP/guard/diff-guard.mjs" "$BASE_SHA" "$HEAD_SHA" "$RUNNER_TEMP/guard/gates.json"

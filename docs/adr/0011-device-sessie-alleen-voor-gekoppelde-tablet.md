@@ -1,6 +1,8 @@
 # 0011 — De gedeelde device-sessie komt alleen tot stand op een gekoppelde tablet
 
-Status: **vervangen door
+Status: **vervallen**
+
+Toelichting: **vervangen door
 [ADR 0016](0016-dienst-hoort-bij-geregistreerde-app-sessies.md)**
 (2026-09-29). Tablet koppelen, het device-account, `BAR_DEVICE_SECRET` en het
 `abas_tablet`-cookie zijn verwijderd; de tekst hieronder blijft als historie.

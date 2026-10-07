@@ -1,0 +1,18 @@
+# Gates, tests en agentrails: wijzigingen vragen een review van Bram
+# (ADR 0025). Werkt pas als branch protection "Require review from Code
+# Owners" aanstaat. Houd gelijk met .claude/hooks/rolhek.lokaal.json → gates.
+/scripts/check-*            @BramLambertJansen
+/scripts/kit/               @BramLambertJansen
+/supabase/tests/            @BramLambertJansen
+/.github/                   @BramLambertJansen
+/.claude/                   @BramLambertJansen
+/.husky/                    @BramLambertJansen
+/.kit/                      @BramLambertJansen
+/eslint.config.mjs          @BramLambertJansen
+/eslint-suppressions.json   @BramLambertJansen
+/tsconfig*.json             @BramLambertJansen
+/playwright.config.ts       @BramLambertJansen
+/next.config.mjs            @BramLambertJansen
+/CLAUDE.md                  @BramLambertJansen
+/vercel.json                @BramLambertJansen
+/osv-scanner.toml           @BramLambertJansen
