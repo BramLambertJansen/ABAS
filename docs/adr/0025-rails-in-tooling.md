@@ -75,10 +75,9 @@ het vaakst schrijven:
 9. **Expliciete grants.** Nieuwe tabellen en functies krijgen in de migratie
    expliciet hun rechten, omdat het gehoste project vanaf 2026-10-30 geen
    automatische grants meer geeft. `auto_expose_new_tables = false` in
-   `supabase/config.toml` komt in een eigen PR (roadmap 0.1a). In #184 bleek
-   dat lokaal dan ook bestaande functies hun standaardrechten verliezen
-   (`service_role` op `set_product_image`/`mark_member_invite_sent`), wat
-   productie wel heeft. Die PR maakt die grants eerst expliciet.
+   `supabase/config.toml` bootst dat lokaal en in CI na (#187). Migratie 0044
+   legt de rechten vast die bestaande objecten in productie al via de oude
+   standaardrechten hadden, afgeleid met `scripts/kit/api-rechten.sql`.
 10. **Geldregel geherformuleerd.** "De client stuurt nooit een bedrag dat de
     server gebruikt." Een weergavesubtotaal mag; het bevestigde totaal komt uit
     de RPC. De typetest op geld-`Args` volgt in fase 2.
