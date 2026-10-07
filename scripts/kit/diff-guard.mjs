@@ -20,7 +20,17 @@ const labels = JSON.parse(process.env.PR_LABELS || "[]");
 const LABEL = "gate-wijziging";
 const TESTMAPPEN = /^(supabase\/tests|e2e|test|integration)\//;
 
-const gates = JSON.parse(readFileSync(gatesBestand, "utf8")).gates.map((r) => new RegExp(r));
+const config = JSON.parse(readFileSync(gatesBestand, "utf8"));
+const gates = config.gates.map((r) => new RegExp(r));
+// JSON-gates (bv. package.json → scripts): alleen een wijziging in die sleutels telt.
+const jsonGates = config.jsonGates ?? {};
+const toonBestand = (ref, pad) => {
+  try {
+    return JSON.parse(execFileSync("git", ["show", `${ref}:${pad}`], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] }));
+  } catch {
+    return {};
+  }
+};
 const diff = execFileSync("git", ["diff", "--name-status", "-M", `${base}...${head}`], { encoding: "utf8" })
   .split("\n")
   .filter(Boolean)
@@ -33,6 +43,12 @@ for (const [status, ...paden] of diff) {
       if (!status.startsWith("A")) geraakt.push(`${status[0]} ${pad}`);
     } else if (gates.some((g) => g.test(pad))) {
       geraakt.push(`${status[0]} ${pad}`);
+    } else if (jsonGates[pad]) {
+      const voor = toonBestand(base, pad);
+      const na = toonBestand(head, pad);
+      for (const sleutel of jsonGates[pad]) {
+        if (JSON.stringify(voor[sleutel] ?? null) !== JSON.stringify(na[sleutel] ?? null)) geraakt.push(`${status[0]} ${pad} → ${sleutel}`);
+      }
     }
   }
 }

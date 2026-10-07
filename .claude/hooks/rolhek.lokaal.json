@@ -1,5 +1,5 @@
 {
-  "$comment": "ABAS-specifieke invulling van rolhek.mjs. Regex-strings, getest tegen repo-relatieve paden met '/'. Wijzigen = gate-wijziging (label gate-wijziging).",
+  "$comment": "ABAS-specifieke invulling van rolhek.mjs. Regex-strings, getest tegen repo-relatieve paden met '/'. Wijzigen = gate-wijziging (label gate-wijziging). jsonGates: bestand -> sleutels die als gate gelden (alleen een wijziging in die sleutels vraagt het label).",
   "gates": [
     "^scripts/check-",
     "^scripts/kit/",
@@ -17,6 +17,11 @@
     "^vercel\\.json$",
     "^osv-scanner\\.toml$"
   ],
+  "jsonGates": {
+    "package.json": [
+      "scripts"
+    ]
+  },
   "schrijfrecht": {
     "architect": [
       "^docs/features/",

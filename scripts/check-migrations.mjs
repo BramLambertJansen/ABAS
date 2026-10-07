@@ -60,8 +60,9 @@ try {
     const [status, pad] = regel.split("\t");
     problems.push(`${pad}: ${status?.startsWith("D") ? "verwijderd" : status?.startsWith("R") ? "hernoemd" : "gewijzigd"} — migraties zijn append-only; schrijf een nieuwe migratie`);
   }
-  // Nieuwe migraties moeten na de hoogste op de basis komen.
-  const opBasis = git("ls-tree", "--name-only", base, "supabase/migrations/")
+  // Nieuwe migraties moeten na de hoogste op de basis komen: de huidige top
+  // van de basisbranch, niet de merge-base (die mist wat daarna op main kwam).
+  const opBasis = git("ls-tree", "--name-only", baseRef, "supabase/migrations/")
     .split("\n")
     .map((p) => /(\d{4})_[^/]*\.sql$/.exec(p)?.[1])
     .filter(Boolean)
