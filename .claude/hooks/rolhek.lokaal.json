@@ -13,7 +13,8 @@
     "^playwright\\.config\\.",
     "^CLAUDE\\.md$",
     "^eslint-suppressions\\.json$",
-    "^next\\.config\\."
+    "^next\\.config\\.",
+    "^vercel\\.json$"
   ],
   "schrijfrecht": {
     "architect": [
