@@ -1,6 +1,6 @@
 # Tokenschaal en gereset thema
 
-Status: **voorstel**
+Status: **goedgekeurd**
 
 Roadmap fase 3, stap 2 (ADR 0025 → R4, voorbereiding op R5). Bouwt voort op
 stap 1 (Tailwind v4, #185).
