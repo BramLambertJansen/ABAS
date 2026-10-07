@@ -8,7 +8,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 
 const guard = path.resolve(import.meta.dirname, "../scripts/kit/diff-guard.mjs");
-const GATES = JSON.stringify({ gates: ["^scripts/check-", "^supabase/tests/"] });
+const GATES = JSON.stringify({ gates: ["^scripts/check-", "^supabase/tests/"], jsonGates: { "package.json": ["scripts"] } });
 
 function repo(wijzig: (dir: string) => void) {
   const dir = mkdtempSync(path.join(tmpdir(), "diffguard-"));
@@ -22,6 +22,7 @@ function repo(wijzig: (dir: string) => void) {
   schrijf("src/a.ts", "a");
   schrijf("test/a.test.ts", "a");
   schrijf("scripts/check-x.mjs", "a");
+  schrijf("package.json", JSON.stringify({ scripts: { test: "node --test" }, dependencies: { a: "1" } }));
   git("add", ".");
   git("commit", "-qm", "basis");
   const base = execFileSync("git", ["rev-parse", "HEAD"], { cwd: dir, encoding: "utf8" }).trim();
@@ -54,4 +55,16 @@ test("diff-guard: bestaande test aanpassen → label nodig", () => {
 test("diff-guard: gate-script wijzigen → label nodig", () => {
   const { dir, base } = repo((d) => writeFileSync(path.join(d, "scripts/check-x.mjs"), "b"));
   assert.equal(draai(dir, base).status, 1);
+});
+
+test("diff-guard: een script in package.json wijzigen → label nodig", () => {
+  const { dir, base } = repo((d) => writeFileSync(path.join(d, "package.json"), JSON.stringify({ scripts: { test: "true" }, dependencies: { a: "1" } })));
+  const r = draai(dir, base);
+  assert.equal(r.status, 1);
+  assert.match(r.stderr, /package\.json → scripts/);
+});
+
+test("diff-guard: alleen een dependency in package.json wijzigen → ok", () => {
+  const { dir, base } = repo((d) => writeFileSync(path.join(d, "package.json"), JSON.stringify({ scripts: { test: "node --test" }, dependencies: { a: "2" } })));
+  assert.equal(draai(dir, base).status, 0);
 });

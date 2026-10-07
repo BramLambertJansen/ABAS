@@ -34,16 +34,46 @@ function weiger(melding) {
   process.stderr.write(`rolhek: ${melding}\n`);
   process.exit(2);
 }
+const JSON_GATES = lokaal.jsonGates ?? {};
 const isGate = (rel) => GATES.some((r) => r.test(rel));
+
+// Een JSON-gate (bv. package.json → scripts): het bestand mag wel, die
+// sleutels niet. Vergelijkt de huidige inhoud met die na de toolaanroep.
+function raaktJsonGate(rel) {
+  const sleutels = JSON_GATES[rel];
+  if (!sleutels) return false;
+  let nu;
+  try {
+    nu = readFileSync(path.join(root, rel), "utf8");
+  } catch {
+    return false;
+  }
+  let straks = null;
+  if (tool === "Write") straks = String(ti.content ?? "");
+  else if (tool === "Edit") {
+    straks = ti.replace_all ? nu.split(String(ti.old_string)).join(String(ti.new_string)) : nu.replace(String(ti.old_string), () => String(ti.new_string));
+  } else if (tool === "MultiEdit") {
+    straks = nu;
+    for (const e of ti.edits ?? []) straks = e.replace_all ? straks.split(e.old_string).join(e.new_string) : straks.replace(e.old_string, () => e.new_string);
+  }
+  if (straks === null) return true; // onbekende manier van schrijven: behandel als gate
+  try {
+    const a = JSON.parse(nu);
+    const b = JSON.parse(straks);
+    return sleutels.some((k) => JSON.stringify(a[k] ?? null) !== JSON.stringify(b[k] ?? null));
+  } catch {
+    return true; // ongeldige JSON na de wijziging: niet onze beslissing
+  }
+}
 const relatief = (p) => path.relative(root, path.resolve(inp.cwd || root, p)).split(path.sep).join("/");
 
-function controleerPad(rel) {
+function controleerPad(rel, fromShell = false) {
   if (rel.startsWith("..")) return; // buiten de repo (scratchpad e.d.): niet ons hek
   const toegestaan = SCHRIJFRECHT[rol];
   if (toegestaan && !toegestaan.some((r) => r.test(rel))) {
     weiger(`rol ${rol} mag ${rel} niet schrijven. Toegestaan: ${toegestaan.map(String).join(", ") || "niets"}.`);
   }
-  if (rol === "developer" && isGate(rel)) {
+  if (rol === "developer" && (isGate(rel) || (fromShell ? rel in JSON_GATES : raaktJsonGate(rel)))) {
     weiger(
       `${rel} is een gate of test en read-only voor de Developer. Fix de bron, niet de test; ` +
         `een gate-wijziging vraag je aan Bram (PR-label gate-wijziging).`,
@@ -69,13 +99,14 @@ if (tool === "Bash") {
     // Tekstmatch op schrijvende shellcommando's: redirect-doelen en de
     // padargumenten van sed -i/tee/mv/cp/rm/git checkout|restore. Vangt de
     // gewone vorm, niet elke omweg (bash -c, node -e): dat vangt de CI-diff-guard.
-    for (const rel of schrijfdoelen(cmd)) controleerPad(rel);
+    for (const rel of schrijfdoelen(cmd)) controleerPad(rel, true);
   }
 }
 
 function schrijfdoelen(cmd) {
   const doelen = [];
-  for (const m of cmd.replace(/'[^']*'|"(?:[^"\\]|\\.)*"/g, "''").matchAll(/(?:^|[^0-9&>])>{1,2}\s*([^\s;&|<>]+)/g)) doelen.push(m[1]);
+  // Redirect-doelen, ook tussen aanhalingstekens (`> "src/x.ts"`).
+  for (const m of cmd.matchAll(/(?:^|[^0-9&>=])>{1,2}\s*(?:"([^"]*)"|'([^']*)'|([^\s;&|<>'"]+))/g)) doelen.push(m[1] ?? m[2] ?? m[3]);
   for (const segment of cmd.split(/&&|\|\||[;|\n]/)) {
     const woorden = segment.trim().split(/\s+/);
     const i = woorden.findIndex((w) => !/^\w+=/.test(w)); // sla VAR=x prefixen over
