@@ -293,7 +293,7 @@ export function OpwaarderenOverlay({
             onBlur={bijBlur}
             aria-describedby={veldMelding ? amountLimitId : undefined}
             aria-invalid={veldMelding ? true : undefined}
-            className="h-12 min-w-0 flex-1 rounded-[13px] border border-border bg-white px-3.5 text-detail font-semibold text-ink focus-visible:outline-none placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
+            className="h-12 min-w-0 flex-1 rounded-[13px] border border-border bg-white px-3.5 text-detail font-semibold text-ink focus-visible:outline-hidden placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
           />
           <button
             type="button"

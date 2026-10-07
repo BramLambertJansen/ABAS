@@ -171,7 +171,7 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
             <p
               ref={forgotSentRef}
               tabIndex={-1}
-              className="text-sm font-bold text-white outline-none"
+              className="text-sm font-bold text-white outline-hidden"
               role="status"
             >
               Als er een account bij {resetRequest.sentTo} hoort, hebben we een link gestuurd
@@ -197,7 +197,7 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
                 id={forgotHeadingId}
                 ref={forgotHeadingRef}
                 tabIndex={-1}
-                className="text-base font-extrabold text-white outline-none"
+                className="text-base font-extrabold text-white outline-hidden"
               >
                 Wachtwoord vergeten
               </h2>
@@ -237,7 +237,7 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
           <p
             ref={magicLinkSentRef}
             tabIndex={-1}
-            className="text-sm font-bold text-white outline-none"
+            className="text-sm font-bold text-white outline-hidden"
             role="status"
           >
             Als er een account bij {login.magicLinkSentTo} hoort, hebben we een inloglink
@@ -279,7 +279,7 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
             </legend>
             <div className="flex gap-2" role="group" aria-labelledby={methodLegendId}>
               <label
-                className={`flex flex-1 cursor-pointer items-center justify-center rounded-control border px-3 py-2.5 text-xs font-bold focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent ${
+                className={`flex flex-1 cursor-pointer items-center justify-center rounded-control border px-3 py-2.5 text-xs font-bold focus-within:outline-solid focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent ${
                   method === "magic_link"
                     ? "border-accent bg-rail text-white"
                     : "border-rail-border bg-rail text-rail-muted"
@@ -296,7 +296,7 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
                 Magic link
               </label>
               <label
-                className={`flex flex-1 cursor-pointer items-center justify-center rounded-control border px-3 py-2.5 text-xs font-bold focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent ${
+                className={`flex flex-1 cursor-pointer items-center justify-center rounded-control border px-3 py-2.5 text-xs font-bold focus-within:outline-solid focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent ${
                   method === "password"
                     ? "border-accent bg-rail text-white"
                     : "border-rail-border bg-rail text-rail-muted"

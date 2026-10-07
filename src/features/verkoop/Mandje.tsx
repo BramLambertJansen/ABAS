@@ -159,7 +159,7 @@ export function Mandje({
             <p
               ref={lidNaamRef}
               tabIndex={-1}
-              className="min-w-0 flex-1 break-words text-base font-extrabold tracking-[-0.015em] text-ink outline-none"
+              className="min-w-0 flex-1 wrap-break-word text-base font-extrabold tracking-[-0.015em] text-ink outline-hidden"
             >
               {selectedMember.name}
             </p>
@@ -300,7 +300,7 @@ export function Mandje({
                   De DOM- en tabvolgorde blijft min, plus, verwijderen; alleen de
                   plaatsing is een grid. De volledige naam blijft zichtbaar. */}
               <div className="col-start-1 row-start-1 min-w-0 self-start">
-                <p className="break-words text-sm font-bold leading-tight text-ink">
+                <p className="wrap-break-word text-sm font-bold leading-tight text-ink">
                   {line.name}
                 </p>
                 <p className="text-[11.5px] font-semibold text-muted">

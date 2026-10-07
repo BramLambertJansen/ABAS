@@ -267,7 +267,7 @@ export function VerkoopScherm({ shift, draft }: { shift: OpenShift; draft: Verko
           <h1
             ref={titelRef}
             tabIndex={-1}
-            className="text-screen-title font-extrabold leading-none tracking-[-0.025em] text-ink"
+            className="text-screen-title font-extrabold leading-none tracking-tight text-ink"
           >
             Bar
           </h1>

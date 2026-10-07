@@ -174,7 +174,7 @@ export function ProductenLijst() {
                 />
                 <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                   {/* Gearchiveerd: gedempt via de bestaande `muted`-kleur
-                      (al gevalideerd op WCAG-AA, zie tailwind.config.ts),
+                      (al gevalideerd op WCAG-AA, zie @theme in globals.css),
                       niet via opacity — opacity zou dezelfde kleur
                       verzwakken tot ónder het contrast dat 'm juist AA-
                       compliant maakte. */}

@@ -81,7 +81,7 @@ export function Transactielijst({
             placeholder="Zoek op naam of product"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="h-[52px] w-full rounded-[14px] border border-border bg-white pl-[42px] pr-[18px] text-[14.5px] font-semibold text-ink focus-visible:outline-none placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/[0.12]"
+            className="h-[52px] w-full rounded-[14px] border border-border bg-white pl-[42px] pr-[18px] text-[14.5px] font-semibold text-ink focus-visible:outline-hidden placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/12"
           />
         </div>
         {people.length > 0 && (
@@ -131,7 +131,7 @@ export function Transactielijst({
         )}
         {groups.map((group) => (
           <section key={group.key} aria-label={group.label}>
-            <div className="sticky top-0 z-[2] flex items-baseline justify-between gap-3 bg-white pb-[7px] pt-3.5">
+            <div className="sticky top-0 z-2 flex items-baseline justify-between gap-3 bg-white pb-[7px] pt-3.5">
               <h2 className="text-[10px] font-extrabold tracking-[0.12em] text-muted">
                 {group.label}
               </h2>
@@ -302,7 +302,7 @@ function PersonFilter({
         <span className="whitespace-nowrap text-detail font-bold">{active.name}</span>
         <span
           className={`flex-none rounded-full px-[7px] py-0.5 text-[11px] font-extrabold ${
-            dark ? "bg-white/[0.16] text-white" : "bg-border-subtle text-muted-strong"
+            dark ? "bg-white/16 text-white" : "bg-border-subtle text-muted-strong"
           }`}
         >
           {active.count}
@@ -319,7 +319,7 @@ function PersonFilter({
       {open && (
         <ul
           id={listId}
-          className="absolute right-0 top-12 z-[21] flex min-w-[200px] origin-top-right flex-col gap-0.5 rounded-card border border-border bg-white p-1.5 shadow-menu"
+          className="absolute right-0 top-12 z-21 flex min-w-[200px] origin-top-right flex-col gap-0.5 rounded-card border border-border bg-white p-1.5 shadow-menu"
         >
           {options.map((option) => {
             const selected = option.id === activeId;
@@ -336,7 +336,7 @@ function PersonFilter({
                   <span className="flex-1 truncate">{option.name}</span>
                   <span
                     className={`flex-none rounded-full px-[7px] py-0.5 text-[11px] font-extrabold ${
-                      selected ? "bg-white/[0.16] text-white" : "bg-border-subtle text-muted-strong"
+                      selected ? "bg-white/16 text-white" : "bg-border-subtle text-muted-strong"
                     }`}
                   >
                     {option.count}

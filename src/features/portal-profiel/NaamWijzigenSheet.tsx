@@ -104,7 +104,7 @@ export function NaamWijzigenSheet({
           aria-describedby={mutation.errorCode ? errorId : undefined}
         />
 
-        <p id={errorId} className="text-sm font-bold text-danger empty:-mt-[14px]" role="alert">
+        <p id={errorId} className="text-sm font-bold text-danger empty:mt-[-14px]" role="alert">
           {timedOut ? ONBEKENDE_UITKOMST_TEKST : mutation.errorCode ? errorMessage(mutation.errorCode) : ""}
         </p>
 

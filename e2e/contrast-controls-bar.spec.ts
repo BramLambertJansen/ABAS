@@ -144,7 +144,7 @@ test("focus: invoerveld en knop tonen een focusring bij Tab", async ({ page }) =
   const zoek = page.getByRole("combobox", { name: "Zoek lid op naam" });
   expect(zichtbaar(await zoek.evaluate(outline))).toBe(false);
   await tabNaar(page, zoek);
-  // LidZoeker heeft `outline-none` en een eigen ring (box-shadow): de globale
+  // LidZoeker heeft `focus-visible:outline-hidden` en een eigen ring (box-shadow): de globale
   // outline blijft bewust uit, anders staan er twee ringen.
   await expect(zoek).toBeFocused();
   expect(await zoek.evaluate((el) => getComputedStyle(el).boxShadow)).not.toBe("none");
@@ -167,11 +167,11 @@ test("focus: een knop op het beheer-inlogscherm toont een focusring bij Tab", as
   await verwachtGlobaleRing(knop);
 });
 
-test("focus: een control met kale `outline-none` krijgt toch de globale ring; een eigen vervanging wint", async ({ page }) => {
+test("focus: een control met kale `outline-hidden` krijgt toch de globale ring; een eigen vervanging wint", async ({ page }) => {
   await page.goto("/beheer");
   await page.getByRole("button", { name: /^(Inloggen|Stuur inloglink)$/ }).waitFor({ state: "visible", timeout: 15_000 });
-  // Klassen die in de bron voorkomen (dus door Tailwind gegenereerd): kaal
-  // `outline-none` (NieuwLidOverlay-veld) en `focus-visible:outline-none` (zoekveld met eigen ring).
+  // Klassen die in src voorkomen (dus door Tailwind gegenereerd): kaal
+  // `outline-hidden` (TekstVeld) en `focus-visible:outline-hidden` (ZoekVeld met eigen ring).
   await page.evaluate(() => {
     const maak = (id: string, klassen: string) => {
       const i = document.createElement("input");
@@ -180,8 +180,8 @@ test("focus: een control met kale `outline-none` krijgt toch de globale ring; ee
       i.className = klassen;
       document.body.prepend(i);
     };
-    maak("eigen-vervanging", "focus-visible:outline-none");
-    maak("kaal-outline-none", "outline-none");
+    maak("eigen-vervanging", "focus-visible:outline-hidden");
+    maak("kaal-outline-none", "outline-hidden");
   });
   const kaal = page.locator("#kaal-outline-none");
   const eigen = page.locator("#eigen-vervanging");

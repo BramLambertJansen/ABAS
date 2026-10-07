@@ -88,13 +88,13 @@ export function LogboekLijst() {
             placeholder="Zoek op naam, product of handeling"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="h-11 w-full rounded-[12px] border border-border bg-white pl-[42px] pr-4 text-detail font-medium text-ink focus-visible:outline-none placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/[0.12]"
+            className="h-11 w-full rounded-control border border-border bg-white pl-[42px] pr-4 text-detail font-medium text-ink focus-visible:outline-hidden placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/12"
           />
         </div>
         <div
           role="group"
           aria-label="Filter"
-          className="flex flex-none flex-wrap gap-[3px] rounded-[12px] bg-canvas p-[3px]"
+          className="flex flex-none flex-wrap gap-[3px] rounded-control bg-canvas p-[3px]"
         >
           {LOGBOEK_FILTERS.map((f) => (
             <button
@@ -196,7 +196,7 @@ function LogboekRow({ entry, nu }: { entry: LogboekEntry; nu: Date }) {
           {action}
         </span>
         <span
-          className={`text-[11.5px] font-semibold text-muted ${flagged ? "break-words" : "truncate"}`}
+          className={`text-[11.5px] font-semibold text-muted ${flagged ? "wrap-break-word" : "truncate"}`}
         >
           {detail}
           {statusLabel && <span className="font-extrabold text-muted-strong"> · {statusLabel}</span>}

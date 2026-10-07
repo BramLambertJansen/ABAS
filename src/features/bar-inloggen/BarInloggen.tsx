@@ -246,7 +246,7 @@ export function BarInloggen() {
         <h1
           ref={titelRef}
           tabIndex={-1}
-          className="text-[21px] font-extrabold tracking-[-0.02em] outline-none"
+          className="text-[21px] font-extrabold tracking-[-0.02em] outline-hidden"
         >
           {STARTSCHERM.titel}
         </h1>
@@ -406,7 +406,7 @@ export function BarInloggen() {
           <h2
             ref={kopRef}
             tabIndex={-1}
-            className="text-center text-base font-extrabold text-white outline-none"
+            className="text-center text-base font-extrabold text-white outline-hidden"
           >
             {INLOGGEN.wachtwoordVergeten}
           </h2>

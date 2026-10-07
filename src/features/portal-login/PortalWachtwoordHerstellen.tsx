@@ -66,7 +66,7 @@ export function PortalWachtwoordHerstellen({ tokenHash }: { tokenHash: string | 
 
       {codeStap ? (
         <div className="flex w-full max-w-sm flex-col gap-4 rounded-2xl border border-border bg-white p-6">
-          <h2 ref={codeKopRef} tabIndex={-1} className="text-sm font-medium leading-relaxed text-muted outline-none">
+          <h2 ref={codeKopRef} tabIndex={-1} className="text-sm font-medium leading-relaxed text-muted outline-hidden">
             {TWEESTAP_TEKSTEN.wachtwoordCodeStap}
           </h2>
           <CodeInvoer tone="light" onVerifieer={verifieerCode} />

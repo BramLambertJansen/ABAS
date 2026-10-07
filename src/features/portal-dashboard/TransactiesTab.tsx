@@ -79,7 +79,7 @@ export function TransactiesTab() {
             aria-pressed={filter === f.id}
             onClick={() => setFilter(f.id)}
             className={`flex min-h-10 min-w-fit max-w-full flex-1 items-center justify-center rounded-xl px-2 py-2 text-xs font-bold transition-colors ${
-              filter === f.id ? "bg-white text-ink shadow-sm" : "text-muted-strong"
+              filter === f.id ? "bg-white text-ink shadow-xs" : "text-muted-strong"
             }`}
           >
             {f.label}
@@ -120,7 +120,7 @@ export function TransactiesTab() {
       {transactions.status === "ready" &&
         groups.map((group) => (
           <section key={group.key} aria-label={group.label} className="flex flex-none flex-col gap-2">
-            <h2 className="text-[11px] font-bold tracking-[0.1em] text-muted">
+            <h2 className="text-[11px] font-bold tracking-widest text-muted">
               {group.label.toUpperCase()}
             </h2>
             <ul className="rounded-[22px] border border-border bg-white px-3">

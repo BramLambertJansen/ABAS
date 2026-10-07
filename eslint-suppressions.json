@@ -75,7 +75,7 @@
       "count": 4
     },
     "better-tailwindcss/no-restricted-classes": {
-      "count": 20
+      "count": 17
     }
   },
   "src/components/PinToetsenbord.tsx": {
@@ -104,7 +104,7 @@
       "count": 5
     },
     "better-tailwindcss/no-restricted-classes": {
-      "count": 6
+      "count": 5
     }
   },
   "src/components/StatCard.tsx": {
@@ -334,9 +334,6 @@
   "src/features/bar-sessie/BarSessieProvider.tsx": {
     "@typescript-eslint/no-confusing-void-expression": {
       "count": 6
-    },
-    "better-tailwindcss/no-restricted-classes": {
-      "count": 1
     }
   },
   "src/features/bar-sessie/HervatScherm.tsx": {
@@ -435,7 +432,7 @@
       "count": 10
     },
     "better-tailwindcss/no-restricted-classes": {
-      "count": 37
+      "count": 35
     },
     "no-restricted-syntax": {
       "count": 2
@@ -457,7 +454,7 @@
       "count": 4
     },
     "better-tailwindcss/no-restricted-classes": {
-      "count": 46
+      "count": 41
     },
     "no-restricted-syntax": {
       "count": 4
@@ -561,7 +558,7 @@
       "count": 2
     },
     "better-tailwindcss/no-restricted-classes": {
-      "count": 24
+      "count": 21
     },
     "no-restricted-syntax": {
       "count": 2
@@ -592,7 +589,7 @@
       "count": 1
     },
     "better-tailwindcss/no-restricted-classes": {
-      "count": 3
+      "count": 2
     },
     "no-restricted-syntax": {
       "count": 1
@@ -603,7 +600,7 @@
       "count": 2
     },
     "better-tailwindcss/no-restricted-classes": {
-      "count": 11
+      "count": 9
     },
     "no-restricted-syntax": {
       "count": 1
@@ -611,7 +608,7 @@
   },
   "src/features/portal-dashboard/TransactieRij.tsx": {
     "better-tailwindcss/no-restricted-classes": {
-      "count": 2
+      "count": 1
     }
   },
   "src/features/portal-dashboard/TransactiesTab.tsx": {
@@ -619,7 +616,7 @@
       "count": 1
     },
     "better-tailwindcss/no-restricted-classes": {
-      "count": 4
+      "count": 3
     },
     "no-restricted-syntax": {
       "count": 1
@@ -661,7 +658,7 @@
       "count": 13
     },
     "better-tailwindcss/no-restricted-classes": {
-      "count": 9
+      "count": 8
     },
     "no-restricted-syntax": {
       "count": 2
@@ -765,7 +762,7 @@
       "count": 6
     },
     "better-tailwindcss/no-restricted-classes": {
-      "count": 9
+      "count": 8
     },
     "no-restricted-syntax": {
       "count": 1

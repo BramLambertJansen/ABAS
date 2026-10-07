@@ -71,7 +71,7 @@ blijven bevroren. Een bevestigd herstel gebruikt dezelfde normale succescallback
 ## Visuele rollen en bestaande uitzonderingen
 
 Kleur, font, radii, typografierollen, gradients en schaduwen staan in
-`tailwind.config.ts`. Nieuwe schermen kiezen `text-screen-title`,
+`@theme` in `src/app/globals.css`. Nieuwe schermen kiezen `text-screen-title`,
 `text-dialog-title`, `text-section-title`, `text-sm` voor body, `text-xs` voor
 veldlabels, `text-metadata`/`text-detail` voor de bestaande secundaire rollen.
 De eigen rollen bewaren de huidige pixelwaarden; dit is geen volledige migratie
