@@ -87,8 +87,8 @@ export function CodeInvoer({
           onClick={() => {
             if (klaar) void verstuur(code);
           }}
-          className={`flex h-[52px] w-full items-center justify-center text-sm font-bold text-rail transition-colors hover:bg-accent-hover aria-disabled:cursor-not-allowed aria-disabled:opacity-50 ${
-            tone === "rail" ? "rounded-[15px] bg-accent" : "rounded-2xl bg-accent"
+          className={`flex h-control-lg w-full items-center justify-center text-sm font-bold text-rail transition-colors hover:bg-accent-hover aria-disabled:cursor-not-allowed aria-disabled:opacity-50 ${
+            tone === "rail" ? "rounded-[15px] bg-accent" : "rounded-card bg-accent"
           }`}
         >
           {submitLabel}

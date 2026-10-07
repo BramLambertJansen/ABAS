@@ -70,7 +70,7 @@ export function ProductenLijst() {
         <button
           type="button"
           onClick={() => setOverlay({ kind: "new" })}
-          className="flex h-[42px] items-center gap-1.5 rounded-control bg-accent px-[18px] text-[13px] font-extrabold text-rail transition-colors hover:bg-accent-hover"
+          className="flex h-control items-center gap-1.5 rounded-control bg-accent px-[18px] text-[13px] font-extrabold text-rail transition-colors hover:bg-accent-hover"
         >
           <span aria-hidden="true" className="text-base leading-none">
             +
@@ -137,7 +137,7 @@ export function ProductenLijst() {
           <button
             type="button"
             onClick={() => setQuery("")}
-            className="flex h-11 items-center justify-center rounded-control border border-border bg-white px-4 text-sm font-bold text-ink transition-colors hover:border-ink"
+            className="flex h-control items-center justify-center rounded-control border border-border bg-white px-4 text-sm font-bold text-ink transition-colors hover:border-ink"
           >
             Zoekopdracht wissen
           </button>
@@ -163,7 +163,7 @@ export function ProductenLijst() {
               <button
                 type="button"
                 onClick={() => setOverlay({ kind: "manage", product })}
-                className="flex w-full min-h-[44px] items-center gap-3 rounded-control px-2.5 py-[11px] text-left transition-colors hover:bg-canvas"
+                className="flex w-full min-h-control items-center gap-3 rounded-control px-2.5 py-[11px] text-left transition-colors hover:bg-canvas"
               >
                 <ProductAfbeelding
                   imageUrl={product.imageUrl}

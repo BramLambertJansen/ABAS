@@ -101,7 +101,7 @@ export function LedenLijst() {
         <button
           type="button"
           onClick={() => setOverlay({ kind: "new" })}
-          className="flex h-[42px] items-center gap-1.5 rounded-control bg-accent px-[18px] text-[13px] font-extrabold text-rail transition-colors hover:bg-accent-hover"
+          className="flex h-control items-center gap-1.5 rounded-control bg-accent px-[18px] text-[13px] font-extrabold text-rail transition-colors hover:bg-accent-hover"
         >
           <span aria-hidden="true" className="text-base leading-none">
             +
@@ -173,7 +173,7 @@ export function LedenLijst() {
               <button
                 type="button"
                 onClick={() => setOverlay({ kind: "manage", member })}
-                className="flex w-full min-h-[44px] items-center gap-3 rounded-control px-2.5 py-[11px] text-left transition-colors hover:bg-canvas"
+                className="flex w-full min-h-control items-center gap-3 rounded-control px-2.5 py-[11px] text-left transition-colors hover:bg-canvas"
               >
                 <InitialsAvatar name={member.name} size="sm" tone="light" />
                 <span className="flex min-w-0 flex-1 items-center gap-2">

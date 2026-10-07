@@ -176,7 +176,7 @@ export function NegatieveLimietInstellingen() {
               disabled={pending}
               aria-pressed={cents === currentCents}
               onClick={() => apply(cents)}
-              className={`flex h-11 min-w-[62px] flex-1 items-center justify-center rounded-control border px-3 text-sm font-extrabold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+              className={`flex h-control min-w-[62px] flex-1 items-center justify-center rounded-control border px-3 text-sm font-extrabold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
                 cents === currentCents
                   ? "border-accent bg-accent-active text-white"
                   : "border-border bg-white text-ink hover:border-accent"
@@ -210,7 +210,7 @@ export function NegatieveLimietInstellingen() {
             setCustomAmount(event.target.value);
             moment.bijWijzig();
           }}
-          className="h-12 flex-1 min-w-0 rounded-control border border-border px-3.5 text-sm font-semibold text-ink focus-visible:outline-hidden focus:border-accent focus:ring-2 focus:ring-accent/30"
+          className="h-control-lg flex-1 min-w-0 rounded-control border border-border px-3.5 text-sm font-semibold text-ink focus-visible:outline-hidden focus:border-accent focus:ring-2 focus:ring-accent/30"
         />
         <button
           type="button"
@@ -223,7 +223,7 @@ export function NegatieveLimietInstellingen() {
             }
             apply(parsedCustomCents);
           }}
-          className="flex h-12 items-center justify-center rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-track disabled:text-muted"
+          className="flex h-control-lg items-center justify-center rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-track disabled:text-muted"
         >
           opslaan
         </button>

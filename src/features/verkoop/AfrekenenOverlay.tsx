@@ -181,7 +181,7 @@ export function AfrekenenOverlay({
 
       {insufficientFunds && (
         <p
-          className="rounded-xl bg-warning-bg px-3 py-2 text-xs font-bold text-warning-fg"
+          className="rounded-control bg-warning-bg px-3 py-2 text-xs font-bold text-warning-fg"
           role="alert"
         >
           {insufficientBalanceMessage(shortfallCents)}

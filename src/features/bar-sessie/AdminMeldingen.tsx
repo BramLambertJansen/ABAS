@@ -60,7 +60,7 @@ export function AdminMeldingen({
               <button
                 type="button"
                 onClick={() => setOvernemen(melding)}
-                className={`flex h-10 flex-1 items-center justify-center rounded-xl text-[13px] font-bold ${KNOP_ACCENT_WIT}`}
+                className={`flex h-control flex-1 items-center justify-center rounded-control text-[13px] font-bold ${KNOP_ACCENT_WIT}`}
               >
                 {ADMIN_MELDING.overnemen}
               </button>
@@ -68,7 +68,7 @@ export function AdminMeldingen({
             <button
               type="button"
               onClick={() => setAfsluiten(melding)}
-              className={`flex h-10 flex-1 items-center justify-center rounded-xl text-[13px] font-bold ${KNOP_RAND}`}
+              className={`flex h-control flex-1 items-center justify-center rounded-control text-[13px] font-bold ${KNOP_RAND}`}
             >
               {ADMIN_MELDING.afsluiten}
             </button>

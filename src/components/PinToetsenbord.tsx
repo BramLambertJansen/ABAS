@@ -47,8 +47,8 @@ export function PinToetsenbord({
   const dotFilled = errorMessage ? (dark ? "bg-rail-error" : "bg-danger") : "bg-accent";
   const dotEmpty = dark ? "bg-rail-border" : "bg-border";
   const keyClasses = dark
-    ? "h-14 rounded-[14px] border-rail-border bg-rail-card text-white hover:bg-rail-key-hover"
-    : "h-[54px] rounded-control border-border bg-white text-ink";
+    ? "h-14 rounded-[14px] border-rail-border bg-surface-rail text-white hover:bg-rail-key-hover"
+    : "h-control-lg rounded-control border-border bg-white text-ink";
 
   return (
     <>

@@ -175,7 +175,7 @@ export function NieuwLidOverlay({
       {geannuleerd && <p role="status" className="text-sm font-bold text-ink">De onbevestigde actie is definitief geannuleerd. Er is geen boeking teruggedraaid.</p>}
 
       <div className="flex flex-col gap-1.5">
-        <TekstVeld tone="light" maat="48" label="Naam"
+        <TekstVeld tone="light" maat="52" label="Naam"
           inputRef={nameInputRef}
           id={nameId}
           required
@@ -195,7 +195,7 @@ export function NieuwLidOverlay({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <TekstVeld tone="light" maat="48" prefix="€" label="Startsaldo (optioneel)"
+        <TekstVeld tone="light" maat="52" prefix="€" label="Startsaldo (optioneel)"
             inputRef={balanceInputRef}
             id={balanceId}
             aria-invalid={balanceMelding ? true : undefined}
@@ -216,7 +216,7 @@ export function NieuwLidOverlay({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <TekstVeld tone="light" maat="48" label={`${CONTACTADRES_LABEL} (optioneel)`}
+        <TekstVeld tone="light" maat="52" label={`${CONTACTADRES_LABEL} (optioneel)`}
           inputRef={emailInputRef}
           id={emailId}
           type="email"
@@ -240,7 +240,7 @@ export function NieuwLidOverlay({
       <div className="flex gap-2.5">
         <OverlaySluitKnop
           disabled={closeBlocked}
-          className={`flex h-11 flex-1 items-center justify-center rounded-control text-sm font-bold ${KNOP_RAND}`}
+          className={`flex h-control flex-1 items-center justify-center rounded-control text-sm font-bold ${KNOP_RAND}`}
         >
           Annuleren
         </OverlaySluitKnop>
@@ -248,7 +248,7 @@ export function NieuwLidOverlay({
           type="button"
           disabled={!canSubmit}
           onClick={submit}
-          className={`flex h-11 flex-1 items-center justify-center rounded-control text-sm font-bold ${KNOP_ACCENT_DONKER}`}
+          className={`flex h-control flex-1 items-center justify-center rounded-control text-sm font-bold ${KNOP_ACCENT_DONKER}`}
         >
           {inVlucht ? OPSLAAN_BEZIG_TEKST : "Toevoegen"}
         </button>

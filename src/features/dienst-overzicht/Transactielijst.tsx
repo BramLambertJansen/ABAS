@@ -81,7 +81,7 @@ export function Transactielijst({
             placeholder="Zoek op naam of product"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="h-[52px] w-full rounded-[14px] border border-border bg-white pl-[42px] pr-[18px] text-[14.5px] font-semibold text-ink focus-visible:outline-hidden placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/12"
+            className="h-control-lg w-full rounded-[14px] border border-border bg-white pl-[42px] pr-[18px] text-[14.5px] font-semibold text-ink focus-visible:outline-hidden placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/12"
           />
         </div>
         {people.length > 0 && (
@@ -226,7 +226,7 @@ function LedgerRow({
           aria-label={`Bestelling terugdraaien: ${entry.memberName ?? "losse verkoop"}, ${clockLabel(
             entry.createdAt
           )}, ${formatCents(entry.amountCents)}`}
-          className="flex h-10 w-10 flex-none items-center justify-center rounded-control text-base font-extrabold text-muted transition-colors hover:bg-danger-bg hover:text-danger"
+          className="flex h-control w-10 flex-none items-center justify-center rounded-control text-base font-extrabold text-muted transition-colors hover:bg-danger-bg hover:text-danger"
         >
           <span aria-hidden="true">⤺</span>
         </button>
@@ -295,7 +295,7 @@ function PersonFilter({
         aria-controls={listId}
         aria-label={`Geboekt door: ${active.name}, ${active.count}`}
         onClick={() => setOpen((o) => !o)}
-        className={`flex h-[52px] select-none items-center gap-[9px] rounded-[14px] border pl-[15px] pr-[13px] transition-colors ${
+        className={`flex h-control-lg select-none items-center gap-[9px] rounded-[14px] border pl-[15px] pr-[13px] transition-colors ${
           dark ? "border-ink bg-ink text-white" : "border-border bg-white text-ink"
         }`}
       >
@@ -329,7 +329,7 @@ function PersonFilter({
                   type="button"
                   aria-pressed={selected}
                   onClick={() => choose(option.id)}
-                  className={`flex h-[42px] w-full items-center gap-2.5 rounded-[11px] px-[13px] text-left text-detail font-bold transition-colors ${
+                  className={`flex h-control w-full items-center gap-2.5 rounded-[11px] px-[13px] text-left text-detail font-bold transition-colors ${
                     selected ? "bg-ink text-white" : "text-ink hover:bg-canvas"
                   }`}
                 >

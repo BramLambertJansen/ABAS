@@ -59,7 +59,7 @@ export function AfmeldenOverlay({
           type="button"
           disabled={pending}
           onClick={onClose}
-          className={`flex h-[50px] flex-1 items-center justify-center rounded-2xl text-sm font-bold ${KNOP_RAND}`}
+          className={`flex h-control-lg flex-1 items-center justify-center rounded-card text-sm font-bold ${KNOP_RAND}`}
         >
           {BEHEERDER_INGREEP.annuleren}
         </button>
@@ -67,7 +67,7 @@ export function AfmeldenOverlay({
           type="button"
           disabled={pending}
           onClick={bevestig}
-          className={`flex h-[50px] flex-1 items-center justify-center rounded-2xl text-sm font-bold ${KNOP_ACCENT_WIT}`}
+          className={`flex h-control-lg flex-1 items-center justify-center rounded-card text-sm font-bold ${KNOP_ACCENT_WIT}`}
         >
           {BEHEERDER_INGREEP.afmeldenKnop}
         </button>

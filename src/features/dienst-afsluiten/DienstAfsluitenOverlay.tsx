@@ -135,7 +135,7 @@ export function DienstAfsluitenOverlay({
         </div>
       )}
 
-      <div className="flex flex-col items-center gap-2 rounded-2xl border border-border bg-canvas p-3">
+      <div className="flex flex-col items-center gap-2 rounded-card border border-border bg-canvas p-3">
         <h3 className="text-xs font-extrabold uppercase tracking-wide text-muted">
           Bezetting
         </h3>
@@ -158,7 +158,7 @@ export function DienstAfsluitenOverlay({
           type="button"
           disabled={pending}
           onClick={onClose}
-          className={`flex h-[50px] flex-1 items-center justify-center rounded-2xl text-sm font-bold ${KNOP_RAND}`}
+          className={`flex h-control-lg flex-1 items-center justify-center rounded-card text-sm font-bold ${KNOP_RAND}`}
         >
           annuleren
         </button>
@@ -166,7 +166,7 @@ export function DienstAfsluitenOverlay({
           type="button"
           disabled={pending}
           onClick={handleConfirm}
-          className={`flex h-[50px] flex-1 items-center justify-center rounded-2xl text-sm font-bold ${KNOP_ACCENT_WIT}`}
+          className={`flex h-control-lg flex-1 items-center justify-center rounded-card text-sm font-bold ${KNOP_ACCENT_WIT}`}
         >
           {pending ? "bezig…" : "dienst afsluiten"}
         </button>

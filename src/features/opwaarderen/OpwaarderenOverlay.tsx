@@ -251,7 +251,7 @@ export function OpwaarderenOverlay({
             disabled={inVlucht}
             aria-pressed={chipSelected(cents)}
             onClick={() => chooseChip(cents)}
-            className={`flex h-12 items-center justify-center rounded-[13px] border text-sm font-extrabold transition-colors ${
+            className={`flex h-control-lg items-center justify-center rounded-[13px] border text-sm font-extrabold transition-colors ${
               chipSelected(cents)
                 ? "border-accent bg-accent-active text-white"
                 : "border-border bg-white text-ink hover:border-accent hover:bg-canvas hover:text-accent-active"
@@ -264,7 +264,7 @@ export function OpwaarderenOverlay({
 
       {confirming && amountCents !== null && (
         <p
-          className="rounded-xl bg-warning-bg px-3 py-2 text-xs font-bold text-warning-fg"
+          className="rounded-control bg-warning-bg px-3 py-2 text-xs font-bold text-warning-fg"
           role="status"
         >
           {topUpConfirmQuestion(amountCents, member.name)}
@@ -293,14 +293,14 @@ export function OpwaarderenOverlay({
             onBlur={bijBlur}
             aria-describedby={veldMelding ? amountLimitId : undefined}
             aria-invalid={veldMelding ? true : undefined}
-            className="h-12 min-w-0 flex-1 rounded-[13px] border border-border bg-white px-3.5 text-detail font-semibold text-ink focus-visible:outline-hidden placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
+            className="h-control-lg min-w-0 flex-1 rounded-[13px] border border-border bg-white px-3.5 text-detail font-semibold text-ink focus-visible:outline-hidden placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
           />
           <button
             type="button"
             ref={knopRef}
             disabled={bookDisabled}
             onClick={handleBook}
-            className={`flex h-12 flex-none items-center justify-center rounded-[13px] px-[18px] text-detail font-extrabold ${KNOP_ACCENT_WIT}`}
+            className={`flex h-control-lg flex-none items-center justify-center rounded-[13px] px-[18px] text-detail font-extrabold ${KNOP_ACCENT_WIT}`}
           >
             {pending
               ? "bezig…"

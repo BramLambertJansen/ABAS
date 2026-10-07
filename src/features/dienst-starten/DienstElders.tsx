@@ -86,7 +86,7 @@ export function DienstElders({ shift, isBeheerder }: { shift: OtherShift; isBehe
   return (
     <section
       aria-labelledby="dienst-elders-titel"
-      className="flex w-full max-w-sm flex-col items-center gap-4 rounded-card border border-rail-border bg-rail-card p-6 text-center"
+      className="flex w-full max-w-sm flex-col items-center gap-4 rounded-card border border-rail-border bg-surface-rail p-6 text-center"
     >
       <h2 id="dienst-elders-titel" className="text-base font-extrabold text-white">
         {DIENST_ELDERS.titel}
@@ -98,14 +98,14 @@ export function DienstElders({ shift, isBeheerder }: { shift: OtherShift; isBehe
           <button
             type="button"
             onClick={() => setOvernemenOpen(true)}
-            className="flex h-[52px] flex-1 items-center justify-center rounded-[15px] bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover"
+            className="flex h-control-lg flex-1 items-center justify-center rounded-[15px] bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover"
           >
             {DIENST_ELDERS.overnemen}
           </button>
           <button
             type="button"
             onClick={() => setAfsluitenOpen(true)}
-            className="flex h-[52px] flex-1 items-center justify-center rounded-[15px] border border-rail-border text-sm font-bold text-rail-light transition-colors hover:border-accent"
+            className="flex h-control-lg flex-1 items-center justify-center rounded-[15px] border border-rail-border text-sm font-bold text-rail-light transition-colors hover:border-accent"
           >
             {DIENST_ELDERS.afsluiten}
           </button>
@@ -116,7 +116,7 @@ export function DienstElders({ shift, isBeheerder }: { shift: OtherShift; isBehe
             type="button"
             disabled={hervatPending}
             onClick={hervat}
-            className="flex h-[52px] w-full items-center justify-center rounded-[15px] bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-control-lg w-full items-center justify-center rounded-[15px] bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
           >
             {DIENST_ELDERS.hervatten}
           </button>

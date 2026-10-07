@@ -47,12 +47,12 @@ export function ProductAfbeelding({
 
   const vlak =
     size === "tile"
-      ? "h-[92px] w-full rounded-lg"
+      ? "h-[92px] w-full rounded-sm"
       : size === "row"
-        ? "h-[42px] w-[42px] rounded-lg"
+        ? "h-[42px] w-[42px] rounded-sm"
         : size === "beheerRow"
-          ? "h-[38px] w-[38px] rounded-lg"
-          : "h-[52px] w-[52px] rounded-xl";
+          ? "h-[38px] w-[38px] rounded-sm"
+          : "h-[52px] w-[52px] rounded-control";
   const tekst = size === "tile" ? "text-xl" : size === "detail" ? "text-base" : "text-xs";
   const pxBreed = size === "row" ? 42 : size === "beheerRow" ? 38 : size === "detail" ? 52 : 160;
 

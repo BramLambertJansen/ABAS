@@ -1,5 +1,5 @@
 /**
- * The `rounded-2xl bg-canvas p-3` stat wrapper: a lighter card floating
+ * The `rounded-card bg-canvas p-3` stat wrapper: a lighter card floating
  * inside the white Overlay.tsx dialog (canvas-tint, as in the prototype). Two shapes share that wrapper but
  * differ structurally, not just in content, which is why this is a
  * discriminated union on `variant` rather than one prop set with optional
@@ -26,7 +26,7 @@ export function StatCard(
     | { variant: "metric"; label: string; value: string; subtitle?: string }
 ) {
   return (
-    <div className="flex flex-col gap-1 rounded-2xl bg-canvas p-3">
+    <div className="flex flex-col gap-1 rounded-card bg-canvas p-3">
       {props.variant === "member" ? (
         <>
           <span className="text-sm font-bold text-ink">{props.name}</span>

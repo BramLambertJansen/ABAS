@@ -138,7 +138,7 @@ export function Select({
         disabled={disabled}
         onClick={() => (open ? setOpen(false) : openMenu())}
         onKeyDown={handleKeyDown}
-        className={`flex h-12 w-full items-center gap-2.5 rounded-control border bg-rail-card px-3.5 text-left text-sm font-bold transition-[border-color,box-shadow] duration-150 disabled:opacity-50 ${triggerBorder}`}
+        className={`flex h-control-lg w-full items-center gap-2.5 rounded-control border bg-surface-rail px-3.5 text-left text-sm font-bold transition-[border-color,box-shadow] duration-150 disabled:opacity-50 ${triggerBorder}`}
       >
         <span
           className={`min-w-0 flex-1 truncate ${
@@ -162,7 +162,7 @@ export function Select({
         aria-label={label}
         // `hidden` als klasse, niet als attribuut: `flex` zou het attribuut
         // overschrijven.
-        className={`absolute inset-x-0 top-[calc(100%+6px)] z-10 ${open ? "flex" : "hidden"} max-h-60 flex-col gap-0.5 overflow-auto rounded-card border border-rail-border bg-rail-card p-1.5 shadow-rail-dropdown`}
+        className={`absolute inset-x-0 top-[calc(100%+6px)] z-10 ${open ? "flex" : "hidden"} max-h-60 flex-col gap-0.5 overflow-auto rounded-card border border-rail-border bg-surface-rail p-1.5 shadow-rail-dropdown`}
       >
         {options.map((option, index) => {
           const isSelected = index === selectedIndex;
@@ -180,7 +180,7 @@ export function Select({
               // Voorkomt dat de trigger focus verliest bij klikken.
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => choose(index)}
-              className={`flex h-10 cursor-pointer items-center gap-2.5 rounded-[10px] px-3 text-sm font-bold ${
+              className={`flex h-control cursor-pointer items-center gap-2.5 rounded-[10px] px-3 text-sm font-bold ${
                 isSelected ? "text-accent-hover" : "text-white"
               } ${isActive ? "bg-white/[0.07]" : ""}`}
             >

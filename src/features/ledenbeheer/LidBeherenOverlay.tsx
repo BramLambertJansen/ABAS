@@ -461,7 +461,7 @@ export function LidBeherenOverlay({
               type="button"
               disabled={!canSaveName}
               onClick={saveName}
-              className={`flex h-11 items-center justify-center rounded-control px-4 text-sm font-bold ${KNOP_ACCENT_DONKER}`}
+              className={`flex h-control items-center justify-center rounded-control px-4 text-sm font-bold ${KNOP_ACCENT_DONKER}`}
             >
               {nameBusy ? OPSLAAN_BEZIG_TEKST : "Opslaan"}
             </button>
@@ -498,7 +498,7 @@ export function LidBeherenOverlay({
               type="button"
               disabled={!canSaveEmail}
               onClick={saveEmail}
-              className={`flex h-11 items-center justify-center rounded-control px-4 text-sm font-bold ${KNOP_ACCENT_DONKER}`}
+              className={`flex h-control items-center justify-center rounded-control px-4 text-sm font-bold ${KNOP_ACCENT_DONKER}`}
             >
               {emailBusy ? OPSLAAN_BEZIG_TEKST : "Opslaan"}
             </button>
@@ -547,7 +547,7 @@ export function LidBeherenOverlay({
                 setGelukt((g) => ({ ...g, rol: false }));
                 if (roleMutation.errorCode) roleMutation.reset();
               }}
-              className="h-11 flex-1 min-w-0 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink outline-hidden focus:border-accent"
+              className="h-control flex-1 min-w-0 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink outline-hidden focus:border-accent"
             >
               {ROLE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -559,7 +559,7 @@ export function LidBeherenOverlay({
               type="button"
               disabled={!canSaveRole}
               onClick={saveRole}
-              className={`flex h-11 items-center justify-center rounded-control px-4 text-sm font-bold ${KNOP_ACCENT_DONKER}`}
+              className={`flex h-control items-center justify-center rounded-control px-4 text-sm font-bold ${KNOP_ACCENT_DONKER}`}
             >
               {roleBusy ? OPSLAAN_BEZIG_TEKST : "Opslaan"}
             </button>
@@ -618,7 +618,7 @@ export function LidBeherenOverlay({
                 type="button"
                 disabled={member.hasAccount || busy}
                 onClick={sendInvite}
-                className={`flex h-11 w-full items-center justify-center rounded-control px-4 text-sm font-bold ${KNOP_ACCENT_DONKER}`}
+                className={`flex h-control w-full items-center justify-center rounded-control px-4 text-sm font-bold ${KNOP_ACCENT_DONKER}`}
               >
                 {inviteBusy
                   ? OPSLAAN_BEZIG_TEKST

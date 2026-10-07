@@ -35,7 +35,7 @@ export function TransactieRij({ transaction }: { transaction: PortalTransaction 
             {transactionLabel(transaction)}
           </span>
           {reversed && (
-            <span className="rounded-md bg-track px-1.5 py-0.5 text-[11px] font-bold text-ink">
+            <span className="rounded-sm bg-track px-1.5 py-0.5 text-[11px] font-bold text-ink">
               Teruggedraaid
             </span>
           )}

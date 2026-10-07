@@ -42,7 +42,7 @@ export function GeldActieHerstelInhoud({ herstel, operation, context, onResolved
           <div className="flex flex-wrap gap-2">
             {([['check', 'Resultaat controleren'], ['complete', `Eerdere ${NAMEN[intent.operation]} veilig afronden`], ['cancel', `Eerdere ${NAMEN[intent.operation]} definitief annuleren`]] as const).map(([action, label]) => (
               <button key={action} type="button" aria-disabled={herstel.busy}
-                className={`min-h-11 rounded-control px-4 py-2 text-sm font-bold aria-disabled:cursor-not-allowed aria-disabled:opacity-50 ${KNOP_RAND}`}
+                className={`min-h-control rounded-control px-4 py-2 text-sm font-bold aria-disabled:cursor-not-allowed aria-disabled:opacity-50 ${KNOP_RAND}`}
                 onClick={() => { if (!herstel.busy) void kies(intent.operation, action); }}>
                 {label}
               </button>
@@ -55,7 +55,7 @@ export function GeldActieHerstelInhoud({ herstel, operation, context, onResolved
       </p>
       {herstel.error && <p role="alert" className="text-sm">{herstel.error}</p>}
       {herstel.message && !pending.length && !onResolved && (
-        <button type="button" onClick={() => window.location.reload()} className={`min-h-11 rounded-control px-4 text-sm font-bold ${KNOP_RAND}`}>Gegevens verversen</button>
+        <button type="button" onClick={() => window.location.reload()} className={`min-h-control rounded-control px-4 text-sm font-bold ${KNOP_RAND}`}>Gegevens verversen</button>
       )}
     </div>
   );

@@ -54,7 +54,7 @@ export function DienstenApparaten() {
           {admin.shifts.map((shift) => (
             <li
               key={shift.id}
-              className="flex flex-col gap-2 rounded-2xl border border-border bg-canvas p-3.5"
+              className="flex flex-col gap-2 rounded-card border border-border bg-canvas p-3.5"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex min-w-0 flex-col">
@@ -69,7 +69,7 @@ export function DienstenApparaten() {
                 <button
                   type="button"
                   onClick={() => setAfsluiten(shift)}
-                  className="flex h-9 flex-none items-center rounded-xl border border-border bg-white px-3.5 text-xs font-extrabold text-ink transition-colors hover:border-ink"
+                  className="flex h-9 flex-none items-center rounded-control border border-border bg-white px-3.5 text-xs font-extrabold text-ink transition-colors hover:border-ink"
                 >
                   {ADMIN_MELDING.afsluiten}
                 </button>
@@ -106,7 +106,7 @@ export function DienstenApparaten() {
           {admin.sessions.map((s) => (
             <li
               key={s.id}
-              className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-canvas px-3.5 py-2.5"
+              className="flex items-center justify-between gap-3 rounded-card border border-border bg-canvas px-3.5 py-2.5"
             >
               <div className="flex min-w-0 flex-col">
                 <span className="truncate text-sm font-extrabold text-ink">{s.memberName}</span>
@@ -120,7 +120,7 @@ export function DienstenApparaten() {
                   type="button"
                   onClick={() => setAfmelden(s)}
                   aria-label={`${BEHEERDER_INGREEP.afmeldenKnop}: ${s.memberName}`}
-                  className="flex h-9 flex-none items-center rounded-xl border border-border bg-white px-3.5 text-xs font-extrabold text-ink transition-colors hover:border-ink"
+                  className="flex h-9 flex-none items-center rounded-control border border-border bg-white px-3.5 text-xs font-extrabold text-ink transition-colors hover:border-ink"
                 >
                   {BEHEERDER_INGREEP.afmeldenKnop}
                 </button>

@@ -246,7 +246,7 @@ export function DienstActief({
         <button
           type="button"
           onClick={() => setAfsluitenOverlayOpen(true)}
-          className="flex h-[52px] flex-none items-center justify-center rounded-[14px] bg-rail text-sm font-extrabold text-white transition-colors hover:bg-black"
+          className="flex h-control-lg flex-none items-center justify-center rounded-[14px] bg-rail text-sm font-extrabold text-white transition-colors hover:bg-black"
         >
           Dienst afsluiten
         </button>

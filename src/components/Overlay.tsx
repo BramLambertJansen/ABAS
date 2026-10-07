@@ -362,7 +362,7 @@ export function Overlay({
       type="button"
       disabled={closeBlocked}
       onClick={explicitCloseRef.current}
-      className={`flex h-11 flex-none items-center justify-center rounded-control px-4 text-sm font-bold ${KNOP_RAND}`}
+      className={`flex h-control flex-none items-center justify-center rounded-control px-4 text-sm font-bold ${KNOP_RAND}`}
     >
       Sluiten
     </button>
@@ -400,7 +400,7 @@ export function Overlay({
               type="button"
               disabled={closeBlocked}
               onClick={() => { if (!closeBlockedRef.current) onCloseRef.current(); }}
-              className="flex h-11 flex-1 items-center justify-center rounded-control border border-danger bg-white text-sm font-bold text-danger transition-colors hover:bg-canvas"
+              className="flex h-control flex-1 items-center justify-center rounded-control border border-danger bg-white text-sm font-bold text-danger transition-colors hover:bg-canvas"
             >
               {WEGGOOIEN_KNOP}
             </button>
@@ -408,7 +408,7 @@ export function Overlay({
               ref={backRef}
               type="button"
               onClick={() => setConfirmingDiscard(false)}
-              className="flex h-11 flex-1 items-center justify-center rounded-control bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover"
+              className="flex h-control flex-1 items-center justify-center rounded-control bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover"
             >
               {WEGGOOIEN_TERUG_KNOP}
             </button>
@@ -442,7 +442,7 @@ export function Overlay({
       tabIndex={-1}
       className={
         isSheet
-          ? "mx-auto flex max-h-[88vh] w-full max-w-[560px] flex-col gap-[14px] overflow-auto *:shrink-0 rounded-t-[28px] bg-canvas px-[22px] pb-7 pt-[22px] text-ink focus:outline-hidden motion-safe:animate-sheet-in"
+          ? "mx-auto flex max-h-[88vh] w-full max-w-[560px] flex-col gap-[14px] overflow-auto *:shrink-0 rounded-t-sheet bg-canvas px-[22px] pb-7 pt-[22px] text-ink focus:outline-hidden motion-safe:animate-sheet-in"
           : detailModal
             ? "flex max-h-[88vh] w-full max-w-[640px] flex-col overflow-hidden rounded-[20px] pb-5 bg-white text-ink shadow-dialog focus:outline-hidden"
             : "flex max-h-[88vh] w-full max-w-[460px] flex-col gap-4 overflow-auto *:shrink-0 rounded-[20px] bg-white p-[26px] text-ink shadow-dialog focus:outline-hidden"

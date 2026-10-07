@@ -214,7 +214,7 @@ same markup for `"sheet"` rather than building an untested second branch.
 **The real `"sheet"` branch is built and merged (#17, PR #110,
 2026-09-28)**, with the portal-profiel sheets as its first consumer
 (`docs/features/portal-profiel.md` → useShell()-contract): anchored to the
-bottom, full width, rounded top corners (`rounded-t-[28px]`), `bg-canvas`,
+bottom, full width, rounded top corners (`rounded-t-sheet`), `bg-canvas`,
 backdrop `bg-ink/40`, and a slide-in (`animate-sheet-in` in
 `@theme` in `src/app/globals.css`) that only runs under `motion-safe:`. No drag-to-close
 gesture (WCAG 2.5.1). Both variants share one code path for everything

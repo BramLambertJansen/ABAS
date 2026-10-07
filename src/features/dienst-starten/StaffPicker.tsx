@@ -37,7 +37,7 @@ export function StaffPicker({
               type="button"
               onClick={() => onSelect(member)}
               aria-label={member.name}
-              className="flex flex-col items-center gap-2 rounded-card border border-rail-border bg-rail-card px-2 py-[15px] text-center transition-colors hover:border-accent hover:bg-rail-hover"
+              className="flex flex-col items-center gap-2 rounded-card border border-rail-border bg-surface-rail px-2 py-[15px] text-center transition-colors hover:border-accent hover:bg-rail-hover"
             >
               <InitialsAvatar name={member.name} size="md" />
               <span className="text-metadata font-bold leading-tight text-white">

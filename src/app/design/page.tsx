@@ -63,7 +63,7 @@ export default async function DesignIndexPage() {
       </header>
 
       {readme && (
-        <details className="rounded-lg border border-border p-4">
+        <details className="rounded-sm border border-border p-4">
           <summary className="cursor-pointer text-sm font-semibold">
             Handoff-notes (designs/README.md)
           </summary>

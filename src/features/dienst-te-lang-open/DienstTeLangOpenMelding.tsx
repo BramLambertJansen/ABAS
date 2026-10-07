@@ -109,14 +109,14 @@ export function DienstTeLangOpenMelding({
         <button
           type="button"
           onClick={snoozeNow}
-          className={`flex h-[50px] flex-1 items-center justify-center rounded-2xl text-sm font-bold ${KNOP_RAND}`}
+          className={`flex h-control-lg flex-1 items-center justify-center rounded-card text-sm font-bold ${KNOP_RAND}`}
         >
           Nog bezig
         </button>
         <button
           type="button"
           onClick={() => setView("afsluiten")}
-          className={`flex h-[50px] flex-1 items-center justify-center rounded-2xl text-sm font-bold ${KNOP_ACCENT_WIT}`}
+          className={`flex h-control-lg flex-1 items-center justify-center rounded-card text-sm font-bold ${KNOP_ACCENT_WIT}`}
         >
           Dienst afsluiten
         </button>

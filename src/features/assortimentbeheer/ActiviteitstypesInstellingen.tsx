@@ -245,7 +245,7 @@ export function ActiviteitstypesInstellingen() {
       )}
 
       {types.status === "ready" && types.activityTypes.length > 0 && (
-        <ul className="flex flex-col gap-2 rounded-2xl border border-border bg-white p-2">
+        <ul className="flex flex-col gap-2 rounded-card border border-border bg-white p-2">
           {types.activityTypes.map((type) => (
             <li key={type.id}>
               {editing?.id === type.id ? (
@@ -260,13 +260,13 @@ export function ActiviteitstypesInstellingen() {
                     onChange={(event) =>
                       setEditing({ id: type.id, name: event.target.value })
                     }
-                    className="h-10 flex-1 min-w-0 rounded-control border border-border px-3 text-sm font-semibold text-ink focus-visible:outline-hidden focus:border-accent focus:ring-2 focus:ring-accent/30"
+                    className="h-control flex-1 min-w-0 rounded-control border border-border px-3 text-sm font-semibold text-ink focus-visible:outline-hidden focus:border-accent focus:ring-2 focus:ring-accent/30"
                   />
                   <button
                     type="button"
                     disabled={renaming || editing.name.trim() === ""}
                     onClick={saveEdit}
-                    className="flex h-10 flex-none items-center justify-center rounded-control bg-accent px-3 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-track disabled:text-muted"
+                    className="flex h-control flex-none items-center justify-center rounded-control bg-accent px-3 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-track disabled:text-muted"
                   >
                     Opslaan
                   </button>
@@ -274,7 +274,7 @@ export function ActiviteitstypesInstellingen() {
                     type="button"
                     disabled={renaming}
                     onClick={cancelEdit}
-                    className="flex h-10 flex-none items-center justify-center rounded-control border border-border px-3 text-xs font-bold text-ink transition-colors hover:border-accent disabled:opacity-50"
+                    className="flex h-control flex-none items-center justify-center rounded-control border border-border px-3 text-xs font-bold text-ink transition-colors hover:border-accent disabled:opacity-50"
                   >
                     Annuleren
                   </button>
@@ -343,7 +343,7 @@ export function ActiviteitstypesInstellingen() {
                       ref={annulerenRef}
                       type="button"
                       onClick={() => annuleerWaarschuwing(type.id)}
-                      className="flex h-11 items-center justify-center rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover"
+                      className="flex h-control items-center justify-center rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover"
                     >
                       Annuleren
                     </button>
@@ -354,7 +354,7 @@ export function ActiviteitstypesInstellingen() {
                         setBevestig(null);
                         newNameRef.current?.focus();
                       }}
-                      className="flex h-11 items-center justify-center rounded-control border border-border bg-white px-4 text-sm font-bold text-ink transition-colors hover:border-ink disabled:opacity-50"
+                      className="flex h-control items-center justify-center rounded-control border border-border bg-white px-4 text-sm font-bold text-ink transition-colors hover:border-ink disabled:opacity-50"
                     >
                       Eerst een type toevoegen
                     </button>
@@ -362,7 +362,7 @@ export function ActiviteitstypesInstellingen() {
                       type="button"
                       disabled={archiving}
                       onClick={() => toggleArchived(type)}
-                      className="flex h-11 items-center justify-center rounded-control border border-danger bg-white px-4 text-sm font-bold text-danger transition-colors hover:bg-canvas disabled:opacity-50"
+                      className="flex h-control items-center justify-center rounded-control border border-danger bg-white px-4 text-sm font-bold text-danger transition-colors hover:bg-canvas disabled:opacity-50"
                     >
                       Toch archiveren
                     </button>
@@ -388,13 +388,13 @@ export function ActiviteitstypesInstellingen() {
             placeholder="bijv. Repetitie"
             value={newName}
             onChange={(event) => setNewName(event.target.value)}
-            className="h-11 flex-1 min-w-0 rounded-control border border-border px-3.5 text-sm font-semibold text-ink focus-visible:outline-hidden focus:border-accent focus:ring-2 focus:ring-accent/30"
+            className="h-control flex-1 min-w-0 rounded-control border border-border px-3.5 text-sm font-semibold text-ink focus-visible:outline-hidden focus:border-accent focus:ring-2 focus:ring-accent/30"
           />
           <button
             type="button"
             disabled={creating || newName.trim() === ""}
             onClick={createType}
-            className="flex h-11 flex-none items-center gap-1.5 rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-track disabled:text-muted"
+            className="flex h-control flex-none items-center gap-1.5 rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-track disabled:text-muted"
           >
             <span aria-hidden="true" className="text-base leading-none">
               +

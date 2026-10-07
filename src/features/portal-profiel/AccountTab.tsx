@@ -85,7 +85,7 @@ export function AccountTab({
 
       {profiel.status === "ready" && (
         <>
-          <div className="flex flex-none items-center gap-3.5 rounded-[22px] border border-border bg-white p-4">
+          <div className="flex flex-none items-center gap-3.5 rounded-panel border border-border bg-white p-4">
             <InitialsAvatar name={profiel.profiel.name} size="lg" tone="light" />
             <div className="flex min-w-0 flex-col gap-0.5">
               <span className="truncate text-sm font-extrabold tracking-tight text-ink">
@@ -97,7 +97,7 @@ export function AccountTab({
 
           <div className="flex flex-none flex-col gap-2">
             <h3 className="text-[11px] font-bold tracking-widest text-muted">GEGEVENS</h3>
-            <ul className="overflow-hidden rounded-[22px] border border-border bg-white">
+            <ul className="overflow-hidden rounded-panel border border-border bg-white">
               {!profiel.profiel.archived && (
                 <AccountRij
                   title="Naam wijzigen"
@@ -162,7 +162,7 @@ export function AccountTab({
 
       <div role="status" aria-live="polite" className="pointer-events-none fixed inset-x-[22px] bottom-6 z-40">
         {toast && (
-          <p className="rounded-2xl bg-rail px-4 py-3.5 text-sm font-semibold text-white">{toast}</p>
+          <p className="rounded-card bg-rail px-4 py-3.5 text-sm font-semibold text-white">{toast}</p>
         )}
       </div>
     </div>

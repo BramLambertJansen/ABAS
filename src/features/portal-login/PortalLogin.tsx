@@ -148,7 +148,7 @@ export function PortalLogin({
       {passwordChanged && view === "login" && (
         <p
           role="status"
-          className="w-full max-w-sm rounded-2xl border border-border bg-white px-4 py-3 text-center text-sm font-bold text-ink"
+          className="w-full max-w-sm rounded-card border border-border bg-white px-4 py-3 text-center text-sm font-bold text-ink"
         >
           Je wachtwoord is gewijzigd. Log in met je nieuwe wachtwoord.
         </p>
@@ -159,7 +159,7 @@ export function PortalLogin({
           ref={meldingRef}
           tabIndex={-1}
           role="alert"
-          className="w-full max-w-sm rounded-2xl border border-border bg-white px-4 py-3 text-center text-sm font-bold text-danger outline-hidden"
+          className="w-full max-w-sm rounded-card border border-border bg-white px-4 py-3 text-center text-sm font-bold text-danger outline-hidden"
         >
           {deniedMessage}
         </p>
@@ -167,7 +167,7 @@ export function PortalLogin({
 
       {view === "forgot" ? (
         resetRequest.status === "sent" ? (
-          <div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-2xl border border-border bg-white p-6 text-center">
+          <div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-card border border-border bg-white p-6 text-center">
             <p
               ref={forgotSentRef}
               tabIndex={-1}
@@ -190,7 +190,7 @@ export function PortalLogin({
           <form
             onSubmit={onSubmitForgot}
             aria-labelledby={forgotHeadingId}
-            className="flex w-full max-w-sm flex-col gap-4 rounded-2xl border border-border bg-white p-6"
+            className="flex w-full max-w-sm flex-col gap-4 rounded-card border border-border bg-white p-6"
           >
             <div className="flex flex-col gap-1">
               <h2
@@ -217,7 +217,7 @@ export function PortalLogin({
             <button
               type="submit"
               aria-disabled={resetRequest.status === "pending"}
-              className={`flex h-[54px] w-full items-center justify-center rounded-2xl text-sm font-bold ${KNOP_ACCENT_DONKER}`}
+              className={`flex h-control-lg w-full items-center justify-center rounded-card text-sm font-bold ${KNOP_ACCENT_DONKER}`}
             >
               Stuur herstellink
             </button>
@@ -232,7 +232,7 @@ export function PortalLogin({
           </form>
         )
       ) : magicLinkSent ? (
-        <div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-2xl border border-border bg-white p-6 text-center">
+        <div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-card border border-border bg-white p-6 text-center">
           <p
             ref={magicLinkSentRef}
             tabIndex={-1}
@@ -256,7 +256,7 @@ export function PortalLogin({
       ) : (
         <form
           onSubmit={onSubmit}
-          className="flex w-full max-w-sm flex-col gap-4 rounded-2xl border border-border bg-white p-6"
+          className="flex w-full max-w-sm flex-col gap-4 rounded-card border border-border bg-white p-6"
         >
           <p className="text-sm font-bold text-danger empty:-mt-4" role="alert">
             {login.errorCode ? errorMessage(login.errorCode) : ""}
@@ -280,12 +280,12 @@ export function PortalLogin({
                 AA's 4.5:1 voor 12px bold) — text-muted zelf is alleen tegen
                 canvas/wit geijkt (globals.css, @theme), niet tegen track. */}
             <div
-              className="flex gap-1 rounded-2xl bg-track p-1"
+              className="flex gap-1 rounded-card bg-track p-1"
               role="group"
               aria-labelledby={methodLegendId}
             >
               <label
-                className={`flex flex-1 cursor-pointer items-center justify-center rounded-xl px-3 py-2.5 text-xs font-bold focus-within:outline-solid focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent ${
+                className={`flex flex-1 cursor-pointer items-center justify-center rounded-control px-3 py-2.5 text-xs font-bold focus-within:outline-solid focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent ${
                   method === "magic_link" ? "bg-white text-ink" : "text-muted-strong"
                 }`}
               >
@@ -300,7 +300,7 @@ export function PortalLogin({
                 Magic link
               </label>
               <label
-                className={`flex flex-1 cursor-pointer items-center justify-center rounded-xl px-3 py-2.5 text-xs font-bold focus-within:outline-solid focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent ${
+                className={`flex flex-1 cursor-pointer items-center justify-center rounded-control px-3 py-2.5 text-xs font-bold focus-within:outline-solid focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent ${
                   method === "password" ? "bg-white text-ink" : "text-muted-strong"
                 }`}
               >
@@ -340,7 +340,7 @@ export function PortalLogin({
           <button
             type="submit"
             aria-disabled={loginPending}
-            className={`flex h-[54px] w-full items-center justify-center rounded-2xl text-sm font-bold ${KNOP_ACCENT_DONKER}`}
+            className={`flex h-control-lg w-full items-center justify-center rounded-card text-sm font-bold ${KNOP_ACCENT_DONKER}`}
           >
             {method === "magic_link" ? "Stuur mij een inloglink" : "Inloggen"}
           </button>

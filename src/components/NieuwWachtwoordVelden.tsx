@@ -42,7 +42,7 @@ export function NieuwWachtwoordVelden({
   return (
     <>
       <div className="flex flex-col gap-1.5">
-        <TekstVeld label="Nieuw wachtwoord" tone="light" maat="48"
+        <TekstVeld label="Nieuw wachtwoord" tone="light" maat="52"
           id={passwordId}
           type="password"
           autoComplete="new-password"
@@ -63,7 +63,7 @@ export function NieuwWachtwoordVelden({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <TekstVeld label="Herhaal wachtwoord" tone="light" maat="48"
+        <TekstVeld label="Herhaal wachtwoord" tone="light" maat="52"
           id={repeatId}
           type="password"
           autoComplete="new-password"
