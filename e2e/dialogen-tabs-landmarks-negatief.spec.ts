@@ -311,7 +311,9 @@ test.describe("beheer (negatief)", () => {
     await page.getByRole("button", { name: LID.name }).click();
     await page.getByRole("button", { name: /^Bestelling terugdraaien/ }).click();
     const dialog = page.getByRole("dialog", { name: "Bestelling terugdraaien" });
-    const status = dialog.locator('p[role="status"]');
+    // De sluitmelding van Overlay; niet de laadstatus van de bestellijst, die
+    // sinds #183 na het terugdraaien opnieuw laadt ("Bestellingen laden…").
+    const status = dialog.locator('p[role="status"]').filter({ hasNotText: "laden…" });
     // Geen melding zolang er niets geblokkeerd is: de regio is gemount maar leeg.
     await expect(status).toHaveCount(1);
     await expect(status).toHaveText("");
