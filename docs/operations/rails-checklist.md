@@ -41,7 +41,8 @@ Te doen:
 
 Vastgesteld 2026-10-07:
 
-- Productie serveert `0cfbb56` (PR #173). De vijf productie-deploys sinds #162 faalden op `check:deployment`, omdat de database op `0040` staat.
+- Productie serveert `0cfbb56` (PR #173). De vijf productie-deploys sinds #162 faalden op `check:deployment` ("missing or incompatible RPC inspect_money_request; … place_order_once; … top_up_once; … create_member_once"), omdat de database op `0040` staat.
+- Elke PR-preview faalt op `check:deployment` ("preview must use a separate Supabase project"). Dat is een bestaande guard: er is geen Supabase-project voor de Vercel-omgeving Preview.
 - De Git-koppeling deployde `main` automatisch naar productie. `vercel.json` zet dat nu uit (`git.deploymentEnabled.main = false`); previews blijven.
 - SSO-bescherming staat aan op alle deployments behalve custom domains.
 
@@ -49,6 +50,7 @@ Te doen:
 
 - [ ] Na merge van PR #184: controleer dat een push naar `main` geen productiedeploy meer start.
 - [ ] Optioneel: Deployment Checks koppelen aan de GitHub-check `check-all`.
+- [ ] Previews: een apart Supabase-project (of een Supabase-branch) aan de Vercel-omgeving Preview hangen, of previews uitzetten. Nu is elke preview rood.
 
 ## Claude Code
 
