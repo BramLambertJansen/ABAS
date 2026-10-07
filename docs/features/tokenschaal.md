@@ -164,14 +164,43 @@ in `@theme`, of naar een eigen token:
    Na een daling legt `npm run lint:prune` de ratchet vast. Elk scherm uit de
    schermmatrix van de audit krijgt een screenshotvergelijking vóór en na.
 
-### Per geval vast te stellen tijdens de bouw
+### Per geval — besloten (Bram, 2026-10-07)
 
-De Developer kiest hier niet zelf. Hij legt een lijst voor aan Bram:
+De Developer legde een lijst voor; Bram besliste:
 
-- `h-9` (36px): is het een control (→ 44px) of een avatar/icoon (blijft)?
-- Radius 9/10/11/13/14/15/18/20px: welke stap wordt het? De dichtstbijzijnde
-  ligt soms precies in het midden.
-- `bg-white`: is het een vlak (→ `bg-surface`) of wit als kleur (blijft)?
+- **`h-9`:** de avatar (`InitialsAvatar`) blijft 36px. De 11 knoppen en tabs
+  worden `h-control`:
+  - logboekfilter;
+  - "afsluiten" bij apparaten (2×);
+  - annuleren en bevestigen bij terugdraaien (2×);
+  - uitloggen bij dienst starten en in beheer (2×);
+  - bewerken en archiveren bij activiteitstypes (2×);
+  - beheertabs;
+  - categoriechip bij nieuw product.
+- **Radius:**
+
+  | Van | Naar |
+  |---|---|
+  | 9px | `sm` |
+  | 10px | `control`; de 70px-uitlogknop in de rail wordt `sm` |
+  | 11px | `control` |
+  | 13px | `control` |
+  | 14px, velden en triggers | `control` |
+  | 14px, railtoetsen, railtabs, leeg-icoon | `card` |
+  | 15px, railknoppen en railvelden | `card` |
+  | 18px | `card` |
+  | 20px, dialoog | `panel` |
+
+  Lichte velden worden zo 12px en railvelden 16px. `ZoekVeld` (12) verschilt
+  dan van `LidZoeker` (16); dat is bewust geaccepteerd.
+- **`bg-white`:** elk wit vlak wordt `bg-surface`, ook het gekozen segment op
+  `track`, de statusnotities en de witte logboekbadge. `white` blijft alleen
+  voor tekst en de transparante varianten.
+- **Losse punten:**
+  - de vierkante terugdraaiknop in `Transactielijst` wordt 44×44 (`w-11`,
+    ook de placeholder);
+  - de railtoets van `PinToetsenbord` blijft `h-14` (56px). Een keypad is een
+    eigen toetsenbordrol en valt bewust buiten de schaal.
 
 ### Wat vaststaat (ADR 0025 R4)
 
