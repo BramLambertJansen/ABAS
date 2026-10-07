@@ -16,7 +16,7 @@ import { ingelogdAls } from "@/features/bar-sessie/teksten";
 type Tab = "verkoop" | "dienst";
 
 const railTabClass = (selected: boolean) =>
-  `relative flex w-[70px] flex-col items-center gap-[7px] rounded-[14px] pb-[9px] pt-[11px] text-center text-[10.5px] font-bold transition-colors ${
+  `relative flex w-[70px] flex-col items-center gap-[7px] rounded-card pb-[9px] pt-[11px] text-center text-[10.5px] font-bold transition-colors ${
     selected
       ? "bg-accent/15 text-rail-error"
       : "text-rail-muted hover:bg-white/5 hover:text-white"
@@ -112,7 +112,7 @@ export function DienstTabs({
         >
           <div
             aria-hidden="true"
-            className="flex h-[42px] w-[42px] items-center justify-center rounded-[13px] bg-accent text-dialog-title font-extrabold tracking-tight text-white shadow-brand-compact"
+            className="flex h-[42px] w-[42px] items-center justify-center rounded-control bg-accent text-dialog-title font-extrabold tracking-tight text-white shadow-brand-compact"
           >
             A
           </div>
@@ -139,7 +139,7 @@ export function DienstTabs({
             )}
             <UitloggenKnop
               shift={shift}
-              className="flex w-[70px] items-center justify-center rounded-[10px] border border-rail-border py-2 text-[10.5px] font-bold text-rail-muted transition-colors hover:border-accent hover:text-white"
+              className="flex w-[70px] items-center justify-center rounded-sm border border-rail-border py-2 text-[10.5px] font-bold text-rail-muted transition-colors hover:border-accent hover:text-white"
             />
           </div>
         </nav>

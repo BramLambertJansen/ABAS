@@ -59,14 +59,14 @@ export function WachtwoordHerstellen({ tokenHash }: { tokenHash: string | null }
       </AuroraMerk>
 
       {codeStap ? (
-        <div className="flex w-full max-w-sm flex-col gap-4 rounded-card border border-border bg-white p-6">
+        <div className="flex w-full max-w-sm flex-col gap-4 rounded-card border border-border bg-surface p-6">
           <h2 ref={codeKopRef} tabIndex={-1} className="text-sm font-medium leading-relaxed text-muted outline-hidden">
             {TWEESTAP_TEKSTEN.wachtwoordCodeStap}
           </h2>
           <CodeInvoer tone="light" onVerifieer={verifieerCode} />
         </div>
       ) : linkInvalid ? (
-        <div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-card border border-border bg-white p-6 text-center">
+        <div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-card border border-border bg-surface p-6 text-center">
           <p className="text-sm font-bold text-danger" role="alert">
             Deze link is verlopen of al gebruikt. Vraag een nieuwe aan.
           </p>
@@ -80,7 +80,7 @@ export function WachtwoordHerstellen({ tokenHash }: { tokenHash: string | null }
       ) : (
         <form
           onSubmit={onSubmit}
-          className="flex w-full max-w-sm flex-col gap-4 rounded-card border border-border bg-white p-6"
+          className="flex w-full max-w-sm flex-col gap-4 rounded-card border border-border bg-surface p-6"
         >
           <p className="text-sm font-bold text-danger empty:-mt-4" role="alert">
             {herstel.errorCode && herstel.errorCode !== "link_invalid"

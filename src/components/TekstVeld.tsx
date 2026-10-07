@@ -8,12 +8,12 @@ const TONES = {
   rail: {
     label: "text-xs font-bold text-rail-muted",
     input:
-      "h-control-lg rounded-[15px] border border-rail-border bg-rail px-4 text-sm font-semibold text-white outline-hidden focus:border-accent",
+      "h-control-lg rounded-card border border-rail-border bg-rail px-4 text-sm font-semibold text-white outline-hidden focus:border-accent",
   },
   light: {
     label: "text-xs font-bold text-muted",
     input:
-      "h-control-lg rounded-card border border-border bg-white px-4 text-sm font-semibold text-ink outline-hidden focus:border-accent",
+      "h-control-lg rounded-card border border-border bg-surface px-4 text-sm font-semibold text-ink outline-hidden focus:border-accent",
   },
 } as const;
 
@@ -78,7 +78,7 @@ export function TekstVeld({
         {label}
       </label>
       {prefix ? (
-        <div className={`flex min-w-0 items-center gap-2 rounded-control border px-3.5 focus-within:border-accent ${tone === "rail" ? "border-rail-border bg-rail" : "border-border bg-white"}`}>
+        <div className={`flex min-w-0 items-center gap-2 rounded-control border px-3.5 focus-within:border-accent ${tone === "rail" ? "border-rail-border bg-rail" : "border-border bg-surface"}`}>
           <span aria-hidden="true" className={`text-sm font-bold ${tone === "rail" ? "text-rail-muted" : "text-muted"}`}>{prefix}</span>
           <input ref={inputRef} id={id} {...inputProps}
             aria-invalid={fout ? true : inputProps["aria-invalid"]}
@@ -90,7 +90,7 @@ export function TekstVeld({
           aria-invalid={fout ? true : inputProps["aria-invalid"]}
           aria-describedby={beschrijving}
           className={maat
-            ? `${MATEN[maat]} rounded-control border px-3.5 text-sm font-semibold outline-hidden focus:border-accent ${tone === "rail" ? "border-rail-border bg-rail text-white" : "border-border bg-white text-ink"}`
+            ? `${MATEN[maat]} rounded-control border px-3.5 text-sm font-semibold outline-hidden focus:border-accent ${tone === "rail" ? "border-rail-border bg-rail text-white" : "border-border bg-surface text-ink"}`
             : TONES[tone].input} />
       )}
       {hint && (

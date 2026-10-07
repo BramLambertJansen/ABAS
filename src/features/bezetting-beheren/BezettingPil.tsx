@@ -34,7 +34,7 @@ export function BezettingPil({
       aria-label={`Bezetting: ${
         members.length ? members.map((m) => m.name).join(", ") : "nog niemand"
       } — tik om te wijzigen`}
-      className="flex h-control flex-none items-center gap-[9px] rounded-full border border-border bg-white px-[7px] transition-colors hover:border-ink"
+      className="flex h-control flex-none items-center gap-[9px] rounded-full border border-border bg-surface px-[7px] transition-colors hover:border-ink"
     >
       {members.length > 0 && (
         <span className="flex items-center">

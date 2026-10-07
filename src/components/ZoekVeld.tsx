@@ -33,7 +33,7 @@ export function ZoekVeld({
         placeholder={placeholder}
         value={waarde}
         onChange={(event) => onChange(event.target.value)}
-        className="h-control-lg w-full rounded-[14px] border border-border bg-white pl-[46px] pr-[18px] text-[14.5px] font-medium text-ink focus-visible:outline-hidden placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
+        className="h-control-lg w-full rounded-control border border-border bg-surface pl-[46px] pr-[18px] text-[14.5px] font-medium text-ink focus-visible:outline-hidden placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
       />
     </div>
   );

@@ -197,8 +197,8 @@ export function BezettingOverlay({
                   onClick={() => toggle(member)}
                   className={`flex w-full min-h-control items-center gap-3 rounded-card border p-3 text-left transition-colors disabled:opacity-50 ${
                     inBezetting
-                      ? "border-accent bg-white"
-                      : "border-border bg-white"
+                      ? "border-accent bg-surface"
+                      : "border-border bg-surface"
                   }`}
                 >
                   <InitialsAvatar name={member.name} size="sm" tone="light" />

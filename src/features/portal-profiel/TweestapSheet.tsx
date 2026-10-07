@@ -87,7 +87,7 @@ export function TweestapSheet({
       type="button"
       disabled={closeBlocked}
       onClick={onClose}
-      className="flex h-control-lg w-full items-center justify-center rounded-card border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
+      className="flex h-control-lg w-full items-center justify-center rounded-card border border-border bg-surface text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
     >
       Annuleren
     </button>
@@ -126,17 +126,17 @@ export function TweestapSheet({
         {stap.soort === "scannen" && (
           <>
             <p className="text-sm font-medium leading-relaxed text-muted">{TWEESTAP_TEKSTEN.stap1Uitleg}</p>
-            <div className="flex justify-center rounded-card border border-border bg-white p-4">
+            <div className="flex justify-center rounded-card border border-border bg-surface p-4">
               <Image src={stap.qrCode} alt="QR-code" width={180} height={180} unoptimized />
             </div>
-            <code className="select-all break-all rounded-control border border-border bg-white px-3 py-2.5 text-center font-mono text-sm font-bold tracking-wider text-ink">
+            <code className="select-all break-all rounded-control border border-border bg-surface px-3 py-2.5 text-center font-mono text-sm font-bold tracking-wider text-ink">
               {stap.secret}
             </code>
             <div className="flex gap-[10px]">
               <button
                 type="button"
                 onClick={onClose}
-                className="flex h-control-lg flex-1 items-center justify-center rounded-card border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink"
+                className="flex h-control-lg flex-1 items-center justify-center rounded-card border border-border bg-surface text-sm font-bold text-ink transition-colors hover:border-ink"
               >
                 Annuleren
               </button>

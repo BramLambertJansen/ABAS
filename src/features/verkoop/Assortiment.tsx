@@ -88,12 +88,12 @@ export function Assortiment({
     `flex h-control items-center whitespace-nowrap rounded-full border px-[18px] text-detail font-bold transition-colors ${
       active
         ? "border-accent-active bg-accent-active text-white shadow-accent-chip"
-        : "border-border bg-white text-muted-strong hover:border-ink"
+        : "border-border bg-surface text-muted-strong hover:border-ink"
     }`;
   const segClass = (active: boolean) =>
-    `flex h-control items-center justify-center whitespace-nowrap rounded-[11px] px-[15px] text-metadata font-bold transition-[background-color,color,box-shadow] ${
+    `flex h-control items-center justify-center whitespace-nowrap rounded-control px-[15px] text-metadata font-bold transition-[background-color,color,box-shadow] ${
       active
-        ? "bg-white text-ink shadow-segment"
+        ? "bg-surface text-ink shadow-segment"
         : "text-muted-strong hover:text-ink"
     }`;
 
@@ -123,13 +123,13 @@ export function Assortiment({
               if (trimmedQuery && next.trim() === "") clearQuery();
               else setQuery(next);
             }}
-            className="h-control-lg w-full rounded-[14px] border border-border bg-white pl-[46px] pr-[18px] text-[14.5px] font-medium text-ink focus-visible:outline-hidden placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
+            className="h-control-lg w-full rounded-control border border-border bg-surface pl-[46px] pr-[18px] text-[14.5px] font-medium text-ink focus-visible:outline-hidden placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
           />
         </div>
         <div
           role="group"
           aria-label="Weergave"
-          className="flex h-control-lg flex-none items-center gap-0.5 rounded-[13px] bg-track p-0.5"
+          className="flex h-control-lg flex-none items-center gap-0.5 rounded-control bg-track p-0.5"
         >
           <button type="button" aria-pressed={view === "grid"} onClick={() => setView("grid")} className={segClass(view === "grid")}>
             galerij
@@ -182,7 +182,7 @@ export function Assortiment({
               // De knop verdwijnt met de term: focus naar het zoekveld, niet body.
               document.getElementById("verkoop-product-search")?.focus();
             }}
-            className="flex h-control items-center rounded-full border border-border bg-white px-4 text-[13px] font-bold text-ink transition-colors hover:border-ink"
+            className="flex h-control items-center rounded-full border border-border bg-surface px-4 text-[13px] font-bold text-ink transition-colors hover:border-ink"
           >
             Wis zoekterm
           </button>
@@ -206,7 +206,7 @@ export function Assortiment({
                   type="button"
                   onClick={() => onAdd(product.id)}
                   aria-label={addLabel(product.name, product.priceCents, qty)}
-                  className="group flex w-full flex-col gap-2.5 rounded-card border border-border bg-white p-[11px] text-left shadow-surface transition-[border-color,box-shadow] hover:border-accent hover:shadow-surface-hover"
+                  className="group flex w-full flex-col gap-2.5 rounded-card border border-border bg-surface p-[11px] text-left shadow-surface transition-[border-color,box-shadow] hover:border-accent hover:shadow-surface-hover"
                 >
                   <ProductAfbeelding imageUrl={product.imageUrl} name={product.name} size="tile" decorative />
                   <span className="flex w-full items-center justify-between gap-2">
@@ -227,7 +227,7 @@ export function Assortiment({
           })}
         </ul>
       ) : (
-        <ul className="flex flex-1 flex-col overflow-auto rounded-card border border-border bg-white px-1.5 py-1">
+        <ul className="flex flex-1 flex-col overflow-auto rounded-card border border-border bg-surface px-1.5 py-1">
           {visible.map((product) => {
             const qty = qtyByProduct.get(product.id) ?? 0;
             return (

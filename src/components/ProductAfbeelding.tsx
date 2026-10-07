@@ -83,5 +83,5 @@ export function ProductAfbeelding({
   if (size !== "tile") return inhoud;
 
   // Galerij: het kader uit de wireframe (canvas, 6px rand, radius 11).
-  return <span className="block w-full rounded-[11px] bg-canvas p-1.5">{inhoud}</span>;
+  return <span className="block w-full rounded-control bg-canvas p-1.5">{inhoud}</span>;
 }

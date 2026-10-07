@@ -79,7 +79,7 @@ export function TransactiesTab() {
             aria-pressed={filter === f.id}
             onClick={() => setFilter(f.id)}
             className={`flex min-h-control min-w-fit max-w-full flex-1 items-center justify-center rounded-control px-2 py-2 text-xs font-bold transition-colors ${
-              filter === f.id ? "bg-white text-ink shadow-xs" : "text-muted-strong"
+              filter === f.id ? "bg-surface text-ink shadow-xs" : "text-muted-strong"
             }`}
           >
             {f.label}
@@ -103,7 +103,7 @@ export function TransactiesTab() {
       )}
 
       {transactions.status === "ready" && groups.length === 0 && (
-        <div className="flex flex-col items-center gap-1 rounded-panel border border-border bg-white px-4 py-10 text-center">
+        <div className="flex flex-col items-center gap-1 rounded-panel border border-border bg-surface px-4 py-10 text-center">
           {!hasAnyTransaction ? (
             <>
               <span className="text-sm font-bold text-muted">Nog geen transacties</span>
@@ -123,7 +123,7 @@ export function TransactiesTab() {
             <h2 className="text-[11px] font-bold tracking-widest text-muted">
               {group.label.toUpperCase()}
             </h2>
-            <ul className="rounded-panel border border-border bg-white px-3">
+            <ul className="rounded-panel border border-border bg-surface px-3">
               {group.items.map((t) => (
                 <TransactieRij key={t.id} transaction={t} />
               ))}

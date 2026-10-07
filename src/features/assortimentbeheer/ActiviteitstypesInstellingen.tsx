@@ -201,7 +201,7 @@ export function ActiviteitstypesInstellingen() {
           : null;
 
   return (
-    <div className="flex max-w-md flex-col gap-4 rounded-card border border-border bg-white p-5">
+    <div className="flex max-w-md flex-col gap-4 rounded-card border border-border bg-surface p-5">
       <div className="flex flex-col gap-1">
         <h2 ref={kopRef} tabIndex={-1} className="text-base font-extrabold tracking-tight">
           Activiteitstypes
@@ -245,7 +245,7 @@ export function ActiviteitstypesInstellingen() {
       )}
 
       {types.status === "ready" && types.activityTypes.length > 0 && (
-        <ul className="flex flex-col gap-2 rounded-card border border-border bg-white p-2">
+        <ul className="flex flex-col gap-2 rounded-card border border-border bg-surface p-2">
           {types.activityTypes.map((type) => (
             <li key={type.id}>
               {editing?.id === type.id ? (
@@ -300,7 +300,7 @@ export function ActiviteitstypesInstellingen() {
                       type="button"
                       onClick={() => startEdit(type)}
                       aria-label={`${type.name} bewerken`}
-                      className="flex h-9 items-center justify-center rounded-control border border-border bg-white px-2.5 text-xs font-bold text-ink transition-colors hover:border-accent"
+                      className="flex h-control items-center justify-center rounded-control border border-border bg-surface px-2.5 text-xs font-bold text-ink transition-colors hover:border-accent"
                     >
                       <span aria-hidden="true">✎</span>
                       <span className="ml-1">bewerken</span>
@@ -318,10 +318,10 @@ export function ActiviteitstypesInstellingen() {
                           ? `${type.name} herstellen`
                           : `${type.name} archiveren`
                       }
-                      className={`flex h-9 items-center justify-center rounded-control border px-2.5 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                      className={`flex h-control items-center justify-center rounded-control border px-2.5 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
                         type.archived
-                          ? "border-border bg-white text-ink hover:border-accent"
-                          : "border-border bg-white text-danger hover:border-danger"
+                          ? "border-border bg-surface text-ink hover:border-accent"
+                          : "border-border bg-surface text-danger hover:border-danger"
                       }`}
                     >
                       {type.archived ? "herstellen" : "archiveren"}
@@ -354,7 +354,7 @@ export function ActiviteitstypesInstellingen() {
                         setBevestig(null);
                         newNameRef.current?.focus();
                       }}
-                      className="flex h-control items-center justify-center rounded-control border border-border bg-white px-4 text-sm font-bold text-ink transition-colors hover:border-ink disabled:opacity-50"
+                      className="flex h-control items-center justify-center rounded-control border border-border bg-surface px-4 text-sm font-bold text-ink transition-colors hover:border-ink disabled:opacity-50"
                     >
                       Eerst een type toevoegen
                     </button>
@@ -362,7 +362,7 @@ export function ActiviteitstypesInstellingen() {
                       type="button"
                       disabled={archiving}
                       onClick={() => toggleArchived(type)}
-                      className="flex h-control items-center justify-center rounded-control border border-danger bg-white px-4 text-sm font-bold text-danger transition-colors hover:bg-canvas disabled:opacity-50"
+                      className="flex h-control items-center justify-center rounded-control border border-danger bg-surface px-4 text-sm font-bold text-danger transition-colors hover:bg-canvas disabled:opacity-50"
                     >
                       Toch archiveren
                     </button>

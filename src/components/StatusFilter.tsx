@@ -31,7 +31,7 @@ export function StatusFilter({
           className={`flex h-control items-center gap-2 whitespace-nowrap rounded-full border px-[18px] text-detail font-bold transition-colors ${
             optie.actief
               ? "border-ink bg-ink text-white"
-              : "border-border bg-white text-muted-strong hover:border-ink"
+              : "border-border bg-surface text-muted-strong hover:border-ink"
           }`}
         >
           {optie.label}

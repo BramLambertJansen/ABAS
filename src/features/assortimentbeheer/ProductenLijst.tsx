@@ -81,7 +81,7 @@ export function ProductenLijst() {
 
       <div aria-live="polite" role="status" className="empty:-mt-5">
         {toast && (
-          <p className="w-fit rounded-control border border-border bg-white px-3.5 py-2 text-sm font-bold text-ink">
+          <p className="w-fit rounded-control border border-border bg-surface px-3.5 py-2 text-sm font-bold text-ink">
             {toast}
           </p>
         )}
@@ -137,7 +137,7 @@ export function ProductenLijst() {
           <button
             type="button"
             onClick={() => setQuery("")}
-            className="flex h-control items-center justify-center rounded-control border border-border bg-white px-4 text-sm font-bold text-ink transition-colors hover:border-ink"
+            className="flex h-control items-center justify-center rounded-control border border-border bg-surface px-4 text-sm font-bold text-ink transition-colors hover:border-ink"
           >
             Zoekopdracht wissen
           </button>
@@ -153,7 +153,7 @@ export function ProductenLijst() {
       )}
 
       {products.status === "ready" && zichtbaar.length > 0 && (
-        <div className="flex min-h-0 flex-col overflow-hidden rounded-card border border-border bg-white">
+        <div className="flex min-h-0 flex-col overflow-hidden rounded-card border border-border bg-surface">
           <p className="flex-none border-b border-border-subtle px-4 py-[11px] text-[11px] font-bold uppercase tracking-[0.07em] text-muted">
             {`${zichtbaar.length} van ${products.products.length} producten`}
           </p>

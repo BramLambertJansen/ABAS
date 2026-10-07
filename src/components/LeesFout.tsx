@@ -3,7 +3,7 @@ import { VERVERS_TEKSTEN } from "@/lib/verversen";
 const TONES = {
   light: {
     text: "text-danger",
-    knop: "border-border bg-white text-ink hover:border-ink focus-visible:outline-accent",
+    knop: "border-border bg-surface text-ink hover:border-ink focus-visible:outline-accent",
   },
   rail: {
     text: "text-rail-error",

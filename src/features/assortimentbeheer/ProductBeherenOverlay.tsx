@@ -302,7 +302,7 @@ export function ProductBeherenOverlay({
             type="button"
             disabled={busy}
             onClick={chooseImage}
-            className="flex h-control items-center justify-center rounded-control border border-border bg-white px-4 text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-control items-center justify-center rounded-control border border-border bg-surface px-4 text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
           >
             {imageMutation.pendingAction === "upload"
               ? UPLOAD_BEZIG_TEKST
@@ -315,7 +315,7 @@ export function ProductBeherenOverlay({
               type="button"
               disabled={busy}
               onClick={removeImage}
-              className="flex h-control items-center justify-center rounded-control border border-border bg-white px-4 text-sm font-bold text-danger transition-colors hover:border-danger disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-control items-center justify-center rounded-control border border-border bg-surface px-4 text-sm font-bold text-danger transition-colors hover:border-danger disabled:cursor-not-allowed disabled:opacity-50"
             >
               {imageMutation.pendingAction === "remove" ? OPSLAAN_BEZIG_TEKST : "Verwijderen"}
             </button>

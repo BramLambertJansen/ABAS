@@ -42,7 +42,7 @@ export function AdminMeldingen({
         <section
           key={melding.id}
           aria-labelledby={`melding-${melding.id}`}
-          className="flex flex-col gap-2 rounded-card border border-accent/60 bg-white p-4 text-left text-ink shadow-lg"
+          className="flex flex-col gap-2 rounded-card border border-accent/60 bg-surface p-4 text-left text-ink shadow-lg"
         >
           <h2 id={`melding-${melding.id}`} className="text-sm font-extrabold text-ink">
             {ADMIN_MELDING.titel}

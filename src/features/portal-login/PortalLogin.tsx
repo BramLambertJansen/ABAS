@@ -148,7 +148,7 @@ export function PortalLogin({
       {passwordChanged && view === "login" && (
         <p
           role="status"
-          className="w-full max-w-sm rounded-card border border-border bg-white px-4 py-3 text-center text-sm font-bold text-ink"
+          className="w-full max-w-sm rounded-card border border-border bg-surface px-4 py-3 text-center text-sm font-bold text-ink"
         >
           Je wachtwoord is gewijzigd. Log in met je nieuwe wachtwoord.
         </p>
@@ -159,7 +159,7 @@ export function PortalLogin({
           ref={meldingRef}
           tabIndex={-1}
           role="alert"
-          className="w-full max-w-sm rounded-card border border-border bg-white px-4 py-3 text-center text-sm font-bold text-danger outline-hidden"
+          className="w-full max-w-sm rounded-card border border-border bg-surface px-4 py-3 text-center text-sm font-bold text-danger outline-hidden"
         >
           {deniedMessage}
         </p>
@@ -167,7 +167,7 @@ export function PortalLogin({
 
       {view === "forgot" ? (
         resetRequest.status === "sent" ? (
-          <div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-card border border-border bg-white p-6 text-center">
+          <div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-card border border-border bg-surface p-6 text-center">
             <p
               ref={forgotSentRef}
               tabIndex={-1}
@@ -190,7 +190,7 @@ export function PortalLogin({
           <form
             onSubmit={onSubmitForgot}
             aria-labelledby={forgotHeadingId}
-            className="flex w-full max-w-sm flex-col gap-4 rounded-card border border-border bg-white p-6"
+            className="flex w-full max-w-sm flex-col gap-4 rounded-card border border-border bg-surface p-6"
           >
             <div className="flex flex-col gap-1">
               <h2
@@ -232,7 +232,7 @@ export function PortalLogin({
           </form>
         )
       ) : magicLinkSent ? (
-        <div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-card border border-border bg-white p-6 text-center">
+        <div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-card border border-border bg-surface p-6 text-center">
           <p
             ref={magicLinkSentRef}
             tabIndex={-1}
@@ -256,7 +256,7 @@ export function PortalLogin({
       ) : (
         <form
           onSubmit={onSubmit}
-          className="flex w-full max-w-sm flex-col gap-4 rounded-card border border-border bg-white p-6"
+          className="flex w-full max-w-sm flex-col gap-4 rounded-card border border-border bg-surface p-6"
         >
           <p className="text-sm font-bold text-danger empty:-mt-4" role="alert">
             {login.errorCode ? errorMessage(login.errorCode) : ""}
@@ -286,7 +286,7 @@ export function PortalLogin({
             >
               <label
                 className={`flex flex-1 cursor-pointer items-center justify-center rounded-control px-3 py-2.5 text-xs font-bold focus-within:outline-solid focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent ${
-                  method === "magic_link" ? "bg-white text-ink" : "text-muted-strong"
+                  method === "magic_link" ? "bg-surface text-ink" : "text-muted-strong"
                 }`}
               >
                 <input
@@ -301,7 +301,7 @@ export function PortalLogin({
               </label>
               <label
                 className={`flex flex-1 cursor-pointer items-center justify-center rounded-control px-3 py-2.5 text-xs font-bold focus-within:outline-solid focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent ${
-                  method === "password" ? "bg-white text-ink" : "text-muted-strong"
+                  method === "password" ? "bg-surface text-ink" : "text-muted-strong"
                 }`}
               >
                 <input

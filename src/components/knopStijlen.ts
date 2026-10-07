@@ -40,7 +40,7 @@ export const KNOP_ACCENT_DONKER =
 
 /** Witte knop met rand (Sluiten, Annuleren). */
 export const KNOP_RAND =
-  "border border-border bg-white text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50";
+  "border border-border bg-surface text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50";
 
 /** De tweede (grote) maat: primaire dialoogknop. */
 export const KNOP_DIALOOG_MAAT = "h-control-lg rounded-card";

@@ -251,10 +251,10 @@ export function OpwaarderenOverlay({
             disabled={inVlucht}
             aria-pressed={chipSelected(cents)}
             onClick={() => chooseChip(cents)}
-            className={`flex h-control-lg items-center justify-center rounded-[13px] border text-sm font-extrabold transition-colors ${
+            className={`flex h-control-lg items-center justify-center rounded-control border text-sm font-extrabold transition-colors ${
               chipSelected(cents)
                 ? "border-accent bg-accent-active text-white"
-                : "border-border bg-white text-ink hover:border-accent hover:bg-canvas hover:text-accent-active"
+                : "border-border bg-surface text-ink hover:border-accent hover:bg-canvas hover:text-accent-active"
             }`}
           >
             {formatCents(cents)}
@@ -293,14 +293,14 @@ export function OpwaarderenOverlay({
             onBlur={bijBlur}
             aria-describedby={veldMelding ? amountLimitId : undefined}
             aria-invalid={veldMelding ? true : undefined}
-            className="h-control-lg min-w-0 flex-1 rounded-[13px] border border-border bg-white px-3.5 text-detail font-semibold text-ink focus-visible:outline-hidden placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
+            className="h-control-lg min-w-0 flex-1 rounded-control border border-border bg-surface px-3.5 text-detail font-semibold text-ink focus-visible:outline-hidden placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
           />
           <button
             type="button"
             ref={knopRef}
             disabled={bookDisabled}
             onClick={handleBook}
-            className={`flex h-control-lg flex-none items-center justify-center rounded-[13px] px-[18px] text-detail font-extrabold ${KNOP_ACCENT_WIT}`}
+            className={`flex h-control-lg flex-none items-center justify-center rounded-control px-[18px] text-detail font-extrabold ${KNOP_ACCENT_WIT}`}
           >
             {pending
               ? "bezig…"

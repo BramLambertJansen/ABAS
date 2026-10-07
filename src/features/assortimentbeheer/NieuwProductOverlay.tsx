@@ -133,10 +133,10 @@ export function NieuwProductOverlay({
                 setCategory(option);
                 wijzig();
               }}
-              className={`flex h-9 items-center justify-center rounded-full border px-3.5 text-xs font-bold transition-colors ${
+              className={`flex h-control items-center justify-center rounded-full border px-3.5 text-xs font-bold transition-colors ${
                 category === option
                   ? "border-accent bg-accent text-rail"
-                  : "border-border bg-white text-ink hover:border-accent"
+                  : "border-border bg-surface text-ink hover:border-accent"
               }`}
             >
               {option}

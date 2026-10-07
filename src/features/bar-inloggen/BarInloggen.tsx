@@ -234,7 +234,7 @@ export function BarInloggen() {
   const emailIngang = (
     <Link
       href="/beheer"
-      className="flex h-control-lg w-full max-w-[500px] items-center justify-center rounded-[15px] border border-rail-border text-sm font-bold text-rail-muted transition-colors hover:border-accent hover:text-rail-light"
+      className="flex h-control-lg w-full max-w-[500px] items-center justify-center rounded-card border border-rail-border text-sm font-bold text-rail-muted transition-colors hover:border-accent hover:text-rail-light"
     >
       {STARTSCHERM.emailLink}
     </Link>
@@ -370,7 +370,7 @@ export function BarInloggen() {
           <button
             type="submit"
             aria-disabled={login.pending}
-            className="flex h-control-lg w-full items-center justify-center rounded-[15px] bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+            className="flex h-control-lg w-full items-center justify-center rounded-card bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
           >
             {INLOGGEN.wachtwoordKnop}
           </button>
@@ -422,7 +422,7 @@ export function BarInloggen() {
               <button
                 type="submit"
                 disabled={login.pending}
-                className="flex h-control-lg w-full items-center justify-center rounded-[15px] bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:opacity-50"
+                className="flex h-control-lg w-full items-center justify-center rounded-card bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:opacity-50"
               >
                 {INLOGGEN.vergetenKnop}
               </button>

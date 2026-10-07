@@ -547,7 +547,7 @@ export function LidBeherenOverlay({
                 setGelukt((g) => ({ ...g, rol: false }));
                 if (roleMutation.errorCode) roleMutation.reset();
               }}
-              className="h-control flex-1 min-w-0 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink outline-hidden focus:border-accent"
+              className="h-control flex-1 min-w-0 rounded-control border border-border bg-surface px-3.5 text-sm font-semibold text-ink outline-hidden focus:border-accent"
             >
               {ROLE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>

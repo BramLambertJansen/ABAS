@@ -91,7 +91,7 @@ export function DienstActief({
 
         <section
           aria-label="Omzet deze dienst"
-          className="flex flex-none flex-col gap-[13px] rounded-[18px] bg-rail px-5 pb-4 pt-[15px] shadow-shift"
+          className="flex flex-none flex-col gap-[13px] rounded-card bg-rail px-5 pb-4 pt-[15px] shadow-shift"
         >
           <div className="flex min-w-0 flex-col gap-[5px]">
             <span className="text-[9.5px] font-extrabold tracking-[0.14em] text-rail-muted">
@@ -236,7 +236,7 @@ export function DienstActief({
         <div className="min-h-0 flex-1" />
 
         {shiftSummary.status === "ready" && shiftSummary.summary.reversalCount > 0 && (
-          <p className="flex-none rounded-[13px] bg-danger-bg px-[13px] py-[11px] text-metadata font-bold text-danger">
+          <p className="flex-none rounded-control bg-danger-bg px-[13px] py-[11px] text-metadata font-bold text-danger">
             {shiftSummary.summary.reversalCount === 1
               ? "1 correctie deze dienst"
               : `${shiftSummary.summary.reversalCount} correcties deze dienst`}
@@ -246,7 +246,7 @@ export function DienstActief({
         <button
           type="button"
           onClick={() => setAfsluitenOverlayOpen(true)}
-          className="flex h-control-lg flex-none items-center justify-center rounded-[14px] bg-rail text-sm font-extrabold text-white transition-colors hover:bg-black"
+          className="flex h-control-lg flex-none items-center justify-center rounded-control bg-rail text-sm font-extrabold text-white transition-colors hover:bg-black"
         >
           Dienst afsluiten
         </button>

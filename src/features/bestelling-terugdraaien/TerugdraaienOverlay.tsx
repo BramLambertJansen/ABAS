@@ -109,7 +109,7 @@ export function TerugdraaienOverlay({
             setReason(e.target.value);
             if (errorCode === "reason_required") setErrorCode(null);
           }}
-          className="h-control-lg w-full rounded-[13px] border border-border bg-white px-3.5 text-detail font-semibold text-ink focus-visible:outline-hidden placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
+          className="h-control-lg w-full rounded-control border border-border bg-surface px-3.5 text-detail font-semibold text-ink focus-visible:outline-hidden placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
         />
       </div>
 
@@ -130,7 +130,7 @@ export function TerugdraaienOverlay({
           type="button"
           disabled={pending}
           onClick={onClose}
-          className="flex h-control-lg flex-1 items-center justify-center rounded-card border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex h-control-lg flex-1 items-center justify-center rounded-card border border-border bg-surface text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
         >
           annuleren
         </button>

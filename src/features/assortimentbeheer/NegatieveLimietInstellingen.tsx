@@ -110,7 +110,7 @@ export function NegatieveLimietInstellingen() {
   }
 
   return (
-    <div className="flex max-w-md flex-col gap-4 rounded-card border border-border bg-white p-5">
+    <div className="flex max-w-md flex-col gap-4 rounded-card border border-border bg-surface p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1">
           <h2 ref={kopRef} tabIndex={-1} className="text-base font-extrabold tracking-tight">
@@ -138,7 +138,7 @@ export function NegatieveLimietInstellingen() {
 
       <div aria-live="polite" role="status" className="empty:-mt-4">
         {toast && (
-          <p className="w-fit rounded-control border border-border bg-white px-3.5 py-2 text-sm font-bold text-ink">
+          <p className="w-fit rounded-control border border-border bg-surface px-3.5 py-2 text-sm font-bold text-ink">
             {toast}
           </p>
         )}
@@ -179,7 +179,7 @@ export function NegatieveLimietInstellingen() {
               className={`flex h-control min-w-[62px] flex-1 items-center justify-center rounded-control border px-3 text-sm font-extrabold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
                 cents === currentCents
                   ? "border-accent bg-accent-active text-white"
-                  : "border-border bg-white text-ink hover:border-accent"
+                  : "border-border bg-surface text-ink hover:border-accent"
               }`}
             >
               {cents === 0 ? "geen" : formatCents(cents)}

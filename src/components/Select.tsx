@@ -180,7 +180,7 @@ export function Select({
               // Voorkomt dat de trigger focus verliest bij klikken.
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => choose(index)}
-              className={`flex h-control cursor-pointer items-center gap-2.5 rounded-[10px] px-3 text-sm font-bold ${
+              className={`flex h-control cursor-pointer items-center gap-2.5 rounded-control px-3 text-sm font-bold ${
                 isSelected ? "text-accent-hover" : "text-white"
               } ${isActive ? "bg-white/[0.07]" : ""}`}
             >

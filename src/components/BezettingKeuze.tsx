@@ -45,7 +45,7 @@ export function BezettingKeuze({
             className={`min-h-control rounded-full border px-4 text-xs font-extrabold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
               selectedId === option.id
                 ? "border-accent bg-accent-active text-white"
-                : "border-border bg-white text-ink hover:border-accent"
+                : "border-border bg-surface text-ink hover:border-accent"
             }`}
           >
             {option.name}

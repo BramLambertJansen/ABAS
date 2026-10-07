@@ -81,7 +81,7 @@ export function Transactielijst({
             placeholder="Zoek op naam of product"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="h-control-lg w-full rounded-[14px] border border-border bg-white pl-[42px] pr-[18px] text-[14.5px] font-semibold text-ink focus-visible:outline-hidden placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/12"
+            className="h-control-lg w-full rounded-control border border-border bg-surface pl-[42px] pr-[18px] text-[14.5px] font-semibold text-ink focus-visible:outline-hidden placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/12"
           />
         </div>
         {people.length > 0 && (
@@ -99,7 +99,7 @@ export function Transactielijst({
         role="group"
         aria-label="Boekingen"
         tabIndex={-1}
-        className="flex min-h-[180px] flex-[1_1_auto] flex-col overflow-auto rounded-card border border-border bg-white px-4 pb-1.5"
+        className="flex min-h-[180px] flex-[1_1_auto] flex-col overflow-auto rounded-card border border-border bg-surface px-4 pb-1.5"
       >
         {ledger.status === "loading" && !herstel.toonFout && (
           <p className="py-11 text-center text-detail font-bold text-muted" role="status">
@@ -131,7 +131,7 @@ export function Transactielijst({
         )}
         {groups.map((group) => (
           <section key={group.key} aria-label={group.label}>
-            <div className="sticky top-0 z-2 flex items-baseline justify-between gap-3 bg-white pb-[7px] pt-3.5">
+            <div className="sticky top-0 z-2 flex items-baseline justify-between gap-3 bg-surface pb-[7px] pt-3.5">
               <h2 className="text-[10px] font-extrabold tracking-[0.12em] text-muted">
                 {group.label}
               </h2>
@@ -226,12 +226,12 @@ function LedgerRow({
           aria-label={`Bestelling terugdraaien: ${entry.memberName ?? "losse verkoop"}, ${clockLabel(
             entry.createdAt
           )}, ${formatCents(entry.amountCents)}`}
-          className="flex h-control w-10 flex-none items-center justify-center rounded-control text-base font-extrabold text-muted transition-colors hover:bg-danger-bg hover:text-danger"
+          className="flex h-control w-11 flex-none items-center justify-center rounded-control text-base font-extrabold text-muted transition-colors hover:bg-danger-bg hover:text-danger"
         >
           <span aria-hidden="true">⤺</span>
         </button>
       ) : (
-        <span aria-hidden="true" className="w-10 flex-none" />
+        <span aria-hidden="true" className="w-11 flex-none" />
       )}
     </li>
   );
@@ -295,8 +295,8 @@ function PersonFilter({
         aria-controls={listId}
         aria-label={`Geboekt door: ${active.name}, ${active.count}`}
         onClick={() => setOpen((o) => !o)}
-        className={`flex h-control-lg select-none items-center gap-[9px] rounded-[14px] border pl-[15px] pr-[13px] transition-colors ${
-          dark ? "border-ink bg-ink text-white" : "border-border bg-white text-ink"
+        className={`flex h-control-lg select-none items-center gap-[9px] rounded-control border pl-[15px] pr-[13px] transition-colors ${
+          dark ? "border-ink bg-ink text-white" : "border-border bg-surface text-ink"
         }`}
       >
         <span className="whitespace-nowrap text-detail font-bold">{active.name}</span>
@@ -319,7 +319,7 @@ function PersonFilter({
       {open && (
         <ul
           id={listId}
-          className="absolute right-0 top-12 z-21 flex min-w-[200px] origin-top-right flex-col gap-0.5 rounded-card border border-border bg-white p-1.5 shadow-menu"
+          className="absolute right-0 top-12 z-21 flex min-w-[200px] origin-top-right flex-col gap-0.5 rounded-card border border-border bg-surface p-1.5 shadow-menu"
         >
           {options.map((option) => {
             const selected = option.id === activeId;
@@ -329,7 +329,7 @@ function PersonFilter({
                   type="button"
                   aria-pressed={selected}
                   onClick={() => choose(option.id)}
-                  className={`flex h-control w-full items-center gap-2.5 rounded-[11px] px-[13px] text-left text-detail font-bold transition-colors ${
+                  className={`flex h-control w-full items-center gap-2.5 rounded-control px-[13px] text-left text-detail font-bold transition-colors ${
                     selected ? "bg-ink text-white" : "text-ink hover:bg-canvas"
                   }`}
                 >
