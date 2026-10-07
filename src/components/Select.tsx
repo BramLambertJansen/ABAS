@@ -119,10 +119,10 @@ export function Select({
   }
 
   const triggerBorder = open
-    ? "border-accent ring-[3px] ring-accent/20 focus-visible:outline-none"
+    ? "border-accent ring-[3px] ring-accent/20 focus-visible:outline-hidden"
     : invalid
       ? "border-rail-error"
-      : "border-rail-border hover:border-rail-muted focus-visible:outline-none focus-visible:border-accent focus-visible:ring-[3px] focus-visible:ring-accent/20";
+      : "border-rail-border hover:border-rail-muted focus-visible:outline-hidden focus-visible:border-accent focus-visible:ring-[3px] focus-visible:ring-accent/20";
 
   return (
     <div ref={rootRef} className="relative w-full">
@@ -150,7 +150,7 @@ export function Select({
         <span
           aria-hidden="true"
           className={`size-2 flex-none border-b-2 border-r-2 border-rail-muted transition-transform duration-150 ${
-            open ? "translate-y-0.5 rotate-[225deg]" : "-translate-y-0.5 rotate-45"
+            open ? "translate-y-0.5 rotate-225" : "-translate-y-0.5 rotate-45"
           }`}
         />
       </button>

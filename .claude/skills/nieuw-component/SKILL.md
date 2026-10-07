@@ -17,7 +17,7 @@ description: Maak of wijzig een gedeeld UI-component in src/components voor ABAS
 2. **API**: props voor betekenis (`tone`, `maat`, `variant`, `status`), niet
    voor stijl. `className` alleen voor layout van de buitenkant (marge, grid,
    flex) — geen kleur, maat of radius (ADR 0025, besluit 3).
-3. **Stijl**: alleen tokens uit `tailwind.config.ts`; geen arbitrary values,
+3. **Stijl**: alleen tokens uit het `@theme`-blok in `src/app/globals.css`; geen arbitrary values,
    geen `!`. Ontbreekt een token: dat is een vraag aan Bram, geen
    `h-[52px]`.
 4. **Shell**: maat en dichtheid uit `useShell()`, nooit uit `matchMedia`.

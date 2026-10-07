@@ -38,7 +38,7 @@ export function GeldActieHerstelInhoud({ herstel, operation, context, onResolved
       <p className="text-sm">Controleren zoekt alleen het eerdere resultaat. Veilig afronden kan de nog niet verwerkte actie uitvoeren. Definitief annuleren sluit alleen een onbevestigde actie af; het draait geen boeking terug.</p>
       {pending.map((intent) => (
         <div key={intent.id} className="flex flex-col gap-2">
-          {context ? <p className="break-words text-sm font-bold">{context}</p> : <GeldActieContext intent={intent} />}
+          {context ? <p className="wrap-break-word text-sm font-bold">{context}</p> : <GeldActieContext intent={intent} />}
           <div className="flex flex-wrap gap-2">
             {([['check', 'Resultaat controleren'], ['complete', `Eerdere ${NAMEN[intent.operation]} veilig afronden`], ['cancel', `Eerdere ${NAMEN[intent.operation]} definitief annuleren`]] as const).map(([action, label]) => (
               <button key={action} type="button" aria-disabled={herstel.busy}
@@ -50,7 +50,7 @@ export function GeldActieHerstelInhoud({ herstel, operation, context, onResolved
           </div>
         </div>
       ))}
-      <p ref={statusRef} tabIndex={-1} role="status" className="break-words text-sm outline-none">
+      <p ref={statusRef} tabIndex={-1} role="status" className="wrap-break-word text-sm outline-hidden">
         {herstel.busy ? "Bezig met controleren…" : herstel.message}
       </p>
       {herstel.error && <p role="alert" className="text-sm">{herstel.error}</p>}
@@ -63,7 +63,7 @@ export function GeldActieHerstelInhoud({ herstel, operation, context, onResolved
 
 function GeldActieContext({ intent }: { intent: ReturnType<typeof usePendingMoneyRequests>["pending"][number] }) {
   // create_member's name and amount already belong to the captured intent.
-  if (intent.operation === "create_member") return <p className="break-words text-sm font-bold">Nieuw lid: {String(intent.args.p_name)} · Startsaldo {formatCents(Number(intent.args.p_starting_balance_cents ?? 0))}</p>;
+  if (intent.operation === "create_member") return <p className="wrap-break-word text-sm font-bold">Nieuw lid: {String(intent.args.p_name)} · Startsaldo {formatCents(Number(intent.args.p_starting_balance_cents ?? 0))}</p>;
   return <BestaandLidContext intent={intent} />;
 }
 function BestaandLidContext({ intent }: { intent: ReturnType<typeof usePendingMoneyRequests>["pending"][number] }) {
@@ -71,5 +71,5 @@ function BestaandLidContext({ intent }: { intent: ReturnType<typeof usePendingMo
   const naam = leden.status === "ready" ? leden.members.find((lid) => lid.id === intent.args.p_member_id)?.name : null;
   const detail = intent.operation === "top_up" ? formatCents(Number(intent.args.p_amount_cents))
     : `${Array.isArray(intent.args.p_lines) ? intent.args.p_lines.length : 0} productregels`;
-  return <p className="break-words text-sm font-bold">{NAMEN[intent.operation]} voor {naam ?? "het eerder gekozen lid (naam niet beschikbaar)"} · {detail}</p>;
+  return <p className="wrap-break-word text-sm font-bold">{NAMEN[intent.operation]} voor {naam ?? "het eerder gekozen lid (naam niet beschikbaar)"} · {detail}</p>;
 }

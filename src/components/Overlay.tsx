@@ -340,7 +340,7 @@ export function Overlay({
       id={titleId}
       ref={titleRef}
       tabIndex={titleRef ? -1 : undefined}
-      className="text-dialog-title font-extrabold tracking-tight text-ink outline-none"
+      className="text-dialog-title font-extrabold tracking-tight text-ink outline-hidden"
     >
       {title}
     </h2>
@@ -442,16 +442,16 @@ export function Overlay({
       tabIndex={-1}
       className={
         isSheet
-          ? "mx-auto flex max-h-[88vh] w-full max-w-[560px] flex-col gap-[14px] overflow-auto [&>*]:shrink-0 rounded-t-[28px] bg-canvas px-[22px] pb-7 pt-[22px] text-ink focus:outline-none motion-safe:animate-sheet-in"
+          ? "mx-auto flex max-h-[88vh] w-full max-w-[560px] flex-col gap-[14px] overflow-auto *:shrink-0 rounded-t-[28px] bg-canvas px-[22px] pb-7 pt-[22px] text-ink focus:outline-hidden motion-safe:animate-sheet-in"
           : detailModal
-            ? "flex max-h-[88vh] w-full max-w-[640px] flex-col overflow-hidden rounded-[20px] pb-5 bg-white text-ink shadow-dialog focus:outline-none"
-            : "flex max-h-[88vh] w-full max-w-[460px] flex-col gap-4 overflow-auto [&>*]:shrink-0 rounded-[20px] bg-white p-[26px] text-ink shadow-dialog focus:outline-none"
+            ? "flex max-h-[88vh] w-full max-w-[640px] flex-col overflow-hidden rounded-[20px] pb-5 bg-white text-ink shadow-dialog focus:outline-hidden"
+            : "flex max-h-[88vh] w-full max-w-[460px] flex-col gap-4 overflow-auto *:shrink-0 rounded-[20px] bg-white p-[26px] text-ink shadow-dialog focus:outline-hidden"
       }
     >
       {detailModal ? (
         <>
           <div className="flex-none border-b border-border-subtle px-[26px] pb-4 pt-[26px]">{kop}</div>
-          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto [&>*]:shrink-0 px-[26px] py-4">{children}</div>
+          <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto *:shrink-0 px-[26px] py-4">{children}</div>
           <div className="flex flex-none flex-col gap-3 px-[26px]">{onderkant}</div>
         </>
       ) : (

@@ -1,28 +1,182 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
 
+/*
+ * Design tokens (Tailwind v4, ADR 0025 → R4). Was tailwind.config.ts; de
+ * waarden komen uit designs/Bar App.dc.html (inline styles), zie
+ * docs/ARCHITECTURE.md "Design reference". Het prototype bepaalt de eerste
+ * bouw van een scherm; daarna is dit blok de bron van waarheid.
+ * test/accentContrast.test.ts leest de kleuren hier uit.
+ */
+@theme {
+  /*
+   * Regel (T12, #132): witte tekst staat op `active` (rust, 4.83:1) en
+   * `pressed` (hover en ingedrukt, 5.61:1) — de hover wordt dus donkerder.
+   * Donkere tekst (`text-rail`) staat op `accent` en `hover` (5.19 en 6.03:1;
+   * `hover` is bewust lichter). `accent` (#ee5a24) haalt met wit maar 3.42:1
+   * en `hover` 2.95:1: wit nooit op die twee, ook niet als hoverkleur. De
+   * gedeelde klassen staan in src/components/knopStijlen.ts
+   * (KNOP_ACCENT_WIT, KNOP_ACCENT_DONKER). test/accentContrast.test.ts rekent
+   * rust-, hover-, active- en focus-paren door over alle klasse-literals in
+   * src/. Het oude #d94d1a-testje blijft als negatieve bewaking.
+   */
+  --color-accent: #ee5a24;
+  --color-accent-hover: #f1703f;
+  --color-accent-active: #c9451a;
+  /* Hover en ingedrukt voor witte-tekst-knoppen: 5.61:1 met wit. */
+  --color-accent-pressed: #b93d15;
+  /*
+   * Zachte accent-ondergrond ("+"-knoppen, aantal-pillen, gekozen rij) —
+   * altijd met `text-danger`/`text-accent-active` erop, nooit met `accent`
+   * als tekstkleur (te weinig contrast).
+   */
+  --color-accent-soft: #fff2ec;
+
+  --color-ink: #1b1e23;
+  --color-canvas: #faf7f3;
+
+  --color-border: #ede7df;
+  --color-border-subtle: #f4efe8;
+
+  /*
+   * Prototype's exacte waarde (#8c867f) is 3.37:1 op `canvas` bij
+   * 14px/normal — haalt WCAG AA niet (4.5:1), gevangen door check:a11y
+   * (e2e/a11y.spec.ts). Net genoeg donkerder gezet (4.79:1); zelfde tint.
+   */
+  --color-muted: #736d66;
+  --color-muted-light: #aca69e;
+  /* Donkerder secundair grijs uit het prototype (chips, pil-labels): 6.6:1 op wit. */
+  --color-muted-strong: #5c5952;
+
+  /* Ondergrond van gesegmenteerde knoppen en uitgeschakelde primaire knoppen. */
+  --color-track: #f2ece4;
+
+  /*
+   * Het donkere loginscherm (dienst starten, #6) — de "noLogin"-familie uit
+   * het prototype, los van het lichte canvas/ink-paar.
+   */
+  --color-rail: #16181c;
+  --color-rail-card: #1e2127;
+  --color-rail-hover: #23262d;
+  --color-rail-key-hover: #262a31;
+  --color-rail-bright: #e8eaed;
+  --color-rail-border: #2b2f37;
+  /*
+   * #7d838c (prototype) is maar 4.65:1 op rail — geen marge bij 12-13px
+   * tekst. #8c8f96 (5.49:1) voor body- en labeltekst.
+   */
+  --color-rail-muted: #8c8f96;
+  /* Lichtgrijs uit het prototype: namen onder een avatar, hover-tekst, rolbadge — 8:1 op rail-border. */
+  --color-rail-light: #cfd3d8;
+  --color-rail-error: #ff7c4a;
+
+  /*
+   * Prototype's #157f4a haalt 5.04:1 op wit maar 4.29:1 op `track` (de
+   * SALDO-badge in het Logboek, #88) — donkerder gezet tot 4.96:1 op track.
+   */
+  --color-success: #127443;
+
+  --color-warning-bg: #fdf2d6;
+  --color-warning-fg: #8a5a10;
+
+  --color-danger: #c2410c;
+  --color-danger-bg: #fff2ec;
+
+  --font-sans:
+    var(--font-manrope), -apple-system, BlinkMacSystemFont, sans-serif;
+
+  --radius-card: 16px;
+  --radius-control: 12px;
+
+  --text-screen-title: 25px;
+  --text-dialog-title: 19px;
+  --text-section-title: 17px;
+  --text-metadata: 12.5px;
+  --text-detail: 13.5px;
+
+  --shadow-brand: 0 10px 26px -6px rgba(238, 90, 36, 0.7);
+  --shadow-brand-compact: 0 6px 16px -4px rgba(238, 90, 36, 0.7);
+  --shadow-accent-chip: 0 6px 16px -8px rgba(238, 90, 36, 0.9);
+  --shadow-checkout: 0 12px 26px -12px rgba(238, 90, 36, 1);
+  --shadow-surface: 0 1px 2px rgba(27, 30, 35, 0.03);
+  --shadow-surface-hover: 0 10px 24px -14px rgba(27, 30, 35, 0.35);
+  --shadow-segment:
+    0 1px 2px rgba(27, 30, 35, 0.1), 0 4px 12px -6px rgba(27, 30, 35, 0.28);
+  --shadow-dropdown: 0 18px 40px -12px rgba(27, 30, 35, 0.28);
+  --shadow-rail-dropdown: 0 22px 48px -16px rgba(0, 0, 0, 0.7);
+  --shadow-dialog: 0 30px 70px -20px rgba(0, 0, 0, 0.55);
+  --shadow-shift: 0 14px 34px -22px rgba(22, 24, 28, 0.9);
+  --shadow-menu: 0 16px 40px rgba(27, 30, 35, 0.14);
+
+  /*
+   * Inschuiven van de portal-sheet (Overlay.tsx, `overlay: "sheet"`),
+   * prototype designs/Lid App.dc.html → `abasSheet`. Alleen via
+   * `motion-safe:`; reduced motion zet animaties hieronder op 0s.
+   */
+  --animate-sheet-in: sheet-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+
+  @keyframes sheet-in {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+}
+
+/* v4 kent geen backgroundImage-thema; de gloed achter het startscherm. */
+@utility bg-rail-glow {
+  background-image: radial-gradient(circle at 50% 0%, rgba(238, 90, 36, 0.16), transparent 60%);
+}
+
+/*
+ * v3-standaarden die v4 veranderde, behouden zodat de migratie niets
+ * zichtbaar verschuift (Tailwind upgrade guide): randkleur gray-200 i.p.v.
+ * currentcolor, placeholder gray-400 i.p.v. 50% van de tekstkleur, en de
+ * handcursor op knoppen.
+ */
 @layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--color-gray-400);
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
   body {
     @apply bg-canvas text-ink font-sans antialiased;
   }
+}
 
-  /*
-   * Eén zichtbare focusstijl (T12, #132): 2px accent met 2px afstand.
-   * Accent is 3,43:1 op wit en 5,18:1 op rail, genoeg voor een UI-component
-   * (WCAG 1.4.11, 3:1). Alleen :focus-visible, dus geen ring na een muisklik.
-   *
-   * De verdubbelde pseudo-klasse geeft specificiteit 0,2,0, bewust boven die
-   * van `.outline-none` (0,1,0): een kale `outline-none` schakelt de ring dus niet uit. Eigen
-   * vervangingen winnen wel: `focus-visible:outline-*` en `focus:outline-none`
-   * zijn ook 0,2,0 en komen als utility later in de CSS. Velden met een eigen
-   * `focus:ring-*`/randwissel zetten daarom `focus-visible:outline-none`, om
-   * geen dubbele ring te tonen. Uitgezonderd zijn niet-interactieve elementen
-   * met `tabindex="-1"` (koppen en blokken waar focus programmatisch heen
-   * wordt gezet, tweede regel); knoppen met een roving tabindex houden de ring.
-   */
-  :focus-visible:focus-visible {
-    outline: 2px solid theme("colors.accent.DEFAULT");
+/*
+ * Eén zichtbare focusstijl (T12, #132): 2px accent met 2px afstand. Accent is
+ * 3,43:1 op wit en 5,18:1 op rail, genoeg voor een UI-component (WCAG 1.4.11,
+ * 3:1). Alleen :focus-visible, dus geen ring na een muisklik.
+ *
+ * Bewust in de utilities-laag, na Tailwinds eigen utilities, met
+ * specificiteit 0,1,0. Een kale `outline-hidden` (0,1,0, eerder in de laag)
+ * schakelt de ring dus níet uit — zoals `outline-none` in v3 niet deed. Eigen
+ * vervangingen winnen wel: `focus-visible:outline-*` en `focus:outline-*` zijn
+ * 0,2,0. Velden met een eigen `focus:ring-*`/randwissel zetten daarom
+ * `focus-visible:outline-hidden`, om geen dubbele ring te tonen. Uitgezonderd
+ * zijn niet-interactieve elementen met `tabindex="-1"` (koppen en blokken waar
+ * focus programmatisch heen gaat, tweede regel); knoppen met een roving
+ * tabindex houden de ring.
+ */
+@layer utilities {
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
     outline-offset: 2px;
   }
 

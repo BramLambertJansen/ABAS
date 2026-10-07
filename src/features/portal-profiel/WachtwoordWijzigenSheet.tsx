@@ -97,7 +97,7 @@ export function WachtwoordWijzigenSheet({
           readOnly={pending}
         />
 
-        <p className="text-sm font-bold text-danger empty:-mt-[14px]" role="alert">
+        <p className="text-sm font-bold text-danger empty:mt-[-14px]" role="alert">
           {timedOut
             ? ONBEKENDE_UITKOMST_TEKST
             : mutation.errorCode

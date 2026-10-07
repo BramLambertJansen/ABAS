@@ -60,7 +60,7 @@ export function ActiviteitKeuze({
       <h2
         ref={kopRef}
         tabIndex={-1}
-        className="text-center text-lg font-extrabold tracking-tight text-white outline-none"
+        className="text-center text-lg font-extrabold tracking-tight text-white outline-hidden"
       >
         Voor welke activiteit is deze dienst?
       </h2>

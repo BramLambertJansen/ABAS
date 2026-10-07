@@ -164,7 +164,7 @@ Verificatie table has been updated accordingly and the "doesn't exist yet"
 paragraph removed, per its own "wat een gate kan afdwingen staat hier niet"
 rule.
 - Running this gate against the as-built scaffold caught a real finding, not
-  a hypothetical one: `muted.DEFAULT` (`tailwind.config.ts`), taken verbatim
+  a hypothetical one: `--color-muted` (`@theme` in `src/app/globals.css`), taken verbatim
   from the prototype's inline styles, was 3.37:1 on `canvas` at 14px/normal —
   below the 4.5:1 WCAG AA needs. Darkened to `#736d66` (4.79:1, same hue).
   Expect more of these once real screens exist; this gate is what's supposed
@@ -216,7 +216,7 @@ same markup for `"sheet"` rather than building an untested second branch.
 (`docs/features/portal-profiel.md` → useShell()-contract): anchored to the
 bottom, full width, rounded top corners (`rounded-t-[28px]`), `bg-canvas`,
 backdrop `bg-ink/40`, and a slide-in (`animate-sheet-in` in
-`tailwind.config.ts`) that only runs under `motion-safe:`. No drag-to-close
+`@theme` in `src/app/globals.css`) that only runs under `motion-safe:`. No drag-to-close
 gesture (WCAG 2.5.1). Both variants share one code path for everything
 below; only layout/position differ. The modal dialog is white, as every dialog in `designs/Bar App.dc.html`
 (it was a dark `rail-card` panel until 2026-09-24); content inside uses the
@@ -1422,7 +1422,7 @@ Manrope typeface, 44–52px tap targets (bar tablet, used with busy/wet hands).
 (`#ee5a24`, the prototype's literal accent color) only clears WCAG AA
 contrast for dark text/icons on an accent background (5.19:1) — bold white
 text under ~18px on that same background is 3.42:1, below the 4.5:1 AA
-minimum. One background shade can't satisfy both, so `tailwind.config.ts`
+minimum. One background shade can't satisfy both, so the `@theme` block in `src/app/globals.css`
 keeps `accent.DEFAULT` for dark-text-on-accent uses (e.g. the "beheerder"
 role badge) and adds `accent.active` (`#c9451a`, 4.83:1) for any bold
 white/light text on an accent-filled control (buttons, active tab/chip
@@ -1430,7 +1430,7 @@ state, selection badges). Found during #7 (`BezettingOverlay.tsx`'s "Klaar"
 button, the first real `check:a11y` run against a rendered button) and
 applied to every `bg-accent` + white-text spot #8 added
 (`DienstTabs.tsx`, `Assortiment.tsx`, `Mandje.tsx`, `AfrekenenOverlay.tsx`) —
-see the comment on the `accent` token in `tailwind.config.ts` for the exact
+see the comment on the `--color-accent` token in `src/app/globals.css` for the exact
 contrast numbers. **Any future screen putting bold white/light text on an
 accent-filled background should reach for `bg-accent-active`, not
 `bg-accent`**, to stay green on `check:a11y` without rediscovering this.

@@ -161,7 +161,7 @@ export function LidZoeker({
         }}
         onKeyDown={handleKeyDown}
         onBlur={() => setOpen(false)}
-        className="h-[50px] w-full rounded-card border border-border bg-white pl-[46px] pr-[18px] text-[14.5px] font-medium text-ink shadow-surface focus-visible:outline-none placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
+        className="h-[50px] w-full rounded-card border border-border bg-white pl-[46px] pr-[18px] text-[14.5px] font-medium text-ink shadow-surface focus-visible:outline-hidden placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
       />
 
       <p
@@ -211,7 +211,7 @@ export function LidZoeker({
               }`}
             >
               <InitialsAvatar name={member.name} size="sm" tone="light" />
-              <span className="min-w-0 flex-1 break-words text-sm font-bold text-ink">
+              <span className="min-w-0 flex-1 wrap-break-word text-sm font-bold text-ink">
                 {member.name}
               </span>
               <span

@@ -109,7 +109,7 @@ export function TerugdraaienOverlay({
             setReason(e.target.value);
             if (errorCode === "reason_required") setErrorCode(null);
           }}
-          className="h-12 w-full rounded-[13px] border border-border bg-white px-3.5 text-detail font-semibold text-ink focus-visible:outline-none placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
+          className="h-12 w-full rounded-[13px] border border-border bg-white px-3.5 text-detail font-semibold text-ink focus-visible:outline-hidden placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
         />
       </div>
 

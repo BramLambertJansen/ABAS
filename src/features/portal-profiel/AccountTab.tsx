@@ -70,7 +70,7 @@ export function AccountTab({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-auto p-5">
-      <h2 ref={kopRef} tabIndex={-1} className="outline-none text-[22px] font-extrabold tracking-tight text-ink">Account</h2>
+      <h2 ref={kopRef} tabIndex={-1} className="outline-hidden text-[22px] font-extrabold tracking-tight text-ink">Account</h2>
 
       {profiel.status === "loading" && !herstel.toonFout && (
         <p className="py-8 text-center text-sm font-bold text-muted" role="status">
@@ -96,7 +96,7 @@ export function AccountTab({
           </div>
 
           <div className="flex flex-none flex-col gap-2">
-            <h3 className="text-[11px] font-bold tracking-[0.1em] text-muted">GEGEVENS</h3>
+            <h3 className="text-[11px] font-bold tracking-widest text-muted">GEGEVENS</h3>
             <ul className="overflow-hidden rounded-[22px] border border-border bg-white">
               {!profiel.profiel.archived && (
                 <AccountRij
@@ -187,7 +187,7 @@ function AccountRij({
       <button
         type="button"
         onClick={onClick}
-        className="flex min-h-[60px] w-full items-center gap-3.5 px-4 py-3 text-left transition-colors hover:bg-canvas focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
+        className="flex min-h-[60px] w-full items-center gap-3.5 px-4 py-3 text-left transition-colors hover:bg-canvas focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
       >
         <span className="flex min-w-0 flex-1 flex-col gap-0.5">
           <span className="text-sm font-bold text-ink">{title}</span>
@@ -225,7 +225,7 @@ function TweestapRij({ aan, onClick }: { aan: boolean; onClick: () => void }) {
       <button
         type="button"
         onClick={onClick}
-        className="flex min-h-[60px] w-full items-center gap-3.5 px-4 py-3 text-left transition-colors hover:bg-canvas focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
+        className="flex min-h-[60px] w-full items-center gap-3.5 px-4 py-3 text-left transition-colors hover:bg-canvas focus-visible:outline-solid focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
       >
         {inhoud}
         <span aria-hidden="true" className="flex-none text-section-title font-bold text-muted">

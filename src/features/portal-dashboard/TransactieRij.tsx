@@ -27,10 +27,10 @@ export function TransactieRij({ transaction }: { transaction: PortalTransaction 
 
   return (
     <li className="flex flex-wrap items-start gap-3 border-b border-border-subtle py-3.5 last:border-b-0">
-      <div className="flex min-w-0 basis-[10rem] flex-1 flex-col gap-0.5">
+      <div className="flex min-w-0 basis-40 flex-1 flex-col gap-0.5">
         <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
           <span
-            className={`break-words text-sm font-bold ${reversed ? "text-muted line-through" : "text-ink"}`}
+            className={`wrap-break-word text-sm font-bold ${reversed ? "text-muted line-through" : "text-ink"}`}
           >
             {transactionLabel(transaction)}
           </span>
@@ -40,11 +40,11 @@ export function TransactieRij({ transaction }: { transaction: PortalTransaction 
             </span>
           )}
         </span>
-        <span className="break-words text-xs font-medium text-muted">
+        <span className="wrap-break-word text-xs font-medium text-muted">
           {dateLabel(transaction.createdAt)} · {transactionDetail(transaction)}
         </span>
         {lines.map((line) => (
-          <span key={line} className="break-words text-xs font-medium text-muted">
+          <span key={line} className="wrap-break-word text-xs font-medium text-muted">
             {line}
           </span>
         ))}

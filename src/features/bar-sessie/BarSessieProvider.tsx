@@ -358,7 +358,7 @@ function BarSessieScope({ children, auth, melding, setMelding, bevestigLogin }: 
         <div
           role="status"
           aria-live="polite"
-          className="pointer-events-none fixed inset-x-0 bottom-6 z-[60] flex justify-center"
+          className="pointer-events-none fixed inset-x-0 bottom-6 z-60 flex justify-center"
         >
           <span className="rounded-full bg-ink px-5 py-2.5 text-sm font-bold text-white shadow-lg">
             {toast}

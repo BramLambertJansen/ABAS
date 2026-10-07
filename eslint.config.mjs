@@ -17,7 +17,7 @@ const compat = new FlatCompat({
 // ook, tot `npm run lint:prune` de daling vastlegt. Nieuwe code is dus vanaf
 // de eerste dag aan elke regel gebonden. Meldingen noemen de oplossing: lint is
 // ook de reparatie-instructie voor een agent.
-const ARBITRARY = "Geen arbitrary Tailwind-waarde: kies een token uit tailwind.config.ts (zie src/components/README.md). Ontbreekt het token, vraag het aan Bram.";
+const ARBITRARY = "Geen arbitrary Tailwind-waarde: kies een token uit @theme in src/app/globals.css (zie src/components/README.md). Ontbreekt het token, vraag het aan Bram.";
 
 const eslintConfig = [
   {
@@ -60,8 +60,8 @@ const eslintConfig = [
     files: ["src/**/*.{ts,tsx}"],
     plugins: { "better-tailwindcss": betterTailwind },
     settings: {
-      // Tailwind v3. Bij de overstap naar v4 wordt dit `entryPoint` (CSS).
-      "better-tailwindcss": { tailwindConfig: "./tailwind.config.ts" },
+      // Tailwind v4: de tokens staan in het @theme-blok van de CSS-entry.
+      "better-tailwindcss": { entryPoint: "src/app/globals.css" },
     },
     rules: {
       "better-tailwindcss/no-unknown-classes": "error",

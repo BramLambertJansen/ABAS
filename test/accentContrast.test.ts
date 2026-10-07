@@ -4,7 +4,6 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-import config from "../tailwind.config.ts";
 import { KNOP_ACCENT_DONKER, KNOP_ACCENT_WIT } from "../src/components/knopStijlen.ts";
 import { methodLabel } from "../src/lib/betaalmethode.ts";
 
@@ -12,8 +11,38 @@ import { methodLabel } from "../src/lib/betaalmethode.ts";
  * Bewaakt de tekst/achtergrond-paren van de accent-knoppen (#66). axe ziet
  * een :hover-kleur alleen als de cursor toevallig op zo'n knop staat
  * tijdens een scan; deze test meet de tokens zelf. Zie de toelichting bij
- * `accent` in tailwind.config.ts voor welk paar waar gebruikt wordt.
+ * `--color-accent` in src/app/globals.css voor welk paar waar gebruikt wordt.
  */
+
+/**
+ * De tokens staan sinds Tailwind v4 in het `@theme`-blok van
+ * src/app/globals.css (ADR 0025 → R4). Dit bouwt daaruit dezelfde vorm als
+ * het oude `tailwind.config.ts` (`theme.extend.colors` met `DEFAULT`,
+ * `fontSize`, `fontFamily.sans`), zodat de asserties hieronder ongewijzigd
+ * blijven.
+ */
+function themaUitCss(css: string) {
+  const blok = css.match(/@theme\s*\{([\s\S]*?)\n\}/)?.[1] ?? "";
+  const zonderCommentaar = blok.replace(/\/\*[\s\S]*?\*\//g, "");
+  const tokens = [...zonderCommentaar.matchAll(/--([\w-]+):\s*([^;]+);/g)].map(([, naam, waarde]) => [naam ?? "", (waarde ?? "").replace(/\s+/g, " ").trim()] as const);
+  const kleuren = tokens.filter(([n]) => n.startsWith("color-")).map(([n, v]) => [n.slice(6), v] as const);
+  const groepen = new Map<string, Array<readonly [string, string]>>();
+  for (const [naam, waarde] of kleuren) {
+    const [kop, ...rest] = naam.split("-");
+    const lijst = groepen.get(kop ?? "") ?? [];
+    lijst.push([rest.join("-"), waarde]);
+    groepen.set(kop ?? "", lijst);
+  }
+  const colors: Record<string, unknown> = {};
+  for (const [kop, lijst] of groepen) {
+    const enkel = lijst.length === 1 && lijst[0]?.[0] === "" ? lijst[0] : undefined;
+    colors[kop] = enkel ? enkel[1] : Object.fromEntries(lijst.map(([sub, v]) => [sub === "" ? "DEFAULT" : sub, v]));
+  }
+  const fontSize = Object.fromEntries(tokens.filter(([n]) => n.startsWith("text-")).map(([n, v]) => [n.slice(5), v]));
+  const sans = (tokens.find(([n]) => n === "font-sans")?.[1] ?? "").split(",").map((d) => d.trim());
+  return { theme: { extend: { colors, fontSize, fontFamily: { sans } } } };
+}
+const config = themaUitCss(readFileSync("src/app/globals.css", "utf8"));
 
 const colors = config.theme?.extend?.colors as {
   accent: { DEFAULT: string; hover: string; active: string; pressed: string; soft: string };
@@ -222,7 +251,7 @@ test("Manrope: woff2 is geldig, licentie staat erbij en er is geen extern fontve
   assert.equal(woff.subarray(0, 4).toString("latin1"), "wOF2");
   assert.ok(woff.length > 10_000);
   assert.match(readFileSync("src/app/fonts/OFL.txt", "utf8"), /SIL OPEN FONT LICENSE Version 1\.1/i);
-  for (const file of [...walk("src"), "tailwind.config.ts"]) {
+  for (const file of [...walk("src"), "src/app/globals.css"]) {
     const bron = readFileSync(file, "utf8");
     assert.ok(!/fonts\.(googleapis|gstatic)\.com|next\/font\/google/.test(bron), `${file} verwijst naar Google Fonts`);
   }

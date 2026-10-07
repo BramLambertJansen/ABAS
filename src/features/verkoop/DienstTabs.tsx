@@ -28,7 +28,7 @@ function railLabel(icon: ReactNode, text: string) {
       <>
         <span
           aria-hidden="true"
-          className={`absolute -left-[11px] bottom-[14px] top-[14px] w-[3px] rounded-r-[3px] ${
+          className={`absolute left-[-11px] bottom-[14px] top-[14px] w-[3px] rounded-r-[3px] ${
             selected ? "bg-accent" : "bg-transparent"
           }`}
         />
@@ -133,7 +133,7 @@ export function DienstTabs({
 
           <div className="mt-auto flex w-full flex-col items-center gap-2 px-1.5 pt-4">
             {sessie.session && (
-              <p className="break-words text-center text-[9.5px] font-semibold leading-tight text-rail-muted">
+              <p className="wrap-break-word text-center text-[9.5px] font-semibold leading-tight text-rail-muted">
                 {ingelogdAls(sessie.session.memberName)}
               </p>
             )}

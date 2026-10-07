@@ -79,7 +79,7 @@ export function ModusKeuze({
           <h2
             ref={codeKopRef}
             tabIndex={-1}
-            className="text-center text-base font-extrabold text-white outline-none"
+            className="text-center text-base font-extrabold text-white outline-hidden"
           >
             {TWEESTAP_TEKSTEN.modusKeuzeTitel}
           </h2>

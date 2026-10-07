@@ -260,7 +260,7 @@ export function ActiviteitstypesInstellingen() {
                     onChange={(event) =>
                       setEditing({ id: type.id, name: event.target.value })
                     }
-                    className="h-10 flex-1 min-w-0 rounded-control border border-border px-3 text-sm font-semibold text-ink focus-visible:outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
+                    className="h-10 flex-1 min-w-0 rounded-control border border-border px-3 text-sm font-semibold text-ink focus-visible:outline-hidden focus:border-accent focus:ring-2 focus:ring-accent/30"
                   />
                   <button
                     type="button"
@@ -388,7 +388,7 @@ export function ActiviteitstypesInstellingen() {
             placeholder="bijv. Repetitie"
             value={newName}
             onChange={(event) => setNewName(event.target.value)}
-            className="h-11 flex-1 min-w-0 rounded-control border border-border px-3.5 text-sm font-semibold text-ink focus-visible:outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
+            className="h-11 flex-1 min-w-0 rounded-control border border-border px-3.5 text-sm font-semibold text-ink focus-visible:outline-hidden focus:border-accent focus:ring-2 focus:ring-accent/30"
           />
           <button
             type="button"

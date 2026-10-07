@@ -5,7 +5,7 @@ import { useState } from "react";
 /**
  * Het moment waarop een veld zijn fout toont (docs/features/invoerfeedback-
  * zoeken-filters.md → Veldfeedback): niet tijdens het eerste typen, wel na
- * `blur` (`aangeraakt`) of na een tik op de primaire knop (`pogingGedaan`).
+ * `blur-sm` (`aangeraakt`) of na een tik op de primaire knop (`pogingGedaan`).
  * Een ongewijzigd, nooit aangeraakt formulier toont niets. De aanroeper
  * beslist met deze vlaggen of de melding zichtbaar is; herstel is direct
  * omdat de fout zelf uit de huidige invoer volgt, niet uit deze state.

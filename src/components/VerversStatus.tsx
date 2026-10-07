@@ -46,7 +46,7 @@ export function VerversStatus({
         onClick={() => {
           if (!bezig) onVerversen();
         }}
-        className="flex min-h-11 max-w-full flex-none items-center rounded-control border border-border bg-white px-4 text-xs font-extrabold text-ink transition-colors hover:border-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-disabled:cursor-not-allowed aria-disabled:opacity-60"
+        className="flex min-h-11 max-w-full flex-none items-center rounded-control border border-border bg-white px-4 text-xs font-extrabold text-ink transition-colors hover:border-ink focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-disabled:cursor-not-allowed aria-disabled:opacity-60"
       >
         {VERVERS_TEKSTEN.verversen}
       </button>

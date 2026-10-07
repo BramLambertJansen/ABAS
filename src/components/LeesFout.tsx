@@ -50,7 +50,7 @@ export function LeesFout({
         onClick={() => {
           if (!bezig) onRetry();
         }}
-        className={`flex h-11 items-center rounded-control border px-4 text-sm font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-60 ${t.knop}`}
+        className={`flex h-11 items-center rounded-control border px-4 text-sm font-bold transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-60 ${t.knop}`}
       >
         {bezig ? VERVERS_TEKSTEN.opnieuwProberenBezig : VERVERS_TEKSTEN.opnieuwProberen}
       </button>

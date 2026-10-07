@@ -159,7 +159,7 @@ export function PortalLogin({
           ref={meldingRef}
           tabIndex={-1}
           role="alert"
-          className="w-full max-w-sm rounded-2xl border border-border bg-white px-4 py-3 text-center text-sm font-bold text-danger outline-none"
+          className="w-full max-w-sm rounded-2xl border border-border bg-white px-4 py-3 text-center text-sm font-bold text-danger outline-hidden"
         >
           {deniedMessage}
         </p>
@@ -171,7 +171,7 @@ export function PortalLogin({
             <p
               ref={forgotSentRef}
               tabIndex={-1}
-              className="text-sm font-bold text-ink outline-none"
+              className="text-sm font-bold text-ink outline-hidden"
               role="status"
             >
               Als er een account bij {resetRequest.sentTo} hoort, hebben we een link gestuurd om
@@ -197,7 +197,7 @@ export function PortalLogin({
                 id={forgotHeadingId}
                 ref={forgotHeadingRef}
                 tabIndex={-1}
-                className="text-base font-extrabold text-ink outline-none"
+                className="text-base font-extrabold text-ink outline-hidden"
               >
                 Wachtwoord vergeten
               </h2>
@@ -236,7 +236,7 @@ export function PortalLogin({
           <p
             ref={magicLinkSentRef}
             tabIndex={-1}
-            className="text-sm font-bold text-ink outline-none"
+            className="text-sm font-bold text-ink outline-hidden"
             role="status"
           >
             Als er een account bij {login.magicLinkSentTo} hoort, hebben we een inloglink
@@ -278,14 +278,14 @@ export function PortalLogin({
             {/* text-muted-strong, niet text-muted, voor de niet-actieve tab:
                 text-muted op bg-track is 4.35:1 (axe/check:a11y, faalt WCAG
                 AA's 4.5:1 voor 12px bold) — text-muted zelf is alleen tegen
-                canvas/wit geijkt (tailwind.config.ts), niet tegen track. */}
+                canvas/wit geijkt (globals.css, @theme), niet tegen track. */}
             <div
               className="flex gap-1 rounded-2xl bg-track p-1"
               role="group"
               aria-labelledby={methodLegendId}
             >
               <label
-                className={`flex flex-1 cursor-pointer items-center justify-center rounded-xl px-3 py-2.5 text-xs font-bold focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent ${
+                className={`flex flex-1 cursor-pointer items-center justify-center rounded-xl px-3 py-2.5 text-xs font-bold focus-within:outline-solid focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent ${
                   method === "magic_link" ? "bg-white text-ink" : "text-muted-strong"
                 }`}
               >
@@ -300,7 +300,7 @@ export function PortalLogin({
                 Magic link
               </label>
               <label
-                className={`flex flex-1 cursor-pointer items-center justify-center rounded-xl px-3 py-2.5 text-xs font-bold focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent ${
+                className={`flex flex-1 cursor-pointer items-center justify-center rounded-xl px-3 py-2.5 text-xs font-bold focus-within:outline-solid focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-accent ${
                   method === "password" ? "bg-white text-ink" : "text-muted-strong"
                 }`}
               >

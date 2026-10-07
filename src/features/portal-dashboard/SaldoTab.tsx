@@ -112,7 +112,7 @@ export function SaldoTab({ onShowAll }: { onShowAll: () => void }) {
             tabIndex={-1}
             className="flex flex-none flex-col gap-1.5 rounded-[22px] bg-ink p-6 text-white"
           >
-            <span className="text-[11px] font-bold tracking-[0.1em] text-white/60">
+            <span className="text-[11px] font-bold tracking-widest text-white/60">
               HUIDIG SALDO
             </span>
             <span className="text-4xl font-extrabold tracking-tight">
@@ -162,7 +162,7 @@ export function SaldoTab({ onShowAll }: { onShowAll: () => void }) {
             className="flex min-h-0 flex-1 flex-col gap-2"
           >
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-[11px] font-bold tracking-[0.1em] text-muted">
+              <h2 className="text-[11px] font-bold tracking-widest text-muted">
                 RECENTE TRANSACTIES
               </h2>
               {transactions.status === "ready" && recent.length > 0 && (

@@ -10,7 +10,7 @@ type Tab = "saldo" | "transacties" | "account";
 
 const portalTabClass = (selected: boolean) =>
   `flex min-h-10 min-w-fit max-w-full flex-1 items-center justify-center rounded-xl px-2 py-2 text-sm font-bold transition-colors ${
-    selected ? "bg-white text-ink shadow-sm" : "text-muted-strong"
+    selected ? "bg-white text-ink shadow-xs" : "text-muted-strong"
   }`;
 
 const PORTAL_TABS: TabItem[] = [
@@ -73,11 +73,11 @@ export function PortalDashboard({
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-[560px] flex-col bg-canvas sm:border-x sm:border-border font-sans text-ink antialiased">
       <header className="flex flex-none flex-wrap items-center justify-between gap-3 border-b border-border bg-white px-5 py-4">
-        <div className="flex min-w-0 basis-[7rem] flex-1 flex-col">
+        <div className="flex min-w-0 basis-28 flex-1 flex-col">
           <h1
             ref={kopRef}
             tabIndex={-1}
-            className="truncate text-lg font-extrabold tracking-tight text-ink focus:outline-none"
+            className="truncate text-lg font-extrabold tracking-tight text-ink focus:outline-hidden"
           >
             Hoi {firstName}
           </h1>

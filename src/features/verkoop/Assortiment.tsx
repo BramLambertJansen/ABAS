@@ -123,7 +123,7 @@ export function Assortiment({
               if (trimmedQuery && next.trim() === "") clearQuery();
               else setQuery(next);
             }}
-            className="h-[52px] w-full rounded-[14px] border border-border bg-white pl-[46px] pr-[18px] text-[14.5px] font-medium text-ink focus-visible:outline-none placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
+            className="h-[52px] w-full rounded-[14px] border border-border bg-white pl-[46px] pr-[18px] text-[14.5px] font-medium text-ink focus-visible:outline-hidden placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
           />
         </div>
         <div
@@ -211,7 +211,7 @@ export function Assortiment({
                   <ProductAfbeelding imageUrl={product.imageUrl} name={product.name} size="tile" decorative />
                   <span className="flex w-full items-center justify-between gap-2">
                     <span className="flex min-w-0 flex-col gap-0.5">
-                      <span className="line-clamp-2 break-words text-detail font-bold leading-tight text-ink">
+                      <span className="line-clamp-2 wrap-break-word text-detail font-bold leading-tight text-ink">
                         {product.name}
                       </span>
                       <span className="flex flex-wrap items-center gap-1.5 text-[13px] font-semibold text-muted">

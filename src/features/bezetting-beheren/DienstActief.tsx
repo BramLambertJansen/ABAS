@@ -79,7 +79,7 @@ export function DienstActief({
     <div className="flex min-h-0 min-w-0 flex-1">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-auto px-[26px] pb-[22px] pt-6">
         <header className="flex flex-none flex-wrap items-center gap-3.5">
-          <h1 className="text-screen-title font-extrabold leading-none tracking-[-0.025em] text-ink">
+          <h1 className="text-screen-title font-extrabold leading-none tracking-tight text-ink">
             Dienst
           </h1>
           <BezettingPil
@@ -310,7 +310,7 @@ function receiptLabel(n: number): string {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex min-w-0 flex-col gap-0.5">
-      <dt className="truncate text-[9px] font-extrabold leading-tight tracking-[0.1em] text-rail-muted">
+      <dt className="truncate text-[9px] font-extrabold leading-tight tracking-widest text-rail-muted">
         {label}
       </dt>
       <dd className="whitespace-nowrap text-[15px] font-extrabold tracking-[-0.02em] text-rail-bright">
