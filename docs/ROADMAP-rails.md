@@ -15,8 +15,8 @@ beveiligingsscans, productie alleen via release.
 
 | Stap | Wie | Toelichting |
 |---|---|---|
-| 0.1a `auto_expose_new_tables = false` + expliciete grants | spec + migratie | Lokaal/CI gelijk aan productie na 2026-10-30. Eerst een migratie die de grants expliciet maakt die productie al heeft (minstens `service_role` EXECUTE op `set_product_image` en `mark_member_invite_sent`), dan de instelling; `db:test` laat zien wat nog verschilt. |
-| 0.1 Migraties `0041`–`0043` naar productie | Bram (`supabase db push`) | Productie staat op `0040` (gecontroleerd 2026-10-07). Daardoor faalt `check:deployment` en serveert productie nog `0cfbb56`. De voorwaarde-queries van ADR 0023 zijn op 2026-10-07 gedraaid en kloppen allemaal (zie de checklist). |
+| 0.1a `auto_expose_new_tables = false` + expliciete grants | **gebouwd (#187)** | Migratie 0044 (131 rechten, afgeleid met `scripts/kit/api-rechten.sql`); op productie een no-op. Gaat mee met de `db push` van 0.1. |
+| 0.1 Migraties `0041`–`0044` naar productie | Bram (`supabase db push`) | Productie staat op `0040` (gecontroleerd 2026-10-07). Daardoor faalt `check:deployment` en serveert productie nog `0cfbb56`. De voorwaarde-queries van ADR 0023 zijn op 2026-10-07 gedraaid en kloppen allemaal (zie de checklist). |
 | 0.2 Release van `main` | Bram (Release-workflow) | Na 0.1. Via `release.yml`, want de Git-autodeploy staat uit. |
 | 0.3 Legacy `place_order`/`top_up` dichtzetten | spec + migratie | Productie geeft `authenticated` EXECUTE op beide (2026-10-07), naast `*_once`. Pas na 0.2 (ADR 0024: compatibele uitrol). Daarna revoke en herclassificatie als `intern` in `rpc_catalogus`. |
 | 0.4 Geen tabel-SELECT voor `authenticated` | spec + pgTAP | Assertie over elke tabel, eerst met een bekende uitzonderingslijst in de ratchet. Bereidt R1 voor. |
