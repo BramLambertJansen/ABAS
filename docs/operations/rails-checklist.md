@@ -35,7 +35,7 @@ Te doen:
 
 - [ ] `supabase db push` voor `0041`–`0043`. Daarna de Release-workflow draaien.
 - [ ] Settings → API Keys: bevestig dat Vercel `sb_publishable_…` en `sb_secret_…` gebruikt. Daarna de legacy JWT-sleutels uitzetten. De namen in Vercel zijn al de nieuwe; de waarden zijn niet gecontroleerd (de secret is "sensitive").
-- [ ] Na 2026-10-30: `auto_expose_new_tables` uit `supabase/config.toml` halen als de CLI de sleutel niet meer kent.
+- [ ] Roadmap 0.1a: `auto_expose_new_tables = false` met expliciete grants in een eigen PR (vóór 2026-10-30). Na die datum de sleutel weer weghalen als de CLI hem niet meer kent.
 
 ## Vercel (project `abas`)
 
