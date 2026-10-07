@@ -1,4 +1,4 @@
-@import 'tailwindcss';
+@import 'tailwindcss' source("../");
 
 /*
  * Design tokens (Tailwind v4, ADR 0025 → R4). Was tailwind.config.ts; de
