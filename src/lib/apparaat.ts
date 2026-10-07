@@ -57,9 +57,10 @@ export function apparaatCookieOpties(secure: boolean) {
 export function sessionIdUitAccessToken(accessToken: string | null | undefined): string | null {
   if (typeof accessToken !== "string") return null;
   const delen = accessToken.split(".");
-  if (delen.length !== 3) return null;
+  const payloadDeel = delen[1];
+  if (delen.length !== 3 || payloadDeel === undefined) return null;
   try {
-    const payload = JSON.parse(new TextDecoder().decode(base64UrlNaarBytes(delen[1]))) as {
+    const payload = JSON.parse(new TextDecoder().decode(base64UrlNaarBytes(payloadDeel))) as {
       session_id?: unknown;
     };
     const id = payload.session_id;

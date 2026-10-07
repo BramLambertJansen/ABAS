@@ -6,6 +6,7 @@
 // (gebruikt door de ratchet).
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 const root = path.resolve(import.meta.dirname, "../..");
 const deel = process.argv.slice(2).find((a) => !a.startsWith("--"));
@@ -19,8 +20,6 @@ function bestanden(dir, filter) {
 }
 const exportsVan = (tekst) =>
   [...tekst.matchAll(/^export\s+(?:default\s+)?(?:async\s+)?(?:function|const|class|type|interface)\s+(\w+)/gm)].map((m) => m[1]);
-const eersteCommentaar = (tekst) =>
-  tekst.match(/^\s*(?:\/\*\*?\s*\n?\s*\*?\s*|\/\/\s*)([^\n*]+)/)?.[1]?.trim() ?? "";
 
 export function componenten() {
   const readme = readFileSync(path.join(root, "src/components/README.md"), "utf8");
@@ -34,28 +33,31 @@ export function componenten() {
   });
 }
 
-if (alleenOntbrekend) {
-  for (const c of componenten()) if (!c.rij) console.log(c.rel);
-  process.exit(0);
-}
+const isMain = import.meta.url === pathToFileURL(process.argv[1] ?? "").href;
+if (isMain) {
+  if (alleenOntbrekend) {
+    for (const c of componenten()) if (!c.rij) console.log(c.rel);
+  } else {
 
-const uit = [];
-if (!deel || deel === "componenten") {
-  uit.push("## Componenten (src/components) — kies hieruit vóór je iets nieuws maakt\n");
-  for (const c of componenten()) {
-    uit.push(`- \`${c.rel}\` — exports: ${c.exports.join(", ") || "—"}`);
-    if (c.rij) uit.push(`  taak: ${c.rij[0]}; ${c.rij[2] ?? ""}`);
-    else uit.push("  ⚠ geen rij in src/components/README.md");
+  const uit = [];
+  if (!deel || deel === "componenten") {
+    uit.push("## Componenten (src/components) — kies hieruit vóór je iets nieuws maakt\n");
+    for (const c of componenten()) {
+      uit.push(`- \`${c.rel}\` — exports: ${c.exports.join(", ") || "—"}`);
+      if (c.rij) uit.push(`  taak: ${c.rij[0]}; ${c.rij[2] ?? ""}`);
+      else uit.push("  ⚠ geen rij in src/components/README.md");
+    }
+  }
+  if (!deel || deel === "hooks") {
+    uit.push("\n## Hooks (src/hooks)\n");
+    for (const rel of bestanden("src/hooks", (f) => /\.ts$/.test(f))) {
+      const tekst = readFileSync(path.join(root, rel), "utf8");
+      const rpc = [...new Set([...tekst.matchAll(/\.rpc\(\s*["'](\w+)["']/g)].map((m) => m[1]))];
+      const from = [...new Set([...tekst.matchAll(/\.from\(\s*["'](\w+)["']/g)].map((m) => m[1]))];
+      const bron = [rpc.length ? `rpc: ${rpc.join(", ")}` : "", from.length ? `from: ${from.join(", ")}` : ""].filter(Boolean).join("; ");
+      uit.push(`- \`${rel}\` — ${exportsVan(tekst).join(", ") || "—"}${bron ? ` (${bron})` : ""}`);
+    }
+  }
+  console.log(uit.join("\n"));
   }
 }
-if (!deel || deel === "hooks") {
-  uit.push("\n## Hooks (src/hooks)\n");
-  for (const rel of bestanden("src/hooks", (f) => /\.ts$/.test(f))) {
-    const tekst = readFileSync(path.join(root, rel), "utf8");
-    const rpc = [...new Set([...tekst.matchAll(/\.rpc\(\s*["'](\w+)["']/g)].map((m) => m[1]))];
-    const from = [...new Set([...tekst.matchAll(/\.from\(\s*["'](\w+)["']/g)].map((m) => m[1]))];
-    const bron = [rpc.length ? `rpc: ${rpc.join(", ")}` : "", from.length ? `from: ${from.join(", ")}` : ""].filter(Boolean).join("; ");
-    uit.push(`- \`${rel}\` — ${exportsVan(tekst).join(", ") || "—"}${bron ? ` (${bron})` : ""}`);
-  }
-}
-console.log(uit.join("\n"));

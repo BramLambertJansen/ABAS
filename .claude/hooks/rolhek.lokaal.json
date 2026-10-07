@@ -9,7 +9,7 @@
     "^\\.husky/",
     "^\\.kit/",
     "^eslint\\.config\\.",
-    "^tsconfig\\.json$",
+    "^tsconfig.*\\.json$",
     "^playwright\\.config\\.",
     "^CLAUDE\\.md$"
   ],

@@ -8,5 +8,5 @@ export function isLaatsteActieveType(
   id: string
 ): boolean {
   const actief = types.filter((t) => !t.archived);
-  return actief.length === 1 && actief[0].id === id;
+  return actief.length === 1 && actief[0]?.id === id;
 }

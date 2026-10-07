@@ -18,6 +18,7 @@
 // kloppen, bewijst `db:test`.
 import { readdirSync, readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
+import { ratchet } from "./kit/ratchet.mjs";
 
 const root = process.cwd();
 const migrationsDir = join(root, "supabase/migrations");
@@ -64,10 +65,10 @@ for (const table of tables) {
 // spec → Besluit 4): de invariant in tabelrechten_api_rollen.test.sql dekt
 // de geldtabellen al, net als elke andere tabel, en een lexicale eis zou na
 // de projectbrede revoke van 0042 meteen voldaan zijn zonder iets te bewijzen.
-const MONEY_TABLES = ["orders", "order_lines", "top_ups", "members", "order_reversals"];
+const MONEY_TABLES = ["orders", "order_lines", "top_ups", "members", "order_reversals", "money_requests"];
 for (const table of MONEY_TABLES) {
   if (tables.includes(table)) {
-    const revokeRe = new RegExp(`revoke[^;]*\\b${table}\\b[^;]*from\\s+authenticated`, "i");
+    const revokeRe = new RegExp(`revoke[^;]*\\b${table}\\b[^;]*from\\s+[^;]*\\bauthenticated\\b`, "i");
     if (!revokeRe.test(migrationSql)) {
       problems.push(`${table}: is a money table but no REVOKE ... FROM authenticated found for it`);
     }
@@ -114,6 +115,20 @@ for (const bucket of buckets) {
     problems.push(`storage bucket ${bucket}: not mentioned in supabase/tests/ — needs a test for its limits and write protection (ADR 0018)`);
   }
 }
+
+// Elke policy, niet alleen op storage.objects, wordt bij naam genoemd in een
+// test (ADR 0025): een tabelnaam in een test bewijst niet dat déze policy
+// een negatieve test heeft. Bestaande leespolicies die alleen generiek via
+// rls_leespolicies.test.sql getoetst worden, staan in de ratchet.
+const tablePolicyRe = /create\s+policy\s+("[^"]+"|\w+)\s+on\s+(?!storage\.)(?:public\.)?(\w+)/gi;
+const tablePolicies = [...new Set([...migrationSqlNoComments.matchAll(tablePolicyRe)].map((m) => m[1].replace(/^"|"$/g, "")))];
+problems.push(
+  ...ratchet(
+    "rls-policy-zonder-naam-in-test",
+    tablePolicies.filter((p) => !testSql.includes(p)),
+    "policy niet bij naam genoemd in supabase/tests/ — schrijf een negatieve test die deze policy noemt",
+  ),
+);
 
 const storagePolicyRe = /create\s+policy\s+("[^"]+"|\w+)\s+on\s+storage\.objects\b/gi;
 const storagePolicies = [...migrationSqlNoComments.matchAll(storagePolicyRe)].map((m) =>

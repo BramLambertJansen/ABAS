@@ -15,9 +15,13 @@ const kop = (t) => uit.push(`\n## ${t}\n`);
 
 if (!deel || deel === "gates") {
   const pkg = JSON.parse(lees("package.json"));
+  const uitklappen = (naam) => {
+    const subs = [...(pkg.scripts[naam] ?? "").matchAll(/npm run ([\w:-]+)/g)].map((m) => m[1]);
+    return subs.length ? subs.flatMap(uitklappen) : [naam];
+  };
   kop("Gates (npm run …)");
-  uit.push("`check:fast` (pre-commit): " + (pkg.scripts["check:fast"].match(/npm run ([\w:]+)/g) ?? []).map((s) => s.slice(8)).join(", "));
-  uit.push("`check:all` (CI, verplicht vóór merge): " + (pkg.scripts["check:all"].match(/npm run ([\w:]+)/g) ?? []).map((s) => s.slice(8)).join(", "));
+  uit.push("`check:fast` (pre-commit, zonder database): " + uitklappen("check:fast").join(", "));
+  uit.push("`check:all` (CI, verplicht vóór merge): " + uitklappen("check:all").join(", "));
   uit.push("");
   for (const g of GATES) uit.push(`- \`${g.script}\`${g.snel ? "" : " (CI)"}: ${g.bewaakt}`);
 }

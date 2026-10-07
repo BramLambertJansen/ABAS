@@ -110,7 +110,7 @@ export function Select({
       const count = options.length;
       for (let step = 1; step <= count; step++) {
         const index = (activeIndex + step) % count;
-        if (options[index].label.toLocaleLowerCase("nl").startsWith(letter)) {
+        if (options[index]?.label.toLocaleLowerCase("nl").startsWith(letter)) {
           setActiveIndex(index);
           return;
         }

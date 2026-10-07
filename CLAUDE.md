@@ -1,7 +1,7 @@
 # CLAUDE.md — ABAS
 
 Aurora Bar Automatiserings Systeem, voor muziekvereniging Aurora
-(Driebergen-Rijsenburg). Eén app, twee shells: `shells/bar` en `shells/portal`.
+(Driebergen-Rijsenburg). Eén app, twee shells: `src/shells/bar` en `src/shells/portal`.
 
 Stack: Next.js (App Router) + TypeScript + Tailwind, Supabase. Layout in
 `docs/ARCHITECTURE.md`; `docs/features/` bevat specs die Bram goedkeurt vóór
@@ -39,7 +39,7 @@ doet, leest de Reviewer.
 - **Bardienst** — bedient leden, plaatst bestellingen. Ziet saldi om te kunnen
   waarschuwen bij een laag tegoed.
 - **Beheerder** — superset van bardienst, plus prijzen, ledenbeheer, design
-  system. Geen los adminscherm: beheerder werkt binnen `shells/bar`.
+  system. Geen los adminscherm: beheerder werkt binnen `src/shells/bar`.
 
 Saldo is prepaid. Negatief mag, tot een systeembrede limiet die de beheerder
 instelt (€0 kan, als keuze). "Laag saldo" is systeembreed €10.

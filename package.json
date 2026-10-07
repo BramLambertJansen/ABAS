@@ -6,8 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint --max-warnings=0",
-    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings=0",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.tests.json",
     "test": "node --test \"test/**/*.test.ts\"",
     "check:arch": "node scripts/check-arch.mjs",
     "check:policy": "node scripts/check-policy.mjs",
@@ -17,10 +17,14 @@
     "check:a11y": "playwright test",
     "db:test": "supabase test db",
     "test:integration": "node --test \"integration/**/*.test.ts\"",
-    "check:fast": "npm run lint && npm run typecheck && npm run test && npm run check:arch && npm run check:policy && npm run check:rls && npm run check:migrations && npm run check:adr",
-    "check:all": "npm run lint && npm run typecheck && npm run test && npm run build && npm run check:arch && npm run check:policy && npm run check:rls && npm run check:migrations && npm run check:adr && npm run check:a11y && npm run db:test && npm run test:integration",
+    "check:fast": "npm run lint && npm run typecheck && npm run test && npm run check:arch && npm run check:policy && npm run check:rls && npm run check:migrations && npm run check:adr && npm run check:docs",
+    "check:all": "npm run check:fast && npm run check:slow",
     "prepare": "node .husky/install.mjs",
-    "check:deployment": "node scripts/check-deployment-schema.mjs"
+    "check:deployment": "node scripts/check-deployment-schema.mjs",
+    "lint:prune": "eslint . --prune-suppressions",
+    "ratchet:update": "RATCHET_UPDATE=1 npm run check:rls && RATCHET_UPDATE=1 npm run check:docs",
+    "check:docs": "node scripts/check-docs.mjs",
+    "check:slow": "npm run check:deployment && npm run build && npm run db:test && npm run test:integration && npm run check:a11y"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
@@ -41,11 +45,13 @@
     "autoprefixer": "^10.4.20",
     "eslint": "^9.17.0",
     "eslint-config-next": "^15.5.27",
+    "eslint-plugin-better-tailwindcss": "4.9.0",
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "husky": "^9.1.7",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "typescript-eslint": "8.71.1"
   },
   "overrides": {
     "next": {

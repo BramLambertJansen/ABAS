@@ -8,8 +8,8 @@ paths:
 
 # UI, shells en design system
 
-- `shells/bar`: tablet/desktop (nooit telefoon, supportuitspraak), PWA zonder
-  offline of service-worker-caching. `shells/portal`: telefoon-first, ook
+- `src/shells/bar`: tablet/desktop (nooit telefoon, supportuitspraak), PWA zonder
+  offline of service-worker-caching. `src/shells/portal`: telefoon-first, ook
   desktop. Verschillen lees je via `useShell()` (`density`, `overlay`,
   `columns`), nooit via `matchMedia`/`userAgent`/`isMobile`.
 - Eerste bouw van een scherm: UX en visueel uit `/designs/` (live op

@@ -1,0 +1,1391 @@
+{
+  "src/app/(bar)/beheer/invite/route.ts": {
+    "@typescript-eslint/no-unsafe-assignment": {
+      "count": 1
+    }
+  },
+  "src/app/(bar)/beheer/productafbeelding/route.ts": {
+    "@typescript-eslint/no-unsafe-assignment": {
+      "count": 1
+    }
+  },
+  "src/app/(bar)/inloggen/pin/route.ts": {
+    "@typescript-eslint/no-unnecessary-condition": {
+      "count": 1
+    }
+  },
+  "src/app/(bar)/inloggen/wachtwoord/route.ts": {
+    "@typescript-eslint/no-unnecessary-condition": {
+      "count": 1
+    }
+  },
+  "src/app/design/DesignBrowser.tsx": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 1
+    }
+  },
+  "src/app/design/files/[...path]/route.ts": {
+    "@typescript-eslint/no-unnecessary-condition": {
+      "count": 1
+    }
+  },
+  "src/components/AuroraMerk.tsx": {
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 4
+    }
+  },
+  "src/components/BezettingKeuze.tsx": {
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 3
+    }
+  },
+  "src/components/CodeInvoer.tsx": {
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 2
+    }
+  },
+  "src/components/GeldActieHerstel.tsx": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    }
+  },
+  "src/components/LidZoeker.tsx": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 4
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 11
+    }
+  },
+  "src/components/NieuwWachtwoordVelden.tsx": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 2
+    }
+  },
+  "src/components/OpslaanSectie.tsx": {
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 1
+    }
+  },
+  "src/components/Overlay.tsx": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 4
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 20
+    }
+  },
+  "src/components/PinToetsenbord.tsx": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 1
+    }
+  },
+  "src/components/ProductAfbeelding.tsx": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 1
+    }
+  },
+  "src/components/RoleBadge.tsx": {
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 3
+    }
+  },
+  "src/components/Select.tsx": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 5
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 6
+    }
+  },
+  "src/components/StatCard.tsx": {
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 1
+    }
+  },
+  "src/components/StatusFilter.tsx": {
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 2
+    }
+  },
+  "src/components/Tabs.tsx": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 2
+    },
+    "@typescript-eslint/no-unnecessary-type-assertion": {
+      "count": 1
+    }
+  },
+  "src/components/ZijPaneel.tsx": {
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 7
+    }
+  },
+  "src/components/ZoekVeld.tsx": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 7
+    }
+  },
+  "src/components/overlayShield.ts": {
+    "@typescript-eslint/no-unnecessary-condition": {
+      "count": 2
+    }
+  },
+  "src/features/assortimentbeheer/ActiviteitstypesInstellingen.tsx": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 5
+    },
+    "@typescript-eslint/no-misused-promises": {
+      "count": 3
+    },
+    "@typescript-eslint/no-unnecessary-condition": {
+      "count": 1
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 2
+    },
+    "no-restricted-syntax": {
+      "count": 10
+    }
+  },
+  "src/features/assortimentbeheer/Assortimentbeheer.tsx": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "@typescript-eslint/no-misused-promises": {
+      "count": 1
+    },
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "src/features/assortimentbeheer/BeheerLogin.tsx": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 5
+    },
+    "@typescript-eslint/no-deprecated": {
+      "count": 2
+    },
+    "@typescript-eslint/no-misused-promises": {
+      "count": 2
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 6
+    },
+    "no-restricted-syntax": {
+      "count": 8
+    }
+  },
+  "src/features/assortimentbeheer/BeheerTabs.tsx": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 7
+    },
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "src/features/assortimentbeheer/ModusKeuze.tsx": {
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 14
+    },
+    "no-restricted-syntax": {
+      "count": 4
+    }
+  },
+  "src/features/assortimentbeheer/NegatieveLimietInstellingen.tsx": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 2
+    },
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    },
+    "@typescript-eslint/no-misused-promises": {
+      "count": 1
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 4
+    },
+    "no-restricted-syntax": {
+      "count": 3
+    }
+  },
+  "src/features/assortimentbeheer/NieuwProductOverlay.tsx": {
+    "@typescript-eslint/no-misused-promises": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unnecessary-condition": {
+      "count": 1
+    },
+    "no-restricted-syntax": {
+      "count": 2
+    }
+  },
+  "src/features/assortimentbeheer/ProductBeherenOverlay.tsx": {
+    "@typescript-eslint/no-misused-promises": {
+      "count": 3
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 4
+    },
+    "no-restricted-syntax": {
+      "count": 5
+    }
+  },
+  "src/features/assortimentbeheer/ProductenLijst.tsx": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 8
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 13
+    },
+    "no-restricted-syntax": {
+      "count": 3
+    }
+  },
+  "src/features/assortimentbeheer/WachtwoordHerstellen.tsx": {
+    "@typescript-eslint/no-deprecated": {
+      "count": 1
+    },
+    "@typescript-eslint/no-misused-promises": {
+      "count": 1
+    },
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "src/features/bar-beheer/DienstenApparaten.tsx": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 4
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 2
+    },
+    "no-restricted-syntax": {
+      "count": 2
+    }
+  },
+  "src/features/bar-inloggen/BarInloggen.tsx": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 5
+    },
+    "@typescript-eslint/no-deprecated": {
+      "count": 2
+    },
+    "@typescript-eslint/no-misused-promises": {
+      "count": 4
+    },
+    "@typescript-eslint/switch-exhaustiveness-check": {
+      "count": 1
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 8
+    },
+    "no-restricted-syntax": {
+      "count": 7
+    }
+  },
+  "src/features/bar-sessie/AdminMeldingen.tsx": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 4
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 2
+    },
+    "no-restricted-syntax": {
+      "count": 2
+    }
+  },
+  "src/features/bar-sessie/AfmeldenOverlay.tsx": {
+    "@typescript-eslint/no-misused-promises": {
+      "count": 1
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 2
+    },
+    "no-restricted-syntax": {
+      "count": 2
+    }
+  },
+  "src/features/bar-sessie/BarApp.tsx": {
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "src/features/bar-sessie/BarSessieContext.tsx": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    }
+  },
+  "src/features/bar-sessie/BarSessieProvider.tsx": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 6
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 1
+    }
+  },
+  "src/features/bar-sessie/HervatScherm.tsx": {
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 5
+    },
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "src/features/bar-sessie/OvernemenOverlay.tsx": {
+    "@typescript-eslint/no-misused-promises": {
+      "count": 1
+    },
+    "@typescript-eslint/switch-exhaustiveness-check": {
+      "count": 1
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 2
+    },
+    "no-restricted-syntax": {
+      "count": 2
+    }
+  },
+  "src/features/bar-sessie/SessieMeldingOverlay.tsx": {
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 1
+    },
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "src/features/bar-sessie/UitloggenKnop.tsx": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 3
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 3
+    },
+    "no-restricted-syntax": {
+      "count": 4
+    }
+  },
+  "src/features/bestelling-terugdraaien/LidBestellingenOverlay.tsx": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 4
+    },
+    "@typescript-eslint/no-misused-promises": {
+      "count": 1
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 9
+    },
+    "no-restricted-syntax": {
+      "count": 5
+    }
+  },
+  "src/features/bestelling-terugdraaien/TerugdraaienOverlay.tsx": {
+    "@typescript-eslint/no-misused-promises": {
+      "count": 1
+    },
+    "@typescript-eslint/switch-exhaustiveness-check": {
+      "count": 1
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 5
+    },
+    "no-restricted-syntax": {
+      "count": 3
+    }
+  },
+  "src/features/bezetting-beheren/BezettingOverlay.tsx": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "@typescript-eslint/no-misused-promises": {
+      "count": 1
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 3
+    },
+    "no-restricted-syntax": {
+      "count": 4
+    }
+  },
+  "src/features/bezetting-beheren/BezettingPil.tsx": {
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 5
+    },
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "src/features/bezetting-beheren/DienstActief.tsx": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 10
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 37
+    },
+    "no-restricted-syntax": {
+      "count": 2
+    }
+  },
+  "src/features/dienst-afsluiten/DienstAfsluitenOverlay.tsx": {
+    "@typescript-eslint/no-misused-promises": {
+      "count": 1
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 2
+    },
+    "no-restricted-syntax": {
+      "count": 2
+    }
+  },
+  "src/features/dienst-overzicht/Transactielijst.tsx": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 4
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 46
+    },
+    "no-restricted-syntax": {
+      "count": 4
+    }
+  },
+  "src/features/dienst-starten/ActiviteitKeuze.tsx": {
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 1
+    },
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "src/features/dienst-starten/DienstElders.tsx": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 4
+    },
+    "@typescript-eslint/no-misused-promises": {
+      "count": 1
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 6
+    },
+    "no-restricted-syntax": {
+      "count": 3
+    }
+  },
+  "src/features/dienst-starten/DienstStarten.tsx": {
+    "@typescript-eslint/no-misused-promises": {
+      "count": 1
+    },
+    "@typescript-eslint/switch-exhaustiveness-check": {
+      "count": 1
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 3
+    }
+  },
+  "src/features/dienst-starten/PinPad.tsx": {
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 2
+    },
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "src/features/dienst-starten/StaffPicker.tsx": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 2
+    },
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "src/features/dienst-te-lang-open/DienstTeLangOpenMelding.tsx": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 4
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 2
+    },
+    "no-restricted-syntax": {
+      "count": 2
+    }
+  },
+  "src/features/ledenbeheer/LedenLijst.tsx": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 9
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 19
+    },
+    "no-restricted-syntax": {
+      "count": 2
+    }
+  },
+  "src/features/ledenbeheer/LidBeherenOverlay.tsx": {
+    "@typescript-eslint/no-misused-promises": {
+      "count": 5
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 11
+    },
+    "no-restricted-syntax": {
+      "count": 6
+    }
+  },
+  "src/features/ledenbeheer/NieuwLidOverlay.tsx": {
+    "@typescript-eslint/no-misused-promises": {
+      "count": 1
+    },
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "src/features/logboek/LogboekLijst.tsx": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 2
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 24
+    },
+    "no-restricted-syntax": {
+      "count": 2
+    }
+  },
+  "src/features/opwaarderen/OpwaarderenOverlay.tsx": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 2
+    },
+    "@typescript-eslint/no-misused-promises": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unnecessary-condition": {
+      "count": 3
+    },
+    "@typescript-eslint/switch-exhaustiveness-check": {
+      "count": 1
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 10
+    },
+    "no-restricted-syntax": {
+      "count": 4
+    }
+  },
+  "src/features/portal-dashboard/PortalDashboard.tsx": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 3
+    },
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "src/features/portal-dashboard/SaldoTab.tsx": {
+    "@typescript-eslint/no-unnecessary-condition": {
+      "count": 2
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 11
+    },
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "src/features/portal-dashboard/TransactieRij.tsx": {
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 2
+    }
+  },
+  "src/features/portal-dashboard/TransactiesTab.tsx": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 4
+    },
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "src/features/portal-login/PortalLogin.tsx": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 5
+    },
+    "@typescript-eslint/no-deprecated": {
+      "count": 2
+    },
+    "@typescript-eslint/no-misused-promises": {
+      "count": 2
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 2
+    },
+    "no-restricted-syntax": {
+      "count": 8
+    }
+  },
+  "src/features/portal-login/PortalWachtwoordHerstellen.tsx": {
+    "@typescript-eslint/no-deprecated": {
+      "count": 1
+    },
+    "@typescript-eslint/no-misused-promises": {
+      "count": 1
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 1
+    },
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "src/features/portal-profiel/AccountTab.tsx": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 13
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 9
+    },
+    "no-restricted-syntax": {
+      "count": 2
+    }
+  },
+  "src/features/portal-profiel/NaamWijzigenSheet.tsx": {
+    "@typescript-eslint/no-deprecated": {
+      "count": 1
+    },
+    "@typescript-eslint/no-misused-promises": {
+      "count": 1
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 2
+    }
+  },
+  "src/features/portal-profiel/PincodeSheet.tsx": {
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 2
+    },
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "src/features/portal-profiel/SheetKnoppen.tsx": {
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 3
+    },
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "src/features/portal-profiel/TweestapSheet.tsx": {
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 6
+    },
+    "no-restricted-syntax": {
+      "count": 4
+    }
+  },
+  "src/features/portal-profiel/WachtwoordWijzigenSheet.tsx": {
+    "@typescript-eslint/no-deprecated": {
+      "count": 1
+    },
+    "@typescript-eslint/no-misused-promises": {
+      "count": 1
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 4
+    }
+  },
+  "src/features/verkoop/AfrekenenOverlay.tsx": {
+    "@typescript-eslint/no-misused-promises": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unnecessary-condition": {
+      "count": 1
+    },
+    "@typescript-eslint/switch-exhaustiveness-check": {
+      "count": 1
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 1
+    },
+    "no-restricted-syntax": {
+      "count": 2
+    }
+  },
+  "src/features/verkoop/Assortiment.tsx": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 6
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 20
+    },
+    "no-restricted-syntax": {
+      "count": 8
+    }
+  },
+  "src/features/verkoop/DienstTabs.tsx": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 20
+    }
+  },
+  "src/features/verkoop/Mandje.tsx": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 3
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 44
+    },
+    "no-restricted-syntax": {
+      "count": 9
+    }
+  },
+  "src/features/verkoop/VerkoopScherm.tsx": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 6
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 9
+    },
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/useActiviteitTypes.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unnecessary-condition": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/useAddShiftMember.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/useAdminEndBarSession.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unnecessary-type-assertion": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/useAdminEndShift.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unnecessary-type-assertion": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/useAdminTakeOverShift.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unnecessary-type-assertion": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/useAlleActiviteitTypes.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unnecessary-condition": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/useAlleLeden.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unsafe-assignment": {
+      "count": 2
+    },
+    "@typescript-eslint/no-unsafe-call": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unsafe-member-access": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/useAlleProducten.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unnecessary-condition": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/useAppSettings.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/useBarAuth.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/useBarMfa.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unnecessary-condition": {
+      "count": 2
+    }
+  },
+  "src/hooks/queries/useBarNamen.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/useBeheerLogin.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/useBeheerSession.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "@typescript-eslint/no-floating-promises": {
+      "count": 2
+    },
+    "@typescript-eslint/no-unnecessary-condition": {
+      "count": 2
+    },
+    "@typescript-eslint/no-unsafe-assignment": {
+      "count": 1
+    },
+    "@typescript-eslint/use-unknown-in-catch-callback-variable": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/useCreateActivityType.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unsafe-assignment": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unsafe-member-access": {
+      "count": 3
+    }
+  },
+  "src/hooks/queries/useCreateMember.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/useCreateProduct.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unsafe-argument": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unsafe-assignment": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/useEndBarSession.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unnecessary-type-assertion": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/useEndShift.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/useLogboek.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unnecessary-condition": {
+      "count": 4
+    },
+    "@typescript-eslint/no-unnecessary-type-parameters": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/useMemberOrders.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unnecessary-condition": {
+      "count": 2
+    }
+  },
+  "src/hooks/queries/useMembers.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unnecessary-condition": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/useMijnDienst.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 2
+    },
+    "@typescript-eslint/no-unsafe-assignment": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/usePendingMoneyRequests.ts": {
+    "@typescript-eslint/no-non-null-assertion": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/usePlaceOrder.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/usePortalAppSettings.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/usePortalBalance.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/usePortalLogin.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/usePortalProfiel.ts": {
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/usePortalSession.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 2
+    },
+    "@typescript-eslint/no-floating-promises": {
+      "count": 2
+    },
+    "@typescript-eslint/no-unnecessary-condition": {
+      "count": 1
+    },
+    "@typescript-eslint/use-unknown-in-catch-callback-variable": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/usePortalSetOwnPin.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/usePortalTransactions.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unnecessary-condition": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unsafe-assignment": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/usePortalTweestap.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unnecessary-condition": {
+      "count": 9
+    }
+  },
+  "src/hooks/queries/usePortalUpdateOwnName.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/usePortalWachtwoordHerstellen.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/usePortalWachtwoordWijzigen.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "@typescript-eslint/no-floating-promises": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unnecessary-condition": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/useProductAfbeelding.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/useProducts.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unnecessary-condition": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/useRegisterBarSession.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unnecessary-type-assertion": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/useRemoveShiftMember.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/useResumeOrphanShift.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unnecessary-type-assertion": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/useReverseOrder.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unsafe-assignment": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/useSendMemberInvite.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/useSetActivityTypeArchived.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unsafe-assignment": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unsafe-member-access": {
+      "count": 3
+    }
+  },
+  "src/hooks/queries/useSetMemberArchived.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unsafe-assignment": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unsafe-member-access": {
+      "count": 9
+    }
+  },
+  "src/hooks/queries/useSetMemberRole.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unsafe-assignment": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unsafe-member-access": {
+      "count": 9
+    }
+  },
+  "src/hooks/queries/useSetProductArchived.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unsafe-argument": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unsafe-assignment": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/useShiftCandidates.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unnecessary-condition": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unnecessary-type-assertion": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/useShiftLedger.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unnecessary-condition": {
+      "count": 3
+    },
+    "@typescript-eslint/no-unnecessary-type-parameters": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/useShiftMembers.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unnecessary-condition": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/useShiftSummary.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unnecessary-condition": {
+      "count": 2
+    }
+  },
+  "src/hooks/queries/useStartShift.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/useTopUp.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/useUpdateActivityTypeName.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unsafe-assignment": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unsafe-member-access": {
+      "count": 3
+    }
+  },
+  "src/hooks/queries/useUpdateMemberEmail.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unsafe-assignment": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unsafe-member-access": {
+      "count": 9
+    }
+  },
+  "src/hooks/queries/useUpdateMemberName.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unsafe-assignment": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unsafe-member-access": {
+      "count": 9
+    }
+  },
+  "src/hooks/queries/useUpdateNegativeLimit.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unsafe-assignment": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unsafe-member-access": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/useUpdateProductPrice.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unsafe-argument": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unsafe-assignment": {
+      "count": 1
+    }
+  },
+  "src/hooks/queries/useWachtwoordHerstellen.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    }
+  },
+  "src/hooks/useHerstelFocus.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    }
+  },
+  "src/hooks/useListbox.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unnecessary-condition": {
+      "count": 1
+    }
+  },
+  "src/hooks/useOpslaanBlokkade.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 2
+    }
+  },
+  "src/hooks/useVeldMoment.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 2
+    }
+  },
+  "src/hooks/useVerversBijTerugkeer.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 2
+    }
+  },
+  "src/lib/barLogin.ts": {
+    "@typescript-eslint/no-unnecessary-condition": {
+      "count": 4
+    },
+    "@typescript-eslint/no-unsafe-assignment": {
+      "count": 8
+    },
+    "@typescript-eslint/no-unsafe-member-access": {
+      "count": 10
+    }
+  },
+  "src/lib/barSessie.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    },
+    "@typescript-eslint/switch-exhaustiveness-check": {
+      "count": 1
+    }
+  },
+  "src/lib/clientErrors.ts": {
+    "@typescript-eslint/no-confusing-void-expression": {
+      "count": 1
+    }
+  },
+  "src/lib/inviteMember.ts": {
+    "@typescript-eslint/no-unnecessary-condition": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unsafe-assignment": {
+      "count": 1
+    },
+    "@typescript-eslint/no-unsafe-member-access": {
+      "count": 1
+    }
+  },
+  "src/lib/moneyRequest.ts": {
+    "@typescript-eslint/no-unnecessary-condition": {
+      "count": 4
+    },
+    "@typescript-eslint/require-await": {
+      "count": 2
+    }
+  },
+  "src/lib/passwordPolicy.ts": {
+    "@typescript-eslint/no-misused-spread": {
+      "count": 1
+    }
+  },
+  "src/lib/productImage.ts": {
+    "@typescript-eslint/no-unsafe-assignment": {
+      "count": 1
+    }
+  },
+  "src/lib/supabase/admin.ts": {
+    "@typescript-eslint/no-non-null-assertion": {
+      "count": 2
+    }
+  },
+  "src/lib/supabase/client.ts": {
+    "@typescript-eslint/no-non-null-assertion": {
+      "count": 2
+    }
+  },
+  "src/lib/supabase/portalClient.ts": {
+    "@typescript-eslint/no-non-null-assertion": {
+      "count": 2
+    }
+  },
+  "src/lib/supabase/portalServer.ts": {
+    "@typescript-eslint/no-deprecated": {
+      "count": 1
+    },
+    "@typescript-eslint/no-non-null-assertion": {
+      "count": 2
+    }
+  },
+  "src/lib/supabase/server.ts": {
+    "@typescript-eslint/no-deprecated": {
+      "count": 1
+    },
+    "@typescript-eslint/no-non-null-assertion": {
+      "count": 2
+    }
+  },
+  "src/middleware.ts": {
+    "@typescript-eslint/no-deprecated": {
+      "count": 1
+    },
+    "@typescript-eslint/no-non-null-assertion": {
+      "count": 2
+    }
+  },
+  "src/shells/portal/PortalShellHome.tsx": {
+    "@typescript-eslint/no-misused-promises": {
+      "count": 2
+    },
+    "better-tailwindcss/no-restricted-classes": {
+      "count": 2
+    },
+    "no-restricted-syntax": {
+      "count": 1
+    }
+  },
+  "test/moneyHooksFoutlogging.test.ts": {
+    "react-hooks/rules-of-hooks": {
+      "count": 2
+    }
+  }
+}

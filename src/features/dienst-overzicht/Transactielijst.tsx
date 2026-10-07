@@ -275,8 +275,9 @@ function PersonFilter({
     };
   }, [open]);
 
-  const options = [{ id: ALL_PEOPLE, name: "Iedereen", count: total }, ...people];
-  const active = options.find((o) => o.id === activeId) ?? options[0];
+  const iedereen = { id: ALL_PEOPLE, name: "Iedereen", count: total };
+  const options = [iedereen, ...people];
+  const active = options.find((o) => o.id === activeId) ?? iedereen;
   const dark = activeId !== ALL_PEOPLE || open;
 
   function choose(id: string) {
