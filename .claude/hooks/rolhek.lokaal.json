@@ -14,7 +14,8 @@
     "^CLAUDE\\.md$",
     "^eslint-suppressions\\.json$",
     "^next\\.config\\.",
-    "^vercel\\.json$"
+    "^vercel\\.json$",
+    "^osv-scanner\\.toml$"
   ],
   "schrijfrecht": {
     "architect": [

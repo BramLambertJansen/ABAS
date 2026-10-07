@@ -14,9 +14,10 @@ paths:
   aan of heeft een reden; elke SECURITY DEFINER zet `search_path`.
 - `search_path = ''` met volledig gekwalificeerde namen (`public.orders`) voor
   elke nieuwe of opnieuw gedefinieerde functie (ADR 0025, besluit 6).
-- Nieuwe tabellen krijgen geen automatische grants (`auto_expose_new_tables =
-  false`, en in productie vanaf 2026-10-30). Geef expliciet wat nodig is, en
-  niets aan `anon`.
+- Nieuwe tabellen en functies krijgen in productie vanaf 2026-10-30 geen
+  automatische grants meer. Geef in de migratie expliciet wat nodig is (ook
+  `service_role` als server-code of `check:deployment` de functie gebruikt),
+  en niets aan `anon`.
 - Elke tabel RLS, elke policy een negatieve test (per policynaam), elke
   geldtabel REVOKED. Leespolicies zijn een allowlist met
   `caller_session_alive()` (ADR 0019/0022).
