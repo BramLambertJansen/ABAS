@@ -1,6 +1,8 @@
 # 0016 — Een dienst hoort bij een of meer geregistreerde, persoonlijke app-sessies, niet bij een gedeeld device-account
 
-Status: **geaccepteerd door Bram (2026-09-29); fase 1 geïmplementeerd en
+Status: **gebouwd**
+
+Toelichting: **geaccepteerd door Bram (2026-09-29); fase 1 geïmplementeerd en
 gemerged** ([PR #120](https://github.com/BramLambertJansen/ABAS/pull/120),
 2026-10-01, merge-commit `ae89bd9`; migraties `0027`–`0033`, de login vanaf de
 namenlijst en de schermen). Fase 2, de instelling (a)/(b)/(c) uit Beslissing

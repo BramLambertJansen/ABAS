@@ -1,6 +1,8 @@
 # 0009 — Portal-sessie gebruikt een eigen Supabase-cookienaam, gescheiden van de bar/beheer-sessie
 
-Status: **geaccepteerd** (Bram, 2026-09-25, samen met
+Status: **goedgekeurd**
+
+Toelichting: **geaccepteerd** (Bram, 2026-09-25, samen met
 `docs/features/portal-login.md`, issue #15). Vult ADR 0002/0003 aan
 (sessie-mechanisme voor bar/beheer), vervangt niets. Zie "Aanvulling"
 hieronder voor een kleine, met naam genoemde uitzondering op de

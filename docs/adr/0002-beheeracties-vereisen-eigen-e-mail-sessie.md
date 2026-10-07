@@ -1,6 +1,8 @@
 # 0002 — Beheeracties gebeuren in een eigen e-mail-sessie, niet via de gedeelde tablet-sessie
 
-Status: **geïmplementeerd, geamendeerd door
+Status: **gebouwd**
+
+Toelichting: **geïmplementeerd, geamendeerd door
 [ADR 0016](0016-dienst-hoort-bij-geregistreerde-app-sessies.md) en
 [ADR 0017](0017-beheer-eist-tweede-factor-en-eigen-loginlimiet.md)** (ADR 0017: een
 beheersessie vraagt daarnaast een tweede factor, aal2) (zie het

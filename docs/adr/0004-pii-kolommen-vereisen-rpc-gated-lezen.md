@@ -1,6 +1,8 @@
 # 0004 — PII-kolommen op een gedeelde-rol-tabel vereisen RPC-gated lezen, niet de brede row-level select-policy
 
-Status: **geaccepteerd** (Bram, via geautomatiseerde P1-bevinding op PR #59,
+Status: **goedgekeurd**
+
+Toelichting: **geaccepteerd** (Bram, via geautomatiseerde P1-bevinding op PR #59,
 issue #57, 2026-09-02).
 
 ## Context

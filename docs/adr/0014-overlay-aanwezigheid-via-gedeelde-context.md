@@ -1,6 +1,8 @@
 # 0014 — Overlays melden hun aanwezigheid via een gedeelde context
 
-Status: **geaccepteerd (2026-09-28), geïmplementeerd (2026-09-29, PR #108,
+Status: **gebouwd**
+
+Toelichting: **geaccepteerd (2026-09-28), geïmplementeerd (2026-09-29, PR #108,
 merge-commit `2b0cfda`)**, als onderdeel van de door Bram goedgekeurde spec
 [`docs/features/dienst-te-lang-open.md`](../features/dienst-te-lang-open.md)
 (besluit 7). Oorspronkelijk opgesteld als ADR 0012 en vóór de merge

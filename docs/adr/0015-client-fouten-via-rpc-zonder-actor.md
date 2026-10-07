@@ -1,6 +1,8 @@
 # 0015 — Client-fouten gaan via een RPC voor elke ingelogde sessie, zonder actor en zonder `anon`-uitzondering
 
-Status: **geaccordeerd (2026-09-28), geïmplementeerd (2026-09-28, PR #98)**,
+Status: **gebouwd**
+
+Toelichting: **geaccordeerd (2026-09-28), geïmplementeerd (2026-09-28, PR #98)**,
 als onderdeel van de door Bram
 goedgekeurde spec [`docs/features/foutlogging.md`](../features/foutlogging.md)
 (issue #94). Gemerged als "0011", tegelijk met

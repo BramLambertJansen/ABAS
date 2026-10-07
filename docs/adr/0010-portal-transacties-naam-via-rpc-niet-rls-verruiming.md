@@ -1,6 +1,8 @@
 # 0010 — De naam van de bardienst op een eigen transactie komt uit een RPC, niet uit een verruiming van `members_select`
 
-Status: **geaccordeerd (2026-09-26)** — hoort bij
+Status: **goedgekeurd**
+
+Toelichting: **geaccordeerd (2026-09-26)** — hoort bij
 [`docs/features/portal-dashboard.md`](../features/portal-dashboard.md) (issue
 #16). Amendeert [ADR 0007](0007-rol-lid-leest-alleen-eigen-rijen.md);
 vervangt niets.

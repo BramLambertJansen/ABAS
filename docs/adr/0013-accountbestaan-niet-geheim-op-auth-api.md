@@ -1,6 +1,8 @@
 # 0013 — Accountbestaan is niet geheim op de Supabase Auth-API; de app maskeert alleen haar eigen UI
 
-Status: **geaccepteerd** (2026-09-28, Bram: optie D). Hoort bij
+Status: **goedgekeurd**
+
+Toelichting: **geaccepteerd** (2026-09-28, Bram: optie D). Hoort bij
 [`docs/features/beheer-magic-link-enumeratie.md`](../features/beheer-magic-link-enumeratie.md)
 (issue #70). Bram koos variant D; de magic link op `/beheer` blijft, dus
 variant C hieronder is niet gekozen en staat er alleen ter documentatie.

@@ -1,6 +1,8 @@
 # 0017 — Beheer eist een tweede factor (aal2), een beëindigde bar-sessie trekt ook de Auth-sessie in, en de server-side bar-login heeft een eigen limiet
 
-Status: **geaccepteerd door Bram (2026-09-30)**, samen met de specs
+Status: **gebouwd**
+
+Toelichting: **geaccepteerd door Bram (2026-09-30)**, samen met de specs
 [`docs/features/beheer-tweede-factor.md`](../features/beheer-tweede-factor.md)
 en [`docs/features/login-rate-limit.md`](../features/login-rate-limit.md).
 Aangevuld na de tweede review (Bram, 2026-10-01): restrisico K1 geaccepteerd,

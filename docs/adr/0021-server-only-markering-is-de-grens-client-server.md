@@ -1,6 +1,8 @@
 # 0021 — De grens tussen server- en clientcode is de `server-only`-markering; `check:arch` volgt de importgraaf transitief
 
-Status: **geaccepteerd (2026-10-05), geïmplementeerd (PR #160)**. Bram heeft de keuzes voor deze
+Status: **gebouwd**
+
+Toelichting: **geaccepteerd (2026-10-05), geïmplementeerd (PR #160)**. Bram heeft de keuzes voor deze
 opdracht bij de Architect gelegd (item C van de review van 2026-10-05); de
 spec [`docs/features/server-only-afscherming.md`](../features/server-only-afscherming.md)
 geldt daarmee als goedgekeurd. Vult [ADR 0006](0006-privileged-auth-admin-calls-via-server-actie-naast-rpc.md)

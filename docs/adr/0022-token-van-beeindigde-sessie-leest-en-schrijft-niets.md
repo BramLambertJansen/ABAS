@@ -1,6 +1,8 @@
 # 0022 — Een access token van een beëindigde Auth-sessie leest en schrijft niets meer
 
-Status: **geaccepteerd (2026-10-05), geïmplementeerd (PR #163)**. Bram heeft de keuzes voor deze opdracht
+Status: **gebouwd**
+
+Toelichting: **geaccepteerd (2026-10-05), geïmplementeerd (PR #163)**. Bram heeft de keuzes voor deze opdracht
 bij de Architect gelegd (item M1 "JWT na afmelden"); de spec
 [`docs/features/sessie-na-afmelden.md`](../features/sessie-na-afmelden.md)
 geldt daarmee als goedgekeurd. Gebouwd in migratie `0041` (PR #163,

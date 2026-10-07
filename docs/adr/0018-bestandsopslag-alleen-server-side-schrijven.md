@@ -1,6 +1,8 @@
 # 0018 — Bestandsopslag: schrijven alleen server-side na sessieverificatie, geen schrijfpolicies op `storage.objects`
 
-Status: **geaccordeerd (2026-10-02), geïmplementeerd (2026-10-02, PR
+Status: **gebouwd**
+
+Toelichting: **geaccordeerd (2026-10-02), geïmplementeerd (2026-10-02, PR
 [#146](https://github.com/BramLambertJansen/ABAS/pull/146), merge-commit
 `7efc6ad`).** Zie "Implementatie" onderaan. Bram gaf akkoord samen met de
 spec
