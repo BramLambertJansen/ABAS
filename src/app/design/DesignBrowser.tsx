@@ -53,7 +53,7 @@ export function DesignBrowser({
               className="h-[80vh] w-full rounded-card border border-border bg-white"
             />
             <a
-              className="text-sm text-accent underline"
+              className="text-sm text-accent-active underline"
               href={`/design/files/designs/${encodeURIComponent(active)}`}
               target="_blank"
               rel="noreferrer"
@@ -78,7 +78,7 @@ export function DesignBrowser({
             {chatFiles.map((file) => (
               <li key={file}>
                 <a
-                  className="text-accent underline"
+                  className="text-accent-active underline"
                   href={`/design/files/designs/chats/${encodeURIComponent(file)}`}
                   target="_blank"
                   rel="noreferrer"

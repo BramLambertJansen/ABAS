@@ -63,6 +63,9 @@ const config: Config = {
         rail: {
           DEFAULT: "#16181c",
           card: "#1e2127",
+          hover: "#23262d",
+          keyHover: "#262a31",
+          value: "#e8eaed",
           border: "#2b2f37",
           // #7d838c (prototype) is only 4.65:1 on rail — fine at larger
           // sizes but no margin for error at 12-13px body text. Used
@@ -88,11 +91,14 @@ const config: Config = {
       },
       fontFamily: {
         sans: [
-          "Manrope",
+          "var(--font-manrope)",
           "-apple-system",
           "BlinkMacSystemFont",
           "sans-serif",
         ],
+      },
+      height: {
+        control: "52px",
       },
       borderRadius: {
         card: "16px",

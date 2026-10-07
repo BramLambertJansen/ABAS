@@ -48,7 +48,7 @@ export function NieuwWachtwoordVelden({
           aria-describedby={rulesId}
           value={password}
           onChange={(event) => onPasswordChange(event.target.value)}
-          className="h-12 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink outline-none focus:border-accent"
+          className="ui-field-focus h-12 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink"
         />
         <ul id={rulesId} className="mt-1 flex flex-col gap-0.5 text-xs font-semibold">
           {RULES.map((rule) => (
@@ -74,7 +74,7 @@ export function NieuwWachtwoordVelden({
           aria-describedby={mismatch ? mismatchId : undefined}
           value={repeat}
           onChange={(event) => onRepeatChange(event.target.value)}
-          className="h-12 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink outline-none focus:border-accent"
+          className="ui-field-focus h-12 rounded-control border border-border bg-white px-3.5 text-sm font-semibold text-ink"
         />
         {mismatch && (
           <p id={mismatchId} className="text-xs font-bold text-danger">

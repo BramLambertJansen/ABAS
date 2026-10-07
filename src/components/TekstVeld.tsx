@@ -6,12 +6,12 @@ const TONES = {
   rail: {
     label: "text-xs font-bold text-rail-muted",
     input:
-      "h-[52px] rounded-[15px] border border-rail-border bg-rail px-4 text-sm font-semibold text-white outline-none focus:border-accent",
+      "h-[52px] rounded-[15px] border border-rail-border bg-rail px-4 text-sm font-semibold text-white ui-field-focus",
   },
   light: {
     label: "text-xs font-bold text-muted",
     input:
-      "h-[54px] rounded-2xl border border-border bg-white px-4 text-sm font-semibold text-ink outline-none focus:border-accent",
+      "h-[54px] rounded-2xl border border-border bg-white px-4 text-sm font-semibold text-ink ui-field-focus",
   },
 } as const;
 

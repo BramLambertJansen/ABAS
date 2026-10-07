@@ -134,10 +134,10 @@ export function Select({
   }
 
   const triggerBorder = open
-    ? "border-accent ring-[3px] ring-accent/20"
+    ? "border-accent-active ring-[3px] ring-accent/15"
     : invalid
       ? "border-rail-error"
-      : "border-rail-border hover:border-rail-muted focus-visible:border-accent focus-visible:ring-[3px] focus-visible:ring-accent/20";
+      : "border-rail-border hover:border-rail-muted focus-visible:border-accent-active focus-visible:ring-[3px] focus-visible:ring-accent/15";
 
   return (
     <div ref={rootRef} className="relative w-full">

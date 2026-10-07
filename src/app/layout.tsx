@@ -1,5 +1,13 @@
 import type { Metadata } from "next";
+import localFont from "next/font/local";
 import "./globals.css";
+
+const manrope = localFont({
+  src: "./fonts/Manrope-Variable.ttf",
+  weight: "200 800",
+  display: "swap",
+  variable: "--font-manrope",
+});
 
 export const metadata: Metadata = {
   title: "ABAS",
@@ -17,7 +25,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="nl">
+    <html lang="nl" className={manrope.variable}>
       <body>{children}</body>
     </html>
   );

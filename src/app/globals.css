@@ -6,6 +6,39 @@
   body {
     @apply bg-canvas text-ink font-sans antialiased;
   }
+
+  :where(button, a, input, select, textarea, [tabindex]):focus-visible {
+    @apply outline outline-2 outline-offset-2 outline-accent-active;
+  }
+}
+
+@layer components {
+  /* One primary action palette, including hover and both disabled modes. */
+  .ui-button-primary {
+    @apply bg-accent text-rail transition-colors;
+  }
+
+  .ui-button-primary:hover:not(:disabled):not([aria-disabled="true"]) {
+    @apply bg-accent-hover;
+  }
+
+  .ui-button-primary:disabled,
+  .ui-button-primary[aria-disabled="true"] {
+    @apply cursor-not-allowed bg-track text-muted-strong opacity-100;
+  }
+
+  /* Full-size dialog actions; compact inline controls keep their own size. */
+  .ui-action {
+    @apply h-control rounded-control;
+  }
+
+  .ui-field-focus {
+    @apply outline-none focus:border-accent-active focus:ring-[3px] focus:ring-accent/15;
+  }
+
+  .ui-field-group-focus {
+    @apply focus-within:border-accent-active focus-within:ring-[3px] focus-within:ring-accent/15;
+  }
 }
 
 /*
