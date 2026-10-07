@@ -1,0 +1,15 @@
+# Bewuste uitzonderingen voor osv-scanner (.github/workflows/beveiliging.yml,
+# ADR 0025). Elke regel heeft een reden en een einddatum; daarna wordt de
+# check vanzelf weer rood. Een uitzondering toevoegen is een gate-wijziging
+# (label gate-wijziging, Bram).
+
+[[IgnoredVulns]]
+id = "GHSA-vfj7-8cjw-p6xm"
+ignoreUntil = 2027-01-31T00:00:00Z
+reason = """\
+braces 3.0.3 (dev): alleen via eslint-config-next -> @next/eslint-plugin-next \
+-> fast-glob 3.3.1 -> micromatch 4.0.8. Lint-tooling die de eigen \
+bestandspaden van de repo leest, geen invoer van buiten en niet in de app. \
+Er is geen gefixte versie (braces 3.0.3 en micromatch 4.0.8 zijn de \
+nieuwste; ook Next 16.4 gebruikt fast-glob 3.3.1). Besloten door Bram op \
+2026-10-07."""
