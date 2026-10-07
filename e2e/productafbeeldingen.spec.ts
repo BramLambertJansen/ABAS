@@ -84,7 +84,8 @@ test("zonder afbeelding: kop met lege staat, het blok staat boven de prijs, a11y
   await expect(dialog.getByRole("button", { name: "Afbeelding kiezen" })).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Verwijderen" })).toHaveCount(0);
   // De knop staat in de groep "Afbeelding", met de toegestane types als beschrijving.
-  const groep = dialog.getByRole("group", { name: "Afbeelding" });
+  // exact: sinds #183 omsluit de OpslaanSectie "Productafbeelding" deze groep.
+  const groep = dialog.getByRole("group", { name: "Afbeelding", exact: true });
   await expect(groep).toHaveAccessibleDescription("JPG, PNG of WebP, maximaal 4 MB");
   await expect(groep.getByRole("button", { name: "Afbeelding kiezen" })).toBeVisible();
   await expect(dialog.getByRole("img")).toHaveCount(0);
