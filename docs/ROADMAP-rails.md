@@ -44,8 +44,14 @@ beveiligingsscans, productie alleen via release.
 
 ## Fase 3 — design system (R3, R4, R5)
 
-1. Tailwind v4-migratie (`npx @tailwindcss/upgrade`), thema resetten, focusring nalopen. better-tailwindcss gaat naar `entryPoint`.
-2. Tokenschaal: `h-control`/`h-control-lg`, een radiusschaal, `surface`.
+1. Tailwind v4-migratie. **Gebouwd (#185), behalve het thema resetten.**
+   - Gebouwd:
+     - tokens in `@theme` in `src/app/globals.css`;
+     - de bronscan is beperkt tot `src/` met `source("../")`;
+     - de focusring staat in de utilities-laag: hij wint van een kale `outline-hidden` en verliest van `focus-visible:outline-*`;
+     - better-tailwindcss gebruikt `entryPoint`; de suppressies dalen van 1082 naar 1060.
+   - Open: het thema resetten (`--*: initial`) gaat mee met de tokenschaal in stap 2. Daarna moet alles wat `src` van de standaardschalen gebruikt in `@theme` terugkomen. Tot dan keurt `no-unknown-classes` standaardklassen als `bg-red-500` nog goed.
+2. Tokenschaal: `h-control`/`h-control-lg`, een radiusschaal, `surface`, en het gereset thema uit stap 1.
 3. `Knop`/`Toets`/`Tegel`/`Chip` met een variantobject. `density` stuurt de maat; `className` alleen voor layout (lintregel).
 4. `<AsyncInhoud>` op de leesvorm uit fase 2, plus een copycatalogus `src/copy/nl.ts` met een woordenlijsttest.
 5. `scanAxe(page)` met `wcag22aa` als enige ingang (lintverbod op losse `AxeBuilder`).

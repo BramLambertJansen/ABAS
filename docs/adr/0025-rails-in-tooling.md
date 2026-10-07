@@ -66,10 +66,10 @@ het vaakst schrijven:
      `tsconfig.tests.json` zonder die regel: een assertie op `rows[0].x` faalt
      daar al hard.
    - ESLint CLI in plaats van `next lint`.
-7. **UI-lint nu, op Tailwind v3.** `better-tailwindcss` meldt onbekende
-   klassen, arbitrary values en `!`. Rauwe `<button>`/`<input>` en losse
-   laadteksten in features en shells zijn verboden. Na de v4-migratie gaat de
-   instelling naar `entryPoint`.
+7. **UI-lint.** `better-tailwindcss` meldt onbekende klassen, arbitrary
+   values en `!`. Rauwe `<button>`/`<input>` en losse laadteksten in features
+   en shells zijn verboden. Sinds de v4-migratie (#185) leest de lint het
+   thema via `entryPoint` (`src/app/globals.css`).
 8. **Append-only migraties.** `check:migrations` faalt als een migratie die op
    `origin/main` staat gewijzigd of verwijderd wordt.
 9. **Expliciete grants.** Nieuwe tabellen en functies krijgen in de migratie
@@ -101,7 +101,7 @@ gebouwd").
 | R1 | **Apart `api`-schema** (route b): alleen `api` wordt blootgesteld en de tabellen zijn onzichtbaar voor de Data API. | Read-RPC's eerst (22 bestanden met `.from()`), daarna `schemas = ["api"]` en `db: { schema: "api" }`. |
 | R2 | **TanStack Query** voor lezen, sleutels en invalidatie, op één getypte ingang `src/lib/rpc/`. | Gegenereerde `Database`-types met een driftgate; hookfabrieken; 62 hooks migreren. |
 | R3 | **T12 teruggedraaid**: er komen `Knop`, `Toets`, `Tegel` en `Chip` met een variantobject. `className` alleen voor layout, bewaakt met lint. | Lintregel tegen kleur-, maat- en radiusklassen in `className` op deze componenten. |
-| R4 | **Tailwind v4**: de bartablets voldoen aan Safari 16.4+, Chrome 111+ en Firefox 128+. | Migratie met gereset thema (`--*: initial`), focusring nalopen, lint naar `entryPoint`. |
+| R4 | **Tailwind v4**: de bartablets voldoen aan Safari 16.4+, Chrome 111+ en Firefox 128+. | Migratie met gereset thema (`--*: initial`), focusring nalopen, lint naar `entryPoint`. Gebouwd in #185, behalve het gereset thema: dat gaat mee met de tokenschaal (roadmap fase 3, stap 2). |
 | R5 | **`density` bepaalt de controlmaat**: comfortable 52px (bar), compact 44px (portal). `tone` wordt een variant. | `Knop`/`Veld` lezen `useShell().density`. |
 | R6 | **`search_path = ''` overal**, direct, met volledig gekwalificeerde namen. | Eén migratie herdefinieert elke functie. Daarna eist `rpc_catalogus` `''` en accepteert het `public` niet meer. Geldfuncties krijgen extra testaandacht. |
 | R7 | **pgTAP-helpers in een `tests`-schema via `seed.sql`**, niet in productie. | Eerst verifiëren dat seed buiten `db push` blijft (CLI 2.118). Daarna `act_as_bar` (16×) vervangen. |

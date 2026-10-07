@@ -1458,11 +1458,13 @@ caller), and `test/accentContrast.test.ts` scans all class literals in
 `src/` (one string literal at a time) instead of three fixed pairs.
 
 **Focus, font, portal width (T12)**: `globals.css` has one global
-`:focus-visible:focus-visible` rule (2px `accent` outline, 2px offset;
-specificity 0,2,0 so a bare `outline-none` cannot hide it; Tailwind v3 `@layer`
-only orders, it is not a cascade layer) plus a second rule that suppresses the
-ring on headings/blocks with `tabindex="-1"`. Fields with their own ring set
-`focus-visible:outline-none`. Manrope is self-hosted via `next/font/local`
+`:focus-visible` rule (2px `accent` outline, 2px offset) inside
+`@layer utilities`, after Tailwind's own utilities. Tailwind v4 layers are real
+cascade layers: at specificity 0,1,0 the rule beats a bare `outline-hidden`
+(same specificity, earlier in the layer) and loses to `focus-visible:outline-*`
+and `focus:outline-*` (0,2,0). A second rule suppresses the ring on
+headings/blocks with `tabindex="-1"`. Fields with their own ring set
+`focus-visible:outline-hidden`. Manrope is self-hosted via `next/font/local`
 (`src/app/layout.tsx`, `src/app/fonts/`, latin subset, SIL OFL; variable
 `--font-manrope`, used by `fontFamily.sans`), so there is no request to Google.
 All portal screens (`PortalDashboard`, loading/error states in

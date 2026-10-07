@@ -21,13 +21,16 @@ paths:
 - Geen arbitrary Tailwind-waarden (`h-[52px]`, `text-[10px]`) of `!`; kies een
   token. Lint faalt erop; bestaande gevallen staan in de ratchet.
 - Toegankelijk vanaf de eerste regel: semantische HTML, zichtbare focus
-  (`focus-visible:ring-*`, nooit alleen `outline-none`), WCAG 2.1 AA-contrast,
+  (`focus-visible:ring-*`, nooit alleen `outline-hidden`), WCAG 2.1 AA-contrast,
   doelen minimaal 44px, volledig met toetsenbord.
 - Sluiten, Annuleren en Klaar volgen `src/components/README.md` → "Sluiten en
   taal".
 
-Besloten maar nog niet gebouwd (ADR 0025 → roadmap): Tailwind v4 met
-gereset thema, `Knop`/`Toets`/`Tegel`/`Chip` met een variantobject
+Tailwind v4 is gebouwd (#185): tokens staan in `@theme` in
+`src/app/globals.css`, Tailwind scant alleen `src/`.
+
+Besloten maar nog niet gebouwd (ADR 0025 → roadmap): een gereset thema
+(`--*: initial`) met de tokenschaal, `Knop`/`Toets`/`Tegel`/`Chip` met een variantobject
 (`className` alleen voor layout), `density` bepaalt de controlmaat
 (comfortable 52px, compact 44px), `<AsyncInhoud>` en een copycatalogus,
 `/design/systeem` met screenshots.
