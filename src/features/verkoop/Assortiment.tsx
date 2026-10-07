@@ -96,8 +96,8 @@ export function Assortiment({
             aria-hidden="true"
             className="pointer-events-none absolute left-[19px] top-1/2 -translate-y-1/2"
           >
-            <circle cx="7.2" cy="7.2" r="5" stroke="#aca69e" strokeWidth="1.7" />
-            <line x1="11" y1="11" x2="15" y2="15" stroke="#aca69e" strokeWidth="1.7" strokeLinecap="round" />
+            <circle cx="7.2" cy="7.2" r="5" stroke="currentColor" className="text-muted-light" strokeWidth="1.7" />
+            <line x1="11" y1="11" x2="15" y2="15" stroke="currentColor" className="text-muted-light" strokeWidth="1.7" strokeLinecap="round" />
           </svg>
           <label htmlFor="verkoop-product-search" className="sr-only">
             Zoek product
@@ -108,7 +108,7 @@ export function Assortiment({
             placeholder="Zoek product"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="h-[52px] w-full rounded-[14px] border border-border bg-white pl-[46px] pr-[18px] text-[14.5px] font-medium text-ink outline-none placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
+            className="ui-field-focus h-[52px] w-full rounded-[14px] border border-border bg-white pl-[46px] pr-[18px] text-[14.5px] font-medium text-ink placeholder:text-muted"
           />
         </div>
         <div

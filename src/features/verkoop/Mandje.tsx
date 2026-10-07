@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { formatCents } from "@/lib/money";
 import { InitialsAvatar } from "@/components/InitialsAvatar";
 import type { MemberOption } from "@/hooks/queries/useMembers";
@@ -31,6 +31,8 @@ export function Mandje({
   rosterEmpty,
   rosterEmptyMessage,
   checkoutDisabled,
+  checkoutReason,
+  onRetryCheckoutData,
   onOpenCheckout,
   topupDisabled,
   onOpenTopup,
@@ -53,10 +55,13 @@ export function Mandje({
   rosterEmpty: boolean;
   rosterEmptyMessage: string;
   checkoutDisabled: boolean;
+  checkoutReason: string | null;
+  onRetryCheckoutData?: () => void;
   onOpenCheckout: () => void;
   topupDisabled: boolean;
   onOpenTopup: () => void;
 }) {
+  const checkoutReasonId = useId();
   const [memberQuery, setMemberQuery] = useState("");
 
   const trimmedQuery = memberQuery.trim().toLowerCase();
@@ -138,8 +143,8 @@ export function Mandje({
             aria-hidden="true"
             className="pointer-events-none absolute left-[18px] top-[17px]"
           >
-            <circle cx="7.2" cy="7.2" r="5" stroke="#aca69e" strokeWidth="1.7" />
-            <line x1="11" y1="11" x2="15" y2="15" stroke="#aca69e" strokeWidth="1.7" strokeLinecap="round" />
+            <circle cx="7.2" cy="7.2" r="5" stroke="currentColor" className="text-muted-light" strokeWidth="1.7" />
+            <line x1="11" y1="11" x2="15" y2="15" stroke="currentColor" className="text-muted-light" strokeWidth="1.7" strokeLinecap="round" />
           </svg>
           <label htmlFor="verkoop-member-search" className="sr-only">
             Zoek lid op naam
@@ -150,7 +155,7 @@ export function Mandje({
             placeholder="Zoek lid op naam"
             value={memberQuery}
             onChange={(e) => setMemberQuery(e.target.value)}
-            className="h-[50px] w-full rounded-card border border-border bg-white pl-[46px] pr-[18px] text-[14.5px] font-medium text-ink shadow-[0_1px_2px_rgba(27,30,35,0.03)] outline-none placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
+            className="ui-field-focus h-[50px] w-full rounded-card border border-border bg-white pl-[46px] pr-[18px] text-[14.5px] font-medium text-ink shadow-[0_1px_2px_rgba(27,30,35,0.03)] placeholder:text-muted"
           />
 
           {membersStatus === "loading" && trimmedQuery && (
@@ -322,11 +327,22 @@ export function Mandje({
         </p>
       )}
 
+      <p id={checkoutReasonId} role="status" className="text-center text-sm font-medium text-muted empty:hidden">
+        {checkoutReason}
+      </p>
+
+      {onRetryCheckoutData && (
+        <button type="button" onClick={onRetryCheckoutData} className="self-center rounded-control px-3 py-2 text-sm font-bold text-accent-active underline">
+          Opnieuw proberen
+        </button>
+      )}
+
       <button
         type="button"
         disabled={checkoutDisabled}
+        aria-describedby={checkoutReason ? checkoutReasonId : undefined}
         onClick={onOpenCheckout}
-        className="flex h-[54px] flex-none items-center justify-center gap-2.5 rounded-card bg-accent-active text-[15.5px] font-extrabold tracking-[-0.01em] text-white shadow-[0_12px_26px_-12px_rgba(238,90,36,1)] transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:bg-track disabled:text-muted disabled:shadow-none"
+        className="ui-button-primary flex h-[54px] flex-none items-center justify-center gap-2.5 rounded-card text-[15.5px] font-extrabold tracking-[-0.01em] shadow-[0_12px_26px_-12px_rgba(238,90,36,1)] transition-colors disabled:cursor-not-allowed disabled:shadow-none"
       >
         <span>
           Tik afrekenen

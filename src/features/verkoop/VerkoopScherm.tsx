@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { OpenShift } from "@/hooks/queries/useMijnDienst";
 import { useProducts } from "@/hooks/queries/useProducts";
-import { useMembers, type MemberOption } from "@/hooks/queries/useMembers";
+import { useMembers } from "@/hooks/queries/useMembers";
 import { useAppSettings } from "@/hooks/queries/useAppSettings";
 import { useShiftMembers } from "@/hooks/queries/useShiftMembers";
 import { formatCents } from "@/lib/money";
@@ -13,48 +13,34 @@ import { AfrekenenOverlay } from "./AfrekenenOverlay";
 import { OpwaarderenOverlay } from "@/features/opwaarderen/OpwaarderenOverlay";
 import { BezettingOverlay } from "@/features/bezetting-beheren/BezettingOverlay";
 import { BezettingPil } from "@/features/bezetting-beheren/BezettingPil";
-import { applyDelta, removeLine, type CartLine } from "./cart";
+import { applyDelta, removeLine } from "./cart";
 import { EMPTY_ROSTER_MESSAGE, placeOrderErrorMessage } from "./messages";
-import { useMandjeMelding } from "@/features/bar-sessie/BarSessieContext";
+import type { VerkoopConcept } from "./useVerkoopConcept";
+import { checkoutBlockReason } from "./checkout";
 
 const TOAST_DURATION_MS = 4000;
 
 /**
  * Het verkoopscherm: assortiment (links) + mandje-paneel (rechts,
  * permanent zichtbaar). Zie docs/features/verkoop.md — dit component is
- * de orchestrator: het houdt mandje-/lidkeuze-state bij en berekent het
+ * de orchestrator: het bewerkt het concept uit DienstTabs en berekent het
  * client-subtotaal en de negatieflimiet-bewuste onvoldoende-saldo-check
  * (nooit meegestuurd aan `place_order` — puur voor weergave/guards).
  */
-export function VerkoopScherm({ shift }: { shift: OpenShift }) {
+export function VerkoopScherm({ shift, concept }: { shift: OpenShift; concept: VerkoopConcept }) {
   const products = useProducts();
   const members = useMembers();
   const appSettings = useAppSettings();
   const crew = useShiftMembers(shift.id);
   const [bezettingOpen, setBezettingOpen] = useState(false);
 
-  const [cartLines, setCartLines] = useState<CartLine[]>([]);
-  // Een gesloten sessie meldt dat het half ingevulde mandje niet is afgerekend
-  // (docs/features/dienst-per-sessie.md → Teksten → Meldingen).
-  useMandjeMelding(cartLines.length > 0);
-  const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
-  // Losstaand van selectedMemberId gehouden zodat clearMember() ("wissel")
-  // het niet wist — chooseMember()'s keep-logica moet weten wie er vóór het
-  // wisselen gekozen was, ook nadat selectedMemberId alweer null is (Reviewbot
-  // op PR #41: clearMember() leegde het mandje altijd al vóórdat chooseMember
-  // kon vergelijken, dus "opnieuw hetzelfde lid kiezen" kon het mandje nooit
-  // intact laten zoals de spec voorschrijft — zie Schermflow §2).
-  const [lastMemberId, setLastMemberId] = useState<string | null>(null);
-  // Snapshot van het gekozen lid, i.p.v. elke render live uit memberList
-  // afgeleid: useMembers().refetch() (na insufficient_balance/succes) zet
-  // members.status eerst terug naar "loading" en leegt de array — een live
-  // afleiding zou selectedMember dan even null maken en de open
-  // afrekenbevestiging middenin de flow laten unmounten (checkoutOpen &&
-  // selectedMember in de render hieronder). De snapshot blijft staan tot
-  // een verse "ready"-lijst het bijgewerkte saldo levert, en wordt alleen
-  // op een echte clear (wissel/succes/member_not_found) leeggemaakt.
-  const [selectedMemberSnapshot, setSelectedMemberSnapshot] =
-    useState<MemberOption | null>(null);
+  const {
+    cartLines, setCartLines,
+    selectedMemberId, setSelectedMemberId,
+    lastMemberId, setLastMemberId,
+    selectedMemberSnapshot, setSelectedMemberSnapshot,
+    productInfoCache, setProductInfoCache,
+  } = concept;
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [topupOpen, setTopupOpen] = useState(false);
   const [memberNotice, setMemberNotice] = useState<string | null>(null);
@@ -81,9 +67,6 @@ export function VerkoopScherm({ shift }: { shift: OpenShift }) {
   // State i.p.v. een ref: zo blijft cartDisplayLines' useMemo hieronder een
   // gewone, eerlijke dependency houden i.p.v. via een ref-mutatie stiekem
   // mee te veranderen.
-  const [productInfoCache, setProductInfoCache] = useState<
-    Map<string, { name: string; priceCents: number }>
-  >(new Map());
   useEffect(() => {
     setProductInfoCache((prev) => {
       let changed = false;
@@ -104,7 +87,7 @@ export function VerkoopScherm({ shift }: { shift: OpenShift }) {
       }
       return changed ? next : prev;
     });
-  }, [productList]);
+  }, [productList, setProductInfoCache]);
 
   const cartDisplayLines = useMemo(
     () =>
@@ -134,8 +117,14 @@ export function VerkoopScherm({ shift }: { shift: OpenShift }) {
   useEffect(() => {
     if (!selectedMemberId || members.status !== "ready") return;
     const fresh = members.members.find((m) => m.id === selectedMemberId);
-    if (fresh) setSelectedMemberSnapshot(fresh);
-  }, [selectedMemberId, members]);
+    if (fresh) {
+      setSelectedMemberSnapshot(fresh);
+    } else {
+      setSelectedMemberId(null);
+      setSelectedMemberSnapshot(null);
+      setMemberNotice(placeOrderErrorMessage("member_not_found"));
+    }
+  }, [selectedMemberId, members, setSelectedMemberId, setSelectedMemberSnapshot]);
 
   const settingsReady = appSettings.status === "ready";
   const negativeLimitCents = settingsReady
@@ -167,13 +156,17 @@ export function VerkoopScherm({ shift }: { shift: OpenShift }) {
   // (Reviewbot op PR #41).
   const rosterUnavailable = crew.status !== "ready";
 
-  const checkoutDisabled =
-    selectedMember === null ||
-    cartLines.length === 0 ||
-    insufficientFunds ||
-    rosterEmpty ||
-    rosterUnavailable ||
-    !settingsReady;
+  const checkoutReason = checkoutBlockReason({
+    memberSelected: selectedMember !== null,
+    cartHasLines: cartLines.length > 0,
+    membersStatus: members.status,
+    productsStatus: products.status,
+    settingsStatus: appSettings.status,
+    crewStatus: crew.status,
+    rosterEmpty,
+    insufficientFunds,
+  });
+  const checkoutDisabled = checkoutReason !== null;
 
   // Opwaarderen heeft geen mandje/saldo-guard nodig (in tegenstelling tot
   // checkoutDisabled) — alleen dezelfde bezettings-eis: zonder een bekende,
@@ -310,6 +303,17 @@ export function VerkoopScherm({ shift }: { shift: OpenShift }) {
         rosterEmpty={rosterEmpty}
         rosterEmptyMessage={EMPTY_ROSTER_MESSAGE}
         checkoutDisabled={checkoutDisabled}
+        checkoutReason={checkoutReason}
+        onRetryCheckoutData={
+          [members.status, products.status, appSettings.status, crew.status].includes("error")
+            ? () => {
+                members.refetch();
+                products.refetch();
+                appSettings.refetch();
+                crew.refetch();
+              }
+            : undefined
+        }
         onOpenCheckout={openCheckout}
         topupDisabled={topupDisabled}
         onOpenTopup={openTopup}

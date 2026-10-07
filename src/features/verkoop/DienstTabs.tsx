@@ -6,7 +6,8 @@ import { DienstActief } from "@/features/bezetting-beheren/DienstActief";
 import { DienstTeLangOpenMelding } from "@/features/dienst-te-lang-open/DienstTeLangOpenMelding";
 import { OverlayPresenceProvider } from "@/components/OverlayPresence";
 import { VerkoopScherm } from "./VerkoopScherm";
-import { useBarSessie } from "@/features/bar-sessie/BarSessieContext";
+import { useVerkoopConcept } from "./useVerkoopConcept";
+import { useBarSessie, useMandjeMelding } from "@/features/bar-sessie/BarSessieContext";
 import { AdminMeldingen } from "@/features/bar-sessie/AdminMeldingen";
 import { UitloggenKnop } from "@/features/bar-sessie/UitloggenKnop";
 import { ingelogdAls } from "@/features/bar-sessie/teksten";
@@ -26,7 +27,8 @@ type Tab = "verkoop" | "dienst";
  * mount/unmount-als-lifecycle-aanpak als Overlay.tsx, niet een
  * hidden-toggle) — zo krijgt Verkoop bij terugkeer altijd verse data
  * (assortiment, leden, bezetting) in plaats van een stale snapshot van
- * vóór het wisselen.
+ * vóór het wisselen. Het concept (mandje, lidkeuze, productnamen/prijzen)
+ * leeft hier en blijft bij een tabwissel behouden.
  *
  * Sinds dienst-per-sessie (docs/features/dienst-per-sessie.md → Schermflow
  * punt 5) onderaan de rail "Ingelogd als {naam}" en "Uitloggen" (met de
@@ -47,6 +49,8 @@ export function DienstTabs({
 }) {
   const sessie = useBarSessie();
   const [tab, setTab] = useState<Tab>("verkoop");
+  const concept = useVerkoopConcept();
+  useMandjeMelding(concept.cartLines.length > 0);
   const verkoopTabId = useId();
   const dienstTabId = useId();
 
@@ -125,7 +129,7 @@ export function DienstTabs({
             aria-labelledby={verkoopTabId}
             className="flex min-h-0 min-w-0 flex-1"
           >
-            <VerkoopScherm shift={shift} />
+            <VerkoopScherm shift={shift} concept={concept} />
           </div>
         )}
 
