@@ -1,5 +1,20 @@
 # Verkoopscherm: mandje + afrekenen
 
+## Frontendverbetering 2 oktober 2026
+
+Het concept (mandjeregels, gekozen lid, vorige lidkeuze en laatst bekende
+productinformatie) leeft in DienstTabs en overleeft Verkoop/Dienst-tabwissels.
+De queryhooks worden bij terugkeer opnieuw gemount, zodat prijzen, saldo en
+bezetting worden ververst. Afrekenen wacht totdat deze gegevens gereed zijn.
+Een nieuwe barsessie of dienst krijgt een leeg concept; een pagina-herlaad
+bewaart het concept niet. De sessiemelding over een onafgerekend mandje blijft
+ook op het Dienst-tabblad beschikbaar.
+
+Een geblokkeerde afrekenknop krijgt zichtbare, toegankelijke uitleg voor
+lidkeuze, leeg mandje, laden/fout, bezetting of saldo. Bij een laadfout is
+“Opnieuw proberen” beschikbaar zonder het concept te wissen.
+
+
 Spec voor [issue #8](https://github.com/BramLambertJansen/ABAS/issues/8).
 Volgt op [#7](https://github.com/BramLambertJansen/ABAS/issues/7) (bezetting
 beheren, gemerged) — dat scherm noemde dit ticket al met naam voor twee dingen

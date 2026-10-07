@@ -1,0 +1,547 @@
+{
+  "files": 234,
+  "tsxFiles": 94,
+  "sharedFiles": 26,
+  "usage": [
+    {
+      "file": "src/components/AuroraMerk.tsx",
+      "consumers": 8,
+      "featureFolders": [
+        "assortimentbeheer",
+        "bar-inloggen",
+        "bar-sessie",
+        "dienst-starten",
+        "portal-login"
+      ]
+    },
+    {
+      "file": "src/components/BezettingKeuze.tsx",
+      "consumers": 3,
+      "featureFolders": [
+        "bestelling-terugdraaien",
+        "opwaarderen",
+        "verkoop"
+      ]
+    },
+    {
+      "file": "src/components/CodeInvoer.tsx",
+      "consumers": 5,
+      "featureFolders": [
+        "assortimentbeheer",
+        "portal-login",
+        "portal-profiel"
+      ]
+    },
+    {
+      "file": "src/components/EerdereGeldActie.tsx",
+      "consumers": 1,
+      "featureFolders": [
+        "bar-sessie"
+      ]
+    },
+    {
+      "file": "src/components/InitialsAvatar.tsx",
+      "consumers": 12,
+      "featureFolders": [
+        "bezetting-beheren",
+        "dienst-overzicht",
+        "dienst-starten",
+        "ledenbeheer",
+        "logboek",
+        "portal-profiel",
+        "verkoop"
+      ]
+    },
+    {
+      "file": "src/components/LeesFout.tsx",
+      "consumers": 15,
+      "featureFolders": [
+        "assortimentbeheer",
+        "bar-inloggen",
+        "bestelling-terugdraaien",
+        "bezetting-beheren",
+        "dienst-overzicht",
+        "dienst-starten",
+        "ledenbeheer",
+        "logboek",
+        "portal-dashboard",
+        "verkoop"
+      ]
+    },
+    {
+      "file": "src/components/LidZoeker.tsx",
+      "consumers": 1,
+      "featureFolders": [
+        "verkoop"
+      ]
+    },
+    {
+      "file": "src/components/MemberPill.tsx",
+      "consumers": 1,
+      "featureFolders": [
+        "dienst-afsluiten"
+      ]
+    },
+    {
+      "file": "src/components/NieuwWachtwoordVelden.tsx",
+      "consumers": 3,
+      "featureFolders": [
+        "assortimentbeheer",
+        "portal-login",
+        "portal-profiel"
+      ]
+    },
+    {
+      "file": "src/components/OnbekendeUitkomstMelding.tsx",
+      "consumers": 3,
+      "featureFolders": [
+        "ledenbeheer",
+        "opwaarderen",
+        "verkoop"
+      ]
+    },
+    {
+      "file": "src/components/OpslaanSectie.tsx",
+      "consumers": 2,
+      "featureFolders": [
+        "assortimentbeheer",
+        "ledenbeheer"
+      ]
+    },
+    {
+      "file": "src/components/Overlay.tsx",
+      "consumers": 19,
+      "featureFolders": [
+        "assortimentbeheer",
+        "bar-sessie",
+        "bestelling-terugdraaien",
+        "bezetting-beheren",
+        "dienst-afsluiten",
+        "dienst-te-lang-open",
+        "ledenbeheer",
+        "opwaarderen",
+        "portal-profiel",
+        "verkoop"
+      ]
+    },
+    {
+      "file": "src/components/OverlayPresence.tsx",
+      "consumers": 3,
+      "featureFolders": [
+        "dienst-te-lang-open",
+        "verkoop"
+      ]
+    },
+    {
+      "file": "src/components/PinToetsenbord.tsx",
+      "consumers": 3,
+      "featureFolders": [
+        "dienst-starten",
+        "portal-profiel"
+      ]
+    },
+    {
+      "file": "src/components/ProductAfbeelding.tsx",
+      "consumers": 3,
+      "featureFolders": [
+        "assortimentbeheer",
+        "verkoop"
+      ]
+    },
+    {
+      "file": "src/components/RoleBadge.tsx",
+      "consumers": 2,
+      "featureFolders": [
+        "bestelling-terugdraaien",
+        "bezetting-beheren"
+      ]
+    },
+    {
+      "file": "src/components/Select.tsx",
+      "consumers": 1,
+      "featureFolders": [
+        "dienst-starten"
+      ]
+    },
+    {
+      "file": "src/components/StatCard.tsx",
+      "consumers": 3,
+      "featureFolders": [
+        "bestelling-terugdraaien",
+        "dienst-afsluiten",
+        "verkoop"
+      ]
+    },
+    {
+      "file": "src/components/StatusFilter.tsx",
+      "consumers": 2,
+      "featureFolders": [
+        "assortimentbeheer",
+        "ledenbeheer"
+      ]
+    },
+    {
+      "file": "src/components/Tabs.tsx",
+      "consumers": 3,
+      "featureFolders": [
+        "assortimentbeheer",
+        "portal-dashboard",
+        "verkoop"
+      ]
+    },
+    {
+      "file": "src/components/TekstVeld.tsx",
+      "consumers": 10,
+      "featureFolders": [
+        "assortimentbeheer",
+        "bar-inloggen",
+        "bezetting-beheren",
+        "ledenbeheer",
+        "opwaarderen",
+        "portal-profiel"
+      ]
+    },
+    {
+      "file": "src/components/VerversStatus.tsx",
+      "consumers": 2,
+      "featureFolders": [
+        "portal-dashboard"
+      ]
+    },
+    {
+      "file": "src/components/ZijPaneel.tsx",
+      "consumers": 2,
+      "featureFolders": [
+        "bezetting-beheren",
+        "verkoop"
+      ]
+    },
+    {
+      "file": "src/components/ZoekVeld.tsx",
+      "consumers": 2,
+      "featureFolders": [
+        "assortimentbeheer",
+        "ledenbeheer"
+      ]
+    },
+    {
+      "file": "src/components/knopStijlen.ts",
+      "consumers": 12,
+      "featureFolders": [
+        "bar-sessie",
+        "bezetting-beheren",
+        "dienst-afsluiten",
+        "dienst-te-lang-open",
+        "opwaarderen",
+        "verkoop"
+      ]
+    },
+    {
+      "file": "src/components/overlayShield.ts",
+      "consumers": 1,
+      "featureFolders": []
+    }
+  ],
+  "nativeCounts": {
+    "div": 245,
+    "section": 11,
+    "h2": 23,
+    "label": 31,
+    "select": 2,
+    "option": 2,
+    "p": 173,
+    "code": 3,
+    "iframe": 1,
+    "a": 2,
+    "ul": 24,
+    "li": 26,
+    "main": 18,
+    "header": 5,
+    "h1": 15,
+    "details": 1,
+    "summary": 1,
+    "pre": 1,
+    "html": 1,
+    "body": 1,
+    "span": 219,
+    "fieldset": 4,
+    "legend": 4,
+    "button": 151,
+    "svg": 11,
+    "circle": 5,
+    "line": 10,
+    "input": 30,
+    "path": 3,
+    "form": 10,
+    "polyline": 3,
+    "rect": 3,
+    "dl": 1,
+    "h3": 7,
+    "dt": 1,
+    "dd": 1,
+    "nav": 1
+  },
+  "classLiterals": 1092,
+  "withArbitrary": 351,
+  "arbitraryOccurrences": 579,
+  "topArbitrary": [
+    [
+      "text-[12.5px]",
+      32
+    ],
+    [
+      "h-[52px]",
+      26
+    ],
+    [
+      "text-[13.5px]",
+      21
+    ],
+    [
+      "h-[50px]",
+      17
+    ],
+    [
+      "text-[11px]",
+      16
+    ],
+    [
+      "text-[10.5px]",
+      15
+    ],
+    [
+      "text-[13px]",
+      15
+    ],
+    [
+      "rounded-[15px]",
+      12
+    ],
+    [
+      "text-[10px]",
+      11
+    ],
+    [
+      "text-[9.5px]",
+      11
+    ],
+    [
+      "rounded-[13px]",
+      11
+    ],
+    [
+      "text-[11.5px]",
+      10
+    ],
+    [
+      "tracking-[0.06em]",
+      9
+    ],
+    [
+      "rounded-[10px]",
+      9
+    ],
+    [
+      "tracking-[-0.02em]",
+      9
+    ],
+    [
+      "rounded-[22px]",
+      9
+    ],
+    [
+      "focus:ring-[3px]",
+      8
+    ],
+    [
+      "rounded-[14px]",
+      8
+    ],
+    [
+      "h-[54px]",
+      8
+    ],
+    [
+      "px-[9px]",
+      8
+    ],
+    [
+      "min-h-[44px]",
+      7
+    ],
+    [
+      "text-[19px]",
+      7
+    ],
+    [
+      "rounded-[11px]",
+      7
+    ],
+    [
+      "px-[18px]",
+      7
+    ],
+    [
+      "py-[11px]",
+      7
+    ],
+    [
+      "text-[14.5px]",
+      6
+    ],
+    [
+      "gap-[14px]",
+      6
+    ],
+    [
+      "max-w-[560px]",
+      5
+    ],
+    [
+      "px-[26px]",
+      5
+    ],
+    [
+      "h-[42px]",
+      5
+    ],
+    [
+      "bg-[radial-gradient(circle_at_50%_0%,rgba(238,90,36,0.16),transparent_60%)]",
+      5
+    ],
+    [
+      "text-[21px]",
+      5
+    ],
+    [
+      "text-[17px]",
+      5
+    ],
+    [
+      "tracking-[-0.015em]",
+      5
+    ],
+    [
+      "text-[15px]",
+      5
+    ]
+  ],
+  "rawColors": [
+    {
+      "file": "src/app/(bar)/layout.tsx",
+      "line": 27,
+      "value": "#ee5a24",
+      "context": "themeColor: \"#ee5a24\""
+    },
+    {
+      "file": "src/components/LidZoeker.tsx",
+      "line": 148,
+      "value": "#aca69e",
+      "context": "stroke=\"#aca69e\""
+    },
+    {
+      "file": "src/components/LidZoeker.tsx",
+      "line": 149,
+      "value": "#aca69e",
+      "context": "stroke=\"#aca69e\""
+    },
+    {
+      "file": "src/components/ZoekVeld.tsx",
+      "line": 32,
+      "value": "#aca69e",
+      "context": "stroke=\"#aca69e\""
+    },
+    {
+      "file": "src/components/ZoekVeld.tsx",
+      "line": 33,
+      "value": "#aca69e",
+      "context": "stroke=\"#aca69e\""
+    },
+    {
+      "file": "src/features/verkoop/Assortiment.tsx",
+      "line": 116,
+      "value": "#aca69e",
+      "context": "stroke=\"#aca69e\""
+    },
+    {
+      "file": "src/features/verkoop/Assortiment.tsx",
+      "line": 117,
+      "value": "#aca69e",
+      "context": "stroke=\"#aca69e\""
+    }
+  ],
+  "inlineStyles": [
+    {
+      "file": "src/features/dienst-starten/StaffPicker.tsx",
+      "line": 32,
+      "text": "style={{ gridTemplateColumns: `repeat(${shell.columns}, 1fr)` }}"
+    },
+    {
+      "file": "src/features/verkoop/Assortiment.tsx",
+      "line": 207,
+      "text": "style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${MIN_KAART_PX}px, 1fr))` }}"
+    }
+  ],
+  "largestFiles": [
+    {
+      "file": "src/features/ledenbeheer/LidBeherenOverlay.tsx",
+      "lines": 709
+    },
+    {
+      "file": "src/lib/barLogin.ts",
+      "lines": 478
+    },
+    {
+      "file": "src/components/Overlay.tsx",
+      "lines": 473
+    },
+    {
+      "file": "src/features/bar-inloggen/BarInloggen.tsx",
+      "lines": 446
+    },
+    {
+      "file": "src/features/verkoop/VerkoopScherm.tsx",
+      "lines": 418
+    },
+    {
+      "file": "src/features/assortimentbeheer/ProductBeherenOverlay.tsx",
+      "lines": 411
+    },
+    {
+      "file": "src/features/assortimentbeheer/ActiviteitstypesInstellingen.tsx",
+      "lines": 409
+    },
+    {
+      "file": "src/features/verkoop/Mandje.tsx",
+      "lines": 400
+    },
+    {
+      "file": "src/features/bar-sessie/BarSessieProvider.tsx",
+      "lines": 371
+    },
+    {
+      "file": "src/features/portal-login/PortalLogin.tsx",
+      "lines": 369
+    },
+    {
+      "file": "src/features/assortimentbeheer/BeheerLogin.tsx",
+      "lines": 359
+    },
+    {
+      "file": "src/features/opwaarderen/OpwaarderenOverlay.tsx",
+      "lines": 355
+    },
+    {
+      "file": "src/features/dienst-overzicht/Transactielijst.tsx",
+      "lines": 352
+    },
+    {
+      "file": "src/features/bezetting-beheren/DienstActief.tsx",
+      "lines": 322
+    },
+    {
+      "file": "src/features/verkoop/Assortiment.tsx",
+      "lines": 296
+    }
+  ]
+}

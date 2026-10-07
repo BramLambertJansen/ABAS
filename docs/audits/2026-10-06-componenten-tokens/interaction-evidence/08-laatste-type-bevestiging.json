@@ -1,0 +1,27 @@
+{
+  "fixtureProvenance": {
+    "dataKind": "synthetic browser fixtures only",
+    "personalAndFinancialData": "Names, email addresses, balances and transactions are invented test data; no production records.",
+    "source": [
+      "e2e/helpers/supabaseMock.ts (USER and fakeSession)",
+      "e2e/helpers/frontendReview.ts (reviewFixture)",
+      "docs/audits/2026-10-06-componenten-tokens/tools/screen-audit.cjs (PRODUCTS and TRANSACTIONS mocks)",
+      "docs/audits/2026-10-06-componenten-tokens/tools/interaction-audit.cjs (local route mocks)"
+    ],
+    "networkIsolation": "Local app only; unmocked external browser requests aborted."
+  },
+  "id": "08-laatste-type-bevestiging",
+  "file": "screenshots/08-laatste-type-bevestiging.png",
+  "note": "Bij het laatste actieve type: expliciete consequentie, veilige Annuleren en hersteloptie.",
+  "url": "http://127.0.0.1:3100/beheer",
+  "snapshot": "- alert\n- main:\n  - tablist \"Beheer-navigatie\":\n    - tab \"Assortiment\"\n    - tab \"Leden\"\n    - tab \"Instellingen\" [selected]\n    - tab \"Diensten\"\n    - tab \"Logboek\"\n  - text: Ingelogd als Femke Bos BEHEER\n  - button \"Uitloggen\"\n  - tabpanel \"Instellingen\":\n    - heading \"Negatief saldo toestaan\" [level=2]\n    - paragraph: Tot dit bedrag mag een lid in het rood staan. Erboven blokkeert de bar bestellen — het lid moet eerst opwaarderen.\n    - text: actief\n    - status\n    - text: € 10,00 huidige limiet Wat dit betekent\n    - paragraph: Een lid met €0 op de rekening kan nog voor € 10,00 bestellen. Daarna weigert de kassa tot er is opgewaardeerd.\n    - text: Snel instellen\n    - group \"Snel instellen\":\n      - button \"geen\"\n      - button \"€ 10,00\" [pressed]\n      - button \"€ 25,00\"\n      - button \"€ 50,00\"\n    - alert\n    - text: Ander bedrag\n    - textbox \"Ander bedrag\":\n      - /placeholder: ander bedrag\n    - button \"opslaan\" [disabled]\n    - paragraph: Geldt voor alle leden.\n    - heading \"Activiteitstypes\" [level=2]\n    - paragraph: Elke dienst wordt gestart voor één van deze activiteiten. Bewerk of archiveer een type, of voeg een nieuwe toe.\n    - alert\n    - list:\n      - listitem:\n        - text: Repetitie\n        - button \"Repetitie bewerken\": bewerken\n        - button \"Repetitie archiveren\": archiveren\n        - group \"Dit is het laatste actieve activiteitstype. Zonder actief type kan niemand een dienst starten.\":\n          - paragraph: Dit is het laatste actieve activiteitstype. Zonder actief type kan niemand een dienst starten.\n          - button \"Annuleren\"\n          - button \"Eerst een type toevoegen\"\n          - button \"Toch archiveren\"\n    - text: Nieuw activiteittype\n    - textbox \"Nieuw activiteittype\":\n      - /placeholder: bijv. Repetitie\n    - button \"toevoegen\" [disabled]",
+  "focus": {
+    "tag": "H2",
+    "text": "Negatief saldo toestaan",
+    "label": null
+  },
+  "calls": 1,
+  "health": "Goed",
+  "auditNote": "De concrete consequentie en alternatieven staan direct bij Repetitie. Deze stap verstuurt nog geen archivering.",
+  "visuallyInspected": true
+}

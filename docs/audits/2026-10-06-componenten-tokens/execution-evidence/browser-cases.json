@@ -1,0 +1,1947 @@
+{
+  "stats": {
+    "startTime": "2026-10-06T11:13:25.296Z",
+    "duration": 119153.301,
+    "expected": 215,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "tests": [
+    {
+      "file": "beheerformulieren-catalogus-aanvulling.spec.ts",
+      "line": 55,
+      "title": "Activiteitstypes: na archiveren van een van twee actieve types blijft de focus op een knop in de lijst, niet op body",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "beheerformulieren-catalogus-aanvulling.spec.ts",
+      "line": 67,
+      "title": "Activiteitstypes: na Toch archiveren landt de focus op de herstelknop van die rij, niet op body",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "beheerformulieren-catalogus-aanvulling.spec.ts",
+      "line": 78,
+      "title": "Activiteitstypes: na herstellen van een type landt de focus op zijn archiveerknop",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "beheerformulieren-catalogus-aanvulling.spec.ts",
+      "line": 88,
+      "title": "Activiteitstypes: archiveren zonder herordening van de rij laat de focus ook niet op body vallen",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "beheerformulieren-catalogus.spec.ts",
+      "line": 149,
+      "title": "Lid beheren 768x1024: titel, saldo en Sluiten blijven zichtbaar bij scrollen",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "beheerformulieren-catalogus.spec.ts",
+      "line": 149,
+      "title": "Lid beheren 1024x768: titel, saldo en Sluiten blijven zichtbaar bij scrollen",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "beheerformulieren-catalogus.spec.ts",
+      "line": 213,
+      "title": "Sectiestatus: Niet opgeslagen alleen bij de gewijzigde sectie, Opgeslagen na opslaan, geen toast",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "beheerformulieren-catalogus.spec.ts",
+      "line": 241,
+      "title": "Sectiestatus: een mislukte opslag toont de fout en geen Opgeslagen",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "beheerformulieren-catalogus.spec.ts",
+      "line": 256,
+      "title": "Contactadres: uitleg altijd, accountuitleg bij gekoppeld lid, opgeslagen-tekst zonder claim over het inlogadres",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "beheerformulieren-catalogus.spec.ts",
+      "line": 278,
+      "title": "Contactadres: lid zonder account en zonder adres krijgt geen account- of uitnodigingsuitleg",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "beheerformulieren-catalogus.spec.ts",
+      "line": 287,
+      "title": "Contactadres: ander adres wist de openstaande uitnodiging, de status volgt de RPC (regressie invitedAt)",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "beheerformulieren-catalogus.spec.ts",
+      "line": 309,
+      "title": "Contactadres: na een verstuurde uitnodiging wist een ander adres 'Uitnodiging verstuurd'",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "beheerformulieren-catalogus.spec.ts",
+      "line": 332,
+      "title": "Archief in Lid beheren: status Gearchiveerd/Teruggezet in de eigen sectie en de herstelroute",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "beheerformulieren-catalogus.spec.ts",
+      "line": 353,
+      "title": "Producten: standaard Actief, chips met tellers, zoeken op naam en categorie",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "beheerformulieren-catalogus.spec.ts",
+      "line": 382,
+      "title": "Producten: de drie lege uitkomsten en Zoekopdracht wissen",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "beheerformulieren-catalogus.spec.ts",
+      "line": 397,
+      "title": "Producten: zoekterm die alleen in de andere status matcht meldt geen 'geen treffers'",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "beheerformulieren-catalogus.spec.ts",
+      "line": 406,
+      "title": "Producten: geen actieve producten verwijst naar Uit assortiment",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "beheerformulieren-catalogus.spec.ts",
+      "line": 412,
+      "title": "Producten: nog geen producten",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "beheerformulieren-catalogus.spec.ts",
+      "line": 418,
+      "title": "Producten: archiveren in de overlay laat het product na sluiten uit Actief verdwijnen en in Uit assortiment verschijnen",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "beheerformulieren-catalogus.spec.ts",
+      "line": 435,
+      "title": "Producten: 120 producten blijven bruikbaar",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "beheerformulieren-catalogus.spec.ts",
+      "line": 451,
+      "title": "Activiteitstypes: laatste actieve archiveren toont eerst de waarschuwing, geen RPC tot Toch archiveren",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "beheerformulieren-catalogus.spec.ts",
+      "line": 495,
+      "title": "Activiteitstypes: bij twee actieve types archiveert één klik direct, zonder bevestiging",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "beheerformulieren-catalogus.spec.ts",
+      "line": 504,
+      "title": "Activiteitstypes: de vaste melding staat er als er al geen actief type is, niet bij een lege lijst",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "beheerformulieren-catalogus.spec.ts",
+      "line": 510,
+      "title": "Activiteitstypes: lege lijst toont alleen de bestaande lege-tekst",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "contrast-controls-bar.spec.ts",
+      "line": 72,
+      "title": "hover en ingedrukt: Afrekenen in het mandje en in de afrekenoverlay",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "contrast-controls-bar.spec.ts",
+      "line": 85,
+      "title": "hover en ingedrukt: Opwaarderen",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "contrast-controls-bar.spec.ts",
+      "line": 94,
+      "title": "hover en ingedrukt: Bezetting (Klaar) en Dienst afsluiten",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "contrast-controls-bar.spec.ts",
+      "line": 109,
+      "title": "hover en ingedrukt: DienstTeLangOpenMelding",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "contrast-controls-bar.spec.ts",
+      "line": 142,
+      "title": "focus: invoerveld en knop tonen een focusring bij Tab",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "contrast-controls-bar.spec.ts",
+      "line": 161,
+      "title": "focus: een knop op het beheer-inlogscherm toont een focusring bij Tab",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "contrast-controls-bar.spec.ts",
+      "line": 170,
+      "title": "focus: een control met kale `outline-none` krijgt toch de globale ring; een eigen vervanging wint",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "contrast-controls-portal-aanvulling.spec.ts",
+      "line": 45,
+      "title": "PortalLogin blijft max-w-sm (384px), niet verbreed naar 560px",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "contrast-controls-portal-aanvulling.spec.ts",
+      "line": 57,
+      "title": "een profiel-sheet past binnen het scherm en zit onderaan",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "contrast-controls-portal-aanvulling.spec.ts",
+      "line": 74,
+      "title": "Uitloggen toont bij Tab een 2px accent-focusring met 2px afstand",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "contrast-controls-portal-aanvulling.spec.ts",
+      "line": 92,
+      "title": "tekstgrootte 200%: geen horizontale overflow, Uitloggen blijft bereikbaar",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "contrast-controls-portal.spec.ts",
+      "line": 141,
+      "title": "het font is Manrope en komt van onze eigen server",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "contrast-controls-portal.spec.ts",
+      "line": 76,
+      "title": "dashboard: één gecentreerde kolom van hooguit 560px, niets steekt eruit",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "contrast-controls-portal.spec.ts",
+      "line": 97,
+      "title": "een profiel-sheet is niet breder dan de kolom",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "contrast-controls-portal.spec.ts",
+      "line": 108,
+      "title": "het herstelscherm en het ongeldige-linkscherm volgen dezelfde kolom",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "contrast-controls-portal.spec.ts",
+      "line": 120,
+      "title": "geen overflow, Uitloggen en 'Alle transacties' >= 44px en in beeld, reversalregel volledig",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "contrast-controls-portal.spec.ts",
+      "line": 120,
+      "title": "geen overflow, Uitloggen en 'Alle transacties' >= 44px en in beeld, reversalregel volledig",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "dialogen-tabs-landmarks-negatief.spec.ts",
+      "line": 110,
+      "title": "sheet: Tab/Shift+Tab vanaf container, eerste en laatste element landen exact en wrappen",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "dialogen-tabs-landmarks-negatief.spec.ts",
+      "line": 118,
+      "title": "sheet: focusin-vangnet haalt de focus terug als de achtergrond toch focus krijgt",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "dialogen-tabs-landmarks-negatief.spec.ts",
+      "line": 133,
+      "title": "sheet: de tabs achter de dialoog zijn inert en niet met het toetsenbord te bereiken",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "dialogen-tabs-landmarks-negatief.spec.ts",
+      "line": 149,
+      "title": "tabs: bij manuele activatie volgt de ene tabstop de focus en valt hij terug op de selectie",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "dialogen-tabs-landmarks-negatief.spec.ts",
+      "line": 172,
+      "title": "tabs: modifiers laten de tablist met rust, ook Alt+Pijl (browser terug)",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "dialogen-tabs-landmarks-negatief.spec.ts",
+      "line": 183,
+      "title": "tabs: toetsen worden niet afgehandeld vanuit het panel",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "dialogen-tabs-landmarks-negatief.spec.ts",
+      "line": 195,
+      "title": "tabs: aria-controls staat alleen op de actieve tab en wijst naar het panel dat naar de tab terugwijst",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "dialogen-tabs-landmarks-negatief.spec.ts",
+      "line": 291,
+      "title": "Lid beheren: Tab/Shift+Tab vanaf container, eerste en laatste element landen exact en wrappen",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "dialogen-tabs-landmarks-negatief.spec.ts",
+      "line": 302,
+      "title": "tabs: Home/End en de andere as laten de selectie ongemoeid (manueel)",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "dialogen-tabs-landmarks-negatief.spec.ts",
+      "line": 319,
+      "title": "geldmutatie: geblokkeerde sluitpogingen sturen geen tweede request en verplaatsen de focus niet",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "dialogen-tabs-landmarks-negatief.spec.ts",
+      "line": 435,
+      "title": "Afrekenen: Tab/Shift+Tab vanaf container, eerste en laatste element landen exact en wrappen",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "dialogen-tabs-landmarks-negatief.spec.ts",
+      "line": 443,
+      "title": "Afrekenen pending: één request, annuleren disabled, geen melding vóór een poging, focus blijft",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "dialogen-tabs-landmarks-negatief.spec.ts",
+      "line": 486,
+      "title": "rail: ArrowUp wrapt van Verkoop naar Dienst; de horizontale as en modifiers doen niets",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "dialogen-tabs-landmarks-negatief.spec.ts",
+      "line": 502,
+      "title": "rail: Tab uit de rail bereikt main (na de Uitloggen-knop in de rail) en Shift+Tab komt terug op de geselecteerde tab",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "dialogen-tabs-landmarks-negatief.spec.ts",
+      "line": 524,
+      "title": "rail: pijlen vanuit de verkoopinhoud wisselen geen tab",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "dialogen-tabs-landmarks.spec.ts",
+      "line": 156,
+      "title": "tabs: handmatige activatie, één tabstop, horizontale pijlen",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "dialogen-tabs-landmarks.spec.ts",
+      "line": 196,
+      "title": "sheet: focusval, inert, scrolllock, sluiten en focus terug",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "dialogen-tabs-landmarks.spec.ts",
+      "line": 220,
+      "title": "sheet: backdrop sluit; met verdwenen trigger valt de focus op het tabpanel",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "dialogen-tabs-landmarks.spec.ts",
+      "line": 243,
+      "title": "tabpanel zonder focusbare inhoud is zelf een tabstop",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "dialogen-tabs-landmarks.spec.ts",
+      "line": 267,
+      "title": "Saldo met data heeft een focusbare verversknop: het panel is zelf geen tabstop",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "dialogen-tabs-landmarks.spec.ts",
+      "line": 280,
+      "title": "sheet: later ingevoegde achtergrondnodes worden ook inert",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "dialogen-tabs-landmarks.spec.ts",
+      "line": 366,
+      "title": "tabs: vijf tabs voor de beheerder, handmatig, wrap-around",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "dialogen-tabs-landmarks.spec.ts",
+      "line": 386,
+      "title": "Lid beheren → Bestellingen: focus blijft in de dialoog, trigger blijft de ledenrij",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "dialogen-tabs-landmarks.spec.ts",
+      "line": 417,
+      "title": "Lid beheren: Escape, backdrop en sluitknop sluiten identiek",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "dialogen-tabs-landmarks.spec.ts",
+      "line": 437,
+      "title": "geldmutatie: sluiten is geblokkeerd tijdens pending, met statusmelding",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "dialogen-tabs-landmarks.spec.ts",
+      "line": 537,
+      "title": "rail: verticale pijlen met automatische activatie, één tabstop",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "dialogen-tabs-landmarks.spec.ts",
+      "line": 571,
+      "title": "landmarks: precies één main en nav 'Bar', op Verkoop en Dienst, ook met open dialoog",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "dialogen-tabs-landmarks.spec.ts",
+      "line": 590,
+      "title": "Afrekenen: focusval, inert, scrolllock en focus terug op de trigger",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "dialogen-tabs-landmarks.spec.ts",
+      "line": 608,
+      "title": "Afrekenen: met verdwenen trigger valt de focus op het tabpanel",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "dialogen-tabs-landmarks.spec.ts",
+      "line": 619,
+      "title": "Afrekenen pending: Escape, backdrop en focus blijven geblokkeerd, met statusmelding",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "frontend-review.spec.ts",
+      "line": 291,
+      "title": "gedeelde patronen: AA-scan portal Account",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "frontend-review.spec.ts",
+      "line": 36,
+      "title": "U01/U04: prijsopslag reset validatie, toont succes, nieuwe poging valideert weer",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "frontend-review.spec.ts",
+      "line": 58,
+      "title": "U03: retry bewaart knop tijdens laden/fout en verplaatst focus bij succes",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "frontend-review.spec.ts",
+      "line": 81,
+      "title": "R02: gewone lidselectie houdt focus in mandje; wissel herstelt de zoeker",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "frontend-review.spec.ts",
+      "line": 94,
+      "title": "U02/C01: lege naam krijgt gekoppelde veldfeedback (portal)",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "frontend-review.spec.ts",
+      "line": 94,
+      "title": "U02/C01: lege naam krijgt gekoppelde veldfeedback (admin)",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "frontend-review.spec.ts",
+      "line": 115,
+      "title": "U02: bestaande lidnaam valideert lokaal en bewaart de bewerking",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "frontend-review.spec.ts",
+      "line": 134,
+      "title": "product: Sluiten/Annuleren vraagt, Terug bewaart invoer en focus",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "frontend-review.spec.ts",
+      "line": 134,
+      "title": "nieuw-product: Sluiten/Annuleren vraagt, Terug bewaart invoer en focus",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "frontend-review.spec.ts",
+      "line": 134,
+      "title": "lid: Sluiten/Annuleren vraagt, Terug bewaart invoer en focus",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "frontend-review.spec.ts",
+      "line": 134,
+      "title": "nieuw-lid: Sluiten/Annuleren vraagt, Terug bewaart invoer en focus",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "frontend-review.spec.ts",
+      "line": 134,
+      "title": "naam: Sluiten/Annuleren vraagt, Terug bewaart invoer en focus",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "frontend-review.spec.ts",
+      "line": 134,
+      "title": "wachtwoord: Sluiten/Annuleren vraagt, Terug bewaart invoer en focus",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "frontend-review.spec.ts",
+      "line": 134,
+      "title": "pincode: Sluiten/Annuleren vraagt, Terug bewaart invoer en focus",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "frontend-review.spec.ts",
+      "line": 173,
+      "title": "R01: gewone en vergrote letters houden controls en bedragen uit elkaars tekst",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "frontend-review.spec.ts",
+      "line": 173,
+      "title": "R01: gewone en vergrote letters houden controls en bedragen uit elkaars tekst",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "frontend-review.spec.ts",
+      "line": 173,
+      "title": "R01: gewone en vergrote letters houden controls en bedragen uit elkaars tekst",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "frontend-review.spec.ts",
+      "line": 193,
+      "title": "R03: producten zijn zichtbaar en bedienbaar; mandje blijft na tabwissel behouden",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "frontend-review.spec.ts",
+      "line": 193,
+      "title": "R03: producten zijn zichtbaar en bedienbaar; mandje blijft na tabwissel behouden",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "frontend-review.spec.ts",
+      "line": 193,
+      "title": "R03: producten zijn zichtbaar en bedienbaar; mandje blijft na tabwissel behouden",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "frontend-review.spec.ts",
+      "line": 193,
+      "title": "R03: producten zijn zichtbaar en bedienbaar; mandje blijft na tabwissel behouden",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "frontend-review.spec.ts",
+      "line": 214,
+      "title": "U05: place_order receipt herstelt normale UI zonder extra boeking",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "frontend-review.spec.ts",
+      "line": 214,
+      "title": "U05: top_up receipt herstelt normale UI zonder extra boeking",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "frontend-review.spec.ts",
+      "line": 247,
+      "title": "U05: nieuw-lidherstel completed blijft bij oorspronkelijke sleutel/invoer",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "frontend-review.spec.ts",
+      "line": 247,
+      "title": "U05: nieuw-lidherstel cancelled blijft bij oorspronkelijke sleutel/invoer",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "frontend-review.spec.ts",
+      "line": 247,
+      "title": "U05: nieuw-lidherstel missing blijft bij oorspronkelijke sleutel/invoer",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "frontend-review.spec.ts",
+      "line": 247,
+      "title": "U05: nieuw-lidherstel complete blijft bij oorspronkelijke sleutel/invoer",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "invoerfeedback-zoeken-filters.spec.ts",
+      "line": 85,
+      "title": "Opwaarderen: elke soort veldfout verschijnt bij blur, herstel is direct, waarde en focus blijven",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "invoerfeedback-zoeken-filters.spec.ts",
+      "line": 126,
+      "title": "Opwaarderen: een poging met ongeldige invoer toont de fout als alert, focust het veld en boekt niets",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "invoerfeedback-zoeken-filters.spec.ts",
+      "line": 151,
+      "title": "Opwaarderen boven € 100: bevestiging en veldfout zijn nooit tegelijk zichtbaar",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "invoerfeedback-zoeken-filters.spec.ts",
+      "line": 165,
+      "title": "Opwaarderen met fout: geen axe-overtreding",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "invoerfeedback-zoeken-filters.spec.ts",
+      "line": 182,
+      "title": "Zoeken en categorie: een categorieklik wist de zoekterm; de resultaatregel klopt met het aantal kaarten",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "invoerfeedback-zoeken-filters.spec.ts",
+      "line": 200,
+      "title": "Zoeken en categorie: nul resultaten en 'Wis zoekterm' zet de categorie terug op Alle",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "invoerfeedback-zoeken-filters.spec.ts",
+      "line": 215,
+      "title": "Zoeken en categorie: het zoekveld leegmaken met Escape zet de categorie terug op Alle; spaties tellen als leeg",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "invoerfeedback-zoeken-filters.spec.ts",
+      "line": 229,
+      "title": "Zoeken en categorie: axe met een resultaatregel",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "invoerfeedback-zoeken-filters.spec.ts",
+      "line": 238,
+      "title": "Ledenzoeker: geen lijst bij lege invoer; pijltoetsen, Enter, eerste resultaat actief",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "invoerfeedback-zoeken-filters.spec.ts",
+      "line": 273,
+      "title": "Ledenzoeker: Escape sluit eerst de lijst, daarna wist het de tekst; Tab kiest niets",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "invoerfeedback-zoeken-filters.spec.ts",
+      "line": 297,
+      "title": "Ledenzoeker: een klik buiten sluit de lijst; nul resultaten zijn een status",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "invoerfeedback-zoeken-filters.spec.ts",
+      "line": 314,
+      "title": "Ledenzoeker: na een tabwissel staat de lijst gesloten tot de eerste toets of ArrowDown",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "invoerfeedback-zoeken-filters.spec.ts",
+      "line": 328,
+      "title": "Ledenzoeker: leden laden en een leesfout zijn zichtbaar",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "invoerfeedback-zoeken-filters.spec.ts",
+      "line": 338,
+      "title": "Ledenzoeker: een leesfout van de ledenlijst is een alert",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "invoerfeedback-zoeken-filters.spec.ts",
+      "line": 343,
+      "title": "Ledenzoeker: twee lange gelijkende namen zijn volledig leesbaar op 768px, zonder overflow",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "invoerfeedback-zoeken-filters.spec.ts",
+      "line": 371,
+      "title": "Ledenzoeker: axe met open lijst",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "invoerfeedback-zoeken-filters.spec.ts",
+      "line": 397,
+      "title": "Lidwissel: aankondiging na wissel, bevestiging bij een ander lid, Terug laat alles intact",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "invoerfeedback-zoeken-filters.spec.ts",
+      "line": 419,
+      "title": "Lidwissel: 'Wissen en kiezen' leegt het mandje en kiest het lid; axe met de bevestiging",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "invoerfeedback-zoeken-filters.spec.ts",
+      "line": 432,
+      "title": "Lidwissel: hetzelfde lid of een leeg mandje vraagt geen bevestiging",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "invoerfeedback-zoeken-filters.spec.ts",
+      "line": 450,
+      "title": "Lidwissel: de bevestiging past in het zijpaneel op 768px portret, zonder overlap met afrekenen",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "invoerfeedback-zoeken-filters.spec.ts",
+      "line": 507,
+      "title": "Nieuw lid: startsaldo en e-mail tonen hun fout bij blur of poging, niet op een ongewijzigd formulier",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "invoerfeedback-zoeken-filters.spec.ts",
+      "line": 546,
+      "title": "Nieuw product: prijs toont leeg, ongeldig en nul bij blur of poging",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "invoerfeedback-zoeken-filters.spec.ts",
+      "line": 570,
+      "title": "Product beheren: een ongeldige prijs laat de knop actief en toont de melding",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "invoerfeedback-zoeken-filters.spec.ts",
+      "line": 585,
+      "title": "Lid beheren: een ongeldig e-mailadres toont de melding bij blur en poging",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "invoerfeedback-zoeken-filters.spec.ts",
+      "line": 601,
+      "title": "Negatieve limiet: eigen bedrag toont ongeldig, teveel decimalen en negatief; 0 is geldig",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "invoerfeedback-zoeken-filters.spec.ts",
+      "line": 625,
+      "title": "Opwaarderen: een tik met een te hoog bedrag boekt niet",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "invoerfeedback-zoeken-filters.spec.ts",
+      "line": 634,
+      "title": "Opwaarderen: nul, negatief en te veel decimalen boeken niet bij een tik",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "invoerfeedback-zoeken-filters.spec.ts",
+      "line": 646,
+      "title": "Zoeken en categorie: het zoekveld leegmaken met backspace zet de categorie terug op Alle",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "invoerfeedback-zoeken-filters.spec.ts",
+      "line": 661,
+      "title": "Zoeken en categorie: 'Wis zoekterm' laat de focus niet op body vallen",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "invoerfeedback-zoeken-filters.spec.ts",
+      "line": 669,
+      "title": "Zoeken en categorie: 'Alle' klikken met zoekterm wist de term en zet Alle aan",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "invoerfeedback-zoeken-filters.spec.ts",
+      "line": 678,
+      "title": "Lidwissel: 'Wissen en kiezen' laat de focus niet op body vallen",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "invoerfeedback-zoeken-filters.spec.ts",
+      "line": 689,
+      "title": "Lidwissel: geen aankondiging bij een leeg mandje of voordat er een lid was",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "invoerfeedback-zoeken-filters.spec.ts",
+      "line": 380,
+      "title": "Ledenzoeker: een tik op een optie kiest het lid, zonder hover",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel-aanvulling.spec.ts",
+      "line": 100,
+      "title": "terugkeer na 29 s ververst niet, na 31 s wel; geen polling in tien minuten",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel-aanvulling.spec.ts",
+      "line": 138,
+      "title": "het label volgt Europe/Amsterdam, niet de zone van het apparaat",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel-aanvulling.spec.ts",
+      "line": 138,
+      "title": "het label volgt Europe/Amsterdam, niet de zone van het apparaat",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel-aanvulling.spec.ts",
+      "line": 151,
+      "title": "Transacties: een mislukte verversing laat de lijst en het filter staan, role=status en geen alert",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel-aanvulling.spec.ts",
+      "line": 171,
+      "title": "Saldo: geen members-rij voor het saldo geeft 'Log opnieuw in', geen verbindingstekst",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel-aanvulling.spec.ts",
+      "line": 225,
+      "title": "fase fout (my_bar_state mislukt): foutregel en 'Opnieuw proberen', GEEN uitlogknop en geen e-mailingang; retry herstelt",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel-aanvulling.spec.ts",
+      "line": 229,
+      "title": "fase fout: na een geslaagde retry staat de focus niet op body",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel-aanvulling.spec.ts",
+      "line": 233,
+      "title": "fail-closed: na een leesfout staat er geen assortiment of boekingenlijst op het scherm",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 217,
+      "title": "Saldo: serverfout toont de code, een mislukte retry houdt de focus op de knop, herstel zet de focus op het saldo",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 252,
+      "title": "Saldo: een netwerkfout noemt de verbinding, niet de serverkant",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 262,
+      "title": "Saldo: transacties en instellingen falen apart, met een eigen 'Opnieuw proberen'; het saldo blijft staan",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 291,
+      "title": "Transacties-tab: een leesfout krijgt LeesFout; retry herstelt en laat het filter staan",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 308,
+      "title": "een mislukte verversing laat de gegevens staan, met een melding (status, geen alert) en het oude tijdstip",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 339,
+      "title": "een mislukte verversing van de instellingen laat de laag-saldokaart op de laatst bekende drempel",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 353,
+      "title": "verouderde data: na visibilitychange (na 30 s) en na 'Verversen' staat het nieuwe saldo er, met een verse lijst",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 382,
+      "title": "een verborgen tabblad ververst niet; terugkeer na een mislukte poging ververst ook binnen 30 s",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 407,
+      "title": "geen dubbele oproepen: knop, visibilitychange en online tijdens één lopende lezing geven één request per bron",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 434,
+      "title": "verbindingherstel ververst, ook binnen 30 s",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 443,
+      "title": "Transacties: het filter blijft na verversen, een tabwissel leest altijd vers, het saldo volgt bij Saldo",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 465,
+      "title": "zonder sessie blijft het loginscherm: geen leesfout en geen 'niet gekoppeld'",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 491,
+      "title": "members geeft 500: foutscherm met code en retry, geen 'niet gekoppeld' en geen loginformulier; retry herstelt zonder opnieuw in te loggen",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 514,
+      "title": "netwerkfout bij de lookup: 'Controleer de verbinding.'; retry herstelt",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 527,
+      "title": "een mislukte retry houdt de focus op de knop (aria-disabled tijdens de retry), zonder automatische herhaling",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 556,
+      "title": "lookup slaagt zonder rij: denied met de bestaande tekst en het inlogformulier",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 566,
+      "title": "achtergrondfout: dashboard en saldo blijven staan, geen foutscherm en geen denied",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 576,
+      "title": "lookup slaagt zonder rij, sessie elders beëindigd: inlogscherm, geen denied (ADR 0022)",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 588,
+      "title": "achtergrond, rij verdwenen: denied",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 596,
+      "title": "een lookup per sessiestart",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 602,
+      "title": "token-refresh faalt door het netwerk bij het openen: foutscherm met retry (niet eindeloos laden, niet het loginscherm); retry herstelt",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 642,
+      "title": "token-refresh geweigerd (geen fetch-fout): gewoon het loginscherm",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 661,
+      "title": "uitloggen vanuit het foutscherm geeft het loginscherm",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 672,
+      "title": "identiteitswissel: na uitloggen en inloggen als iemand anders toont het dashboard niets van de eerste",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 687,
+      "title": "a11y: de foutstaat is axe-schoon, met role=alert, knoppen van 44px en de focus niet op body na herstel",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 724,
+      "title": "uitloggen terwijl een achtergrondlookup loopt: de late respons zet niets, geen foutmelding",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 742,
+      "title": "snelle accountwissel: een late respons van de uitgelogde gebruiker mag het dashboard van de nieuwe niet overschrijven",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 762,
+      "title": "retry tijdens bezig: een tweede klik start geen tweede lookup",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 786,
+      "title": "retry levert 'geen rij' op: denied (geen foutscherm), met het loginformulier",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 801,
+      "title": "uitloggen vanaf het foutscherm met token- en logout-fouten (netwerk weg): lokaal opgeruimd, loginscherm",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 820,
+      "title": "achtergrondlookup met netwerkfout: dashboard blijft ook zonder verbinding",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 829,
+      "title": "achtergrond-refetch (naamswijziging) waarbij getSession() een netwerkfout geeft laat het dashboard staan",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 866,
+      "title": "namenlijst 500: foutregel, 'Opnieuw proberen' en de e-mailingang naar /beheer zijn bereikbaar; retry herstelt",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 899,
+      "title": "namenlijst traag: ook tijdens laden is de e-mailingang er",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 979,
+      "title": "Verkoop: assortiment faalt: foutregel met knop, mandje kan niet; retry herstelt en zet de focus op het assortiment",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 997,
+      "title": "Verkoop: ledenlijst faalt: Afrekenen en Opwaarderen blijven geblokkeerd, het mandje blijft na de retry staan",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 1021,
+      "title": "Verkoop: bezetting en instellingen falen afzonderlijk, elk met een eigen herstelknop; Afrekenen en Opwaarderen blijven geblokkeerd",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 1043,
+      "title": "Dienst: de boekingenlijst heeft een eigen herstelknop; retry herstelt",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 1058,
+      "title": "ActiviteitKeuze: activiteittypes falen: foutregel met knop in rail-stijl; retry herstelt zonder uitlogknop te vervangen",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 1106,
+      "title": "Leden: een leesfout heeft een herstelknop; retry toont de lijst en zet de focus op de kop",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 1117,
+      "title": "Assortiment: een leesfout heeft een herstelknop; retry herstelt",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 1127,
+      "title": "Instellingen: negatieve limiet en activiteitstypes falen afzonderlijk; elk herstelt met zijn eigen knop",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "leesfouten-herstel.spec.ts",
+      "line": 1141,
+      "title": "Logboek: een leesfout heeft een herstelknop; retry herstelt",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "opslaan-sluiten-pending-aanvulling.spec.ts",
+      "line": 77,
+      "title": "Bezetting: toevoegen blokkeert Escape, backdrop en Klaar; andere rijen disabled; één aanroep",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "opslaan-sluiten-pending-aanvulling.spec.ts",
+      "line": 112,
+      "title": "Bezetting: na 30 s zonder antwoord valt de blokkade, onbekende uitkomst, geen tweede aanroep",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "opslaan-sluiten-pending-aanvulling.spec.ts",
+      "line": 191,
+      "title": "Portal Naam wijzigen: pending blokkeert sluiten, bevriest het veld, Enter-herhaling geeft één aanroep",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "opslaan-sluiten-pending-aanvulling.spec.ts",
+      "line": 230,
+      "title": "Portal Naam wijzigen: onopgeslagen vraagt bij alle sluitacties, ongewijzigd sluit direct",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "opslaan-sluiten-pending-aanvulling.spec.ts",
+      "line": 260,
+      "title": "Portal Naam wijzigen: na 30 s valt de blokkade, onbekende uitkomst, geen automatische tweede aanroep",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "opslaan-sluiten-pending-aanvulling.spec.ts",
+      "line": 288,
+      "title": "Portal Wachtwoord wijzigen: pending blokkeert sluiten en bevriest de velden; één aanroep",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "opslaan-sluiten-pending-aanvulling.spec.ts",
+      "line": 321,
+      "title": "Portal Pincode: pending blokkeert sluiten en toetsen; één aanroep; onopgeslagen cijfers vragen bevestiging",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "opslaan-sluiten-pending-aanvulling.spec.ts",
+      "line": 438,
+      "title": "Afrekenen: afgebroken place_order toont de controletekst, geen 'probeer opnieuw', geen automatische retry na resultaatcontrole",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "opslaan-sluiten-pending-aanvulling.spec.ts",
+      "line": 458,
+      "title": "Afrekenen: focus blijft na 'Resultaat controleren' in de dialoog",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "opslaan-sluiten-pending-aanvulling.spec.ts",
+      "line": 467,
+      "title": "Afrekenen: een domeinfout (insufficient_balance) is géén onbekende uitkomst en vraagt geen controle",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "opslaan-sluiten-pending-aanvulling.spec.ts",
+      "line": 478,
+      "title": "Afrekenen: geen time-out voor geld: na 30 s blijft de dialoog geblokkeerd, geen onbekende uitkomst, één request",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "opslaan-sluiten-pending-aanvulling.spec.ts",
+      "line": 508,
+      "title": "Afrekenen: hangend verzoek faalt pas na 30 s: dan pas onbekende uitkomst, controle vereist, geen tweede request",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "opslaan-sluiten-pending-aanvulling.spec.ts",
+      "line": 536,
+      "title": "Opwaarderen: afgebroken top_up toont de controletekst, geen 'probeer opnieuw', geen automatische retry na resultaatcontrole",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "opslaan-sluiten-pending-aanvulling.spec.ts",
+      "line": 554,
+      "title": "Opwaarderen: focus blijft na 'Resultaat controleren' in de dialoog",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "opslaan-sluiten-pending-aanvulling.spec.ts",
+      "line": 563,
+      "title": "Opwaarderen: geen time-out voor geld: pending blokkeert sluiten, na 30 s nog steeds, één aanroep",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "opslaan-sluiten-pending-aanvulling.spec.ts",
+      "line": 591,
+      "title": "Opwaarderen: hangend verzoek faalt pas na 30 s: dan pas onbekende uitkomst, controle vereist, geen tweede request",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "opslaan-sluiten-pending.spec.ts",
+      "line": 37,
+      "title": "Nieuw lid: verloren antwoord blijft na herladen met dezelfde sleutel herstelbaar",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "opslaan-sluiten-pending.spec.ts",
+      "line": 73,
+      "title": "Nieuw lid: definitieve annulering beëindigt een bewaarde onbekende actie zonder nieuwe boeking",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "opslaan-sluiten-pending.spec.ts",
+      "line": 151,
+      "title": "Product beheren: prijs opslaan blokkeert Escape, backdrop en Sluiten; veld en knop bevroren",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "opslaan-sluiten-pending.spec.ts",
+      "line": 188,
+      "title": "Product beheren: a11y-scan in pending-toestand",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "opslaan-sluiten-pending.spec.ts",
+      "line": 204,
+      "title": "Lid beheren: lopende naamwijziging serialiseert de andere acties (één aanroep)",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "opslaan-sluiten-pending.spec.ts",
+      "line": 237,
+      "title": "Lid beheren: de fout van de ene actie wordt niet verdrongen door een andere",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "opslaan-sluiten-pending.spec.ts",
+      "line": 259,
+      "title": "Nieuw product: alle sluitacties vragen om bevestiging bij gewijzigde invoer",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "opslaan-sluiten-pending.spec.ts",
+      "line": 303,
+      "title": "Nieuw lid: afgebroken create_member toont de controletekst, geen 'probeer opnieuw', geen tweede request",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "opslaan-sluiten-pending.spec.ts",
+      "line": 331,
+      "title": "Nieuw lid: geen time-out voor geld: na 30 s blijft de dialoog geblokkeerd",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "tablet-bruikbaarheid.spec.ts",
+      "line": 65,
+      "title": "verkoop: geen overflow, zijpaneel in beeld, badge bedekt naam en prijs niet",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "tablet-bruikbaarheid.spec.ts",
+      "line": 116,
+      "title": "beheer: alle tabs en Uitloggen in beeld, geen overflow",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "tablet-bruikbaarheid.spec.ts",
+      "line": 65,
+      "title": "verkoop: geen overflow, zijpaneel in beeld, badge bedekt naam en prijs niet",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "tablet-bruikbaarheid.spec.ts",
+      "line": 116,
+      "title": "beheer: alle tabs en Uitloggen in beeld, geen overflow",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "tablet-bruikbaarheid.spec.ts",
+      "line": 65,
+      "title": "verkoop: geen overflow, zijpaneel in beeld, badge bedekt naam en prijs niet",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "tablet-bruikbaarheid.spec.ts",
+      "line": 116,
+      "title": "beheer: alle tabs en Uitloggen in beeld, geen overflow",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "tablet-bruikbaarheid.spec.ts",
+      "line": 164,
+      "title": "Uitloggen bereikbaar, geen overflow",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    },
+    {
+      "file": "tablet-bruikbaarheid.spec.ts",
+      "line": 174,
+      "title": "verkoop op groter lettertype: Uitloggen blijft bereikbaar, geen overflow",
+      "status": "expected",
+      "outcomes": [
+        "passed"
+      ]
+    }
+  ]
+}

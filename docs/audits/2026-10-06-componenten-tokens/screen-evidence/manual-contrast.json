@@ -1,0 +1,29 @@
+[
+  {
+    "selector": "button[aria-label=\"Eén Pils minder\"]",
+    "text": "−",
+    "foreground": "rgb(115, 109, 102)",
+    "background": "rgb(255, 255, 255)",
+    "fontSize": "19px",
+    "fontWeight": "700",
+    "contrastRatio": 5.112
+  },
+  {
+    "selector": ".grid-cols-\\[minmax\\(0\\,1fr\\)_auto\\].gap-x-2.gap-y-1\\.5:nth-child(2) > .w-fit.rounded-control.p-\\[3px\\] > .pb-0\\.5.rounded-\\[10px\\].text-\\[19px\\]:nth-child(1)",
+    "text": "−",
+    "foreground": "rgb(115, 109, 102)",
+    "background": "rgb(255, 255, 255)",
+    "fontSize": "19px",
+    "fontWeight": "700",
+    "contrastRatio": 5.112
+  },
+  {
+    "selector": ".text-\\[17px\\][aria-hidden=\"true\"]",
+    "text": "→",
+    "foreground": "rgb(255, 255, 255)",
+    "background": "rgb(201, 69, 26)",
+    "fontSize": "17px",
+    "fontWeight": "800",
+    "contrastRatio": 4.828
+  }
+]

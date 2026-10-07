@@ -1,0 +1,20 @@
+✔ horizontaal: Rechts/Links lopen en wrappen (0.662342ms)
+✔ verticaal: Omlaag/Omhoog lopen en wrappen (0.095048ms)
+✔ de andere as doet niets (0.113877ms)
+✔ Home en End, op beide assen (0.082637ms)
+✔ overige toetsen worden niet afgehandeld (0.105361ms)
+✔ leeg en één item (0.071995ms)
+✔ ongeldige huidige index (0.139339ms)
+✔ ongeldige huidige index blokkeert ook Home en End (0.123419ms)
+✔ sleutelnamen zijn hoofdlettergevoelig en exact (0.232177ms)
+✔ wrap-around over de uiteinden, ook bij twee en vijf tabs, in beide richtingen (0.219303ms)
+✔ één tab: elke navigatietoets blijft op die tab, de andere as nog steeds niets (0.104847ms)
+✔ Home en End negeren de oriëntatie en de huidige positie (0.065534ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 12
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7.546672

@@ -1,0 +1,27 @@
+{
+  "fixtureProvenance": {
+    "dataKind": "synthetic browser fixtures only",
+    "personalAndFinancialData": "Names, email addresses, balances and transactions are invented test data; no production records.",
+    "source": [
+      "e2e/helpers/supabaseMock.ts (USER and fakeSession)",
+      "e2e/helpers/frontendReview.ts (reviewFixture)",
+      "docs/audits/2026-10-06-componenten-tokens/tools/screen-audit.cjs (PRODUCTS and TRANSACTIONS mocks)",
+      "docs/audits/2026-10-06-componenten-tokens/tools/interaction-audit.cjs (local route mocks)"
+    ],
+    "networkIsolation": "Local app only; unmocked external browser requests aborted."
+  },
+  "id": "10-portal-pending",
+  "file": "screenshots/10-portal-pending.png",
+  "note": "Naam-sheet gebruikt hetzelfde pendinglabel; actie blijft focusbaar met aria-disabled.",
+  "url": "http://127.0.0.1:3100/portal",
+  "snapshot": "- alert\n- main:\n  - heading \"Hoi Femke\" [level=1]\n  - text: Ingelogd als femke.bos@aurora.local.\n  - button \"Uitloggen\"\n  - tablist \"Portaal-navigatie\":\n    - tab \"Saldo\"\n    - tab \"Transacties\"\n    - tab \"Account\" [selected]\n  - tabpanel \"Account\":\n    - heading \"Account\" [level=2]\n    - text: Femke Bos femke.bos@aurora.local\n    - heading \"GEGEVENS\" [level=3]\n    - list:\n      - listitem:\n        - button \"Naam wijzigen Femke Bos\"\n      - listitem:\n        - button \"Wachtwoord wijzigen\"\n      - listitem:\n        - button \"Pincode voor de bar-tablet niet ingesteld\"\n      - listitem: Tweestapsverificatie Aan Nodig om in beheer te komen. Je gebruikt een app zoals Google Authenticator of Microsoft Authenticator.\n    - dialog \"Naam wijzigen\":\n      - heading \"Naam wijzigen\" [level=2]\n      - paragraph: Zo staat je naam op de bar-tablet en in het dienstoverzicht.\n      - text: Volledige naam\n      - textbox \"Volledige naam\": Femke Voorbeeld\n      - alert\n      - button \"Annuleren\" [disabled]\n      - button \"Opslaan…\" [disabled]\n      - status\n    - status",
+  "focus": {
+    "tag": "BUTTON",
+    "text": "Opslaan…",
+    "label": null
+  },
+  "calls": 2,
+  "health": "Goed",
+  "auditNote": "Opslaan… en geblokkeerd annuleren maken pending duidelijk; de submitknop behoudt focus.",
+  "visuallyInspected": true
+}

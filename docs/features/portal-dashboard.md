@@ -1,5 +1,14 @@
 # Portal-dashboard: eigen saldo + transacties
 
+## Frontendverbetering 2 oktober 2026
+
+De voorproeflijst op Saldo heet “Recente transacties”: de laatste vijf
+transacties ongeacht maand. Dit vervangt de oude titel “Deze maand”.
+Teruggedraaide bestellingen hebben op Saldo en Transacties dezelfde
+weergave (doorgestreept label/bedrag, toelichting en schermlezertekst).
+De gedeelde TransactieRij heeft geen variant meer die terugdraaiingen verbergt.
+
+
 **Geaccordeerd door Bram (2026-09-26).** Introduceert een nieuwe
 architectuurbeslissing (RPC-gated naamresolutie i.p.v. RLS-verruiming) — zie
 [ADR 0010](../adr/0010-portal-transacties-naam-via-rpc-niet-rls-verruiming.md),

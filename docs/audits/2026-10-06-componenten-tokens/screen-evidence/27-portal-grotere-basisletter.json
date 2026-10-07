@@ -1,0 +1,516 @@
+{
+  "fixtureProvenance": {
+    "dataKind": "synthetic browser fixtures only",
+    "personalAndFinancialData": "Names, email addresses, balances and transactions are invented test data; no production records.",
+    "source": [
+      "e2e/helpers/supabaseMock.ts (USER and fakeSession)",
+      "e2e/helpers/frontendReview.ts (reviewFixture)",
+      "docs/audits/2026-10-06-componenten-tokens/tools/screen-audit.cjs (PRODUCTS and TRANSACTIONS mocks)",
+      "docs/audits/2026-10-06-componenten-tokens/tools/interaction-audit.cjs (local route mocks)"
+    ],
+    "networkIsolation": "Local app only; unmocked external browser requests aborted."
+  },
+  "id": "27-portal-grotere-basisletter",
+  "file": "screenshots/27-portal-grotere-basisletter.png",
+  "note": "Stresstest: portaltransacties op 320px met html-font-size 32px; dit vergroot rem-tekst en maten, geen echte browserzoom.",
+  "url": "http://127.0.0.1:3100/portal",
+  "snapshot": "- alert\n- main:\n  - heading \"Hoi Femke\" [level=1]\n  - text: Ingelogd als femke.bos@aurora.local.\n  - button \"Uitloggen\"\n  - tablist \"Portaal-navigatie\":\n    - tab \"Saldo\"\n    - tab \"Transacties\" [selected]\n    - tab \"Account\"\n  - tabpanel \"Transacties\":\n    - status: Bijgewerkt om 12:04\n    - button \"Verversen\"\n    - group \"Filter op soort transactie\":\n      - button \"Alles\" [pressed]\n      - button \"Uitgaven\"\n      - button \"Opwaarderingen\"\n    - region \"Oktober 2026\":\n      - heading \"OKTOBER 2026\" [level=2]\n      - list:\n        - listitem: Bestelling 5 okt · 2× Alcoholvrij speciaalbier van de Aurora-brouwerij − € 9,00\n        - listitem: Opgewaardeerd 4 okt · contant + € 30,00\n        - listitem: \"Bestelling Teruggedraaid 3 okt · 2× Alcoholvrij speciaalbier van de Aurora-brouwerij Door: Femke Bos Reden: Verkeerd product gekozen € 9,00\"\n        - listitem: Bestelling 2 okt · 2× Alcoholvrij speciaalbier van de Aurora-brouwerij − € 9,00\n        - listitem: Bestelling 1 okt · 2× Alcoholvrij speciaalbier van de Aurora-brouwerij − € 9,00\n    - region \"September 2026\":\n      - heading \"SEPTEMBER 2026\" [level=2]\n      - list:\n        - listitem: Bestelling 30 sep · 2× Alcoholvrij speciaalbier van de Aurora-brouwerij − € 9,00\n    - paragraph: Een teruggedraaide bestelling is niet meer afgeschreven; het bedrag staat al terug op je saldo.\n    - paragraph: Einde van de lijst",
+  "focus": {
+    "tag": "BUTTON",
+    "text": "Transacties",
+    "label": null
+  },
+  "metrics": {
+    "viewport": {
+      "width": 320,
+      "height": 844
+    },
+    "document": {
+      "scrollWidth": 415,
+      "clientWidth": 320,
+      "scrollHeight": 4379
+    },
+    "horizontalOverflow": [
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "label": null,
+        "text": "Account",
+        "x": 300.44,
+        "y": 193,
+        "width": 114.63,
+        "height": 80,
+        "fontSize": "28px",
+        "color": "rgb(92, 89, 82)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "outline": "rgb(92, 89, 82) none 3px",
+        "overflowX": "visible"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "label": null,
+        "text": "Verversen",
+        "x": 185.2,
+        "y": 321,
+        "width": 184.5,
+        "height": 88,
+        "fontSize": "24px",
+        "color": "rgb(27, 30, 35)",
+        "bg": "rgb(255, 255, 255)",
+        "outline": "rgb(27, 30, 35) none 3px",
+        "overflowX": "visible"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "label": null,
+        "text": "Opwaarderingen",
+        "x": 225.45,
+        "y": 449,
+        "width": 192.28,
+        "height": 80,
+        "fontSize": "24px",
+        "color": "rgb(92, 89, 82)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "outline": "rgb(92, 89, 82) none 3px",
+        "overflowX": "visible"
+      }
+    ],
+    "controls": [
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "label": null,
+        "text": "Uitloggen",
+        "x": 105.2,
+        "y": 32,
+        "width": 174.8,
+        "height": 88,
+        "fontSize": "24px",
+        "color": "rgb(201, 69, 26)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "outline": "rgb(201, 69, 26) none 3px",
+        "overflowX": "visible"
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "label": null,
+        "text": "Saldo",
+        "x": 48,
+        "y": 193,
+        "width": 76.98,
+        "height": 80,
+        "fontSize": "28px",
+        "color": "rgb(92, 89, 82)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "outline": "rgb(92, 89, 82) none 3px",
+        "overflowX": "visible"
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "label": null,
+        "text": "Transacties",
+        "x": 132.98,
+        "y": 193,
+        "width": 159.45,
+        "height": 80,
+        "fontSize": "28px",
+        "color": "rgb(27, 30, 35)",
+        "bg": "rgb(255, 255, 255)",
+        "outline": "rgb(27, 30, 35) none 3px",
+        "overflowX": "visible"
+      },
+      {
+        "tag": "BUTTON",
+        "role": "tab",
+        "label": null,
+        "text": "Account",
+        "x": 300.44,
+        "y": 193,
+        "width": 114.63,
+        "height": 80,
+        "fontSize": "28px",
+        "color": "rgb(92, 89, 82)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "outline": "rgb(92, 89, 82) none 3px",
+        "overflowX": "visible"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "label": null,
+        "text": "Verversen",
+        "x": 185.2,
+        "y": 321,
+        "width": 184.5,
+        "height": 88,
+        "fontSize": "24px",
+        "color": "rgb(27, 30, 35)",
+        "bg": "rgb(255, 255, 255)",
+        "outline": "rgb(27, 30, 35) none 3px",
+        "overflowX": "visible"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "label": null,
+        "text": "Alles",
+        "x": 48,
+        "y": 449,
+        "width": 57.02,
+        "height": 80,
+        "fontSize": "24px",
+        "color": "rgb(27, 30, 35)",
+        "bg": "rgb(255, 255, 255)",
+        "outline": "rgb(27, 30, 35) none 3px",
+        "overflowX": "visible"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "label": null,
+        "text": "Uitgaven",
+        "x": 113.02,
+        "y": 449,
+        "width": 104.44,
+        "height": 80,
+        "fontSize": "24px",
+        "color": "rgb(92, 89, 82)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "outline": "rgb(92, 89, 82) none 3px",
+        "overflowX": "visible"
+      },
+      {
+        "tag": "BUTTON",
+        "role": null,
+        "label": null,
+        "text": "Opwaarderingen",
+        "x": 225.45,
+        "y": 449,
+        "width": 192.28,
+        "height": 80,
+        "fontSize": "24px",
+        "color": "rgb(92, 89, 82)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "outline": "rgb(92, 89, 82) none 3px",
+        "overflowX": "visible"
+      }
+    ],
+    "smallControls": [],
+    "headings": [
+      {
+        "tag": "H1",
+        "role": null,
+        "label": null,
+        "text": "Hoi Femke",
+        "x": 40,
+        "y": 48,
+        "width": 41.2,
+        "height": 56,
+        "fontSize": "36px",
+        "color": "rgb(27, 30, 35)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "outline": "rgb(27, 30, 35) none 3px",
+        "overflowX": "hidden"
+      },
+      {
+        "tag": "H2",
+        "role": null,
+        "label": null,
+        "text": "OKTOBER 2026",
+        "x": 40,
+        "y": 569,
+        "width": 240,
+        "height": 16.5,
+        "fontSize": "11px",
+        "color": "rgb(115, 109, 102)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "outline": "rgb(115, 109, 102) none 3px",
+        "overflowX": "visible"
+      },
+      {
+        "tag": "H2",
+        "role": null,
+        "label": null,
+        "text": "SEPTEMBER 2026",
+        "x": 40,
+        "y": 3452,
+        "width": 240,
+        "height": 16.5,
+        "fontSize": "11px",
+        "color": "rgb(115, 109, 102)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "outline": "rgb(115, 109, 102) none 3px",
+        "overflowX": "visible"
+      }
+    ],
+    "focus": {
+      "tag": "BUTTON",
+      "label": null,
+      "text": "Transacties"
+    },
+    "dialogScroll": [],
+    "reducedMotion": true
+  },
+  "axe": {
+    "violations": [],
+    "incomplete": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "tags": [
+          "cat.color",
+          "wcag2aa",
+          "wcag143",
+          "TTv5",
+          "TT13.c",
+          "EN-301-549",
+          "EN-9.1.4.3",
+          "ACT",
+          "RGAAv4",
+          "RGAA-3.2.1"
+        ],
+        "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=playwright",
+        "nodes": [
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "18.0pt (24px)",
+                  "fontWeight": "bold",
+                  "messageKey": "elmPartiallyObscured",
+                  "expectedContrastRatio": "3:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<main class=\"mx-auto flex min-h-screen w-full max-w-[560px] flex-col bg-canvas sm:border-x sm:border-border font-sans text-ink antialiased\">",
+                    "target": [
+                      "main"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element's background color could not be determined because it's partially obscured by another element"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<button type=\"button\" aria-pressed=\"false\" class=\"flex h-10 flex-1 items-center justify-center rounded-xl text-xs font-bold transition-colors text-muted-strong\">Opwaarderingen</button>",
+            "target": [
+              "div[role=\"group\"] > .text-muted-strong.h-10.justify-center:nth-child(3)"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it's partially obscured by another element"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "21.0pt (28px)",
+                  "fontWeight": "bold",
+                  "messageKey": "elmPartiallyObscuring",
+                  "expectedContrastRatio": "3:1"
+                },
+                "relatedNodes": [],
+                "impact": "serious",
+                "message": "Element's background color could not be determined because it partially overlaps other elements"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"flex-none whitespace-nowrap text-sm font-extrabold text-ink\">− €&nbsp;9,00</span>",
+            "target": [
+              "section[aria-label=\"Oktober 2026\"] > ul > li:nth-child(1) > .whitespace-nowrap.font-extrabold.flex-none"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it partially overlaps other elements"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "21.0pt (28px)",
+                  "fontWeight": "bold",
+                  "messageKey": "bgOverlap",
+                  "expectedContrastRatio": "3:1"
+                },
+                "relatedNodes": [],
+                "impact": "serious",
+                "message": "Element's background color could not be determined because it is overlapped by another element"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"break-words text-sm font-bold text-ink\">Opgewaardeerd</span>",
+            "target": [
+              "li:nth-child(2) > .gap-0\\.5.min-w-0.flex-col > .flex-wrap.gap-x-2.gap-y-1 > .break-words.text-sm.font-bold"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it is overlapped by another element"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "21.0pt (28px)",
+                  "fontWeight": "bold",
+                  "messageKey": "elmPartiallyObscuring",
+                  "expectedContrastRatio": "3:1"
+                },
+                "relatedNodes": [],
+                "impact": "serious",
+                "message": "Element's background color could not be determined because it partially overlaps other elements"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"flex-none whitespace-nowrap text-sm font-extrabold text-ink\">− €&nbsp;9,00</span>",
+            "target": [
+              "li:nth-child(4) > .whitespace-nowrap.font-extrabold.flex-none"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it partially overlaps other elements"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "21.0pt (28px)",
+                  "fontWeight": "bold",
+                  "messageKey": "elmPartiallyObscuring",
+                  "expectedContrastRatio": "3:1"
+                },
+                "relatedNodes": [],
+                "impact": "serious",
+                "message": "Element's background color could not be determined because it partially overlaps other elements"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"flex-none whitespace-nowrap text-sm font-extrabold text-ink\">− €&nbsp;9,00</span>",
+            "target": [
+              "li:nth-child(5) > .whitespace-nowrap.font-extrabold.flex-none"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it partially overlaps other elements"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "contrastRatio": 0,
+                  "fontSize": "21.0pt (28px)",
+                  "fontWeight": "bold",
+                  "messageKey": "elmPartiallyObscuring",
+                  "expectedContrastRatio": "3:1"
+                },
+                "relatedNodes": [],
+                "impact": "serious",
+                "message": "Element's background color could not be determined because it partially overlaps other elements"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<span class=\"flex-none whitespace-nowrap text-sm font-extrabold text-ink\">− €&nbsp;9,00</span>",
+            "target": [
+              "section[aria-label=\"September 2026\"] > ul > li > .whitespace-nowrap.font-extrabold.flex-none"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element's background color could not be determined because it partially overlaps other elements"
+          }
+        ]
+      }
+    ],
+    "passes": [
+      "aria-allowed-attr",
+      "aria-conditional-attr",
+      "aria-deprecated-role",
+      "aria-hidden-body",
+      "aria-prohibited-attr",
+      "aria-required-attr",
+      "aria-required-children",
+      "aria-required-parent",
+      "aria-roles",
+      "aria-valid-attr-value",
+      "aria-valid-attr",
+      "avoid-inline-spacing",
+      "button-name",
+      "color-contrast",
+      "document-title",
+      "duplicate-id-aria",
+      "html-has-lang",
+      "html-lang-valid",
+      "list",
+      "listitem",
+      "meta-viewport",
+      "nested-interactive",
+      "scrollable-region-focusable",
+      "target-size"
+    ],
+    "inapplicable": [
+      "area-alt",
+      "aria-braille-equivalent",
+      "aria-command-name",
+      "aria-hidden-focus",
+      "aria-input-field-name",
+      "aria-meter-name",
+      "aria-progressbar-name",
+      "aria-tab-name",
+      "aria-toggle-field-name",
+      "aria-tooltip-name",
+      "autocomplete-valid",
+      "blink",
+      "bypass",
+      "definition-list",
+      "dlitem",
+      "form-field-multiple-labels",
+      "frame-focusable-content",
+      "frame-title-unique",
+      "frame-title",
+      "html-xml-lang-mismatch",
+      "image-alt",
+      "input-button-name",
+      "input-image-alt",
+      "label",
+      "link-in-text-block",
+      "link-name",
+      "marquee",
+      "meta-refresh",
+      "object-alt",
+      "role-img-alt",
+      "select-name",
+      "server-side-image-map",
+      "summary-name",
+      "svg-img-alt",
+      "td-headers-attr",
+      "th-has-data-cells",
+      "valid-lang",
+      "video-caption",
+      "no-autoplay-audio"
+    ],
+    "testEngine": {
+      "name": "axe-core",
+      "version": "4.13.0"
+    }
+  },
+  "screenshotMode": "viewport",
+  "visuallyInspected": true,
+  "health": "Probleem — R01",
+  "auditNote": "320px viewport wordt 415px documentbreedte; labels steken uit en transactietekst bedekt bedrag. Screenshot toont de echte viewport."
+}

@@ -1,0 +1,27 @@
+{
+  "fixtureProvenance": {
+    "dataKind": "synthetic browser fixtures only",
+    "personalAndFinancialData": "Names, email addresses, balances and transactions are invented test data; no production records.",
+    "source": [
+      "e2e/helpers/supabaseMock.ts (USER and fakeSession)",
+      "e2e/helpers/frontendReview.ts (reviewFixture)",
+      "docs/audits/2026-10-06-componenten-tokens/tools/screen-audit.cjs (PRODUCTS and TRANSACTIONS mocks)",
+      "docs/audits/2026-10-06-componenten-tokens/tools/interaction-audit.cjs (local route mocks)"
+    ],
+    "networkIsolation": "Local app only; unmocked external browser requests aborted."
+  },
+  "id": "19-lid-veldvalidatie",
+  "file": "screenshots/19-lid-veldvalidatie.png",
+  "note": "Ongeldig contactadres geeft een lokale veldmelding en focus op het veld, zonder opslagverzoek.",
+  "url": "http://127.0.0.1:3100/beheer",
+  "snapshot": "- alert\n- main:\n  - tablist \"Beheer-navigatie\":\n    - tab \"Assortiment\"\n    - tab \"Leden\" [selected]\n    - tab \"Instellingen\"\n    - tab \"Diensten\"\n    - tab \"Logboek\"\n  - text: Ingelogd als Femke Bos BEHEER\n  - button \"Uitloggen\"\n  - tabpanel \"Leden\":\n    - heading \"Leden\" [level=1]\n    - button \"nieuw lid\"\n    - status\n    - text: Zoek lid op naam\n    - searchbox \"Zoek lid op naam\"\n    - group \"Status\":\n      - button \"Actief 1\" [pressed]\n      - button \"Saldo laag 0\"\n      - button \"Archief 0\"\n    - paragraph: 1 van 1 leden\n    - list:\n      - listitem:\n        - button \"Joris de Vries € 15,00\"\n    - dialog \"Lid beheren\":\n      - heading \"Lid beheren\" [level=2]\n      - button \"Sluiten\"\n      - paragraph: Wijzigingen aan Joris Voorbeeld.\n      - text: Saldo € 15,00\n      - group \"Profiel\":\n        - heading \"Profiel\" [level=3]\n        - group \"Naam wijzigen\":\n          - text: Naam wijzigen\n          - status: Opgeslagen\n          - text: Naam\n          - textbox \"Naam\": Joris Voorbeeld\n          - button \"Opslaan\" [disabled]\n        - group \"Contactadres wijzigen\":\n          - text: Contactadres\n          - status: Niet opgeslagen\n          - text: Contactadres\n          - textbox \"Contactadres\" [invalid]: ongeldig\n          - button \"Opslaan\"\n          - paragraph: Hierheen stuurt ABAS de uitnodiging. Dit is niet automatisch het adres waarmee het lid inlogt.\n          - paragraph: Dit lid heeft al een account. Een ander adres hier verandert het inlogadres niet; het lid blijft inloggen met het adres van het account (zichtbaar onder Mijn account in de portal).\n          - paragraph: Zonder contactadres kan er geen uitnodiging worden gestuurd.\n          - alert: Dit lijkt geen e-mailadres. Controleer het adres, bijvoorbeeld naam@voorbeeld.nl.\n      - group \"Toegang\":\n        - heading \"Toegang\" [level=3]\n        - group \"Rechten wijzigen\":\n          - text: Barrechten bardienst staat achter de bar, beheerder beheert de vereniging\n          - status\n          - text: Barrechten\n          - combobox \"Barrechten\":\n            - option \"Lid\" [selected]\n            - option \"Bardienst\"\n            - option \"Beheerder\"\n          - button \"Opslaan\" [disabled]\n        - group \"Inloggegevens\":\n          - text: Inloggegevens\n          - status\n          - text: Wachtwoordaccount account gekoppeld\n      - group \"Bestellingen\":\n        - heading \"Bestellingen\" [level=3]\n        - button \"Bestelling terugdraaien het bedrag gaat terug naar het saldo, met een reden\"\n      - group \"Archief\":\n        - heading \"Archief\" [level=3]\n        - group \"Archiveren\":\n          - status\n          - button \"Lid archiveren Het lid verdwijnt uit de verkoopzoeker. Saldo en bestellingen blijven bewaard. Terugzetten kan onder ‘Archief’ in de ledenlijst.\"\n      - status",
+  "focus": {
+    "tag": "INPUT",
+    "text": "",
+    "label": null
+  },
+  "calls": 3,
+  "health": "Goed",
+  "auditNote": "De gekoppelde veldmelding legt de fout uit en focus keert terug naar Contactadres. De validatie vindt lokaal vóór de mutatie plaats.",
+  "visuallyInspected": true
+}

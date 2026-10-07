@@ -1,0 +1,16 @@
+✔ time-out voor een hangend verzoek is 30 seconden (1.806497ms)
+✔ serialisatie: een tweede actie tijdens pending is niet toegestaan (0.153343ms)
+✔ prijs: leeg of gelijk aan de huidige prijs is niet onopgeslagen (0.259751ms)
+✔ prijs: afwijkende of onleesbare invoer is onopgeslagen (0.180024ms)
+✔ tekst: alleen een afwijking van de opgeslagen waarde telt, spaties niet (0.120717ms)
+✔ rol: afwijking van de huidige rol is onopgeslagen (1.721824ms)
+✔ nieuw lid/product: elk ingevuld veld is onopgeslagen (0.189543ms)
+✔ sectieStatus: onopgeslagen, opgeslagen en fout volgen elkaar op (0.114035ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 15.824591
