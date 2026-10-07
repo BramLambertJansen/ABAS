@@ -23,9 +23,10 @@ draait alleen op PR's, dus open bij de eerste push meteen een PR. De
 pre-commit hook draait `check:fast`; omzeilen kan niet en mag niet.
 Bekende schuld staat in een ratchet: tellers mogen alleen dalen.
 
-Een PR die gates of tests wijzigt (`scripts/check-*`, `scripts/kit/`,
-`supabase/tests/`, `.github/`, `.claude/`, lint- of tsconfig) krijgt het
-label `gate-wijziging`; alleen Bram zet dat, ook voor de hoofdsessie. Het
+Een PR die een gate wijzigt of een bestaande test aanpast of verwijdert
+(paden: `.claude/hooks/rolhek.lokaal.json` → gates) krijgt het label
+`gate-wijziging`; alleen Bram zet dat, ook voor de hoofdsessie. Een nieuwe
+test toevoegen mag zonder label. Het
 rolhek (`.claude/hooks/rolhek.mjs`) begrenst per rol wat een agent mag
 schrijven; de echte grens is branch protection.
 

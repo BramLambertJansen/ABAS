@@ -1,0 +1,44 @@
+name: Beveiliging
+
+# Dependency- en secretscan (ADR 0025). Adviserend tot Bram ze in branch
+# protection verplicht maakt. Geen SARIF-upload: de repo is privé zonder
+# GitHub Code Security, dus de uitkomst is de exitcode en de log.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 5 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  osv-scanner:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: google/osv-scanner-action/osv-scanner-action@a345acffa64b0eaede81a3d9aae6141214d9c8fc # v2.6.0
+        with:
+          scan-args: |-
+            --lockfile=package-lock.json
+
+  betterleaks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 0
+      # PR: alleen de commits van de PR. Push/schedule: de hele history.
+      - name: Secretscan
+        env:
+          RANGE: ${{ github.event_name == 'pull_request' && format('{0}..{1}', github.event.pull_request.base.sha, github.event.pull_request.head.sha) || '' }}
+        run: |
+          opts=()
+          if [ -n "$RANGE" ]; then opts+=(--log-opts "$RANGE"); fi
+          # safe.directory: de gemounte repo is van een andere uid dan de
+          # container, anders weigert git ("dubious ownership").
+          docker run --rm -v "$PWD:/repo" -w /repo \
+            -e GIT_CONFIG_COUNT=1 -e GIT_CONFIG_KEY_0=safe.directory -e GIT_CONFIG_VALUE_0=/repo \
+            ghcr.io/betterleaks/betterleaks:v1.9.0@sha256:e3b95b0db6c2735db17165c009b0ad6d9cef34fb4578659232b98f69d7346cac \
+            git /repo --redact=100 --exit-code 1 "${opts[@]}"
