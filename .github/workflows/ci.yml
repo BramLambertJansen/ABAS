@@ -21,11 +21,11 @@ jobs:
     steps:
       # Volledige history: check:migrations vergelijkt met origin/main
       # (append-only).
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -40,7 +40,7 @@ jobs:
       # API welke release de nieuwste is, en een 500 of rate limit daarop
       # maakte CI rood zonder dat er een test faalde (PR #96, 2026-09-28).
       # >= 2.102.0 nodig voor `auto_expose_new_tables` in config.toml.
-      - uses: supabase/setup-cli@1dedf2c611547ede7232d26866dd3c56ab903bbb # v1.7.3
+      - uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3.0.1
         with:
           version: 2.118.0
 
