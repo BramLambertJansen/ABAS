@@ -6,6 +6,12 @@ port = 54321
 schemas = ["public", "graphql_public"]
 extra_search_path = ["public", "extensions"]
 max_rows = 1000
+# Nieuwe tabellen en functies krijgen geen automatische grants voor anon,
+# authenticated of service_role, zoals het gehoste project vanaf 2026-10-30
+# (ADR 0025 → roadmap 0.1a). Een migratie die een object maakt, geeft zelf
+# expliciet de rechten; 0044 legt die voor alle bestaande objecten vast.
+# Vereist CLI >= 2.102.0; Supabase haalt de sleutel na 2026-10-30 weg.
+auto_expose_new_tables = false
 
 [db]
 port = 54322
