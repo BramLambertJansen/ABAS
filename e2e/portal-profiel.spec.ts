@@ -408,8 +408,12 @@ test.describe("live backend (echte lokale Supabase, supabase/seed.sql)", () => {
     const dialog = page.getByRole("dialog", { name: "Naam wijzigen" });
     const opslaan = dialog.getByRole("button", { name: "Opslaan" });
     await expect(opslaan).toHaveAttribute("aria-disabled", "true");
+    // Sinds #183 (f795e61) schakelt een lege naam Opslaan niet uit: een
+    // poging toont de veldmelding (NAAM_VERPLICHT_TEKST) en verstuurt niets.
     await dialog.getByLabel("Volledige naam").fill("   ");
-    await expect(opslaan).toHaveAttribute("aria-disabled", "true");
+    await opslaan.click();
+    await expect(dialog.getByText("Vul een naam in.")).toBeVisible();
+    await expect(page.getByRole("status").filter({ hasText: "Naam bijgewerkt" })).toHaveCount(0);
     await dialog.getByLabel("Volledige naam").fill(newName);
     await opslaan.click();
 
