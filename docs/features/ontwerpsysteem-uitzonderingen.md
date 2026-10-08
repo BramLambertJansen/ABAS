@@ -86,7 +86,7 @@ die op `/design*` matcht). Er komt geen nieuw toegangsmechanisme.
    - Playwright fotografeert elk venster apart, met een eigen viewport uit de
      lokale config.
    - De vensters staan niet ingebed op `/design/systeem`.
-2. **Interactiestappen in de lokale config (O2 = a).** Een generieke runner
+2. **Interactiestappen in een lokaal bestand (O2 = a; het bestand staat in besluit 6).** Een generieke runner
    voert ze uit vóór de screenshot. De componenten blijven ongewijzigd.
 3. **Toelichting (O3).** Verplicht bij code `data`, optioneel bij de andere
    codes.
@@ -99,11 +99,21 @@ die op `/design*` matcht). Er komt geen nieuw toegangsmechanisme.
    3. de losse vensters en de interactiestappen.
 
    Zie "Bouw in drie PR's".
+6. **Interacties in een eigen bestand (O-nieuw-1).** De interacties staan in
+   `e2e/systeem.interacties.json`, niet in `systeem.lokaal.json`.
+   - De Tester schrijft dat bestand. Het staat buiten de gatepaden, dus een
+     interactie toevoegen vraagt geen label.
+   - De gate controleert de vorm nog steeds (I1–I7).
+   - Het pad staat één keer in `systeem.lokaal.json` →
+     `interactiesPad`.
+7. **Een venster sluiten valt buiten scope (O-nieuw-2).** `onClose` doet
+   niets. Focusherstel na sluiten blijft bij de e2e van de schermen zelf.
 
 ### Configvorm (`scripts/kit/systeem.lokaal.json`)
 
-`redenen` vervalt. Er komen drie sleutels bij. `uitzonderingen` komt in PR 1,
-`vensters` en `interacties` komen in PR 3.
+`redenen` vervalt. Er komen vier sleutels bij. `uitzonderingen` komt in PR 1;
+`vensterRoute`, `vensters` en `interactiesPad` komen in PR 3. De interacties
+zelf staan in een eigen bestand (zie "Interacties").
 
 ```json
 "vensterRoute": "/design/systeem/venster",
@@ -117,25 +127,33 @@ die op `/design*` matcht). Er komt geen nieuw toegangsmechanisme.
   "overlay-modal": { "componenten": ["Overlay", "OverlaySluitKnop"], "breedte": 768, "hoogte": 560 },
   "start-scherm":  { "componenten": ["StartScherm"], "breedte": 768, "hoogte": 560, "eigenLandmark": true }
 },
-"interacties": [
-  { "naam": "lijst-open", "sectie": "lid-zoeker-zoeken",
-    "stappen": [ { "typ": "a", "in": { "label": "Zoek lid op naam" } },
-                 { "verwacht": { "rol": "listbox", "naam": "Gevonden leden" } } ] },
-  { "naam": "weggooien-vraag", "venster": "overlay-onopgeslagen",
-    "stappen": [ { "toets": "Escape" },
-                 { "verwacht": { "rol": "button", "naam": "Weggooien" } } ] }
-]
+"interactiesPad": "e2e/systeem.interacties.json"
 ```
 
-Het blok hierboven is een uittreksel. De volledige lijsten staan in "Vensters"
-en "Interacties".
+Het blok hierboven is een uittreksel. De volledige lijst staat in "Vensters".
+
+`e2e/systeem.interacties.json` (de Tester schrijft dit bestand; uittreksel, de
+volledige lijst staat in "Interacties"):
+
+```json
+{
+  "interacties": [
+    { "naam": "lijst-open", "sectie": "lid-zoeker-zoeken",
+      "stappen": [ { "typ": "a", "in": { "label": "Zoek lid op naam" } },
+                   { "verwacht": { "rol": "listbox", "naam": "Gevonden leden" } } ] },
+    { "naam": "weggooien-vraag", "venster": "overlay-onopgeslagen",
+      "stappen": [ { "toets": "Escape" },
+                   { "verwacht": { "rol": "button", "naam": "Weggooien" } } ] }
+  ]
+}
+```
 
 **Wat generiek is en wat lokaal:**
 
 - **Generiek, in `systeem.mjs`:** een geëxporteerde constante `CODES` met de
   vier codes. Per code staan er een omschrijving, de standaardoplossing en of
   een toelichting verplicht is. De validatie van `uitzonderingen`, `vensters`
-  en `interacties` hoort hier ook.
+  en van de interacties (het bestand op `interactiesPad`) hoort hier ook.
 
   | code | omschrijving | standaardoplossing | toelichting |
   |---|---|---|---|
@@ -145,14 +163,16 @@ en "Interacties".
   | `staten` | staten komen uit eigen state of uit callbacks | een voorbeeld per staat (props of een mock), eventueel met interactiestappen | optioneel |
 
 - **Lokaal, in `systeem.lokaal.json`:** de koppeling component → code en
-  toelichting, de vensters en de interacties.
+  toelichting, de vensters en het pad van het interactiebestand.
+- **Lokaal, in `e2e/systeem.interacties.json`:** de interacties. Dat zijn
+  testgevallen, van de Tester.
 - **Ratchet, in `.kit/baseline.json` → `systeem-zonder-voorbeeld`:** blijft de
   lijst van namen die alleen mag krimpen, en blijft de enige plek die bepaalt
   wát een uitzondering is. `uitzonderingen` moet precies dezelfde namen
   bevatten; de gate dwingt dat af (G3 en G4). Zo kan de pagina
   `uitzonderingen` lezen zonder een tweede bron.
 - De `$comment` in `systeem.lokaal.json` gaat over `uitzonderingen`,
-  `vensters` en `interacties` in plaats van over `redenen`.
+  `vensters` en `interactiesPad` in plaats van over `redenen`.
 
 ### Gatefouten (`check:catalogus`)
 
@@ -282,7 +302,8 @@ pagina houdt één `main`, één `h1` en een bedienbare focusvolgorde.
 Verder:
 - **De teller van de provider** staat ín de dialoog, niet erachter.
 - **`onClose` is een noop**, dus Escape en de backdrop sluiten het voorbeeld
-  niet.
+  niet. Een venster sluiten valt buiten scope (besluit 7). Focusherstel na
+  sluiten blijft bij de e2e van de schermen zelf.
 
 **Generiek en lokaal:**
 
@@ -299,6 +320,15 @@ De vensterlijst (ids, viewport, welke componenten) staat dus maar één keer in
 pagina" lezen haar daar.
 
 ### Interacties (PR 3)
+
+**Bestand:** `e2e/systeem.interacties.json` (pad uit `systeem.lokaal.json` →
+`interactiesPad`), met de vorm `{ "interacties": [ <interactie>, … ] }`.
+- De gate leest het bestand en controleert I1–I7.
+- Ontbreekt het bestand, of is het geen geldige JSON, dan faalt de gate:
+  `<interactiesPad>: ontbreekt of is geen geldige JSON`.
+- Een leeg bestand is toegestaan als `{ "interacties": [] }`.
+- Zolang `interactiesPad` niet in de config staat (PR 1 en PR 2), controleert
+  de gate geen interacties.
 
 **Vorm van een interactie:**
 
@@ -367,7 +397,8 @@ generiek en botst hij niet op klassen.
 
 Teksten die uit een component of `src/lib` komen ("Gevonden leden",
 "Weggooien", de `closeBlocked`-melding) staan letterlijk in de config. Wijzigt
-zo'n tekst, dan faalt de e2e. Dat is bedoeld: de config is testinvoer.
+zo'n tekst, dan faalt de e2e. Dat is bedoeld: het interactiebestand is
+testinvoer, en de Tester werkt het bij.
 
 ### Sectie "Niet op deze pagina" (PR 1; links in PR 3)
 
@@ -486,9 +517,9 @@ Na PR 2 staan er 9 namen in de ratchet.
 
 | Rol | Bestanden |
 |---|---|
-| Hoofdsessie | `scripts/kit/systeem.mjs`: dekking via `vensters`, V1–V5, `valideerInteracties` met I1–I7, en de vensterzin in G1. `systeem.lokaal.json`: `vensterRoute`, `vensters`, `interacties`. Daarnaast gaan de vijf `context`/`schermvullend`-entries weg uit `uitzonderingen`. `.kit/baseline.json` (`ratchet:update`). |
+| Hoofdsessie | `scripts/kit/systeem.mjs`: dekking via `vensters`, V1–V5, `valideerInteracties` met I1–I7, en de vensterzin in G1. `systeem.lokaal.json`: `vensterRoute`, `vensters`, `interactiesPad`. Daarnaast gaan de vijf `context`/`schermvullend`-entries weg uit `uitzonderingen`. `.kit/baseline.json` (`ratchet:update`). |
 | Developer | `src/lib/systeem/SysteemVenster.tsx`, `types.ts` (`Vensterregister`), `src/app/design/systeem/venster/[id]/page.tsx`, `vensters.tsx`, `teksten.ts` (`VENSTER_TEKSTEN`). In `NietOpDezePagina` komen de vensterlinks erbij. Lukt een staat niet zonder componentwijziging, dan meldt hij dat en kiest hij niet zelf. |
-| Tester | `e2e/systeem.spec.ts` (de venstertests en de runner); `test/systeemCatalogus.test.ts` (V- en I-tests). De Tester stelt de exacte doelwitten van de interacties voor (zie O-nieuw-1); de hoofdsessie zet ze in de config. |
+| Tester | `e2e/systeem.spec.ts` (de venstertests en de runner). `e2e/systeem.interacties.json` (nieuw, de 6 interacties, met de exacte doelwitten). `test/systeemCatalogus.test.ts` (de V- en I-tests, inclusief een ontbrekend of ongeldig interactiebestand). |
 
 Na PR 3 staan er 4 namen in de ratchet, alle vier `data`.
 
@@ -511,7 +542,7 @@ Na PR 3 staan er 4 namen in de ratchet, alle vier `data`.
 | Venster zonder `eigenLandmark` waarvan de inhoud toch een `main` of `h1` heeft | e2e faalt op "één main en één h1" | — |
 | Interactie met een doelwit dat 2 elementen vindt | e2e faalt (strict) | `interactie <naam>, stap <n> (klik): …` |
 | Interactie op een sectie die niet (meer) bestaat | e2e faalt | `interactie <naam>: sectie "<id>" staat niet op /design/systeem` |
-| Een componenttekst in een `verwacht` is gewijzigd | e2e faalt; de hoofdsessie werkt de config bij | `interactie <naam>, stap <n> (verwacht): …` |
+| Een componenttekst in een `verwacht` is gewijzigd | e2e faalt; de Tester werkt `e2e/systeem.interacties.json` bij | `interactie <naam>, stap <n> (verwacht): …` |
 | Interactie zonder afsluitende `verwacht` | gate faalt | I7 |
 | Twee `LidZoeker`s met de standaard-`inputId` | axe faalt op dubbele id's | voorkomen met een eigen `inputId` per exemplaar |
 | De open lijst van `LidZoeker` valt buiten de sectie | de screenshot mist de lijst | voorkomen met vrije ruimte onder het veld |
@@ -567,23 +598,15 @@ naar 4 (PR 3).
 
 ## Open vragen voor Bram
 
-- **O-nieuw-1. Wie schrijft de interacties?** `interacties` staat in
-  `systeem.lokaal.json`, een gatebestand; alleen de hoofdsessie schrijft
-  daar. Inhoudelijk zijn het testgevallen, het domein van de Tester. Dit
-  voorstel: de Tester levert ze aan in de PR-beschrijving en de hoofdsessie
-  zet ze in de config. De andere optie is een eigen bestand
-  `e2e/systeem.interacties.json`, dat de Tester mag schrijven. Dan leest de
-  gate dat bestand voor I1–I7, en staat het buiten de gatepaden; elke
-  wijziging zonder label is dan mogelijk.
-- **O-nieuw-2. Mag een interactie het venster sluiten?** Nu is `onClose` een
-  noop, dus een interactie kan de "na sluiten"-staat (focusherstel) niet tonen.
-  Dit voorstel: nee, buiten scope. Bevestigen.
+Geen. O1–O5, O-nieuw-1 en O-nieuw-2 zijn besloten (zie "Besluiten").
 
 ## Expliciet buiten scope / vervolg
 
 - De vier `data`-uitzonderingen (`EerdereGeldActie`, `GeldActieHerstel`,
   `GeldActieHerstelInhoud`, `OnbekendeUitkomstMelding`). Die blijven, bewust.
 - Wijzigingen aan componenten in `src/components`.
+- Een venster sluiten en focusherstel na sluiten. Dat blijft bij de e2e van
+  de schermen zelf.
 - Hover- en focus-screenshots per venster, en acties buiten `klik`, `typ`,
   `toets` en `verwacht` (slepen, hover-stappen, CSS-selectors).
 - De extractie zelf naar een los raamwerk (roadmap fase 4). Deze spec houdt
