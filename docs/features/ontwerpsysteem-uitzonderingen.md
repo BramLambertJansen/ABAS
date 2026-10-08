@@ -1,6 +1,6 @@
 # Ontwerpsysteem: uitzonderingen met een code, en een voorbeeld per soort
 
-Status: **voorstel**
+Status: **goedgekeurd**
 
 Vervolg op [ontwerpsysteem.md](ontwerpsysteem.md) (goedgekeurd, gebouwd in
 PR #200). Roadmap fase 3, stap 6 (ADR 0025). Raamwerk-extractie volgens

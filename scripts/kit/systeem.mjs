@@ -3,8 +3,9 @@
 // check:catalogus — dekking van het ontwerpsysteem (docs/features/ontwerpsysteem.md).
 // Elke component in `componentenMap` staat als voorbeeld in het register van de
 // pagina `/design/systeem`, of is een bekende uitzondering (ratchet: de lijst
-// mag alleen krimpen) mét reden. Geen ABAS-namen in deze motor: paden, sleutel
-// en redenen komen uit `systeem.lokaal.json`.
+// mag alleen krimpen) mét een code uit `CODES`
+// (docs/features/ontwerpsysteem-uitzonderingen.md). Geen ABAS-namen in deze
+// motor: paden, sleutel en uitzonderingen komen uit `systeem.lokaal.json`.
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -43,24 +44,63 @@ export function registerSleutels(tekst, registerNaam) {
 }
 
 /**
- * @param {{ componenten: string[], sleutels: string[], redenen: Record<string,string>, tolereerbaar: Iterable<string> }} i
- * @returns {{ ontbrekend: string[], onbekend: string[], redenProblemen: string[] }}
+ * De codes voor een uitzondering (docs/features/ontwerpsysteem-uitzonderingen.md).
+ * Een code zegt wáárom een component niet als voorbeeld kan, en wat de
+ * standaardoplossing is; bij `toelichtingVerplicht` hoort er een zin bij.
  */
-export function analyseer({ componenten, sleutels, redenen, tolereerbaar }) {
+export const CODES = {
+  context: { omschrijving: "heeft een provider, overlay of andere omgeving nodig", oplossing: "een los venster", toelichtingVerplicht: false },
+  data: { omschrijving: "leest echte data; nepdata is bewust niet gewenst", oplossing: "geen: blijft een uitzondering", toelichtingVerplicht: true },
+  schermvullend: { omschrijving: "vult het venster of brengt een eigen landmark mee", oplossing: "een los venster", toelichtingVerplicht: false },
+  staten: { omschrijving: "staten komen uit eigen state of uit callbacks", oplossing: "een voorbeeld per staat (props of een mock), eventueel met interactiestappen", toelichtingVerplicht: false },
+};
+
+const CODELIJST = Object.keys(CODES).sort().join(", ");
+const VELDEN = new Set(["code", "toelichting"]);
+const PLEK = "systeem.lokaal.json → uitzonderingen";
+
+/** Hooguit één probleem voor één entry in `uitzonderingen` (G2, G3, G5–G7). */
+function entryProbleem(naam, entry) {
+  if (entry === null || typeof entry !== "object" || Array.isArray(entry) || typeof entry.code !== "string") {
+    return `${naam}: uitzondering zonder code in ${PLEK}; kies uit: ${CODELIJST}`;
+  }
+  if (!Object.hasOwn(CODES, entry.code)) return `${naam}: onbekende code "${entry.code}" in ${PLEK}; kies uit: ${CODELIJST}`;
+  const vreemd = Object.keys(entry).find((veld) => !VELDEN.has(veld));
+  if (vreemd !== undefined) return `${naam}: onbekend veld "${vreemd}" in ${PLEK}; toegestaan: code, toelichting`;
+  if (Object.hasOwn(entry, "toelichting") && (typeof entry.toelichting !== "string" || !entry.toelichting.trim())) {
+    return `${naam}: lege toelichting in ${PLEK}; laat het veld weg of vul het in`;
+  }
+  if (CODES[entry.code].toelichtingVerplicht && !Object.hasOwn(entry, "toelichting")) {
+    return `${naam}: code "${entry.code}" vraagt een toelichting in ${PLEK}`;
+  }
+  return null;
+}
+
+/**
+ * @param {{ componenten: string[], sleutels: string[], uitzonderingen: Record<string, unknown>, tolereerbaar: Iterable<string>, baselineSleutel?: string }} i
+ * @returns {{ ontbrekend: string[], onbekend: string[], uitzonderingProblemen: string[] }}
+ */
+export function analyseer({ componenten, sleutels, uitzonderingen, tolereerbaar, baselineSleutel = "systeem-zonder-voorbeeld" }) {
   const heeft = new Set(componenten);
   const inRegister = new Set(sleutels);
   const ontbrekend = componenten.filter((c) => !inRegister.has(c)).sort();
   const onbekend = sleutels.filter((s) => !heeft.has(s)).sort();
-  const redenProblemen = [];
-  for (const naam of tolereerbaar) {
-    if (!redenen[naam]?.trim()) redenProblemen.push(`${naam}: uitzondering zonder reden in systeem.lokaal.json → redenen`);
+  const toegestaan = new Set(tolereerbaar);
+  const uitzonderingProblemen = [];
+  // G3: in de baseline maar zonder entry.
+  for (const naam of [...toegestaan].sort()) {
+    if (!Object.hasOwn(uitzonderingen, naam)) uitzonderingProblemen.push(`${naam}: uitzondering zonder code in ${PLEK}; kies uit: ${CODELIJST}`);
   }
-  for (const naam of Object.keys(redenen)) {
-    if (![...tolereerbaar].includes(naam) && !heeft.has(naam)) {
-      redenProblemen.push(`${naam}: staat in systeem.lokaal.json → redenen maar bestaat niet meer — haal hem weg`);
+  for (const naam of Object.keys(uitzonderingen).sort()) {
+    // G4: een entry voor iets dat geen uitzondering is (ook als het niet meer bestaat).
+    if (!toegestaan.has(naam)) {
+      uitzonderingProblemen.push(`${naam}: staat in ${PLEK} maar is geen uitzondering (niet in .kit/baseline.json → ${baselineSleutel}) — haal hem weg`);
+      continue;
     }
+    const probleem = entryProbleem(naam, uitzonderingen[naam]);
+    if (probleem) uitzonderingProblemen.push(probleem);
   }
-  return { ontbrekend, onbekend, redenProblemen };
+  return { ontbrekend, onbekend, uitzonderingProblemen };
 }
 
 function bestanden(root, dir) {
@@ -79,16 +119,26 @@ export function draai(root = path.resolve(import.meta.dirname, "../..")) {
 
   const baseline = JSON.parse(readFileSync(path.join(root, ".kit/baseline.json"), "utf8"));
   const tolereerbaar = baseline[cfg.baselineSleutel] ?? [];
-  const { ontbrekend, onbekend, redenProblemen } = analyseer({ componenten, sleutels, redenen: cfg.redenen ?? {}, tolereerbaar });
+  const { ontbrekend, onbekend, uitzonderingProblemen } = analyseer({
+    componenten,
+    sleutels,
+    uitzonderingen: cfg.uitzonderingen ?? {},
+    tolereerbaar,
+    baselineSleutel: cfg.baselineSleutel,
+  });
 
   const problemen = [];
+  // G8: de oude sleutel.
+  if (Object.hasOwn(cfg, "redenen")) {
+    problemen.push('systeem.lokaal.json: "redenen" is vervangen door "uitzonderingen" (docs/features/ontwerpsysteem-uitzonderingen.md)');
+  }
   for (const o of onbekend) problemen.push(`${o}: staat in het register maar bestaat niet meer in ${cfg.componentenMap} — haal hem weg`);
-  problemen.push(...redenProblemen);
+  problemen.push(...uitzonderingProblemen);
   problemen.push(
     ...ratchet(
       cfg.baselineSleutel,
       ontbrekend,
-      `staat niet in ${cfg.route}: voeg een voorbeeld toe in ${cfg.registerPad}, of (alleen met Brams akkoord, label gate-wijziging) een uitzondering met reden in systeem.lokaal.json`,
+      `staat niet in ${cfg.route}: voeg een voorbeeld toe in ${cfg.registerPad}, of (alleen met Brams akkoord, label gate-wijziging) een uitzondering met een code (${CODELIJST}) in ${PLEK}`,
       path.join(root, ".kit/baseline.json"),
     ),
   );

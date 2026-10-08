@@ -14,7 +14,7 @@ export const GATES = [
   { script: "check:rls", snel: true, bewaakt: "elke tabel RLS, elke policy (per naam) een negatieve test, geldtabellen REVOKED, elke bucket een type- en groottelimiet, elke storage-policy een negatieve test" },
   { script: "check:migrations", snel: true, bewaakt: "migratienamen NNNN_naam.sql, uniek nummer; append-only: een bestaande migratie wijzigen of verwijderen faalt" },
   { script: "check:adr", snel: true, bewaakt: "ADR-namen NNNN-naam.md, uniek nummer" },
-  { script: "check:catalogus", snel: true, bewaakt: "dekking van het ontwerpsysteem: elke component in src/components staat als voorbeeld in /design/systeem (src/app/design/systeem/voorbeelden.tsx) of is een uitzondering met reden (scripts/kit/systeem.lokaal.json); de uitzonderingslijst staat in de ratchet (.kit/baseline.json) en mag alleen krimpen" },
+  { script: "check:catalogus", snel: true, bewaakt: "elke component staat als voorbeeld in /design/systeem, in een los venster, of is een uitzondering met een code (context, data, schermvullend, staten); de uitzonderingslijst staat in de ratchet en mag alleen krimpen" },
   { script: "check:docs", snel: true, bewaakt: "statuswoord van ADR's en specs (voorstel|goedgekeurd|gebouwd|vervallen); goedgekeurde specs hebben 'Hergebruik & UX-patronen'; backtick-identifiers in CLAUDE.md, .claude/agents, .claude/rules en skills bestaan in de repo; gateregister = check:all; elk component een README-rij; specs zonder status in de ratchet (.kit/baseline.json)" },
   { script: "check:deployment", snel: false, bewaakt: "RPC-signaturen en kolommen die de app gebruikt bestaan in de database (read-only contractcheck)" },
   { script: "build", snel: false, bewaakt: "next build slaagt" },

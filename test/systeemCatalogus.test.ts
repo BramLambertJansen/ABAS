@@ -1,20 +1,21 @@
 import { test, after } from "node:test";
 import assert from "node:assert/strict";
-import { copyFileSync, mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 
 /**
- * check:catalogus (docs/features/ontwerpsysteem.md → Tests): de pure functies
- * en één end-to-end run van `draai(root)` tegen een minimale tijdelijke boom.
+ * check:catalogus (docs/features/ontwerpsysteem.md en
+ * ontwerpsysteem-uitzonderingen.md → Tests, G1–G9): de pure functies, `CODES`,
+ * end-to-end runs van `draai(root)` tegen een minimale tijdelijke boom.
  * systeem.mjs en ratchet.mjs worden naar die boom gekopieerd: de ratchet leest
  * .kit/baseline.json relatief aan zichzelf, dus alleen zo gebruikt de run de
  * baseline van de tijdelijke boom en niet die van de echte repo.
  */
 const KIT = join(dirname(fileURLToPath(import.meta.url)), "..", "scripts", "kit");
-const { analyseer, componentNamen, registerSleutels } = await import(pathToFileURL(join(KIT, "systeem.mjs")).href);
+const { analyseer, componentNamen, registerSleutels, CODES, draai: draaiEcht } = await import(pathToFileURL(join(KIT, "systeem.mjs")).href);
 const tmpDirs: string[] = [];
 after(() => {
   for (const d of tmpDirs) rmSync(d, { recursive: true, force: true });
@@ -79,42 +80,139 @@ test("registerSleutels: leeg register geeft [], ontbrekend register geeft null",
   assert.equal(registerSleutels("export const ANDERS = { A: 1 };", "VOORBEELDEN"), null);
 });
 
+// --- CODES -----------------------------------------------------------------
+
+test("CODES: precies context, data, schermvullend en staten; alleen data vraagt een toelichting", () => {
+  assert.deepEqual(Object.keys(CODES).sort(), ["context", "data", "schermvullend", "staten"]);
+  for (const [code, def] of Object.entries(CODES) as [string, Record<string, unknown>][]) {
+    assert.equal(typeof def.omschrijving, "string", code);
+    assert.ok((def.omschrijving as string).trim(), code);
+    assert.equal(typeof def.oplossing, "string", code);
+    assert.ok((def.oplossing as string).trim(), code);
+    assert.equal(def.toelichtingVerplicht, code === "data", code);
+  }
+});
+
 // --- analyseer --------------------------------------------------------------
 
+const CODELIJST = "context, data, schermvullend, staten";
+const PLEK = "systeem.lokaal.json → uitzonderingen";
+const G2 = (x: string, code: string) => `${x}: onbekende code "${code}" in ${PLEK}; kies uit: ${CODELIJST}`;
+const G3 = (x: string) => `${x}: uitzondering zonder code in ${PLEK}; kies uit: ${CODELIJST}`;
+const G4 = (x: string, sleutel = "systeem-zonder-voorbeeld") =>
+  `${x}: staat in ${PLEK} maar is geen uitzondering (niet in .kit/baseline.json → ${sleutel}) — haal hem weg`;
+const G5 = (x: string, veld: string) => `${x}: onbekend veld "${veld}" in ${PLEK}; toegestaan: code, toelichting`;
+const G6 = (x: string) => `${x}: lege toelichting in ${PLEK}; laat het veld weg of vul het in`;
+const G7 = (x: string, code: string) => `${x}: code "${code}" vraagt een toelichting in ${PLEK}`;
+
+/** Eén uitzondering `A` (in de baseline, zonder voorbeeld) met de gegeven entry. */
+const eenUitzondering = (entry: unknown) =>
+  analyseer({ componenten: ["A"], sleutels: [], uitzonderingen: { A: entry }, tolereerbaar: ["A"] }).uitzonderingProblemen;
+
 test("analyseer: alles gedekt geeft niets", () => {
-  const r = analyseer({ componenten: ["Knop", "Chip"], sleutels: ["Knop", "Chip"], redenen: {}, tolereerbaar: [] });
-  assert.deepEqual(r, { ontbrekend: [], onbekend: [], redenProblemen: [] });
+  const r = analyseer({ componenten: ["Knop", "Chip"], sleutels: ["Knop", "Chip"], uitzonderingen: {}, tolereerbaar: [] });
+  assert.deepEqual(r, { ontbrekend: [], onbekend: [], uitzonderingProblemen: [] });
 });
 
 test("analyseer: component zonder voorbeeld is ontbrekend (gesorteerd)", () => {
-  const r = analyseer({ componenten: ["Zeta", "Alfa", "Knop"], sleutels: ["Knop"], redenen: {}, tolereerbaar: [] });
+  const r = analyseer({ componenten: ["Zeta", "Alfa", "Knop"], sleutels: ["Knop"], uitzonderingen: {}, tolereerbaar: [] });
   assert.deepEqual(r.ontbrekend, ["Alfa", "Zeta"]);
 });
 
 test("analyseer: register-sleutel zonder component is onbekend", () => {
-  const r = analyseer({ componenten: ["Knop"], sleutels: ["Knop", "Weg"], redenen: {}, tolereerbaar: [] });
+  const r = analyseer({ componenten: ["Knop"], sleutels: ["Knop", "Weg"], uitzonderingen: {}, tolereerbaar: [] });
   assert.deepEqual(r.onbekend, ["Weg"]);
 });
 
-test("analyseer: uitzondering zonder reden, ook met een lege of witruimte-reden", () => {
-  const zonder = analyseer({ componenten: ["A", "B"], sleutels: [], redenen: {}, tolereerbaar: ["A"] });
-  assert.equal(zonder.redenProblemen.length, 1);
-  assert.match(zonder.redenProblemen[0] ?? "", /^A: uitzondering zonder reden/);
-  const leeg = analyseer({ componenten: ["A"], sleutels: [], redenen: { A: "   " }, tolereerbaar: ["A"] });
-  assert.equal(leeg.redenProblemen.length, 1);
+test("analyseer: geldige code, met en zonder toelichting (niet-data), en data met toelichting geven geen probleem", () => {
+  for (const code of ["context", "schermvullend", "staten"]) {
+    assert.deepEqual(eenUitzondering({ code }), [], code);
+    assert.deepEqual(eenUitzondering({ code, toelichting: "waarom" }), [], code);
+  }
+  assert.deepEqual(eenUitzondering({ code: "data", toelichting: "leest echte data" }), []);
 });
 
-test("analyseer: reden voor een niet-uitzondering die ook geen component is", () => {
-  const r = analyseer({ componenten: ["Knop"], sleutels: ["Knop"], redenen: { Spook: "weg" }, tolereerbaar: [] });
-  assert.equal(r.redenProblemen.length, 1);
-  assert.match(r.redenProblemen[0] ?? "", /^Spook: .*bestaat niet meer/);
+test("analyseer: G2 onbekende code", () => {
+  assert.deepEqual(eenUitzondering({ code: "anders" }), [G2("A", "anders")]);
+  assert.deepEqual(eenUitzondering({ code: "" }), [G2("A", "")]);
 });
 
-test("analyseer: reden voor een bestaande component (geen uitzondering) is geen probleem; uitzondering mag ontbreken als component", () => {
-  const a = analyseer({ componenten: ["Knop"], sleutels: ["Knop"], redenen: { Knop: "waarom" }, tolereerbaar: [] });
-  assert.deepEqual(a.redenProblemen, []);
-  const b = analyseer({ componenten: [], sleutels: [], redenen: { X: "r" }, tolereerbaar: ["X"] });
-  assert.deepEqual(b.redenProblemen, []);
+test("analyseer: G3 naam in de baseline zonder entry", () => {
+  const r = analyseer({ componenten: ["A", "B"], sleutels: [], uitzonderingen: {}, tolereerbaar: ["A"] });
+  assert.deepEqual(r.uitzonderingProblemen, [G3("A")]);
+});
+
+test("analyseer: G3 entry zonder code, code geen string, entry geen object", () => {
+  assert.deepEqual(eenUitzondering({ toelichting: "waarom" }), [G3("A")]);
+  assert.deepEqual(eenUitzondering({}), [G3("A")]);
+  assert.deepEqual(eenUitzondering({ code: 1 }), [G3("A")]);
+  assert.deepEqual(eenUitzondering({ code: null }), [G3("A")]);
+  assert.deepEqual(eenUitzondering({ code: ["data"] }), [G3("A")]);
+  for (const geenObject of ["staten", null, 3, true, ["staten"]]) {
+    assert.deepEqual(eenUitzondering(geenObject), [G3("A")], JSON.stringify(geenObject));
+  }
+});
+
+test("analyseer: G4 voor een component met voorbeeld (omgekeerd: was geen probleem onder redenen)", () => {
+  const r = analyseer({ componenten: ["Knop"], sleutels: ["Knop"], uitzonderingen: { Knop: { code: "staten" } }, tolereerbaar: [] });
+  assert.deepEqual(r.uitzonderingProblemen, [G4("Knop")]);
+});
+
+test("analyseer: G4 voor een niet-bestaande naam buiten de baseline", () => {
+  const r = analyseer({ componenten: ["Knop"], sleutels: ["Knop"], uitzonderingen: { Spook: { code: "context" } }, tolereerbaar: [] });
+  assert.deepEqual(r.uitzonderingProblemen, [G4("Spook")]);
+});
+
+test("analyseer: G4 voor een component zonder voorbeeld dat niet in de baseline staat; noemt de baselineSleutel", () => {
+  const r = analyseer({
+    componenten: ["A"],
+    sleutels: [],
+    uitzonderingen: { A: { code: "staten" } },
+    tolereerbaar: [],
+    baselineSleutel: "andere-sleutel",
+  });
+  assert.deepEqual(r.uitzonderingProblemen, [G4("A", "andere-sleutel")]);
+});
+
+test("analyseer: een uitzondering in de baseline die niet meer bestaat mag een entry hebben (de ratchet meldt hem)", () => {
+  const r = analyseer({ componenten: [], sleutels: [], uitzonderingen: { X: { code: "staten" } }, tolereerbaar: ["X"] });
+  assert.deepEqual(r.uitzonderingProblemen, []);
+});
+
+test("analyseer: G5 onbekend veld, ook de oude `reden`", () => {
+  assert.deepEqual(eenUitzondering({ code: "staten", reden: "oud" }), [G5("A", "reden")]);
+  assert.deepEqual(eenUitzondering({ code: "staten", toelichting: "ok", extra: 1 }), [G5("A", "extra")]);
+});
+
+test("analyseer: G6 lege, witruimte- of niet-string toelichting", () => {
+  for (const toelichting of ["", "   ", "\n\t", 5, null, ["x"], {}]) {
+    assert.deepEqual(eenUitzondering({ code: "staten", toelichting }), [G6("A")], JSON.stringify(toelichting));
+  }
+  assert.deepEqual(eenUitzondering({ code: "data", toelichting: "  " }), [G6("A")]);
+});
+
+test("analyseer: G7 data zonder toelichting", () => {
+  assert.deepEqual(eenUitzondering({ code: "data" }), [G7("A", "data")]);
+});
+
+test("analyseer: hooguit één melding per naam; G5–G7 pas na een geldige code", () => {
+  // Onbekende code én onbekend veld én lege toelichting: alleen G2.
+  assert.deepEqual(eenUitzondering({ code: "anders", reden: "x", toelichting: "" }), [G2("A", "anders")]);
+  // Geen code én onbekend veld: alleen G3.
+  assert.deepEqual(eenUitzondering({ reden: "x" }), [G3("A")]);
+  // data, onbekend veld én geen toelichting: alleen G5.
+  assert.deepEqual(eenUitzondering({ code: "data", reden: "x" }), [G5("A", "reden")]);
+  // Geen uitzondering én een kapotte entry: alleen G4.
+  const r = analyseer({ componenten: ["B"], sleutels: ["B"], uitzonderingen: { B: { code: "x", reden: "y" } }, tolereerbaar: [] });
+  assert.deepEqual(r.uitzonderingProblemen, [G4("B")]);
+  // Meerdere namen: één melding per naam.
+  const m = analyseer({
+    componenten: ["A", "B", "C"],
+    sleutels: [],
+    uitzonderingen: { A: { code: "data", toelichting: "" }, B: { code: 1, extra: 2 } },
+    tolereerbaar: ["A", "B", "C"],
+  });
+  assert.deepEqual([...m.uitzonderingProblemen].sort(), [G3("B"), G3("C"), G6("A")].sort());
 });
 
 // --- draai(root), end-to-end -----------------------------------------------
@@ -123,10 +221,12 @@ type Boom = {
   componenten: Record<string, string>;
   register: string;
   baseline: Record<string, string[]>;
-  redenen: Record<string, string>;
+  uitzonderingen: Record<string, unknown>;
+  /** Extra sleutels in systeem.lokaal.json (bijvoorbeeld de oude `redenen`). */
+  extra?: Record<string, unknown>;
 };
 
-async function draaiIn({ componenten, register, baseline, redenen }: Boom): Promise<string[]> {
+async function draaiIn({ componenten, register, baseline, uitzonderingen, extra = {} }: Boom): Promise<string[]> {
   const dir = mkdtempSync(join(tmpdir(), "systeem-catalogus-"));
   tmpDirs.push(dir);
   const schrijf = (rel: string, inhoud: string) => {
@@ -144,7 +244,8 @@ async function draaiIn({ componenten, register, baseline, redenen }: Boom): Prom
       registerNaam: "VOORBEELDEN",
       baselineSleutel: "systeem-zonder-voorbeeld",
       route: "/design/systeem",
-      redenen,
+      uitzonderingen,
+      ...extra,
     }),
   );
   mkdirSync(join(dir, "scripts/kit"), { recursive: true });
@@ -160,36 +261,38 @@ const KNOP = "export function Knop() { return null; }\nexport const PIN_LENGTH =
 const CHIP = "export const Chip = () => null;\n";
 const REGISTER = (...namen: string[]) =>
   `export const VOORBEELDEN: Voorbeeldregister = {\n${namen.map((n) => `  ${n}: () => null,`).join("\n")}\n};\n`;
+const G8 = 'systeem.lokaal.json: "redenen" is vervangen door "uitzonderingen" (docs/features/ontwerpsysteem-uitzonderingen.md)';
+const G1 = (x: string) =>
+  `${x}: staat niet in /design/systeem: voeg een voorbeeld toe in src/voorbeelden.tsx, of (alleen met Brams akkoord, label gate-wijziging) een uitzondering met een code (${CODELIJST}) in ${PLEK}`;
 
 test("draai: alles gedekt, geen problemen", async () => {
   const p = await draaiIn({
     componenten: { "Knop.tsx": KNOP, "Chip.tsx": CHIP },
     register: REGISTER("Knop", "Chip"),
     baseline: {},
-    redenen: {},
+    uitzonderingen: {},
   });
   assert.deepEqual(p, []);
 });
 
-test("draai: een bekende uitzondering met reden slaagt", async () => {
+test("draai: een bekende uitzondering met een geldige code slaagt", async () => {
   const p = await draaiIn({
     componenten: { "Knop.tsx": KNOP, "Chip.tsx": CHIP },
     register: REGISTER("Knop"),
     baseline: { "systeem-zonder-voorbeeld": ["Chip"] },
-    redenen: { Chip: "leest data" },
+    uitzonderingen: { Chip: { code: "data", toelichting: "leest data" } },
   });
   assert.deepEqual(p, []);
 });
 
-test("draai: component zonder voorbeeld en zonder uitzondering faalt", async () => {
+test("draai: G1 component zonder voorbeeld en zonder uitzondering faalt", async () => {
   const p = await draaiIn({
     componenten: { "Knop.tsx": KNOP, "Chip.tsx": CHIP },
     register: REGISTER("Knop"),
     baseline: {},
-    redenen: {},
+    uitzonderingen: {},
   });
-  assert.equal(p.length, 1);
-  assert.match(p[0] ?? "", /^Chip: staat niet in \/design\/systeem/);
+  assert.deepEqual(p, [G1("Chip")]);
 });
 
 test("draai: componenten in submappen tellen mee, niet-tsx niet", async () => {
@@ -197,7 +300,7 @@ test("draai: componenten in submappen tellen mee, niet-tsx niet", async () => {
     componenten: { "sub/Diep.tsx": "export function Diep() {}\n", "Helper.ts": "export function Helper() {}\n" },
     register: REGISTER(),
     baseline: {},
-    redenen: {},
+    uitzonderingen: {},
   });
   assert.equal(p.length, 1);
   assert.match(p[0] ?? "", /^Diep: /);
@@ -208,43 +311,70 @@ test("draai: register-sleutel zonder component faalt", async () => {
     componenten: { "Knop.tsx": KNOP },
     register: REGISTER("Knop", "Verdwenen"),
     baseline: {},
-    redenen: {},
+    uitzonderingen: {},
   });
   assert.equal(p.length, 1);
   assert.match(p[0] ?? "", /^Verdwenen: staat in het register maar bestaat niet meer/);
 });
 
-test("draai: uitzondering zonder reden faalt", async () => {
+test("draai: G3 uitzondering zonder code faalt", async () => {
   const p = await draaiIn({
     componenten: { "Knop.tsx": KNOP, "Chip.tsx": CHIP },
     register: REGISTER("Knop"),
     baseline: { "systeem-zonder-voorbeeld": ["Chip"] },
-    redenen: {},
+    uitzonderingen: {},
   });
-  assert.equal(p.length, 1);
-  assert.match(p[0] ?? "", /^Chip: uitzondering zonder reden/);
+  assert.deepEqual(p, [G3("Chip")]);
 });
 
-test("draai: reden zonder uitzondering en zonder component faalt", async () => {
+test("draai: G4 uitzondering-entry zonder baseline en zonder component faalt", async () => {
   const p = await draaiIn({
     componenten: { "Knop.tsx": KNOP },
     register: REGISTER("Knop"),
     baseline: {},
-    redenen: { Spook: "bestond ooit" },
+    uitzonderingen: { Spook: { code: "context" } },
   });
-  assert.equal(p.length, 1);
-  assert.match(p[0] ?? "", /^Spook: .*bestaat niet meer/);
+  assert.deepEqual(p, [G4("Spook")]);
 });
 
-test("draai: opgeloste uitzondering (in baseline, nu in register) faalt met de ratchet-melding", async () => {
+test("draai: G8 de oude sleutel `redenen` faalt, ook naast geldige uitzonderingen", async () => {
+  const p = await draaiIn({
+    componenten: { "Knop.tsx": KNOP, "Chip.tsx": CHIP },
+    register: REGISTER("Knop"),
+    baseline: { "systeem-zonder-voorbeeld": ["Chip"] },
+    uitzonderingen: { Chip: { code: "staten" } },
+    extra: { redenen: { Chip: "oud" } },
+  });
+  assert.deepEqual(p, [G8]);
+  const leeg = await draaiIn({
+    componenten: { "Knop.tsx": KNOP },
+    register: REGISTER("Knop"),
+    baseline: {},
+    uitzonderingen: {},
+    extra: { redenen: {} },
+  });
+  assert.deepEqual(leeg, [G8]);
+});
+
+test("draai: G9 opgeloste uitzondering geeft de ratchet-melding; na de baseline-update G4", async () => {
   const p = await draaiIn({
     componenten: { "Knop.tsx": KNOP, "Chip.tsx": CHIP },
     register: REGISTER("Knop", "Chip"),
     baseline: { "systeem-zonder-voorbeeld": ["Chip"] },
-    redenen: { Chip: "was uitzondering" },
+    uitzonderingen: { Chip: { code: "staten" } },
   });
   assert.equal(p.length, 1);
-  assert.match(p[0] ?? "", /^Chip: staat in \.kit\/baseline\.json .* opgelost .* ratchet:update/);
+  assert.match(
+    p[0] ?? "",
+    /^Chip: staat in \.kit\/baseline\.json → systeem-zonder-voorbeeld maar is opgelost — draai `?npm run ratchet:update`? en commit de daling$/,
+  );
+  const na = await draaiIn({
+    componenten: { "Knop.tsx": KNOP, "Chip.tsx": CHIP },
+    register: REGISTER("Knop", "Chip"),
+    baseline: {},
+    uitzonderingen: { Chip: { code: "staten" } },
+  });
+  assert.deepEqual(na, [G4("Chip")]);
 });
 
 test("draai: ontbrekend register geeft een melding", async () => {
@@ -252,8 +382,26 @@ test("draai: ontbrekend register geeft een melding", async () => {
     componenten: { "Knop.tsx": KNOP },
     register: "export const ANDERS = { A: 1 };\n",
     baseline: {},
-    redenen: {},
+    uitzonderingen: {},
   });
   assert.equal(p.length, 1);
   assert.match(p[0] ?? "", /register `VOORBEELDEN` niet gevonden/);
+});
+
+// --- de echte config ----------------------------------------------------------
+
+const ROOT = join(KIT, "..", "..");
+
+test("echte config: draai() geeft geen problemen", () => {
+  assert.deepEqual(draaiEcht(), []);
+});
+
+test("echte config: de namen in uitzonderingen zijn precies die in .kit/baseline.json", () => {
+  const cfg = JSON.parse(readFileSync(join(ROOT, "scripts/kit/systeem.lokaal.json"), "utf8"));
+  const baseline = JSON.parse(readFileSync(join(ROOT, ".kit/baseline.json"), "utf8"));
+  assert.ok(!Object.hasOwn(cfg, "redenen"));
+  assert.ok(cfg.uitzonderingen && typeof cfg.uitzonderingen === "object");
+  const namen = Object.keys(cfg.uitzonderingen).sort();
+  const inBaseline = [...(baseline[cfg.baselineSleutel] ?? [])].sort();
+  assert.deepEqual(namen, inBaseline);
 });
