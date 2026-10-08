@@ -22,7 +22,7 @@ description: Bouw een nieuw scherm of een nieuwe overlay in een ABAS-feature (sr
    `LeesFout`; verversfout met data → `VerversStatus`; onbekende
    geld-uitkomst → `OnbekendeUitkomstMelding`/`GeldActieHerstel`.
 5. **Dialoog**: altijd `Overlay`; nooit twee overlays tegelijk.
-6. **Knoppen en velden**: uit de catalogus (`knopStijlen.ts`, `TekstVeld`,
+6. **Knoppen en velden**: uit de catalogus (`Knop`, `TekstVeld`,
    `ZoekVeld`, `Select`, …). Geen gekopieerde klasseketen; ontbreekt een
    variant → `/nieuw-component`.
 7. **Bedragen**: alleen weergeven (`formatCents`). Een subtotaal ter

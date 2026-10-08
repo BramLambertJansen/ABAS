@@ -1460,9 +1460,8 @@ caller), and `test/accentContrast.test.ts` scans all class literals in
 
 **Update knop (docs/features/knop.md, ADR 0026)**: the shared classes now live
 in the `Knop` component (`src/components/Knop.tsx`: `variant`, `tone`, `maat`);
-`knopStijlen.ts` is no longer imported by `src/` and only stays until
-`test/accentContrast.test.ts` stops importing it. Primary is one style, dark
-text on `accent`.
+`knopStijlen.ts` has been removed; `test/accentContrast.test.ts` scans
+`knopKlassen.ts` instead. Primary is one style, dark text on `accent`.
 
 **Focus, font, portal width (T12)**: `globals.css` has one global
 `:focus-visible` rule (2px `accent` outline, 2px offset) inside

@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-import { KNOP_ACCENT_DONKER, KNOP_ACCENT_WIT } from "../src/components/knopStijlen.ts";
+import { knopKlassen } from "../src/components/knopKlassen.ts";
 import { methodLabel } from "../src/lib/betaalmethode.ts";
 
 /**
@@ -206,13 +206,46 @@ test("de scan zou het oude geval (bg-accent-active text-white hover:bg-accent) h
   assert.deepEqual(slechteParen("bg-accent-active text-white hover:bg-accent-pressed active:bg-accent-pressed".split(" ")), []);
 });
 
-test("knopStijlen: wit nooit op hover/accent, donker nooit met text-white", () => {
-  assert.ok(!/hover:bg-accent(\s|$)/.test(KNOP_ACCENT_WIT));
-  assert.ok(!KNOP_ACCENT_WIT.includes("hover:bg-accent-hover"));
-  assert.ok(KNOP_ACCENT_WIT.includes("hover:bg-accent-pressed"));
-  assert.ok(!KNOP_ACCENT_DONKER.includes("text-white"));
-  assert.deepEqual(slechteParen(KNOP_ACCENT_WIT.split(" ")), []);
-  assert.deepEqual(slechteParen(KNOP_ACCENT_DONKER.split(" ")), []);
+test("knopKlassen: elke variant/toon/maat haalt AA per staat; geen wit op accent, geen donker met text-white", () => {
+  for (const variant of ["primair", "secundair", "gevaar", "tekst"] as const) {
+    for (const tone of ["licht", "rail"] as const) {
+      for (const maat of ["normaal", "groot"] as const) {
+        for (const icoon of [false, true]) {
+          const klassen = knopKlassen({ variant, tone, maat, icoon });
+          assert.deepEqual(slechteParen(klassen.split(" ")), [], klassen);
+        }
+      }
+    }
+  }
+  const primair = knopKlassen({ variant: "primair" }).split(" ");
+  assert.ok(primair.includes("bg-accent") && primair.includes("text-rail"));
+  assert.ok(primair.includes("hover:bg-accent-hover") && !primair.includes("hover:bg-accent"));
+  assert.ok(!primair.includes("text-white"));
+});
+
+// Paren uit de tabel in docs/features/knop.md. Uitgeschakeld (`disabled:` en
+// `aria-disabled:`) valt buiten WCAG 1.4.3 en staat hier dus niet in.
+test("Knop-paren: elk paar uit de spec haalt AA (4,5:1)", () => {
+  const paren: Array<[string, string, string]> = [
+    ["primair: text-rail op accent", "rail", "accent"],
+    ["primair hover: text-rail op accent-hover", "rail", "accent-hover"],
+    ["gevaar: white op danger", "white", "danger"],
+    ["gevaar hover: white op ink", "white", "ink"],
+    ["secundair rail: rail-light op surface-rail", "rail-light", "surface-rail"],
+    ["secundair rail hover: rail-light op rail-hover", "rail-light", "rail-hover"],
+    ["secundair licht: ink op surface", "ink", "surface"],
+    ["tekst rail: rail-muted op rail", "rail-muted", "rail"],
+    ["tekst rail hover: rail-light op rail", "rail-light", "rail"],
+    ["tekst licht: muted op canvas", "muted", "canvas"],
+    ["tekst licht hover: ink op canvas", "ink", "canvas"],
+  ];
+  for (const [naam, tekst, bg] of paren) {
+    const t = palette[tekst];
+    const b = palette[bg];
+    assert.ok(t && b, `${naam}: token ontbreekt in @theme`);
+    const c = contrast(t, b);
+    assert.ok(c >= AA, `${naam} = ${c.toFixed(2)}:1`);
+  }
 });
 
 test("taal: 'cash' wordt 'contant' (F27)", () => {
