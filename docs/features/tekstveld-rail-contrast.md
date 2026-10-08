@@ -1,6 +1,6 @@
 # TekstVeld op rail: contrast van hint en fout
 
-Status: **goedgekeurd**
+Status: **gebouwd**
 
 Gevonden bij het bouwen van `/design/systeem`: `TekstVeld` met `tone="rail"`
 kleurt de hint en de fout niet mee met de tone. De hint staat in `text-muted`,
