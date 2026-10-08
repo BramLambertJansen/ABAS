@@ -1,21 +1,9 @@
 "use client";
 
 import { useId, type InputHTMLAttributes, type ReactNode, type Ref } from "react";
+import { tekstVeldKlassen, type TekstVeldTone } from "./tekstVeldKlassen";
 
 const MATEN = { "44": "h-control", "52": "h-control-lg" } as const;
-
-const TONES = {
-  rail: {
-    label: "text-xs font-bold text-rail-muted",
-    input:
-      "h-control-lg rounded-card border border-rail-border bg-rail px-4 text-sm font-semibold text-white outline-hidden focus:border-accent",
-  },
-  light: {
-    label: "text-xs font-bold text-muted",
-    input:
-      "h-control-lg rounded-card border border-border bg-surface px-4 text-sm font-semibold text-ink outline-hidden focus:border-accent",
-  },
-} as const;
 
 /**
  * Label + tekstinvoer. `tone="rail"` (standaard) is de opmaak van de donkere
@@ -53,7 +41,7 @@ export function TekstVeld({
   labelVerborgen?: boolean;
   /** Alleen de veldgroep/layout; inputpresentatie komt uit tone/maat. */
   className?: string;
-  tone?: keyof typeof TONES;
+  tone?: TekstVeldTone;
   inputRef?: Ref<HTMLInputElement>;
   children?: ReactNode;
   /** Veldmelding onder het veld; de aanroeper bepaalt wanneer die getoond
@@ -72,40 +60,42 @@ export function TekstVeld({
   const beschrijving =
     [describedBy, hint ? hintId : null, fout ? foutId : null].filter(Boolean).join(" ") ||
     undefined;
+  const klassen = tekstVeldKlassen(tone);
   return (
     <div className={`flex min-w-0 flex-col gap-1.5 ${className}`}>
-      <label htmlFor={id} className={labelVerborgen ? "sr-only" : TONES[tone].label}>
+      <label htmlFor={id} className={labelVerborgen ? "sr-only" : klassen.label}>
         {label}
       </label>
       {prefix ? (
         <div className={`flex min-w-0 items-center gap-2 rounded-control border px-3.5 focus-within:border-accent ${tone === "rail" ? "border-rail-border bg-rail" : "border-border bg-surface"}`}>
-          <span aria-hidden="true" className={`text-sm font-bold ${tone === "rail" ? "text-rail-muted" : "text-muted"}`}>{prefix}</span>
+          <span aria-hidden="true" className={klassen.prefix}>{prefix}</span>
           <input ref={inputRef} id={id} {...inputProps}
             aria-invalid={fout ? true : inputProps["aria-invalid"]}
             aria-describedby={beschrijving}
-            className={`${MATEN[maat ?? "44"]} min-w-0 flex-1 bg-transparent text-sm font-semibold outline-hidden ${tone === "rail" ? "text-white" : "text-ink"}`} />
+            className={`${MATEN[maat ?? "44"]} min-w-0 flex-1 bg-transparent text-sm font-semibold outline-hidden ${tone === "rail" ? "text-white" : "text-ink"} ${tekstVeldKlassen(tone).placeholder}`} />
         </div>
       ) : (
         <input ref={inputRef} id={id} {...inputProps}
           aria-invalid={fout ? true : inputProps["aria-invalid"]}
           aria-describedby={beschrijving}
           className={maat
-            ? `${MATEN[maat]} rounded-control border px-3.5 text-sm font-semibold outline-hidden focus:border-accent ${tone === "rail" ? "border-rail-border bg-rail text-white" : "border-border bg-surface text-ink"}`
-            : TONES[tone].input} />
+            ? `${MATEN[maat]} rounded-control border px-3.5 text-sm font-semibold outline-hidden focus:border-accent ${tone === "rail" ? "border-rail-border bg-rail text-white" : "border-border bg-surface text-ink"} ${tekstVeldKlassen(tone).placeholder}`
+            : `${klassen.input} ${tekstVeldKlassen(tone).placeholder}`} />
       )}
       {hint && (
-        <p id={hintId} className="text-xs font-semibold text-muted">
+        <p id={hintId} className={klassen.hint}>
           {hint}
         </p>
       )}
-      <VeldFout id={foutId} tekst={fout} alert={foutAlert} />
+      <VeldFout id={foutId} tone={tone} tekst={fout} alert={foutAlert} />
       {children}
     </div>
   );
 }
 
 /**
- * De veldmelding zelf (bestaande foutstijl: `text-xs font-bold text-danger`),
+ * De veldmelding zelf (foutstijl uit `tekstVeldKlassen(tone).fout`; `tone`
+ * standaard `"light"`, `"rail"` voor de donkere rail),
  * gedeeld door `TekstVeld` en de invoervelden met een eigen opmaak (bedrag met
  * €-voorvoegsel, veld naast een knop): één melding-element, één koppelpatroon
  * (`aria-describedby` naar `id`). `alert` gebruikt `role="alert"` en remount
@@ -115,10 +105,12 @@ export function VeldFout({
   id,
   tekst,
   alert = false,
+  tone = "light",
 }: {
   id: string;
   tekst?: string | null;
   alert?: boolean;
+  tone?: TekstVeldTone;
 }) {
   if (!tekst) return null;
   return (
@@ -126,7 +118,7 @@ export function VeldFout({
       key={alert ? "alert" : "stil"}
       id={id}
       role={alert ? "alert" : undefined}
-      className="text-xs font-bold text-danger"
+      className={tekstVeldKlassen(tone).fout}
     >
       {tekst}
     </p>

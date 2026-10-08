@@ -112,12 +112,13 @@ export const VOORBEELD_TEKSTEN = {
   },
   TekstVeld: {
     titel: "TekstVeld",
-    uitleg: "tone=\"light\" in rust, gevuld, met fout en uitgeschakeld.",
-    rail: { titel: "TekstVeld op rail", uitleg: "tone=\"rail\": rust, gevuld en uitgeschakeld." },
+    uitleg: "tone=\"light\" in rust (met hint en placeholder), gevuld, met fout en uitgeschakeld.",
+    rail: { titel: "TekstVeld op rail", uitleg: "tone=\"rail\" in rust (met hint en placeholder), gevuld, met fout en uitgeschakeld." },
     labels: { rust: "Naam", gevuld: "Naam (gevuld)", fout: "Naam (met fout)", uitgeschakeld: "Naam (uitgeschakeld)" },
     waarde: "Anna de Vries",
     foutmelding: "Vul een naam in.",
     hint: "Zoals op de ledenlijst.",
+    placeholder: "Voor- en achternaam",
   },
   ZoekVeld: {
     titel: "ZoekVeld",
@@ -232,6 +233,7 @@ export const VOORBEELD_TEKSTEN = {
     stil: "Zonder role",
     alert: "Met role=\"alert\"",
     tekst: "Vul een naam in.",
+    rail: { titel: "VeldFout op rail", uitleg: "tone=\"rail\": stil en als alert." },
   },
   OpslaanSectie: {
     titel: "OpslaanSectie",

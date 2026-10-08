@@ -394,16 +394,11 @@ function PinToetsenbordVoorbeeld() {
 function TekstVeldReeks({ tone }: { tone: "light" | "rail" }) {
   const T = VOORBEELD_TEKSTEN.TekstVeld;
   const id = (staat: string) => `systeem-tekstveld-${tone}-${staat}`;
-  // Hint en fout zijn alleen op licht getoond: TekstVeld kleurt ze niet naar de
-  // tone (text-muted en text-danger op rail halen 3,5:1 en 3,4:1). Zie het rapport.
-  const licht = tone === "light";
   return (
     <Rij>
-      <TekstVeld id={id("rust")} tone={tone} label={T.labels.rust} hint={licht ? T.hint : undefined} className="w-64" />
+      <TekstVeld id={id("rust")} tone={tone} label={T.labels.rust} hint={T.hint} placeholder={T.placeholder} className="w-64" />
       <TekstVeld id={id("gevuld")} tone={tone} label={T.labels.gevuld} defaultValue={T.waarde} className="w-64" />
-      {licht ? (
-        <TekstVeld id={id("fout")} tone={tone} label={T.labels.fout} defaultValue="" fout={T.foutmelding} className="w-64" />
-      ) : null}
+      <TekstVeld id={id("fout")} tone={tone} label={T.labels.fout} defaultValue="" fout={T.foutmelding} className="w-64" />
       <TekstVeld id={id("uitgeschakeld")} tone={tone} label={T.labels.uitgeschakeld} defaultValue={T.waarde} disabled className="w-64" />
     </Rij>
   );
@@ -457,12 +452,20 @@ function SelectVoorbeeld() {
 function VeldFoutVoorbeeld() {
   const T = VOORBEELD_TEKSTEN.VeldFout;
   return (
-    <Sectie naam="VeldFout" titel={T.titel} uitleg={T.uitleg}>
-      <Rij>
-        <Groep titel={T.stil}><VeldFout id="systeem-veldfout-stil" tekst={T.tekst} /></Groep>
-        <Groep titel={T.alert}><VeldFout id="systeem-veldfout-alert" tekst={T.tekst} alert /></Groep>
-      </Rij>
-    </Sectie>
+    <>
+      <Sectie naam="VeldFout" titel={T.titel} uitleg={T.uitleg}>
+        <Rij>
+          <Groep titel={T.stil}><VeldFout id="systeem-veldfout-stil" tekst={T.tekst} /></Groep>
+          <Groep titel={T.alert}><VeldFout id="systeem-veldfout-alert" tekst={T.tekst} alert /></Groep>
+        </Rij>
+      </Sectie>
+      <Sectie naam="VeldFout" tone="rail" titel={T.rail.titel} uitleg={T.rail.uitleg}>
+        <Rij>
+          <Groep titel={T.stil}><VeldFout id="systeem-veldfout-rail-stil" tone="rail" tekst={T.tekst} /></Groep>
+          <Groep titel={T.alert}><VeldFout id="systeem-veldfout-rail-alert" tone="rail" tekst={T.tekst} alert /></Groep>
+        </Rij>
+      </Sectie>
+    </>
   );
 }
 
