@@ -43,6 +43,12 @@ test("uitgeschakeld: opacity-50 en geen hover", () => {
   heeft(toetsKlassen({ soort: "stap" }), "disabled:cursor-not-allowed", "disabled:opacity-50");
 });
 
+test("stap heeft geen rail-klassen en hoort bij de lichte toets", () => {
+  const k = toetsKlassen({ soort: "stap" });
+  mist(k, "bg-surface-rail", "text-white", "border-rail-border", "hover:bg-rail-key-hover");
+  heeft(k, "hover:border-accent");
+});
+
 test("h-14 komt alleen in de rail-keypadtoets voor, met uitleg in de bron", () => {
   assert.ok(!toetsKlassen({ soort: "keypad" }).split(/\s+/).includes("h-14"));
   assert.ok(!toetsKlassen({ soort: "stap" }).split(/\s+/).includes("h-14"));

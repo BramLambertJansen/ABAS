@@ -5,6 +5,9 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 
 import { knopKlassen } from "../src/components/knopKlassen.ts";
+import { chipKlassen } from "../src/components/chipKlassen.ts";
+import { segmentKlassen } from "../src/components/segmentKlassen.ts";
+import { toetsKlassen } from "../src/components/toetsKlassen.ts";
 import { methodLabel } from "../src/lib/betaalmethode.ts";
 
 /**
@@ -238,6 +241,16 @@ test("Knop-paren: elk paar uit de spec haalt AA (4,5:1)", () => {
     ["tekst rail hover: rail-light op rail", "rail-light", "rail"],
     ["tekst licht: muted op canvas", "muted", "canvas"],
     ["tekst licht hover: ink op canvas", "ink", "canvas"],
+    // PR 2 (Chip, Segment, Toets)
+    ["chip geselecteerd (ook teller): rail op accent", "rail", "accent"],
+    ["chip geselecteerd hover (ook teller): rail op accent-hover", "rail", "accent-hover"],
+    ["chip in rust: ink op surface", "ink", "surface"],
+    ["segment geselecteerd: ink op surface", "ink", "surface"],
+    ["segment in rust: muted-strong op track", "muted-strong", "track"],
+    ["teller in rust: muted op surface", "muted", "surface"],
+    ["keypad licht en stap: ink op surface", "ink", "surface"],
+    ["keypad rail: white op surface-rail", "white", "surface-rail"],
+    ["keypad rail hover: white op rail-key-hover", "white", "rail-key-hover"],
   ];
   for (const [naam, tekst, bg] of paren) {
     const t = palette[tekst];
@@ -245,6 +258,25 @@ test("Knop-paren: elk paar uit de spec haalt AA (4,5:1)", () => {
     assert.ok(t && b, `${naam}: token ontbreekt in @theme`);
     const c = contrast(t, b);
     assert.ok(c >= AA, `${naam} = ${c.toFixed(2)}:1`);
+  }
+});
+
+test("PR 2: de literal-scan loopt over chipKlassen, segmentKlassen en toetsKlassen en is groen", () => {
+  const bestanden = ["chipKlassen.ts", "segmentKlassen.ts", "toetsKlassen.ts"].map((f) => join("src/components", f));
+  const gescand = new Set(walk("src"));
+  for (const f of bestanden) {
+    assert.ok(gescand.has(f), `${f} zit niet in de scan van src/`);
+    const paren = literalen(readFileSync(f, "utf8")).filter((l) => /\b(bg|text)-/.test(l));
+    assert.ok(paren.length > 0, `${f}: geen kleurliteral gevonden`);
+    for (const lit of paren) assert.deepEqual(slechteParen(lit.split(/\s+/).filter(Boolean)), [], `${f}: ${lit}`);
+  }
+  // De klassen die het component echt samenstelt, per staat doorgerekend.
+  for (const geselecteerd of [false, true]) for (const maat of ["normaal", "groot"] as const) {
+    assert.deepEqual(slechteParen(chipKlassen({ geselecteerd, maat }).split(" ")), []);
+    assert.deepEqual(slechteParen(segmentKlassen({ geselecteerd, maat }).split(" ")), []);
+  }
+  for (const k of [toetsKlassen({ soort: "keypad" }), toetsKlassen({ soort: "keypad", tone: "rail" }), toetsKlassen({ soort: "stap" })]) {
+    assert.deepEqual(slechteParen(k.split(" ")), [], k);
   }
 });
 
