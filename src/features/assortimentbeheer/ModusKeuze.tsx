@@ -1,5 +1,6 @@
 "use client";
 
+import { Knop } from "@/components/Knop";
 import { useRef } from "react";
 import { StartScherm } from "@/components/StartScherm";
 import { AuroraMerk } from "@/components/AuroraMerk";
@@ -84,16 +85,15 @@ export function ModusKeuze({
             {TWEESTAP_TEKSTEN.modusKeuzeTitel}
           </h2>
           <CodeInvoer tone="rail" onVerifieer={onVerifieerCode} />
-          <button
-            type="button"
+          <Knop
+            variant="tekst" tone="rail"
             onClick={() => {
               markeerWissel();
               onAnnuleerCode?.();
             }}
-            className="text-xs font-semibold text-rail-muted hover:text-rail-light"
           >
             {BEHEERDER_INGREEP.annuleren}
-          </button>
+          </Knop>
         </div>
       ) : (
       <div className="flex w-full max-w-[500px] flex-col items-center gap-5">
@@ -152,13 +152,12 @@ export function ModusKeuze({
       </div>
       )}
 
-      <button
-        type="button"
+      <Knop
+        variant="tekst" tone="rail"
         onClick={onSignOut}
-        className="text-xs font-semibold text-rail-muted hover:text-rail-light"
       >
         Uitloggen
-      </button>
+      </Knop>
     </StartScherm>
   );
 }

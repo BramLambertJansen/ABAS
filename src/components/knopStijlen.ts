@@ -1,27 +1,9 @@
 /**
- * Gedeelde kleur- en toestandsklassen voor knoppen (T12, #132). Platte
- * stringconstanten, geen component: de knoppen verschillen in maat, vorm en
- * schaduw (`flex-1`, `h-control`, `h-control-lg`), en dat blijft bij de aanroeper.
- * Hier staat alleen wat het contrast en de toestanden bewaakt. Tailwind scant
- * `./src/**\/*.{ts,tsx}`, dus klassen in dit bestand worden gebouwd.
- *
- * Woordenlijst voor knop- en dialoogteksten (vast):
- * - Sluiten: de dialoog verlaten zonder opslaan. Onder het bestaande T06-
- *   contract gooit een expliciete knop gewijzigde invoer direct weg;
- *   Escape/backdrop vraagt eerst bevestiging. Pending blokkeert beide.
- * - Annuleren: een lopende handeling of invoer afbreken (uitgesproken
- *   werkwoord; niet "Annuleer").
- * - Klaar: alleen een bewerkscherm waarvan de wijzigingen al live zijn
- *   opgeslagen afronden (nu alleen `BezettingOverlay`).
- * - Terug: alleen navigeren, of de "weggooien?"-vraag verlaten
- *   (`WEGGOOIEN_TERUG_KNOP`, mandje).
- * - Contant: de betaalmethode in de UI; "cash" komt nooit op het scherm
- *   (`methodLabel`).
- * - Uitnodiging: nooit "Invite" in UI-tekst.
- *
- * Controlmaten (nieuw werk kiest uit deze twee): knop/invoer `h-control` (44px)
- * met `rounded-control`; grote primaire dialoogknop `KNOP_DIALOOG_MAAT`
- * (`h-control-lg`, 52px).
+ * VERVALT (docs/features/knop.md, PR 1): niets in src/ importeert dit bestand
+ * meer, de knoppen komen uit `Knop` (src/components/Knop.tsx). Het bestand
+ * staat er alleen nog omdat `test/accentContrast.test.ts` het importeert;
+ * verwijder het samen met die import. De woordenlijst voor knopteksten staat
+ * nu in src/components/README.md → "Sluiten en taal".
  */
 
 /**
@@ -41,6 +23,3 @@ export const KNOP_ACCENT_DONKER =
 /** Witte knop met rand (Sluiten, Annuleren). */
 export const KNOP_RAND =
   "border border-border bg-surface text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50";
-
-/** De tweede (grote) maat: primaire dialoogknop. */
-export const KNOP_DIALOOG_MAAT = "h-control-lg rounded-card";

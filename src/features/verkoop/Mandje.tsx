@@ -1,5 +1,6 @@
 "use client";
 
+import { Knop } from "@/components/Knop";
 import { useEffect, useId, useRef, useState } from "react";
 import { formatCents } from "@/lib/money";
 import { InitialsAvatar } from "@/components/InitialsAvatar";
@@ -14,7 +15,6 @@ import {
   placeOrderErrorMessage,
 } from "./messages";
 import { lidwisselWistMandje } from "./cart";
-import { KNOP_ACCENT_WIT } from "@/components/knopStijlen";
 
 /**
  * Rechterkant/mandje-paneel, permanent zichtbaar: ledenkeuze, mandje-
@@ -182,21 +182,19 @@ export function Mandje({
             </div>
           </div>
           <div className="flex gap-2">
-            <button
-              type="button"
+            <Knop
+              className="flex-1"
               disabled={topupDisabled}
               onClick={onOpenTopup}
-              className="flex h-control flex-1 items-center justify-center rounded-control border border-border text-metadata font-bold text-ink transition-colors hover:border-accent hover:text-accent-active disabled:cursor-not-allowed disabled:opacity-50"
             >
               saldo opwaarderen
-            </button>
-            <button
-              type="button"
+            </Knop>
+            <Knop
+              className="flex-none"
               onClick={() => { focusOpZoeker.current = true; onClearMember(); }}
-              className="flex h-control flex-none items-center justify-center rounded-control border border-border px-4 text-metadata font-bold text-muted transition-colors hover:border-ink hover:text-ink"
             >
               wissel
-            </button>
+            </Knop>
           </div>
         </div>
       ) : (
@@ -227,6 +225,7 @@ export function Mandje({
                 {lidwisselBevestigVraag(bevestig.name)}
               </p>
               <div className="flex gap-2">
+                {/* Eigen markup: knop in het waarschuwingsblok (warning-kleuren), geen Knop-rol. Zie docs/features/knop.md, buiten scope PR 1. */}
                 <button
                   type="button"
                   ref={terugRef}
@@ -239,6 +238,7 @@ export function Mandje({
                 >
                   Terug
                 </button>
+                {/* Eigen markup: knop in het waarschuwingsblok (warning-kleuren), geen Knop-rol. Zie docs/features/knop.md, buiten scope PR 1. */}
                 <button
                   type="button"
                   onClick={bevestigWissen}
@@ -331,14 +331,13 @@ export function Mandje({
               <span className="col-start-2 row-start-2 min-w-[58px] text-right text-sm font-extrabold text-ink">
                 {formatCents(line.lineTotalCents)}
               </span>
-              <button
-                type="button"
+              <Knop
+                variant="tekst" icoon className="col-start-2 row-start-1 justify-self-end self-start"
                 onClick={() => onRemove(line.productId)}
                 aria-label={`Verwijder ${line.name} uit het mandje`}
-                className="col-start-2 row-start-1 flex h-[30px] w-[30px] items-center justify-center justify-self-end self-start rounded-sm text-[15px] font-bold text-muted hover:bg-canvas hover:text-danger"
               >
                 ×
-              </button>
+              </Knop>
             </li>
           ))}
         </ul>
@@ -369,6 +368,7 @@ export function Mandje({
           role="alert"
         >
           <span className="flex-1">{insufficientBalanceMessage(shortfallCents)}</span>
+          {/* Eigen markup: knop in het waarschuwingsblok (warning-kleuren), geen Knop-rol. Zie docs/features/knop.md, buiten scope PR 1. */}
           <button
             type="button"
             disabled={topupDisabled}
@@ -386,11 +386,10 @@ export function Mandje({
         </p>
       )}
 
-      <button
-        type="button"
+      <Knop
+        variant="primair" maat="groot" className="flex-none gap-2.5"
         disabled={checkoutDisabled}
         onClick={onOpenCheckout}
-        className={`flex h-control-lg flex-none items-center justify-center gap-2.5 rounded-card text-[15.5px] font-extrabold tracking-[-0.01em] shadow-checkout disabled:shadow-none ${KNOP_ACCENT_WIT}`}
       >
         <span>
           Tik afrekenen
@@ -399,7 +398,7 @@ export function Mandje({
         <span aria-hidden="true" className="text-section-title">
           →
         </span>
-      </button>
+      </Knop>
     </ZijPaneel>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { KNOP_RAND, KNOP_ACCENT_DONKER } from "@/components/knopStijlen";
+import { Knop } from "@/components/Knop";
 
 import { useId, useRef, useState } from "react";
 import { Overlay, OverlaySluitKnop } from "@/components/Overlay";
@@ -297,28 +297,25 @@ export function ProductBeherenOverlay({
           aria-describedby={imageHintId}
           className="flex flex-wrap items-center gap-2"
         >
-          <button
+          <Knop
             ref={chooseButtonRef}
-            type="button"
             disabled={busy}
             onClick={chooseImage}
-            className="flex h-control items-center justify-center rounded-control border border-border bg-surface px-4 text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
           >
             {imageMutation.pendingAction === "upload"
               ? UPLOAD_BEZIG_TEKST
               : product.imageUrl
                 ? "Vervangen"
                 : "Afbeelding kiezen"}
-          </button>
+          </Knop>
           {product.imageUrl && (
-            <button
-              type="button"
+            <Knop
+              variant="gevaar"
               disabled={busy}
               onClick={removeImage}
-              className="flex h-control items-center justify-center rounded-control border border-border bg-surface px-4 text-sm font-bold text-danger transition-colors hover:border-danger disabled:cursor-not-allowed disabled:opacity-50"
             >
               {imageMutation.pendingAction === "remove" ? OPSLAAN_BEZIG_TEKST : "Verwijderen"}
-            </button>
+            </Knop>
           )}
         </div>
       </OpslaanSectie>
@@ -364,14 +361,13 @@ export function ProductBeherenOverlay({
                 priceMoment.bijWijzig();
                 if (priceMutation.errorCode) priceMutation.reset();
               }} />
-          <button
-            type="button"
+          <Knop
+            variant="primair"
             disabled={!canSavePrice}
             onClick={savePrice}
-            className={`flex h-control items-center justify-center rounded-control px-4 text-sm font-bold ${KNOP_ACCENT_DONKER}`}
           >
             {priceBusy ? OPSLAAN_BEZIG_TEKST : "Opslaan"}
-          </button>
+          </Knop>
         </div>
         <VeldFout id={`${priceId}-fout`} tekst={priceMelding} alert={priceMoment.pogingAlert} />
       </OpslaanSectie>
@@ -413,8 +409,8 @@ export function ProductBeherenOverlay({
       </OpslaanSectie>
 
       <OverlaySluitKnop
+        className="w-full"
         disabled={closeBlocked}
-        className={`flex h-control w-full items-center justify-center rounded-control text-sm font-bold ${KNOP_RAND}`}
       >
         Sluiten
       </OverlaySluitKnop>

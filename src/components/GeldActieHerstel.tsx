@@ -5,7 +5,7 @@ import { usePendingMoneyRequests, type MoneyResolution, type RecoveryAction } fr
 import { useMembers } from "@/hooks/queries/useMembers";
 import type { MoneyOperation } from "@/lib/moneyRequest";
 import { formatCents } from "@/lib/money";
-import { KNOP_RAND } from "./knopStijlen";
+import { Knop } from "./Knop";
 
 const NAMEN = { place_order: "bestelling", top_up: "opwaardering", create_member: "nieuw lid" };
 
@@ -41,11 +41,11 @@ export function GeldActieHerstelInhoud({ herstel, operation, context, onResolved
           {context ? <p className="wrap-break-word text-sm font-bold">{context}</p> : <GeldActieContext intent={intent} />}
           <div className="flex flex-wrap gap-2">
             {([['check', 'Resultaat controleren'], ['complete', `Eerdere ${NAMEN[intent.operation]} veilig afronden`], ['cancel', `Eerdere ${NAMEN[intent.operation]} definitief annuleren`]] as const).map(([action, label]) => (
-              <button key={action} type="button" aria-disabled={herstel.busy}
-                className={`min-h-control rounded-control px-4 py-2 text-sm font-bold aria-disabled:cursor-not-allowed aria-disabled:opacity-50 ${KNOP_RAND}`}
+              <Knop
+                key={action} aria-disabled={herstel.busy}
                 onClick={() => { if (!herstel.busy) void kies(intent.operation, action); }}>
                 {label}
-              </button>
+              </Knop>
             ))}
           </div>
         </div>
@@ -55,7 +55,7 @@ export function GeldActieHerstelInhoud({ herstel, operation, context, onResolved
       </p>
       {herstel.error && <p role="alert" className="text-sm">{herstel.error}</p>}
       {herstel.message && !pending.length && !onResolved && (
-        <button type="button" onClick={() => window.location.reload()} className={`min-h-control rounded-control px-4 text-sm font-bold ${KNOP_RAND}`}>Gegevens verversen</button>
+        <Knop onClick={() => window.location.reload()}>Gegevens verversen</Knop>
       )}
     </div>
   );

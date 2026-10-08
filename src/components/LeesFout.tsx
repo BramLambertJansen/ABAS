@@ -1,14 +1,9 @@
 import { VERVERS_TEKSTEN } from "@/lib/verversen";
+import { Knop } from "./Knop";
 
 const TONES = {
-  light: {
-    text: "text-danger",
-    knop: "border-border bg-surface text-ink hover:border-ink focus-visible:outline-accent",
-  },
-  rail: {
-    text: "text-rail-error",
-    knop: "border-rail-border bg-surface-rail text-rail-light hover:border-accent focus-visible:outline-accent",
-  },
+  light: { text: "text-danger", knop: "licht" },
+  rail: { text: "text-rail-error", knop: "rail" },
 } as const;
 
 /**
@@ -44,16 +39,15 @@ export function LeesFout({
       <p className={`text-sm font-bold ${t.text}`} role="alert">
         {message}
       </p>
-      <button
-        type="button"
+      <Knop
+        tone={t.knop}
         aria-disabled={bezig}
         onClick={() => {
           if (!bezig) onRetry();
         }}
-        className={`flex h-control items-center rounded-control border px-4 text-sm font-bold transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-60 ${t.knop}`}
       >
         {bezig ? VERVERS_TEKSTEN.opnieuwProberenBezig : VERVERS_TEKSTEN.opnieuwProberen}
-      </button>
+      </Knop>
     </div>
   );
 }

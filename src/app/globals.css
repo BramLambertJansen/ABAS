@@ -95,8 +95,9 @@
    * Donkere tekst (`text-rail`) staat op `accent` en `hover` (5.19 en 6.03:1;
    * `hover` is bewust lichter). `accent` (#ee5a24) haalt met wit maar 3.42:1
    * en `hover` 2.95:1: wit nooit op die twee, ook niet als hoverkleur. De
-   * gedeelde klassen staan in src/components/knopStijlen.ts
-   * (KNOP_ACCENT_WIT, KNOP_ACCENT_DONKER). test/accentContrast.test.ts rekent
+   * knopklassen staan in src/components/Knop.tsx (primair is
+   * donker op accent; wit op accent-active blijft toegestaan als paar).
+   * test/accentContrast.test.ts rekent
    * rust-, hover-, active- en focus-paren door over alle klasse-literals in
    * src/. Het oude #d94d1a-testje blijft als negatieve bewaking.
    */

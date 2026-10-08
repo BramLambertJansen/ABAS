@@ -1,5 +1,6 @@
 "use client";
 
+import { Knop } from "@/components/Knop";
 import { PinToetsenbord, PIN_LENGTH } from "@/components/PinToetsenbord";
 import { StaffHeader } from "./StaffHeader";
 
@@ -49,14 +50,13 @@ export function PinPad({
         onBackspace={onBackspace}
       />
 
-      <button
-        type="button"
+      <Knop
+        variant="tekst" tone="rail"
         disabled={pending}
         onClick={onBack}
-        className="text-xs font-semibold text-rail-muted hover:text-rail-light disabled:opacity-50"
       >
         {backLabel}
-      </button>
+      </Knop>
     </div>
   );
 }

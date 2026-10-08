@@ -80,8 +80,7 @@ export function WachtwoordWijzigenSheet({
         <div className="flex flex-col gap-[14px]">
           <p className="text-sm font-medium leading-relaxed text-muted">{TWEESTAP_TEKSTEN.wachtwoordCodeStap}</p>
           <CodeInvoer tone="light" onVerifieer={verifieer} />
-          <OverlaySluitKnop
-            className="flex h-control-lg w-full items-center justify-center rounded-card border border-border bg-surface text-sm font-bold text-ink transition-colors hover:border-ink"
+          <OverlaySluitKnop maat="groot" className="w-full"
           >
             Annuleren
           </OverlaySluitKnop>

@@ -3,6 +3,7 @@ import {
   bijgewerktLabel,
   verversMisluktTekst,
 } from "@/lib/verversen";
+import { Knop } from "./Knop";
 
 /**
  * "Bijgewerkt om 14:32" plus de knop "Verversen" (docs/features/
@@ -40,16 +41,15 @@ export function VerversStatus({
       <p role="status" className={`text-xs font-semibold ${mislukt && !bezig ? "text-danger" : "text-muted"}`}>
         {regel}
       </p>
-      <button
-        type="button"
+      <Knop
         aria-disabled={bezig}
         onClick={() => {
           if (!bezig) onVerversen();
         }}
-        className="flex min-h-control max-w-full flex-none items-center rounded-control border border-border bg-surface px-4 text-xs font-extrabold text-ink transition-colors hover:border-ink focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent aria-disabled:cursor-not-allowed aria-disabled:opacity-60"
+        className="max-w-full flex-none"
       >
         {VERVERS_TEKSTEN.verversen}
-      </button>
+      </Knop>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { Knop } from "@/components/Knop";
 import { useId, useState } from "react";
 import { TabList, TabPanel, type TabItem } from "@/components/Tabs";
 import { ProductenLijst } from "./ProductenLijst";
@@ -103,10 +104,9 @@ export function BeheerTabs({
           <span className="whitespace-nowrap rounded-full bg-ink px-[11px] py-1.5 text-[9.5px] font-extrabold tracking-[0.11em] text-white">
             BEHEER
           </span>
-          <button
-            type="button"
+          <Knop
+            className="flex-none gap-2 whitespace-nowrap"
             onClick={onSignOut}
-            className="flex h-control flex-none items-center gap-[7px] whitespace-nowrap rounded-control border border-border px-3.5 text-xs font-extrabold text-muted transition-colors hover:border-accent hover:text-accent-active"
           >
             <svg
               width="14"
@@ -139,7 +139,7 @@ export function BeheerTabs({
               />
             </svg>
             Uitloggen
-          </button>
+          </Knop>
         </div>
       </header>
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Knop } from "./Knop";
 import { PinToetsenbord } from "./PinToetsenbord";
 import { CODE_LENGTH, codeFoutTekst, type CodeFout } from "@/lib/mfa";
 
@@ -81,18 +82,18 @@ export function CodeInvoer({
         statusLabel="Code"
       />
       {submitLabel && (
-        <button
-          type="button"
+        <Knop
+          maat="groot"
           aria-disabled={!klaar}
           onClick={() => {
             if (klaar) void verstuur(code);
           }}
-          className={`flex h-control-lg w-full items-center justify-center text-sm font-bold text-rail transition-colors hover:bg-accent-hover aria-disabled:cursor-not-allowed aria-disabled:opacity-50 ${
-            tone === "rail" ? "rounded-card bg-accent" : "rounded-card bg-accent"
-          }`}
+          variant="primair"
+          tone={tone === "rail" ? "rail" : "licht"}
+          className="w-full"
         >
           {submitLabel}
-        </button>
+        </Knop>
       )}
     </>
   );

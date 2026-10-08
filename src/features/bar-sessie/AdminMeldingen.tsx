@@ -1,5 +1,6 @@
 "use client";
 
+import { Knop } from "@/components/Knop";
 import { useState } from "react";
 import type { AdminMelding } from "@/hooks/queries/useMijnDienst";
 import { formatTime } from "@/lib/date";
@@ -7,7 +8,6 @@ import { DienstAfsluitenOverlay } from "@/features/dienst-afsluiten/DienstAfslui
 import { useBarSessie } from "./BarSessieContext";
 import { OvernemenOverlay } from "./OvernemenOverlay";
 import { ADMIN_MELDING, adminMeldingReden, adminMeldingUitleg } from "./teksten";
-import { KNOP_ACCENT_WIT, KNOP_RAND } from "@/components/knopStijlen";
 
 /**
  * De melding "Dienst zonder apparaat" voor beheerders, in de app
@@ -57,21 +57,19 @@ export function AdminMeldingen({
           </p>
           <div className="flex items-center gap-2">
             {modus === "bar" && (
-              <button
-                type="button"
+              <Knop
+                variant="primair" className="flex-1"
                 onClick={() => setOvernemen(melding)}
-                className={`flex h-control flex-1 items-center justify-center rounded-control text-[13px] font-bold ${KNOP_ACCENT_WIT}`}
               >
                 {ADMIN_MELDING.overnemen}
-              </button>
+              </Knop>
             )}
-            <button
-              type="button"
+            <Knop
+              className="flex-1"
               onClick={() => setAfsluiten(melding)}
-              className={`flex h-control flex-1 items-center justify-center rounded-control text-[13px] font-bold ${KNOP_RAND}`}
             >
               {ADMIN_MELDING.afsluiten}
-            </button>
+            </Knop>
           </div>
           {modus === "beheer" && (
             <p className="text-xs font-semibold text-muted">{ADMIN_MELDING.hintInBeheer}</p>

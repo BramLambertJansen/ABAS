@@ -1,5 +1,6 @@
 "use client";
 
+import { Knop } from "@/components/Knop";
 import { useId, useRef, useState } from "react";
 import { VeldFout } from "@/components/TekstVeld";
 import { useVeldMoment } from "@/hooks/useVeldMoment";
@@ -23,7 +24,6 @@ import {
   topUpConfirmQuestion,
   topUpErrorMessage,
 } from "./messages";
-import { KNOP_ACCENT_WIT } from "@/components/knopStijlen";
 
 /**
  * Opwaardeer-overlay (modal, `src/components/Overlay.tsx` — de derde
@@ -295,19 +295,18 @@ export function OpwaarderenOverlay({
             aria-invalid={veldMelding ? true : undefined}
             className="h-control-lg min-w-0 flex-1 rounded-control border border-border bg-surface px-3.5 text-detail font-semibold text-ink focus-visible:outline-hidden placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
           />
-          <button
-            type="button"
+          <Knop
+            variant="primair" maat="groot" className="flex-none"
             ref={knopRef}
             disabled={bookDisabled}
             onClick={handleBook}
-            className={`flex h-control-lg flex-none items-center justify-center rounded-control px-[18px] text-detail font-extrabold ${KNOP_ACCENT_WIT}`}
           >
             {pending
               ? "bezig…"
               : confirming && amountCents !== null
                 ? `ja, ${formatCents(amountCents)} boeken`
                 : "boeken"}
-          </button>
+          </Knop>
         </div>
         <VeldFout
           id={amountLimitId}
@@ -333,18 +332,17 @@ export function OpwaarderenOverlay({
         </p>
       )}
 
-      <button
-        type="button"
+      <Knop
+        variant="tekst" className="-mt-1 self-center"
         disabled={closeBlocked}
         // In de bevestigingsstap is dit "terug" naar het bedrag, niet
         // "annuleren" van de hele overlay — anders is een verkeerd
         // ingetikt bedrag corrigeren alleen mogelijk door opnieuw te
         // beginnen, precies op het moment dat de operator al twijfelt.
         onClick={confirming ? () => setConfirming(false) : onClose}
-        className="-mt-1 self-center px-3 py-1 text-[13px] font-bold text-muted transition-colors hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
       >
         {confirming ? "terug" : "annuleren"}
-      </button>
+      </Knop>
     </Overlay>
   );
 }

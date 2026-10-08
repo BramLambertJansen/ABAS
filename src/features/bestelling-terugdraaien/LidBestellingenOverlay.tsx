@@ -1,5 +1,6 @@
 "use client";
 
+import { Knop } from "@/components/Knop";
 import { useEffect, useId, useRef, useState } from "react";
 import { LeesFout } from "@/components/LeesFout";
 import { useLeesHerstel } from "@/hooks/useLeesHerstel";
@@ -168,14 +169,13 @@ export function LidBestellingenOverlay({
         )}
       </div>
 
-      <button
-        type="button"
+      <Knop
+        className="w-full"
         disabled={pending}
         onClick={onClose}
-        className="flex h-control w-full items-center justify-center rounded-control border border-border bg-surface text-sm font-bold text-ink transition-colors hover:border-ink disabled:opacity-50"
       >
         Sluiten
-      </button>
+      </Knop>
     </Overlay>
   );
 }
@@ -239,22 +239,20 @@ function OrderRow({
               ? "Vul eerst een reden in."
               : `Terugdraaien zet ${formatCents(order.totalCents)} terug op het saldo van ${memberName}.`}
           </span>
-          <button
-            type="button"
+          <Knop
+            className="flex-none"
             onClick={onCancel}
             disabled={pending}
-            className="flex h-control flex-none items-center rounded-control border border-border bg-surface px-3.5 text-metadata font-extrabold text-ink transition-colors hover:border-ink disabled:opacity-50"
           >
             annuleren
-          </button>
-          <button
-            type="button"
+          </Knop>
+          <Knop
+            variant="gevaar" className="flex-none"
             onClick={onConfirm}
             disabled={pending || reasonMissing}
-            className="flex h-control flex-none items-center rounded-control bg-danger px-4 text-metadata font-extrabold text-white transition-colors hover:bg-ink disabled:cursor-not-allowed disabled:bg-track disabled:text-muted"
           >
             {pending ? "bezig…" : "terugdraaien"}
-          </button>
+          </Knop>
         </div>
       )}
     </li>

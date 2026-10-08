@@ -1,6 +1,6 @@
 "use client";
 
-import { KNOP_ACCENT_DONKER } from "@/components/knopStijlen";
+import { Knop } from "@/components/Knop";
 
 import { TekstVeld } from "@/components/TekstVeld";
 import { useEffect, useId, useRef, useState, type FormEvent, type RefObject } from "react";
@@ -178,13 +178,12 @@ export function PortalLogin({
               een nieuw wachtwoord in te stellen.
             </p>
             <p className="text-xs font-medium text-muted">De link is 1 uur geldig.</p>
-            <button
-              type="button"
+            <Knop
+              variant="tekst"
               onClick={backToLogin}
-              className="text-xs font-semibold text-muted underline hover:text-ink"
             >
               ← terug naar inloggen
-            </button>
+            </Knop>
           </div>
         ) : (
           <form
@@ -214,21 +213,20 @@ export function PortalLogin({
                 value={email}
                 onChange={(event) => setEmail(event.target.value)} />
 
-            <button
+            <Knop
+              variant="primair" maat="groot" className="w-full"
               type="submit"
               aria-disabled={resetRequest.status === "pending"}
-              className={`flex h-control-lg w-full items-center justify-center rounded-card text-sm font-bold ${KNOP_ACCENT_DONKER}`}
             >
               Stuur herstellink
-            </button>
+            </Knop>
 
-            <button
-              type="button"
+            <Knop
+              variant="tekst"
               onClick={backToLogin}
-              className="text-center text-xs font-semibold text-muted hover:text-ink"
             >
               ← terug naar inloggen
-            </button>
+            </Knop>
           </form>
         )
       ) : magicLinkSent ? (
@@ -245,13 +243,12 @@ export function PortalLogin({
           <p className="text-xs font-medium text-muted">
             Open de link in de mail om in te loggen — dat mag ook op een ander apparaat.
           </p>
-          <button
-            type="button"
+          <Knop
+            variant="tekst"
             onClick={otherLoginMethod}
-            className="text-xs font-semibold text-muted underline hover:text-ink"
           >
             Andere inlogmethode
-          </button>
+          </Knop>
         </div>
       ) : (
         <form
@@ -325,25 +322,24 @@ export function PortalLogin({
                 required
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}>
-              <button
-                type="button"
+              <Knop
+                variant="tekst" className="self-end"
                 onClick={openForgot}
-                className="self-end text-xs font-semibold text-muted underline hover:text-ink"
               >
                 Wachtwoord vergeten?
-              </button>
+              </Knop>
             </TekstVeld>
           )}
 
           {/* aria-disabled, niet disabled: een disabled knop verliest de
               focus (#77). onSubmit blokkeert dubbel versturen zelf. */}
-          <button
+          <Knop
+            variant="primair" maat="groot" className="w-full"
             type="submit"
             aria-disabled={loginPending}
-            className={`flex h-control-lg w-full items-center justify-center rounded-card text-sm font-bold ${KNOP_ACCENT_DONKER}`}
           >
             {method === "magic_link" ? "Stuur mij een inloglink" : "Inloggen"}
-          </button>
+          </Knop>
         </form>
       )}
     </main>

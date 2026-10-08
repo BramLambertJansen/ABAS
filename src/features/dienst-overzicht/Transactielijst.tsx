@@ -1,5 +1,6 @@
 "use client";
 
+import { Knop } from "@/components/Knop";
 import { useEffect, useId, useRef, useState } from "react";
 import type { LedgerEntry } from "@/hooks/queries/useShiftLedger";
 import { InitialsAvatar } from "@/components/InitialsAvatar";
@@ -220,16 +221,14 @@ function LedgerRow({
         </span>
       </div>
       {isSale && !reversed ? (
-        <button
-          type="button"
+        <Knop variant="tekst" icoon
           onClick={() => onReverse(entry)}
           aria-label={`Bestelling terugdraaien: ${entry.memberName ?? "losse verkoop"}, ${clockLabel(
             entry.createdAt
           )}, ${formatCents(entry.amountCents)}`}
-          className="flex h-control w-11 flex-none items-center justify-center rounded-control text-base font-extrabold text-muted transition-colors hover:bg-danger-bg hover:text-danger"
         >
           <span aria-hidden="true">⤺</span>
-        </button>
+        </Knop>
       ) : (
         <span aria-hidden="true" className="w-11 flex-none" />
       )}
@@ -288,6 +287,7 @@ function PersonFilter({
 
   return (
     <div ref={containerRef} className="relative flex-none">
+      {/* Eigen markup: disclosure-trigger met naam en teller, geen Knop-rol. Zie docs/features/knop.md, buiten scope PR 1. */}
       <button
         ref={triggerRef}
         type="button"

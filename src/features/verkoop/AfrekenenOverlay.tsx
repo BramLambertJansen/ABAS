@@ -1,5 +1,6 @@
 "use client";
 
+import { Knop } from "@/components/Knop";
 import { useRef, useState } from "react";
 import { useHerstelFocus } from "@/hooks/useHerstelFocus";
 import { Overlay } from "@/components/Overlay";
@@ -13,7 +14,6 @@ import type { MemberOption } from "@/hooks/queries/useMembers";
 import type { ShiftMember } from "@/hooks/queries/useShiftMembers";
 import type { CartDisplayLine } from "./types";
 import { insufficientBalanceMessage, placeOrderErrorMessage } from "./messages";
-import { KNOP_ACCENT_WIT, KNOP_RAND, KNOP_DIALOOG_MAAT } from "@/components/knopStijlen";
 
 /**
  * Afrekenbevestiging (modal, `src/components/Overlay.tsx` — de tweede
@@ -205,23 +205,21 @@ export function AfrekenenOverlay({
       )}
 
       <div className="mt-0.5 flex gap-2.5">
-        <button
-          type="button"
+        <Knop
+          maat="groot" className="flex-1"
           disabled={closeBlocked}
           onClick={onClose}
-          className={`flex ${KNOP_DIALOOG_MAAT} flex-1 items-center justify-center text-sm font-bold ${KNOP_RAND}`}
         >
           annuleren
-        </button>
-        <button
-          type="button"
+        </Knop>
+        <Knop
+          variant="primair" maat="groot" className="flex-1"
           ref={knopRef}
           disabled={confirmDisabled}
           onClick={handleConfirm}
-          className={`flex ${KNOP_DIALOOG_MAAT} flex-1 items-center justify-center text-sm font-bold ${KNOP_ACCENT_WIT}`}
         >
           {pending ? "bezig…" : "ja, afrekenen"}
-        </button>
+        </Knop>
       </div>
     </Overlay>
   );

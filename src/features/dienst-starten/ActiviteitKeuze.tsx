@@ -1,5 +1,6 @@
 "use client";
 
+import { Knop } from "@/components/Knop";
 import { useRef } from "react";
 import { LeesFout } from "@/components/LeesFout";
 import { Select } from "@/components/Select";
@@ -109,14 +110,13 @@ export function ActiviteitKeuze({
       </p>
 
       {onBack && (
-        <button
-          type="button"
+        <Knop
+          variant="tekst" tone="rail"
           disabled={pending}
           onClick={onBack}
-          className="text-xs font-semibold text-rail-muted hover:text-rail-light disabled:opacity-50"
         >
           ← andere bardienst
-        </button>
+        </Knop>
       )}
     </div>
   );

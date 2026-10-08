@@ -5,7 +5,7 @@ import { useShell } from "@/lib/shell/ShellProvider";
 import { useRegisterOverlay } from "./OverlayPresence";
 import { acquireOverlay } from "./overlayShield";
 import { WEGGOOIEN_KNOP, WEGGOOIEN_TERUG_KNOP, WEGGOOIEN_VRAAG } from "@/lib/opslaan";
-import { KNOP_RAND } from "@/components/knopStijlen";
+import { Knop, type KnopMaat, type KnopTone, type KnopVariant } from "@/components/Knop";
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -15,10 +15,19 @@ export const DEFAULT_CLOSE_BLOCKED_MESSAGE = "Even wachten, de actie wordt nog v
 const OverlayCloseContext = createContext<(() => void) | null>(null);
 
 /** Explicit close actions share the same pending/discard guard as Escape/backdrop. */
-export function OverlaySluitKnop(props: Omit<ButtonHTMLAttributes<HTMLButtonElement>, "onClick" | "type">) {
+export function OverlaySluitKnop({
+  variant = "secundair",
+  ...props
+}: Omit<ButtonHTMLAttributes<HTMLButtonElement>, "onClick" | "type" | "className"> & {
+  variant?: KnopVariant;
+  tone?: KnopTone;
+  maat?: KnopMaat;
+  /** Alleen layout, zoals bij `Knop`. */
+  className?: string;
+}) {
   const requestClose = useContext(OverlayCloseContext);
   if (!requestClose) throw new Error("OverlaySluitKnop moet binnen Overlay staan.");
-  return <button {...props} type="button" onClick={requestClose} />;
+  return <Knop {...props} variant={variant} onClick={requestClose} />;
 }
 
 /** Elementen in de dialoog die nu echt met Tab bereikbaar zijn: zichtbaar,
@@ -358,14 +367,9 @@ export function Overlay({
     </p>
   );
   const sluitKnop = (
-    <button
-      type="button"
-      disabled={closeBlocked}
-      onClick={explicitCloseRef.current}
-      className={`flex h-control flex-none items-center justify-center rounded-control px-4 text-sm font-bold ${KNOP_RAND}`}
-    >
+    <Knop disabled={closeBlocked} onClick={explicitCloseRef.current} className="flex-none">
       Sluiten
-    </button>
+    </Knop>
   );
 
   const kop = isDetail ? (
@@ -396,22 +400,22 @@ export function Overlay({
             {WEGGOOIEN_VRAAG}
           </p>
           <div className="flex gap-2.5">
-            <button
-              type="button"
+            <Knop
+              variant="gevaar"
               disabled={closeBlocked}
               onClick={() => { if (!closeBlockedRef.current) onCloseRef.current(); }}
-              className="flex h-control flex-1 items-center justify-center rounded-control border border-danger bg-surface text-sm font-bold text-danger transition-colors hover:bg-canvas"
+              className="flex-1"
             >
               {WEGGOOIEN_KNOP}
-            </button>
-            <button
+            </Knop>
+            <Knop
               ref={backRef}
-              type="button"
+              variant="primair"
               onClick={() => setConfirmingDiscard(false)}
-              className="flex h-control flex-1 items-center justify-center rounded-control bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover"
+              className="flex-1"
             >
               {WEGGOOIEN_TERUG_KNOP}
-            </button>
+            </Knop>
           </div>
         </div>
       )}

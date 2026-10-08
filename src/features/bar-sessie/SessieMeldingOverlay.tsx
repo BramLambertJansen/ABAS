@@ -1,9 +1,9 @@
 "use client";
 
+import { Knop } from "@/components/Knop";
 import { Overlay } from "@/components/Overlay";
 import type { SessieMelding } from "./BarSessieContext";
 import { MELDING_MANDJE, MELDING_OK, SESSIE_MELDINGEN } from "./teksten";
-import { KNOP_ACCENT_WIT } from "@/components/knopStijlen";
 
 /**
  * De melding bij een gesloten sessie of een dienst die is overgenomen of
@@ -26,13 +26,12 @@ export function SessieMeldingOverlay({
       description={melding.mandjeVerloren ? `${tekst.uitleg} ${MELDING_MANDJE}` : tekst.uitleg}
       onClose={onClose}
     >
-      <button
-        type="button"
+      <Knop
+        variant="primair" maat="groot"
         onClick={onClose}
-        className={`flex h-control-lg items-center justify-center rounded-card text-sm font-bold ${KNOP_ACCENT_WIT}`}
       >
         {MELDING_OK}
-      </button>
+      </Knop>
     </Overlay>
   );
 }

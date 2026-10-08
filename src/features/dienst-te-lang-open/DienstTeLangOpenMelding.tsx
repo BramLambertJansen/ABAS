@@ -1,12 +1,12 @@
 "use client";
 
+import { Knop } from "@/components/Knop";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Overlay } from "@/components/Overlay";
 import { useOpenOverlayCount } from "@/components/OverlayPresence";
 import { DienstAfsluitenOverlay } from "@/features/dienst-afsluiten/DienstAfsluitenOverlay";
 import type { OpenShift } from "@/hooks/queries/useMijnDienst";
 import { openHours, shouldWarn } from "@/lib/dienstTeLangOpen";
-import { KNOP_ACCENT_WIT, KNOP_RAND } from "@/components/knopStijlen";
 
 /** Zelfde waarde als `DURATION_TICK_MS` in DienstActief.tsx (spec → Tijdbron
  *  en timer). */
@@ -106,20 +106,18 @@ export function DienstTeLangOpenMelding({
       onClose={snoozeNow}
     >
       <div className="mt-0.5 flex gap-2.5">
-        <button
-          type="button"
+        <Knop
+          maat="groot" className="flex-1"
           onClick={snoozeNow}
-          className={`flex h-control-lg flex-1 items-center justify-center rounded-card text-sm font-bold ${KNOP_RAND}`}
         >
           Nog bezig
-        </button>
-        <button
-          type="button"
+        </Knop>
+        <Knop
+          variant="primair" maat="groot" className="flex-1"
           onClick={() => setView("afsluiten")}
-          className={`flex h-control-lg flex-1 items-center justify-center rounded-card text-sm font-bold ${KNOP_ACCENT_WIT}`}
         >
           Dienst afsluiten
-        </button>
+        </Knop>
       </div>
     </Overlay>
   );

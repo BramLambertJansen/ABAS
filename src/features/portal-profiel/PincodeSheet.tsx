@@ -1,5 +1,6 @@
 "use client";
 
+import { Knop } from "@/components/Knop";
 import { useState } from "react";
 import { Overlay, OverlaySluitKnop } from "@/components/Overlay";
 import { PinToetsenbord, PIN_LENGTH } from "@/components/PinToetsenbord";
@@ -117,19 +118,18 @@ export function PincodeSheet({
         />
 
         {hasPin && (
-          <button
-            type="button"
+          <Knop
+            variant="tekst" className="self-center"
             disabled={pending}
             onClick={() => void submit(null)}
-            className="self-center p-2 text-metadata font-semibold text-muted underline-offset-2 hover:text-ink hover:underline disabled:opacity-50"
           >
             Pincode verwijderen
-          </button>
+          </Knop>
         )}
 
         <OverlaySluitKnop
+          maat="groot" className="w-full"
           disabled={closeBlocked}
-          className="flex h-control-lg w-full items-center justify-center rounded-card border border-border bg-surface text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
         >
           Annuleren
         </OverlaySluitKnop>

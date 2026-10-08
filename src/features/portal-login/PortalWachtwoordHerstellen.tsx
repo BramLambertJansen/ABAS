@@ -1,5 +1,6 @@
 "use client";
 
+import { Knop } from "@/components/Knop";
 import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { AuroraMerk } from "@/components/AuroraMerk";
@@ -76,12 +77,14 @@ export function PortalWachtwoordHerstellen({ tokenHash }: { tokenHash: string | 
           <p className="text-sm font-bold text-danger" role="alert">
             Deze link is verlopen of al gebruikt. Vraag een nieuwe aan.
           </p>
-          <Link
+          <Knop
             href="/portal?wachtwoord=vergeten"
-            className="flex h-control-lg w-full items-center justify-center rounded-control bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover"
+            variant="primair"
+            maat="groot"
+            className="w-full"
           >
             Nieuwe link aanvragen
-          </Link>
+          </Knop>
         </div>
       ) : (
         <form
@@ -101,17 +104,17 @@ export function PortalWachtwoordHerstellen({ tokenHash }: { tokenHash: string | 
             onRepeatChange={setRepeat}
           />
 
-          <button
+          <Knop
+            variant="primair" maat="groot" className="w-full"
             type="submit"
             aria-disabled={
               !isPasswordReady(password, repeat) ||
               herstel.status === "pending" ||
               herstel.status === "done"
             }
-            className="flex h-control-lg w-full items-center justify-center rounded-control bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
           >
             Wachtwoord opslaan
-          </button>
+          </Knop>
 
           <Link href="/portal" className="text-center text-xs font-semibold text-muted hover:text-ink">
             ← terug naar inloggen

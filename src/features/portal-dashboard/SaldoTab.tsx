@@ -1,5 +1,6 @@
 "use client";
 
+import { Knop } from "@/components/Knop";
 import { useRef } from "react";
 import { LeesFout } from "@/components/LeesFout";
 import { VerversStatus } from "@/components/VerversStatus";
@@ -166,13 +167,12 @@ export function SaldoTab({ onShowAll }: { onShowAll: () => void }) {
                 RECENTE TRANSACTIES
               </h2>
               {transactions.status === "ready" && recent.length > 0 && (
-                <button
-                  type="button"
+                <Knop
+                  variant="tekst" className="flex-none whitespace-nowrap"
                   onClick={onShowAll}
-                  className="flex h-control flex-none items-center whitespace-nowrap rounded-control px-2 text-xs font-extrabold text-accent-active underline"
                 >
                   Alle transacties
-                </button>
+                </Knop>
               )}
             </div>
 

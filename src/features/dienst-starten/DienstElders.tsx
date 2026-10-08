@@ -1,5 +1,6 @@
 "use client";
 
+import { Knop } from "@/components/Knop";
 import { useState } from "react";
 import type { OtherShift } from "@/hooks/queries/useMijnDienst";
 import { formatTime } from "@/lib/date";
@@ -95,31 +96,28 @@ export function DienstElders({ shift, isBeheerder }: { shift: OtherShift; isBehe
 
       {isBeheerder ? (
         <div className="flex w-full gap-2.5">
-          <button
-            type="button"
+          <Knop
+            variant="primair" tone="rail" maat="groot" className="flex-1"
             onClick={() => setOvernemenOpen(true)}
-            className="flex h-control-lg flex-1 items-center justify-center rounded-card bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover"
           >
             {DIENST_ELDERS.overnemen}
-          </button>
-          <button
-            type="button"
+          </Knop>
+          <Knop
+            tone="rail" maat="groot" className="flex-1"
             onClick={() => setAfsluitenOpen(true)}
-            className="flex h-control-lg flex-1 items-center justify-center rounded-card border border-rail-border text-sm font-bold text-rail-light transition-colors hover:border-accent"
           >
             {DIENST_ELDERS.afsluiten}
-          </button>
+          </Knop>
         </div>
       ) : kanHervatten ? (
         <>
-          <button
-            type="button"
+          <Knop
+            variant="primair" tone="rail" maat="groot" className="w-full"
             disabled={hervatPending}
             onClick={hervat}
-            className="flex h-control-lg w-full items-center justify-center rounded-card bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
           >
             {DIENST_ELDERS.hervatten}
-          </button>
+          </Knop>
           <p className="text-sm font-bold text-danger empty:hidden" role="alert">
             {hervatFout(hervatten.errorCode)}
           </p>

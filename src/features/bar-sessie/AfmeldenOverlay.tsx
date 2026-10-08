@@ -1,5 +1,6 @@
 "use client";
 
+import { Knop } from "@/components/Knop";
 import { Overlay } from "@/components/Overlay";
 import {
   useAdminEndBarSession,
@@ -8,7 +9,6 @@ import {
 import { SESSION_CODE_INLINE_MESSAGE, isSessionErrorCode } from "@/lib/barSessie";
 import { BEHEERDER_INGREEP, afmeldenUitleg } from "./teksten";
 import { useBarSessie } from "./BarSessieContext";
-import { KNOP_ACCENT_WIT, KNOP_RAND } from "@/components/knopStijlen";
 
 function foutTekst(code: AdminEndBarSessionErrorCode): string {
   if (isSessionErrorCode(code)) return SESSION_CODE_INLINE_MESSAGE;
@@ -55,22 +55,20 @@ export function AfmeldenOverlay({
         {afmelden.errorCode ? foutTekst(afmelden.errorCode) : ""}
       </p>
       <div className="flex gap-2.5">
-        <button
-          type="button"
+        <Knop
+          maat="groot" className="flex-1"
           disabled={pending}
           onClick={onClose}
-          className={`flex h-control-lg flex-1 items-center justify-center rounded-card text-sm font-bold ${KNOP_RAND}`}
         >
           {BEHEERDER_INGREEP.annuleren}
-        </button>
-        <button
-          type="button"
+        </Knop>
+        <Knop
+          variant="primair" maat="groot" className="flex-1"
           disabled={pending}
           onClick={bevestig}
-          className={`flex h-control-lg flex-1 items-center justify-center rounded-card text-sm font-bold ${KNOP_ACCENT_WIT}`}
         >
           {BEHEERDER_INGREEP.afmeldenKnop}
-        </button>
+        </Knop>
       </div>
     </Overlay>
   );

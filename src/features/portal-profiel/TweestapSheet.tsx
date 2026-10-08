@@ -1,5 +1,6 @@
 "use client";
 
+import { Knop } from "@/components/Knop";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { Overlay } from "@/components/Overlay";
@@ -83,14 +84,13 @@ export function TweestapSheet({
   }
 
   const annuleer = (
-    <button
-      type="button"
+    <Knop
+      maat="groot" className="w-full"
       disabled={closeBlocked}
       onClick={onClose}
-      className="flex h-control-lg w-full items-center justify-center rounded-card border border-border bg-surface text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
     >
       Annuleren
-    </button>
+    </Knop>
   );
 
   return (
@@ -112,13 +112,12 @@ export function TweestapSheet({
             <p className="text-sm font-bold text-danger" role="alert">
               {FOUT_OVERIG}
             </p>
-            <button
-              type="button"
+            <Knop
+              variant="primair" maat="groot" className="w-full"
               onClick={() => void begin()}
-              className="flex h-control-lg w-full items-center justify-center rounded-card bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover"
             >
               Opnieuw proberen
-            </button>
+            </Knop>
             {annuleer}
           </>
         )}
@@ -133,23 +132,21 @@ export function TweestapSheet({
               {stap.secret}
             </code>
             <div className="flex gap-[10px]">
-              <button
-                type="button"
+              <Knop
+                maat="groot" className="flex-1"
                 onClick={onClose}
-                className="flex h-control-lg flex-1 items-center justify-center rounded-card border border-border bg-surface text-sm font-bold text-ink transition-colors hover:border-ink"
               >
                 Annuleren
-              </button>
-              <button
-                type="button"
+              </Knop>
+              <Knop
+                variant="primair" maat="groot" className="flex-1"
                 onClick={() => {
                   markeerWissel();
                   setStap({ soort: "code", factorId: stap.factorId });
                 }}
-                className="flex h-control-lg flex-1 items-center justify-center rounded-card bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover"
               >
                 {TWEESTAP_TEKSTEN.stap1Knop}
-              </button>
+              </Knop>
             </div>
           </>
         )}

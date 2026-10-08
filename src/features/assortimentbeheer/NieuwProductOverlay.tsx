@@ -1,6 +1,6 @@
 "use client";
 
-import { KNOP_ACCENT_DONKER, KNOP_RAND } from "@/components/knopStijlen";
+import { Knop } from "@/components/Knop";
 
 import { useId, useRef, useState } from "react";
 import { Overlay, OverlaySluitKnop } from "@/components/Overlay";
@@ -168,19 +168,18 @@ export function NieuwProductOverlay({
 
       <div className="flex gap-2.5">
         <OverlaySluitKnop
+          className="flex-1"
           disabled={closeBlocked}
-          className={`flex h-control flex-1 items-center justify-center rounded-control text-sm font-bold ${KNOP_RAND}`}
         >
           Annuleren
         </OverlaySluitKnop>
-        <button
-          type="button"
+        <Knop
+          variant="primair" className="flex-1"
           disabled={!canSubmit}
           onClick={submit}
-          className={`flex h-control flex-1 items-center justify-center rounded-control text-sm font-bold ${KNOP_ACCENT_DONKER}`}
         >
           {pending ? OPSLAAN_BEZIG_TEKST : "Toevoegen"}
-        </button>
+        </Knop>
       </div>
     </Overlay>
   );
