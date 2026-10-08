@@ -6,8 +6,12 @@ import { BezettingKeuze } from "@/components/BezettingKeuze";
 import { Chip } from "@/components/Chip";
 import { InitialsAvatar } from "@/components/InitialsAvatar";
 import { Knop, type KnopMaat, type KnopTone, type KnopVariant } from "@/components/Knop";
+import { CodeInvoer } from "@/components/CodeInvoer";
 import { LeesFout } from "@/components/LeesFout";
+import { LidZoeker } from "@/components/LidZoeker";
 import { MemberPill } from "@/components/MemberPill";
+import { NieuwWachtwoordVelden } from "@/components/NieuwWachtwoordVelden";
+import { OpslaanSectie } from "@/components/OpslaanSectie";
 import { PinToetsenbord } from "@/components/PinToetsenbord";
 import { ProductAfbeelding } from "@/components/ProductAfbeelding";
 import { RoleBadge } from "@/components/RoleBadge";
@@ -23,6 +27,7 @@ import { ZoekIcoon } from "@/components/ZoekIcoon";
 import { ZoekVeld } from "@/components/ZoekVeld";
 import { SysteemSectie } from "@/lib/systeem/SysteemSectie";
 import type { SysteemTone, Voorbeeldregister } from "@/lib/systeem/types";
+import type { CodeFout } from "@/lib/mfa";
 import { STATEN, VOORBEELD_TEKSTEN } from "./teksten";
 
 /** De donkere strook van rail-secties (project: ABAS). */
@@ -43,20 +48,24 @@ const RAIL_ALLEEN = new Set(["Select"]);
 
 function Sectie({
   naam,
+  deel,
   tone = "licht",
   titel,
   uitleg,
   children,
 }: {
   naam: string;
+  /** Een extra sectie van hetzelfde component: id `<naam>-<deel>` (bijv. `code-invoer-fout`). */
+  deel?: string;
   tone?: SysteemTone;
   titel: string;
   uitleg: string;
   children: ReactNode;
 }) {
+  const basis = deel ? `${kebab(naam)}-${deel}` : kebab(naam);
   return (
     <SysteemSectie
-      id={tone === "rail" && !RAIL_ALLEEN.has(naam) ? `${kebab(naam)}-rail` : kebab(naam)}
+      id={tone === "rail" && !RAIL_ALLEEN.has(naam) ? `${basis}-rail` : basis}
       titel={titel}
       uitleg={uitleg}
       tone={tone}
@@ -674,6 +683,222 @@ function ZoekIcoonVoorbeeld() {
   );
 }
 
+// --- Staten: opslaan, wachtwoord, lid zoeken, code ----------------------------------
+
+/** Eén staat van OpslaanSectie: een kop in het witte dialoogvlak, waar de sectie hoort. */
+function OpslaanStaat({ titel, children }: { titel: string; children: ReactNode }) {
+  return (
+    <div className="w-64">
+      <Dialoogvlak>
+        <Groep titel={titel}>{children}</Groep>
+      </Dialoogvlak>
+    </div>
+  );
+}
+
+function OpslaanSectieVoorbeeld() {
+  const T = VOORBEELD_TEKSTEN.OpslaanSectie;
+  const S = T.staten;
+  const knop = <Knop variant="primair">{T.knop}</Knop>;
+  return (
+    <Sectie naam="OpslaanSectie" titel={T.titel} uitleg={T.uitleg}>
+      <div className="flex flex-wrap items-start gap-3">
+        <OpslaanStaat titel={S.zonderStatus}>
+          <OpslaanSectie pending={false} wachtOpAnder={false} fout={null}>{knop}</OpslaanSectie>
+        </OpslaanStaat>
+        <OpslaanStaat titel={S.statusLeeg}>
+          <OpslaanSectie pending={false} wachtOpAnder={false} fout={null} status={null}>{knop}</OpslaanSectie>
+        </OpslaanStaat>
+        <OpslaanStaat titel={S.onopgeslagen}>
+          <OpslaanSectie pending={false} wachtOpAnder={false} fout={null} status="onopgeslagen">{knop}</OpslaanSectie>
+        </OpslaanStaat>
+        <OpslaanStaat titel={S.opgeslagen}>
+          <OpslaanSectie pending={false} wachtOpAnder={false} fout={null} status="opgeslagen">{knop}</OpslaanSectie>
+        </OpslaanStaat>
+        <OpslaanStaat titel={S.statusTekst}>
+          <OpslaanSectie pending={false} wachtOpAnder={false} fout={null} status="opgeslagen" statusTekst={T.statusTekst}>
+            {knop}
+          </OpslaanSectie>
+        </OpslaanStaat>
+        <OpslaanStaat titel={S.pending}>
+          <OpslaanSectie pending wachtOpAnder={false} fout={null}>
+            <Knop variant="primair" aria-disabled>{T.knopBezig}</Knop>
+          </OpslaanSectie>
+        </OpslaanStaat>
+        <OpslaanStaat titel={S.wachtOpAnder}>
+          <OpslaanSectie pending={false} wachtOpAnder fout={null}>
+            <Knop variant="primair" disabled>{T.knop}</Knop>
+          </OpslaanSectie>
+        </OpslaanStaat>
+        <OpslaanStaat titel={S.fout}>
+          <OpslaanSectie pending={false} wachtOpAnder={false} fout={T.foutmelding}>{knop}</OpslaanSectie>
+        </OpslaanStaat>
+        <OpslaanStaat titel={S.zonderChrome}>
+          <OpslaanSectie pending={false} wachtOpAnder fout={null} chrome={false}>
+            <Knop variant="gevaar" disabled>{T.archiveren}</Knop>
+          </OpslaanSectie>
+        </OpslaanStaat>
+        <OpslaanStaat titel={S.labelEnKop}>
+          <OpslaanSectie
+            pending={false}
+            wachtOpAnder={false}
+            fout={null}
+            label={T.groepNaam}
+            status={null}
+            kop={
+              <div className="flex flex-col gap-0.5">
+                <h4 className="text-sm font-bold">{T.kopTitel}</h4>
+                <p className="text-xs text-muted">{T.kopUitleg}</p>
+              </div>
+            }
+          >
+            {knop}
+          </OpslaanSectie>
+        </OpslaanStaat>
+      </div>
+    </Sectie>
+  );
+}
+
+function NieuwWachtwoordVeldenVoorbeeld() {
+  const T = VOORBEELD_TEKSTEN.NieuwWachtwoordVelden;
+  const S = T.staten;
+  const staten: Array<{ titel: string; password: string; repeat: string; readOnly?: boolean }> = [
+    { titel: S.leeg, password: "", repeat: "" },
+    { titel: S.deels, password: T.deels, repeat: "" },
+    { titel: S.voldaan, password: T.voldaan, repeat: T.voldaan },
+    { titel: S.mismatch, password: T.voldaan, repeat: T.anders },
+    { titel: S.readOnly, password: T.voldaan, repeat: T.voldaan, readOnly: true },
+  ];
+  return (
+    <Sectie naam="NieuwWachtwoordVelden" titel={T.titel} uitleg={T.uitleg}>
+      <div className="flex flex-wrap items-start gap-3">
+        {staten.map((staat) => (
+          <div key={staat.titel} className="w-80">
+            <Dialoogvlak>
+              <Groep titel={staat.titel}>
+                <NieuwWachtwoordVelden
+                  password={staat.password}
+                  repeat={staat.repeat}
+                  onPasswordChange={noop}
+                  onRepeatChange={noop}
+                  readOnly={staat.readOnly}
+                />
+              </Groep>
+            </Dialoogvlak>
+          </div>
+        ))}
+      </div>
+    </Sectie>
+  );
+}
+
+/** Eén LidZoeker met eigen zoekterm-state en een eigen `inputId` (uniek op de pagina). */
+function LidZoekerDemo({
+  inputId,
+  beginTerm = "",
+  status = "ready",
+  errorMessage = null,
+}: {
+  inputId: string;
+  beginTerm?: string;
+  status?: "loading" | "error" | "ready";
+  errorMessage?: string | null;
+}) {
+  const T = VOORBEELD_TEKSTEN.LidZoeker;
+  const [query, setQuery] = useState(beginTerm);
+  return (
+    <LidZoeker
+      inputId={inputId}
+      query={query}
+      onQueryChange={setQuery}
+      members={T.leden.map((lid) => ({ ...lid }))}
+      status={status}
+      errorMessage={errorMessage}
+      onRetry={noop}
+      retryBezig={false}
+      lowBalanceThresholdCents={T.laagSaldoCents}
+      onSelect={noop}
+    />
+  );
+}
+
+function LidZoekerVoorbeeld() {
+  const T = VOORBEELD_TEKSTEN.LidZoeker;
+  const S = T.staten;
+  return (
+    <>
+      <Sectie naam="LidZoeker" titel={T.titel} uitleg={T.uitleg}>
+        <div className="flex flex-wrap items-start gap-3">
+          <div className="w-80"><Groep titel={S.leeg}><LidZoekerDemo inputId="systeem-lidzoeker-leeg" /></Groep></div>
+          <div className="w-80">
+            <Groep titel={S.laden}><LidZoekerDemo inputId="systeem-lidzoeker-laden" beginTerm={T.zoektermLaden} status="loading" /></Groep>
+          </div>
+          <div className="w-80">
+            <Groep titel={S.fout}>
+              <LidZoekerDemo inputId="systeem-lidzoeker-fout" status="error" errorMessage={T.foutmelding} />
+            </Groep>
+          </div>
+          <div className="w-80">
+            <Groep titel={S.geenTreffer}><LidZoekerDemo inputId="systeem-lidzoeker-geen" beginTerm={T.zoektermGeen} /></Groep>
+          </div>
+        </div>
+      </Sectie>
+      <Sectie naam="LidZoeker" deel="zoeken" titel={T.zoeken.titel} uitleg={T.zoeken.uitleg}>
+        {/* pb-75 = 300px, de max-h van de lijst: een open lijst valt binnen de sectie. */}
+        <div className="w-80 pb-75">
+          <Groep titel={T.zoeken.kop}><LidZoekerDemo inputId="systeem-lidzoeker-zoeken" /></Groep>
+        </div>
+      </Sectie>
+    </>
+  );
+}
+
+/** Mocks voor `onVerifieer`: geen Supabase, geen MFA-API. */
+const ONJUISTE_CODE = (): Promise<CodeFout | null> => Promise.resolve("invalid_code");
+const NOOIT_KLAAR = (): Promise<CodeFout | null> => new Promise(() => undefined);
+
+function CodeInvoerVoorbeeld() {
+  const T = VOORBEELD_TEKSTEN.CodeInvoer;
+  const S = T.staten;
+  return (
+    <>
+      <Sectie naam="CodeInvoer" titel={T.titel} uitleg={T.uitleg}>
+        <Rij>
+          <div className="flex w-72 flex-col gap-3">
+            <Groep titel={S.leeg}><CodeInvoer tone="light" onVerifieer={ONJUISTE_CODE} /></Groep>
+          </div>
+          <div className="flex w-72 flex-col gap-3">
+            <Groep titel={S.metKnop}><CodeInvoer tone="light" onVerifieer={ONJUISTE_CODE} submitLabel={T.submitLabel} /></Groep>
+          </div>
+        </Rij>
+      </Sectie>
+      <Sectie naam="CodeInvoer" tone="rail" titel={T.rail.titel} uitleg={T.rail.uitleg}>
+        <div className="flex w-72 flex-col gap-3">
+          <Groep titel={S.rail}><CodeInvoer tone="rail" onVerifieer={ONJUISTE_CODE} /></Groep>
+        </div>
+      </Sectie>
+      <Sectie naam="CodeInvoer" deel="fout" titel={T.fout.titel} uitleg={T.fout.uitleg}>
+        <div className="flex w-72 flex-col gap-3">
+          <Groep titel={T.fout.kop}><CodeInvoer tone="light" onVerifieer={ONJUISTE_CODE} /></Groep>
+        </div>
+      </Sectie>
+      <Sectie naam="CodeInvoer" deel="bezig" titel={T.bezig.titel} uitleg={T.bezig.uitleg}>
+        <div className="flex w-72 flex-col gap-3">
+          <Groep titel={T.bezig.kop}><CodeInvoer tone="light" onVerifieer={NOOIT_KLAAR} /></Groep>
+        </div>
+      </Sectie>
+      <Sectie naam="CodeInvoer" deel="bevestigen" titel={T.bevestigen.titel} uitleg={T.bevestigen.uitleg}>
+        <div className="flex w-72 flex-col gap-3">
+          <Groep titel={T.bevestigen.kop}>
+            <CodeInvoer tone="light" onVerifieer={ONJUISTE_CODE} submitLabel={T.submitLabel} />
+          </Groep>
+        </div>
+      </Sectie>
+    </>
+  );
+}
+
 /**
  * Sleutel = exact de naam van de component-export. `Voorbeelden` is alleen de
  * klantkant van het register: de server-pagina kan een register met functies
@@ -691,7 +916,11 @@ export const VOORBEELDEN: Voorbeeldregister = {
   TekstVeld: TekstVeldVoorbeeld,
   VeldFout: VeldFoutVoorbeeld,
   ZoekVeld: ZoekVeldVoorbeeld,
+  LidZoeker: LidZoekerVoorbeeld,
   Select: SelectVoorbeeld,
+  NieuwWachtwoordVelden: NieuwWachtwoordVeldenVoorbeeld,
+  CodeInvoer: CodeInvoerVoorbeeld,
+  OpslaanSectie: OpslaanSectieVoorbeeld,
   StatusFilter: StatusFilterVoorbeeld,
   BezettingKeuze: BezettingKeuzeVoorbeeld,
   InitialsAvatar: InitialsAvatarVoorbeeld,

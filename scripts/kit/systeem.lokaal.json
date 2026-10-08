@@ -17,10 +17,6 @@
   },
   "specPad": "e2e/systeem.spec.ts",
   "uitzonderingen": {
-    "CodeInvoer": {
-      "code": "staten",
-      "toelichting": "eigen state en MFA-logica (lib/mfa); niet zonder inlogcontext te tonen"
-    },
     "EerdereGeldActie": {
       "code": "data",
       "toelichting": "leest bewaarde geldverzoeken (localStorage/Supabase); geldflow, niet met nepdata te tonen"
@@ -33,21 +29,9 @@
       "code": "data",
       "toelichting": "onderdeel van GeldActieHerstel; leest geldverzoeken en leden"
     },
-    "LidZoeker": {
-      "code": "staten",
-      "toelichting": "combobox met useListbox en ledendata (laden/fout/leden)"
-    },
-    "NieuwWachtwoordVelden": {
-      "code": "staten",
-      "toelichting": "eigen validatiestate; volgt als eigen voorbeeld met alle regelstaten"
-    },
     "OnbekendeUitkomstMelding": {
       "code": "data",
       "toelichting": "geldflow (onbekend resultaat); leest geldverzoeken"
-    },
-    "OpslaanSectie": {
-      "code": "staten",
-      "toelichting": "leest lib/opslaan-state (pending/fout/succes); volgt als voorbeeld per staat"
     },
     "Overlay": {
       "code": "context",

@@ -231,6 +231,97 @@ export const VOORBEELD_TEKSTEN = {
     alert: "Met role=\"alert\"",
     tekst: "Vul een naam in.",
   },
+  OpslaanSectie: {
+    titel: "OpslaanSectie",
+    uitleg:
+      "Eén actiesectie in een beheerdialoog: statusregel, bezig (aria-busy), wachten op een andere sectie en de eigen foutregel. Per staat één voorbeeld.",
+    staten: {
+      zonderStatus: "Zonder statusregel",
+      statusLeeg: "status={null}: regel gereserveerd, leeg",
+      onopgeslagen: "status=\"onopgeslagen\"",
+      opgeslagen: "status=\"opgeslagen\"",
+      statusTekst: "status=\"opgeslagen\" met statusTekst",
+      pending: "pending",
+      wachtOpAnder: "wachtOpAnder",
+      fout: "fout",
+      zonderChrome: "chrome={false}",
+      labelEnKop: "Met label (groep) en kop",
+    },
+    knop: "Opslaan",
+    knopBezig: "Opslaan…",
+    statusTekst: "Prijs opgeslagen",
+    foutmelding: "Opslaan is niet gelukt. Probeer het opnieuw.",
+    archiveren: "Archiveren",
+    groepNaam: "Prijs",
+    kopTitel: "Prijs",
+    kopUitleg: "Geldt voor nieuwe bestellingen; eerdere bestellingen houden hun prijs.",
+  },
+  NieuwWachtwoordVelden: {
+    titel: "NieuwWachtwoordVelden",
+    uitleg:
+      "Nieuw wachtwoord en herhalen, met de live checklist van de regels. Steeds in het witte dialoogvlak.",
+    staten: {
+      leeg: "Leeg",
+      deels: "Deels voldaan",
+      voldaan: "Alle regels voldaan en gelijk",
+      mismatch: "Niet gelijk",
+      readOnly: "readOnly (tijdens opslaan)",
+    },
+    deels: "aurora",
+    voldaan: "Aurora!2026",
+    anders: "Aurora!2025",
+  },
+  LidZoeker: {
+    titel: "LidZoeker",
+    uitleg:
+      "Kies een lid: zoekveld met resultatenlijst en saldo. Leeg, leden laden, leesfout en zonder treffer.",
+    staten: {
+      leeg: "Leeg",
+      laden: "Leden laden (status=\"loading\")",
+      fout: "Leesfout (status=\"error\")",
+      geenTreffer: "Zonder treffer",
+    },
+    zoektermLaden: "Anna",
+    zoektermGeen: "Daan",
+    foutmelding: "De leden konden niet worden opgehaald.",
+    leden: [
+      { id: "m1", name: "Anna de Vries", balanceCents: 1250 },
+      { id: "m2", name: "Bas Jansen", balanceCents: 3400 },
+      { id: "m3", name: "Carla Smit", balanceCents: 450 },
+    ],
+    laagSaldoCents: 1000,
+    zoeken: {
+      titel: "LidZoeker: zoeken",
+      uitleg: "Eén lege zoeker om in te typen. Onder het veld is ruimte voor de open lijst.",
+      kop: "Rust",
+    },
+  },
+  CodeInvoer: {
+    titel: "CodeInvoer",
+    uitleg: "De 6-cijferige code uit de authenticator-app, licht: direct versturen en met een bevestigknop.",
+    rail: { titel: "CodeInvoer op rail", uitleg: "tone=\"rail\", leeg." },
+    staten: {
+      leeg: "Leeg",
+      metKnop: "Met submitLabel (knop aria-disabled)",
+      rail: "Leeg, rail",
+    },
+    submitLabel: "Bevestigen",
+    fout: {
+      titel: "CodeInvoer: onjuiste code",
+      uitleg: "De controle geeft altijd \"onjuiste code\". Voer zes cijfers in om de foutmelding te zien.",
+      kop: "Rust",
+    },
+    bezig: {
+      titel: "CodeInvoer: bezig",
+      uitleg: "De controle rondt nooit af. Voer zes cijfers in om de bezig-staat te zien.",
+      kop: "Rust",
+    },
+    bevestigen: {
+      titel: "CodeInvoer: bevestigen",
+      uitleg: "Met submitLabel; de controle geeft altijd \"onjuiste code\". Zes cijfers, dan Bevestigen.",
+      kop: "Rust",
+    },
+  },
 } as const;
 
 export const NIET_OP_DEZE_PAGINA = {
