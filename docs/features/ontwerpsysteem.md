@@ -160,7 +160,9 @@ afwijkingen; hij kiest niet zelf wat erbij komt.
   `AxeBuilder`-aanroep, `scanAxe` zelf is stap 5).
 
 **Baselines-workflow** (`.github/workflows/screenshots-bijwerken.yml`):
-- `workflow_dispatch` met als invoer de branch;
+- start via het label `screenshots-bijwerken` op de PR, of via
+  `workflow_dispatch` met de branch (dat laatste kan pas als de workflow op de
+  standaardbranch staat);
 - `contents: write`; checkout, `npm ci`, `npx playwright install --with-deps
   chromium`, `npx playwright test e2e/systeem.spec.ts --update-snapshots`;
 - commit de PNG's uit `e2e/systeem.spec.ts-snapshots/` op de branch als

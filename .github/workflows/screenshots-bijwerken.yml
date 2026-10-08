@@ -2,8 +2,12 @@ name: Screenshots bijwerken
 
 # Maakt de baselines van de ontwerpsysteem-screenshots op de CI-runner (zelfde
 # Chromium, zelfde fonts als de vergelijking) en commit ze op de gekozen branch
-# (docs/features/ontwerpsysteem.md). Handmatig starten na een bewuste visuele
-# wijziging; bekijk daarna de PNG's in de PR-diff.
+# (docs/features/ontwerpsysteem.md). Start hem na een bewuste visuele wijziging
+# en bekijk daarna de PNG's in de PR-diff. Twee ingangen:
+#   - label `screenshots-bijwerken` op een PR (werkt ook vóór de workflow op de
+#     standaardbranch staat: `workflow_dispatch` is pas beschikbaar na de merge).
+#     Haal het label er daarna af, zodat je het opnieuw kunt zetten;
+#   - handmatig starten (workflow_dispatch) met de branch.
 #
 # Een push met de standaardtoken start geen nieuwe CI-run. Zet daarom het secret
 # SCREENSHOTS_TOKEN (fijnmazig, alleen contents: write op deze repo); zonder dat
@@ -16,21 +20,30 @@ on:
         description: Branch waarop de baselines gecommit worden
         required: true
         type: string
+  pull_request:
+    types: [labeled]
 
 permissions:
   contents: write
 
 concurrency:
-  group: screenshots-${{ inputs.branch }}
+  group: screenshots-${{ inputs.branch || github.head_ref }}
   cancel-in-progress: false
 
 jobs:
   bijwerken:
+    # Alleen op het label of handmatig, en nooit voor een fork (geen schrijfrecht).
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.label.name == 'screenshots-bijwerken' &&
+       github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
+    env:
+      BRANCH: ${{ inputs.branch || github.head_ref }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          ref: ${{ inputs.branch }}
+          ref: ${{ env.BRANCH }}
           token: ${{ secrets.SCREENSHOTS_TOKEN || github.token }}
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
@@ -59,5 +72,5 @@ jobs:
             echo "Geen wijzigingen in de baselines."
           else
             git commit -m "Screenshots bijwerken (ontwerpsysteem)"
-            git push origin "HEAD:${{ inputs.branch }}"
+            git push origin "HEAD:${BRANCH}"
           fi
