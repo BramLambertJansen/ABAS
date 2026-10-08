@@ -8,6 +8,7 @@ import { knopKlassen } from "../src/components/knopKlassen.ts";
 import { chipKlassen } from "../src/components/chipKlassen.ts";
 import { segmentKlassen } from "../src/components/segmentKlassen.ts";
 import { toetsKlassen } from "../src/components/toetsKlassen.ts";
+import { tekstVeldKlassen } from "../src/components/tekstVeldKlassen.ts";
 import { methodLabel } from "../src/lib/betaalmethode.ts";
 
 /**
@@ -343,4 +344,107 @@ test("kleurparen binnen één JSX-element mogen niet over meerdere literals verd
     }
   }
   assert.deepEqual(fouten, []);
+});
+
+// --- TekstVeld op rail: hint, fout en placeholder (docs/features/tekstveld-rail-contrast.md)
+
+/** Toegestane ondergronden per tone. Een nieuw vlak moet eerst hier in. */
+const TEKSTVELD_ONDERGRONDEN = { rail: ["rail", "surface-rail"], light: ["surface", "canvas"] } as const;
+const TEKSTVELD_ROLLEN = ["label", "hint", "fout", "prefix", "placeholder"] as const;
+
+/** Het kleurtoken van een rol: `text-<token>`, voor placeholder `placeholder:text-<token>`. */
+function tekstVeldToken(rol: (typeof TEKSTVELD_ROLLEN)[number], klassen: string): string[] {
+  const patroon = rol === "placeholder" ? /^placeholder:text-([a-z0-9-]+)$/ : /^text-([a-z0-9-]+)$/;
+  return klassen
+    .split(/\s+/)
+    .map((c) => c.match(patroon)?.[1])
+    .filter((t): t is string => t !== undefined && t in palette);
+}
+
+test("tekstVeldKlassen: elke rol per tone haalt AA op elke toegestane ondergrond (ook placeholder)", () => {
+  const fouten: string[] = [];
+  for (const tone of ["rail", "light"] as const) {
+    const k = tekstVeldKlassen(tone) as Record<string, string>;
+    for (const rol of TEKSTVELD_ROLLEN) {
+      const klassen = k[rol];
+      if (typeof klassen !== "string") {
+        fouten.push(`${tone}.${rol}: rol ontbreekt`);
+        continue;
+      }
+      const tokens = tekstVeldToken(rol, klassen);
+      if (tokens.length !== 1) {
+        fouten.push(`${tone}.${rol}: geen eenduidig kleurtoken in "${klassen}" (${tokens.join(", ") || "geen"})`);
+        continue;
+      }
+      const token = tokens[0];
+      for (const bg of TEKSTVELD_ONDERGRONDEN[tone]) {
+        const b = palette[bg];
+        if (!b) {
+          fouten.push(`ondergrond ${bg} ontbreekt in @theme`);
+          continue;
+        }
+        const c = contrast(palette[token], b);
+        if (c < AA) fouten.push(`${tone}.${rol}: ${token} op ${bg} = ${c.toFixed(2)}:1`);
+      }
+    }
+  }
+  assert.deepEqual(fouten, []);
+});
+
+test("tekstVeld-paren uit de spec: verwachte waarden (zwakste paar muted op canvas, 4,79)", () => {
+  const paren: Array<[string, string, number]> = [
+    ["rail-muted", "rail", 5.49],
+    ["rail-muted", "surface-rail", 4.98],
+    ["rail-error", "rail", 6.97],
+    ["rail-error", "surface-rail", 6.32],
+    ["muted", "surface", 5.11],
+    ["muted", "canvas", 4.79],
+    ["danger", "surface", 5.18],
+    ["danger", "canvas", 4.85],
+  ];
+  for (const [tekst, bg, verwacht] of paren) {
+    const c = contrast(palette[tekst], palette[bg]);
+    assert.equal(c.toFixed(2), verwacht.toFixed(2), `${tekst} op ${bg}`);
+  }
+});
+
+test("negatief: de oude klassen (muted, danger) blijven op rail onder AA", () => {
+  for (const tekst of ["muted", "danger"]) {
+    for (const bg of TEKSTVELD_ONDERGRONDEN.rail) {
+      const c = contrast(palette[tekst], palette[bg]);
+      assert.ok(c < AA, `${tekst} op ${bg} = ${c.toFixed(2)}:1 haalt AA; deze bewaking vangt dan geen terugval meer`);
+    }
+  }
+});
+
+test("tekstVeldKlassen is gebonden aan TekstVeld en VeldFout", () => {
+  const rail = tekstVeldKlassen("rail");
+  const licht = tekstVeldKlassen("light");
+  assert.ok(rail.hint.split(/\s+/).includes("text-rail-muted"), `rail.hint: ${rail.hint}`);
+  assert.ok(rail.fout.split(/\s+/).includes("text-rail-error"), `rail.fout: ${rail.fout}`);
+  assert.equal(rail.placeholder, "placeholder:text-rail-muted");
+  assert.equal(licht.placeholder, "placeholder:text-muted");
+  // `input` blijft zonder placeholderklasse: elke tak voegt die zelf toe.
+  for (const k of [rail, licht]) assert.ok(!/placeholder:/.test(k.input), `input bevat een placeholderklasse: ${k.input}`);
+
+  const bron = readFileSync("src/components/TekstVeld.tsx", "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/^\s*\/\/.*$/gm, "");
+  // Geen kale hint- of foutkleur meer in het component zelf.
+  const kaal = literalen(bron).filter((l) => {
+    const c = l.split(/\s+/);
+    return c.includes("text-danger") || (c.includes("text-muted") && c.includes("font-semibold") && c.includes("text-xs"));
+  });
+  assert.deepEqual(kaal, [], "TekstVeld.tsx heeft nog een kale text-muted/text-danger voor hint of fout");
+  // De hint-<p> haalt zijn klasse uit tekstVeldKlassen(tone) (direct of via een lokale variabele).
+  assert.match(bron, /id=\{hintId\}\s+className=\{[^}]*\.hint\}/, "hint gebruikt tekstVeldKlassen(tone).hint niet");
+  // TekstVeld geeft zijn eigen tone door aan VeldFout.
+  assert.match(bron, /<VeldFout\b[^>]*\btone=\{tone\}/, "TekstVeld geeft tone niet door aan VeldFout");
+  // VeldFout zelf gebruikt tekstVeldKlassen(tone).fout.
+  const veldFout = bron.slice(bron.indexOf("export function VeldFout"));
+  assert.ok(veldFout.length < bron.length, "VeldFout niet gevonden");
+  assert.match(veldFout, /tekstVeldKlassen\(\s*tone\s*\)\.fout/, "VeldFout gebruikt tekstVeldKlassen(tone).fout niet");
+  // De placeholderklasse staat niet alleen in de standaardtak (ook maat en prefix).
+  const placeholders = bron.match(/tekstVeldKlassen\(\s*tone\s*\)\.placeholder/g) ?? [];
+  assert.ok(placeholders.length >= 2, `tekstVeldKlassen(tone).placeholder komt ${placeholders.length}x voor; verwacht in elke inputtak`);
 });
