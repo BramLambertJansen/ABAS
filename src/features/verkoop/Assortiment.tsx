@@ -1,5 +1,6 @@
 "use client";
 
+import { Knop } from "@/components/Knop";
 import { ZoekIcoon } from "@/components/ZoekIcoon";
 
 import { useMemo } from "react";
@@ -175,17 +176,15 @@ export function Assortiment({
           {trimmedQuery ? zoekResultaatTekst(visible.length, trimmedQuery) : ""}
         </p>
         {trimmedQuery && (
-          <button
-            type="button"
+          <Knop
             onClick={() => {
               clearQuery();
               // De knop verdwijnt met de term: focus naar het zoekveld, niet body.
               document.getElementById("verkoop-product-search")?.focus();
             }}
-            className="flex h-control items-center rounded-full border border-border bg-surface px-4 text-[13px] font-bold text-ink transition-colors hover:border-ink"
           >
             Wis zoekterm
-          </button>
+          </Knop>
         )}
       </div>
 

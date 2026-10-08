@@ -1,5 +1,6 @@
 "use client";
 
+import { Knop } from "@/components/Knop";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { BarInloggen } from "@/features/bar-inloggen/BarInloggen";
@@ -42,13 +43,12 @@ function BarSchermen() {
           <p className="max-w-xs text-center text-sm font-semibold text-rail-error" role="alert">
             {sessie.foutMelding}
           </p>
-          <button
-            type="button"
+          <Knop
+            variant="tekst" tone="rail"
             onClick={sessie.herlaad}
-            className="text-xs font-semibold text-rail-muted underline hover:text-rail-light"
           >
             Opnieuw proberen
-          </button>
+          </Knop>
         </main>
       );
     case "uitgelogd":

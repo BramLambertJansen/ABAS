@@ -1,5 +1,6 @@
 "use client";
 
+import { Knop } from "@/components/Knop";
 import { useEffect, useId, useRef, useState } from "react";
 import { VeldFout } from "@/components/TekstVeld";
 import { LeesFout } from "@/components/LeesFout";
@@ -212,8 +213,8 @@ export function NegatieveLimietInstellingen() {
           }}
           className="h-control-lg flex-1 min-w-0 rounded-control border border-border px-3.5 text-sm font-semibold text-ink focus-visible:outline-hidden focus:border-accent focus:ring-2 focus:ring-accent/30"
         />
-        <button
-          type="button"
+        <Knop
+          variant="primair" maat="groot"
           disabled={!canSaveCustom}
           onClick={() => {
             if (customSoort !== null || parsedCustomCents === null) {
@@ -223,10 +224,9 @@ export function NegatieveLimietInstellingen() {
             }
             apply(parsedCustomCents);
           }}
-          className="flex h-control-lg items-center justify-center rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-track disabled:text-muted"
         >
           opslaan
-        </button>
+        </Knop>
       </div>
       <VeldFout id={`${inputId}-fout`} tekst={customMelding} alert={moment.pogingAlert} />
 

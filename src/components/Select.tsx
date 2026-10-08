@@ -126,6 +126,7 @@ export function Select({
 
   return (
     <div ref={rootRef} className="relative w-full">
+      {/* Eigen markup: combobox-trigger (role="combobox"), geen Knop-rol. Zie docs/features/knop.md, buiten scope PR 1. */}
       <button
         type="button"
         role="combobox"

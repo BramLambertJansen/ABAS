@@ -1,5 +1,6 @@
 "use client";
 
+import { Knop } from "@/components/Knop";
 import { Overlay } from "@/components/Overlay";
 import { StatCard } from "@/components/StatCard";
 import { MemberPill } from "@/components/MemberPill";
@@ -15,7 +16,6 @@ import {
 import { SESSION_CODE_INLINE_MESSAGE, isSessionErrorCode } from "@/lib/barSessie";
 import { formatTime } from "@/lib/date";
 import { BEHEERDER_INGREEP } from "@/features/bar-sessie/teksten";
-import { KNOP_ACCENT_WIT, KNOP_RAND } from "@/components/knopStijlen";
 
 /** `end_shift` gooit sinds dienst-per-sessie alleen de sessiecodes van de
  *  guard (geen koppeling met deze dienst, sessie beëindigd, ...): die krijgen
@@ -154,22 +154,20 @@ export function DienstAfsluitenOverlay({
       </div>
 
       <div className="mt-0.5 flex gap-2.5">
-        <button
-          type="button"
+        <Knop
+          maat="groot" className="flex-1"
           disabled={pending}
           onClick={onClose}
-          className={`flex h-control-lg flex-1 items-center justify-center rounded-card text-sm font-bold ${KNOP_RAND}`}
         >
           annuleren
-        </button>
-        <button
-          type="button"
+        </Knop>
+        <Knop
+          variant="primair" maat="groot" className="flex-1"
           disabled={pending}
           onClick={handleConfirm}
-          className={`flex h-control-lg flex-1 items-center justify-center rounded-card text-sm font-bold ${KNOP_ACCENT_WIT}`}
         >
           {pending ? "bezig…" : "dienst afsluiten"}
-        </button>
+        </Knop>
       </div>
     </Overlay>
   );

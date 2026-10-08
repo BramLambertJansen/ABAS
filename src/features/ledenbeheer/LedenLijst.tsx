@@ -1,5 +1,6 @@
 "use client";
 
+import { Knop } from "@/components/Knop";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LeesFout } from "@/components/LeesFout";
 import { useLeesHerstel } from "@/hooks/useLeesHerstel";
@@ -98,16 +99,15 @@ export function LedenLijst() {
         <h1 ref={kopRef} tabIndex={-1} className="text-dialog-title font-extrabold tracking-[-0.02em]">
           Leden
         </h1>
-        <button
-          type="button"
+        <Knop
+          variant="primair" className="gap-1.5"
           onClick={() => setOverlay({ kind: "new" })}
-          className="flex h-control items-center gap-1.5 rounded-control bg-accent px-[18px] text-[13px] font-extrabold text-rail transition-colors hover:bg-accent-hover"
         >
           <span aria-hidden="true" className="text-base leading-none">
             +
           </span>
           nieuw lid
-        </button>
+        </Knop>
       </div>
 
       <div aria-live="polite" role="status" className="empty:-mt-5">

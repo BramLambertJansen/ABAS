@@ -1,5 +1,6 @@
 "use client";
 
+import { Knop } from "@/components/Knop";
 import { useId, useState } from "react";
 import { Overlay } from "@/components/Overlay";
 import { StatCard } from "@/components/StatCard";
@@ -126,22 +127,20 @@ export function TerugdraaienOverlay({
       )}
 
       <div className="mt-0.5 flex gap-2.5">
-        <button
-          type="button"
+        <Knop
+          maat="groot" className="flex-1"
           disabled={pending}
           onClick={onClose}
-          className="flex h-control-lg flex-1 items-center justify-center rounded-card border border-border bg-surface text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
         >
           annuleren
-        </button>
-        <button
-          type="button"
+        </Knop>
+        <Knop
+          variant="gevaar" maat="groot" className="flex-1"
           disabled={confirmDisabled}
           onClick={handleConfirm}
-          className="flex h-control-lg flex-1 items-center justify-center rounded-card bg-danger text-sm font-bold text-white transition-colors hover:bg-ink disabled:cursor-not-allowed disabled:bg-track disabled:text-muted"
         >
           {pending ? "bezig…" : "terugdraaien"}
-        </button>
+        </Knop>
       </div>
     </Overlay>
   );

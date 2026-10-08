@@ -1,6 +1,6 @@
 "use client";
 
-import { KNOP_RAND, KNOP_ACCENT_DONKER } from "@/components/knopStijlen";
+import { Knop } from "@/components/Knop";
 import { OverlaySluitKnop } from "@/components/Overlay";
 
 /**
@@ -24,18 +24,18 @@ export function SheetKnoppen({
   return (
     <div className="flex gap-[10px]">
       <OverlaySluitKnop
+        maat="groot" className="flex-1"
         disabled={cancelDisabled}
-        className={`flex h-control-lg flex-1 items-center justify-center rounded-card text-sm font-bold ${KNOP_RAND}`}
       >
         Annuleren
       </OverlaySluitKnop>
-      <button
+      <Knop
+        variant="primair" maat="groot" className="flex-1"
         type="submit"
         aria-disabled={disabled}
-        className={`flex h-control-lg flex-1 items-center justify-center rounded-card text-sm font-bold ${KNOP_ACCENT_DONKER}`}
       >
         {submitLabel}
-      </button>
+      </Knop>
     </div>
   );
 }

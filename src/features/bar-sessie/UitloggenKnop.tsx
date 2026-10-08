@@ -6,7 +6,7 @@ import type { OpenShift } from "@/hooks/queries/useMijnDienst";
 import { DienstAfsluitenOverlay } from "@/features/dienst-afsluiten/DienstAfsluitenOverlay";
 import { useBarSessie } from "./BarSessieContext";
 import { BEHEERDER_INGREEP, UITLOGGEN } from "./teksten";
-import { KNOP_ACCENT_WIT, KNOP_RAND } from "@/components/knopStijlen";
+import { Knop, type KnopMaat, type KnopTone, type KnopVariant } from "@/components/Knop";
 
 /**
  * "Uitloggen" op de bar-schermen (docs/features/dienst-per-sessie.md →
@@ -16,16 +16,24 @@ import { KNOP_ACCENT_WIT, KNOP_RAND } from "@/components/knopStijlen";
  * `DienstAfsluitenOverlay`) of hem open laten, met een melding aan een
  * beheerder.
  *
- * `className` en `children` laten de aanroeper de knop passend maken (donker
- * startscherm, smalle rail); de logica blijft op één plek.
+ * `variant`, `tone`, `maat` en `children` laten de aanroeper de knop passend
+ * maken (donker startscherm, smalle rail); `className` is alleen layout. De
+ * logica blijft op één plek.
  */
 export function UitloggenKnop({
   shift,
+  variant,
+  tone,
+  maat,
   className,
   children,
 }: {
   shift: OpenShift | null;
-  className: string;
+  variant?: KnopVariant;
+  tone?: KnopTone;
+  maat?: KnopMaat;
+  /** Alleen layout (zie `Knop`). */
+  className?: string;
   children?: ReactNode;
 }) {
   const sessie = useBarSessie();
@@ -57,9 +65,16 @@ export function UitloggenKnop({
 
   return (
     <>
-      <button type="button" onClick={onClick} aria-disabled={bezig} className={className}>
+      <Knop
+        variant={variant}
+        tone={tone}
+        maat={maat}
+        className={className}
+        onClick={onClick}
+        aria-disabled={bezig}
+      >
         {children ?? UITLOGGEN.knop}
-      </button>
+      </Knop>
       <span role="alert" className={fout ? "text-[11px] font-semibold text-rail-error" : "sr-only"}>
         {fout ?? ""}
       </span>
@@ -71,34 +86,24 @@ export function UitloggenKnop({
           onClose={() => !bezig && setKeuzeOpen(false)}
         >
           <div className="flex flex-col gap-2.5">
-            <button
-              type="button"
+            <Knop
+              variant="primair"
+              maat="groot"
               disabled={bezig}
               onClick={() => {
                 setKeuzeOpen(false);
                 setAfsluitenOpen(true);
               }}
-              className={`flex h-control-lg items-center justify-center rounded-card text-sm font-bold ${KNOP_ACCENT_WIT}`}
             >
               {UITLOGGEN.dienstAfsluiten}
-            </button>
-            <button
-              type="button"
-              disabled={bezig}
-              onClick={() => void uitloggen(false)}
-              className={`flex h-control-lg items-center justify-center rounded-card text-sm font-bold ${KNOP_RAND}`}
-            >
+            </Knop>
+            <Knop maat="groot" disabled={bezig} onClick={() => void uitloggen(false)}>
               {UITLOGGEN.openLaten}
-            </button>
+            </Knop>
             <p className="text-center text-xs font-semibold text-muted">{UITLOGGEN.openLatenHint}</p>
-            <button
-              type="button"
-              disabled={bezig}
-              onClick={() => setKeuzeOpen(false)}
-              className="text-center text-xs font-bold text-muted hover:text-ink disabled:opacity-50"
-            >
+            <Knop variant="tekst" disabled={bezig} onClick={() => setKeuzeOpen(false)}>
               {UITLOGGEN.annuleren}
-            </button>
+            </Knop>
           </div>
         </Overlay>
       )}

@@ -1,9 +1,10 @@
 # Tokenschaal en gereset thema
 
-Status: **goedgekeurd**
+Status: **gebouwd**
 
 Roadmap fase 3, stap 2 (ADR 0025 → R4, voorbereiding op R5). Bouwt voort op
-stap 1 (Tailwind v4, #185).
+stap 1 (Tailwind v4, #185). Gebouwd in #197 (`1f92ae7`, 2026-10-08); de
+`eslint-suppressions.json`-ratchet daalde van 1060 naar 947.
 
 ## Doel
 
@@ -114,11 +115,10 @@ in `@theme`, of naar een eigen token:
    `--height-control-lg`). Dat sluit aan op R5: `density` kiest daar in stap 3
    een van de twee.
    - 48, 50 en 54px schuiven naar 52px. 40 en 42px schuiven naar 44px.
-   - Dit zijn kleine, zichtbare verschuivingen. Ze worden per scherm
-     gecontroleerd met de screenshotvergelijking (zie Tests).
+   - Dit zijn kleine, zichtbare verschuivingen. De geplande
+     screenshotvergelijking per scherm is niet uitgevoerd (zie Tests).
    - `min-h-[44px]` en `min-h-11` worden `min-h-control`.
-   - Nog open: `h-9` (36px) is deels avatar of icoon, deels misschien een
-     control. Dat wordt per geval vastgesteld en aan Bram voorgelegd.
+   - `h-9` (36px) is per geval vastgesteld (zie "Per geval").
 
 2. **Radiusschaal — besloten (Bram, 2026-10-07).** De schaal wordt:
 
@@ -161,8 +161,8 @@ in `@theme`, of naar een eigen token:
    - elke bestaande consumer migreren naar `h-control`/`h-control-lg`, de
      radiusschaal en `bg-surface`/`bg-surface-rail`.
 
-   Na een daling legt `npm run lint:prune` de ratchet vast. Elk scherm uit de
-   schermmatrix van de audit krijgt een screenshotvergelijking vóór en na.
+   Na een daling legt `npm run lint:prune` de ratchet vast. De geplande
+   screenshotvergelijking per scherm is niet uitgevoerd (zie Tests).
 
 ### Per geval — besloten (Bram, 2026-10-07)
 
@@ -234,15 +234,24 @@ De Developer legde een lijst voor; Bram besliste:
 
 - `npm run build`, en daarna een vergelijking van de gegenereerde CSS vóór en
   na de reset. Elke klasse die `src` gebruikt, moet blijven bestaan, tenzij
-  hij bewust naar een token is gemigreerd.
+  hij bewust naar een token is gemigreerd. **Uitgevoerd**: in beide bouwfases
+  door de Developer en door de Reviewer tegen `origin/main`. Alleen de
+  gemigreerde klassen verdwenen en de nieuwe tokenklassen kwamen erbij;
+  verder zijn alle declaraties gelijk.
 - `check:a11y` en de bestaande e2e-contrast- en focustests
   (`e2e/contrast-controls-bar.spec.ts`) blijven groen.
 - `test/accentContrast.test.ts` blijft groen.
 - Nieuw: een test die bevestigt dat een niet-gedeclareerde standaardklasse
   (`bg-red-500`) door `no-unknown-classes` wordt geweigerd. Zo bewijst de test
-  dat de reset werkt.
+  dat de reset werkt. Gebouwd als `test/tokenschaalReset.test.ts`: weigert
+  `bg-red-500`, `rounded-3xl`, `shadow-2xl` en `rounded-xl`, en kent de nieuwe
+  tokens. Lokaal is gecontroleerd dat hij faalt zonder `--*: initial`.
 - Bij zichtbare verschuivingen (besluit 1/2): een screenshotvergelijking per
   scherm uit de audit (`docs/audits/2026-10-06-componenten-tokens/`).
+  **Niet uitgevoerd.** Lokaal draaide geen Supabase, dus de schermen waren
+  niet te renderen. Bram heeft #197 toch laten mergen. De verschuivingen uit
+  besluit 1 en 2 zijn dus niet visueel per scherm gecontroleerd; dat kan
+  alsnog met de `toHaveScreenshot`-baselines van fase 3 stap 6.
 
 ## Expliciet buiten scope
 

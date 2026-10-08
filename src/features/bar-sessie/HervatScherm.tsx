@@ -1,5 +1,6 @@
 "use client";
 
+import { Knop } from "@/components/Knop";
 import { StartScherm } from "@/components/StartScherm";
 import { AuroraMerk } from "@/components/AuroraMerk";
 import { formatTime } from "@/lib/date";
@@ -38,16 +39,17 @@ export function HervatScherm() {
       </div>
 
       <div className="flex w-full max-w-sm flex-col gap-3">
-        <button
-          type="button"
+        <Knop
+          variant="primair" tone="rail" maat="groot" className="w-full"
           onClick={sessie.bevestig}
-          className="flex h-control-lg w-full items-center justify-center rounded-card bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover"
         >
           {HERVATTEN.verder}
-        </button>
+        </Knop>
         <UitloggenKnop
           shift={shift}
-          className="flex h-control-lg w-full items-center justify-center rounded-card border border-rail-border text-sm font-bold text-rail-muted transition-colors hover:border-accent hover:text-rail-light"
+          tone="rail"
+          maat="groot"
+          className="w-full"
         >
           {HERVATTEN.uitloggen}
         </UitloggenKnop>

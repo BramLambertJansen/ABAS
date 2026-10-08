@@ -11,13 +11,13 @@ Het huidige in-app design system is leidend; het prototype beschrijft de eerste 
 | Gewone invoer | `TekstVeld` | `tone=rail/light`; expliciete `id`, `inputRef`, `fout`, `foutAlert`, `hint`, `labelVerborgen`. Login, portalprofiel, nieuw lid/product en wachtwoordvelden. |
 | Bedrag invoeren | `TekstVeld prefix="€"` | Lichte presentatie, maat 44/52 (`h-control`/`h-control-lg`); prefix decoratief, geen parsing. Productprijs en startsaldo (ook nieuw product). |
 | Lokale veldmelding | `VeldFout` | Alleen tekst bij blur/poging; `alert` alleen direct na opslagpoging. Bedrag-, naam- en adresvelden. |
-| Knop | `knopStijlen.ts` | `KNOP_ACCENT_WIT`, `KNOP_ACCENT_DONKER`, `KNOP_RAND`; native én aria-disabled-stijl. Maat/layout blijven bij consument; grote actie `KNOP_DIALOOG_MAAT`. |
+| Knop | `Knop`, `knopKlassen` | Kies een rol, geen klassen: `variant` (`primair` donker op accent, `secundair` rand, `gevaar` gevuld rood, `tekst`), `tone` (`licht`/`rail`), `maat` (`normaal` 44px, `groot` 52px: hoofdactie van dialoog, inlog, rail of afrekenen), `icoon` (vierkant, `aria-label` verplicht), `href` (link met dezelfde stijl). `type="button"` is de standaard; submit expliciet. `disabled` en `aria-disabled` geven dezelfde stijl. `className` alleen voor layout (`flex-1`, `w-full`, marges); lint bewaakt dat. Leest `density` niet (ADR 0026). Toets, Tegel en Chip volgen in PR 2. |
 | Zoekinput | `ZoekVeld` + `ZoekIcoon` | Beheerlijsten. Andere zoekrollen mogen hun eigen input behouden; hetzelfde decoratieve icoon bij assortiment en lidzoeker. |
 | Lid zoeken/kiezen | `LidZoeker` | Combobox met `useListbox`; loading/error/ready, retry, lege resultaten en laag saldo. Mandje. |
 | Gesloten keuze | `Select` | Gedeelde listboxlogica; donkere staf-/activiteitkeuze. Geen gewone zoekinput van maken. |
 | Statusfilter | `StatusFilter` | Chips met tellers; geselecteerde toestand en waarde bij aanroeper. Leden/productenbeheer. |
 | Tabnavigatie | `TabList`, `TabPanel` | Stabiele ids, ARIA en toetsenbord. Bar/beheer automatisch; portal handmatig met Enter/Space. Vormgeving bij aanroeper. |
-| Dialoog | `Overlay`, `OverlaySluitKnop` | Shell bepaalt modal/sheet; focus trap, achtergrond inert, scrolllock en focusherstel gedeeld. `detail` heeft vaste kop in modal, meescrollende kop in sheet. |
+| Dialoog | `Overlay`, `OverlaySluitKnop` | `OverlaySluitKnop` is een dunne wrapper rond `Knop` (zelfde props, eigen `onClick` = sluitverzoek). Shell bepaalt modal/sheet; focus trap, achtergrond inert, scrolllock en focusherstel gedeeld. `detail` heeft vaste kop in modal, meescrollende kop in sheet. |
 | Aanwezigheid dialoog | `OverlayPresence` / `overlayShield` | Gedeelde teller voorkomt openen van achtergrondmeldingen en geeft triggerfocus terug; geen tweede overlay voor een bevestiging. |
 | Bewerken/opslaan | `OpslaanSectie` | `label`, `kop`, `status`, `statusTekst`, pending, wachtOpAnder, eigen fout. Product- en lidbeheer. |
 | Leesfout zonder data | `LeesFout` + `useLeesHerstel` | Fout/retryplek blijft tijdens laden; aria-disabled voorkomt focusverlies, guard voorkomt dubbel verzoek; focus naar herstelde sectie bij succes. Account en beheer/bar. |
@@ -91,8 +91,8 @@ en het railgradient worden uit dezelfde accentkleur afgeleid; SVG's erven
 currentColor. Themawijziging vraagt nog contrast- en visuele controle.
 
 Controlhoogte: `h-control` (44px) of `h-control-lg` (52px), ook als
-`min-h-control`. Gewone knop/invoer `h-control` met rounded-control; grote
-primaire modalactie `KNOP_DIALOOG_MAAT` (`h-control-lg rounded-card`).
+`min-h-control`. Gewone knop/invoer `h-control` met rounded-control; een knop kiest de maat
+via `maat="normaal"` of `maat="groot"` (`h-control-lg rounded-card`), zie `Knop`.
 Portal-tabs groeien/wrappen bij vergrote letters. Bestaande iconbuttons,
 chips en samengestelde controls zijn geen belofte dat alles al op 44px staat.
 Een brede maatharmonisatie of verkleining van de tekstschaal vraagt een afzonderlijke
@@ -110,6 +110,21 @@ houdt haar open. Ongewijzigde formulieren sluiten direct. Een bevestigde
 opslag sluit via de succescallback, zonder weggooivraag.
 Sluiten slaat niets op. Een aparte risicoafhankelijke bevestiging (zoals het
 laatste activiteitstype) houdt zijn eigen veilige annulering.
+
+Woordenlijst voor knop- en dialoogteksten (vast):
+
+- **Sluiten**: de dialoog verlaten zonder opslaan. Onder het bestaande T06-contract
+  gooit een expliciete knop gewijzigde invoer direct weg; Escape/backdrop vraagt
+  eerst bevestiging. Pending blokkeert beide.
+- **Annuleren**: een lopende handeling of invoer afbreken (uitgesproken werkwoord;
+  niet "Annuleer").
+- **Klaar**: alleen een bewerkscherm waarvan de wijzigingen al live zijn opgeslagen
+  afronden (nu alleen `BezettingOverlay`).
+- **Terug**: alleen navigeren, of de "weggooien?"-vraag verlaten
+  (`WEGGOOIEN_TERUG_KNOP`, mandje).
+- **Contant**: de betaalmethode in de UI; "cash" komt nooit op het scherm
+  (`methodLabel`).
+- **Uitnodiging**: nooit "Invite" in UI-tekst.
 
 **Klaar** beëindigt een scherm waarvan wijzigingen al live zijn opgeslagen;
 **Contant** is de betaalmethode; **Uitnodiging** is de Nederlandse term. Gebruik

@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Knop } from "@/components/Knop";
 import { useCallback, useRef, useState, type FormEvent } from "react";
 import { StartScherm } from "@/components/StartScherm";
 import { AuroraMerk } from "@/components/AuroraMerk";
@@ -232,12 +232,9 @@ export function BarInloggen() {
   // alternatieve login niet afsluiten (docs/features/
   // leesfouten-herstel-actuele-data.md, besluit 7).
   const emailIngang = (
-    <Link
-      href="/beheer"
-      className="flex h-control-lg w-full max-w-[500px] items-center justify-center rounded-card border border-rail-border text-sm font-bold text-rail-muted transition-colors hover:border-accent hover:text-rail-light"
-    >
+    <Knop href="/beheer" tone="rail" maat="groot" className="w-full max-w-[500px]">
       {STARTSCHERM.emailLink}
-    </Link>
+    </Knop>
   );
 
   return (
@@ -311,14 +308,13 @@ export function BarInloggen() {
             backLabel={INLOGGEN.terug}
             instructie={INLOGGEN.pinInstructie}
           />
-          <button
-            type="button"
+          <Knop
+            variant="tekst" tone="rail"
             disabled={login.pending}
             onClick={() => wissel("wachtwoord")}
-            className="text-xs font-semibold text-rail-muted underline hover:text-rail-light disabled:opacity-50"
           >
             {INLOGGEN.pinToggle}
-          </button>
+          </Knop>
         </>
       )}
 
@@ -355,43 +351,40 @@ export function BarInloggen() {
             value={wachtwoord}
             onChange={(event) => setWachtwoord(event.target.value)}
           >
-            <button
-              type="button"
+            <Knop
+              variant="tekst" tone="rail" className="self-end"
               onClick={() => wissel("vergeten")}
-              className="self-end text-xs font-semibold text-rail-muted underline hover:text-rail-light"
             >
               {INLOGGEN.wachtwoordVergeten}
-            </button>
+            </Knop>
           </TekstVeld>
 
           {/* aria-disabled, niet disabled: een disabled knop verliest de focus
               (zelfde reden als BeheerLogin, #77); onSubmit blokkeert dubbel
               versturen zelf. */}
-          <button
+          <Knop
+            variant="primair" tone="rail" maat="groot" className="w-full"
             type="submit"
             aria-disabled={login.pending}
-            className="flex h-control-lg w-full items-center justify-center rounded-card bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
           >
             {INLOGGEN.wachtwoordKnop}
-          </button>
+          </Knop>
 
           {pinBeschikbaar && (
-            <button
-              type="button"
+            <Knop
+              variant="tekst" tone="rail"
               onClick={() => wissel("pin")}
-              className="text-center text-xs font-semibold text-rail-muted underline hover:text-rail-light"
             >
               {INLOGGEN.wachtwoordToggle}
-            </button>
+            </Knop>
           )}
 
-          <button
-            type="button"
+          <Knop
+            variant="tekst" tone="rail"
             onClick={terugNaarNamen}
-            className="text-center text-xs font-semibold text-rail-muted hover:text-rail-light"
           >
             {INLOGGEN.terug}
-          </button>
+          </Knop>
         </form>
       )}
 
@@ -419,22 +412,21 @@ export function BarInloggen() {
               <p className="text-center text-xs font-medium text-rail-muted">
                 {INLOGGEN.vergetenUitleg}
               </p>
-              <button
+              <Knop
+                variant="primair" tone="rail" maat="groot" className="w-full"
                 type="submit"
                 disabled={login.pending}
-                className="flex h-control-lg w-full items-center justify-center rounded-card bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:opacity-50"
               >
                 {INLOGGEN.vergetenKnop}
-              </button>
+              </Knop>
             </>
           )}
-          <button
-            type="button"
+          <Knop
+            variant="tekst" tone="rail"
             onClick={() => wissel("wachtwoord")}
-            className="text-center text-xs font-semibold text-rail-muted hover:text-rail-light"
           >
             {INLOGGEN.terug.replace("andere naam", "terug naar inloggen")}
-          </button>
+          </Knop>
         </form>
       )}
     </StartScherm>

@@ -94,7 +94,7 @@ export function DienstStarten() {
         <span className="text-xs font-semibold text-rail-muted">{ingelogdAls(session.memberName)}</span>
         <UitloggenKnop
           shift={null}
-          className="flex h-control items-center rounded-control border border-rail-border px-3.5 text-xs font-bold text-rail-muted transition-colors hover:border-accent hover:text-rail-light"
+          tone="rail"
         />
       </div>
 

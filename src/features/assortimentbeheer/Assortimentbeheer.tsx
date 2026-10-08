@@ -1,5 +1,6 @@
 "use client";
 
+import { Knop } from "@/components/Knop";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useBeheerSession } from "@/hooks/queries/useBeheerSession";
@@ -101,13 +102,12 @@ function BeheerSchermen() {
           <p className="max-w-xs text-center text-sm font-semibold text-danger" role="alert">
             {sessie.foutMelding}
           </p>
-          <button
-            type="button"
+          <Knop
+            variant="tekst"
             onClick={sessie.herlaad}
-            className="text-xs font-semibold text-muted underline hover:text-ink"
           >
             Opnieuw proberen
-          </button>
+          </Knop>
         </main>
       );
     case "uitgelogd":

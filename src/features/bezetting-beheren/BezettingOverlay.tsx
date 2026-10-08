@@ -1,5 +1,6 @@
 "use client";
 
+import { Knop } from "@/components/Knop";
 import { useId, useState } from "react";
 import { Overlay } from "@/components/Overlay";
 import { useOpslaanBlokkade } from "@/hooks/useOpslaanBlokkade";
@@ -19,7 +20,6 @@ import { SESSION_CODE_INLINE_MESSAGE, isSessionErrorCode } from "@/lib/barSessie
 import { InitialsAvatar } from "@/components/InitialsAvatar";
 import { RoleBadge } from "@/components/RoleBadge";
 import { TekstVeld } from "@/components/TekstVeld";
-import { KNOP_ACCENT_WIT } from "@/components/knopStijlen";
 
 function addErrorMessage(code: AddShiftMemberErrorCode): string {
   // De zes sessiecodes (dienst-per-sessie) krijgen één centrale melding.
@@ -137,9 +137,9 @@ export function BezettingOverlay({
       {membersStatus === "error" && (
         <div className="flex flex-col gap-2">
           <p className="text-sm font-semibold text-danger" role="alert">Kan de bezetting niet laden.</p>
-          <button type="button" onClick={onMembersChanged} className="min-h-control text-sm font-bold text-ink">
+          <Knop variant="tekst" onClick={onMembersChanged}>
             Bezetting opnieuw laden
-          </button>
+          </Knop>
         </div>
       )}
 
@@ -152,9 +152,9 @@ export function BezettingOverlay({
       {candidates.status === "error" && (
         <div className="flex flex-col gap-2">
           <p className="text-sm font-semibold text-danger" role="alert">{candidates.message}</p>
-          <button type="button" onClick={candidates.refetch} className="min-h-control text-sm font-bold text-ink">
+          <Knop variant="tekst" onClick={candidates.refetch}>
             Bardienst-lijst opnieuw laden
-          </button>
+          </Knop>
         </div>
       )}
 
@@ -230,14 +230,13 @@ export function BezettingOverlay({
         </ul>
       )}
 
-      <button
-        type="button"
+      <Knop
+        variant="primair" className="w-full"
         disabled={closeBlocked}
         onClick={onClose}
-        className={`flex h-control w-full items-center justify-center rounded-card text-sm font-bold ${KNOP_ACCENT_WIT}`}
       >
         Klaar
-      </button>
+      </Knop>
     </Overlay>
   );
 }

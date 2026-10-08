@@ -1,5 +1,6 @@
 "use client";
 
+import { Knop } from "@/components/Knop";
 import { useEffect, useId, useRef, useState } from "react";
 import { LeesFout } from "@/components/LeesFout";
 import { useHerstelFocus } from "@/hooks/useHerstelFocus";
@@ -262,22 +263,20 @@ export function ActiviteitstypesInstellingen() {
                     }
                     className="h-control flex-1 min-w-0 rounded-control border border-border px-3 text-sm font-semibold text-ink focus-visible:outline-hidden focus:border-accent focus:ring-2 focus:ring-accent/30"
                   />
-                  <button
-                    type="button"
+                  <Knop
+                    variant="primair" className="flex-none"
                     disabled={renaming || editing.name.trim() === ""}
                     onClick={saveEdit}
-                    className="flex h-control flex-none items-center justify-center rounded-control bg-accent px-3 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-track disabled:text-muted"
                   >
                     Opslaan
-                  </button>
-                  <button
-                    type="button"
+                  </Knop>
+                  <Knop
+                    className="flex-none"
                     disabled={renaming}
                     onClick={cancelEdit}
-                    className="flex h-control flex-none items-center justify-center rounded-control border border-border px-3 text-xs font-bold text-ink transition-colors hover:border-accent disabled:opacity-50"
                   >
                     Annuleren
-                  </button>
+                  </Knop>
                 </div>
               ) : (
                 <div className="flex min-h-control items-center justify-between gap-3 px-3.5 py-2">
@@ -296,21 +295,18 @@ export function ActiviteitstypesInstellingen() {
                     )}
                   </span>
                   <span className="flex flex-none items-center gap-1.5">
-                    <button
-                      type="button"
+                    <Knop
                       onClick={() => startEdit(type)}
                       aria-label={`${type.name} bewerken`}
-                      className="flex h-control items-center justify-center rounded-control border border-border bg-surface px-2.5 text-xs font-bold text-ink transition-colors hover:border-accent"
                     >
                       <span aria-hidden="true">✎</span>
                       <span className="ml-1">bewerken</span>
-                    </button>
-                    <button
+                    </Knop>
+                    <Knop variant={type.archived ? "secundair" : "gevaar"}
                       ref={(el) => {
                         if (el) archiveRefs.current.set(type.id, el);
                         else archiveRefs.current.delete(type.id);
                       }}
-                      type="button"
                       disabled={archiving}
                       onClick={() => vraagArchiveren(type)}
                       aria-label={
@@ -318,14 +314,9 @@ export function ActiviteitstypesInstellingen() {
                           ? `${type.name} herstellen`
                           : `${type.name} archiveren`
                       }
-                      className={`flex h-control items-center justify-center rounded-control border px-2.5 text-xs font-bold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-                        type.archived
-                          ? "border-border bg-surface text-ink hover:border-accent"
-                          : "border-border bg-surface text-danger hover:border-danger"
-                      }`}
                     >
                       {type.archived ? "herstellen" : "archiveren"}
-                    </button>
+                    </Knop>
                   </span>
                 </div>
               )}
@@ -339,33 +330,29 @@ export function ActiviteitstypesInstellingen() {
                     Dit is het laatste actieve activiteitstype. Zonder actief type kan niemand een dienst starten.
                   </p>
                   <div className="flex flex-wrap gap-2">
-                    <button
+                    <Knop
+                      variant="primair"
                       ref={annulerenRef}
-                      type="button"
                       onClick={() => annuleerWaarschuwing(type.id)}
-                      className="flex h-control items-center justify-center rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover"
                     >
                       Annuleren
-                    </button>
-                    <button
-                      type="button"
+                    </Knop>
+                    <Knop
                       disabled={archiving}
                       onClick={() => {
                         setBevestig(null);
                         newNameRef.current?.focus();
                       }}
-                      className="flex h-control items-center justify-center rounded-control border border-border bg-surface px-4 text-sm font-bold text-ink transition-colors hover:border-ink disabled:opacity-50"
                     >
                       Eerst een type toevoegen
-                    </button>
-                    <button
-                      type="button"
+                    </Knop>
+                    <Knop
+                      variant="gevaar"
                       disabled={archiving}
                       onClick={() => toggleArchived(type)}
-                      className="flex h-control items-center justify-center rounded-control border border-danger bg-surface px-4 text-sm font-bold text-danger transition-colors hover:bg-canvas disabled:opacity-50"
                     >
                       Toch archiveren
-                    </button>
+                    </Knop>
                   </div>
                 </div>
               )}
@@ -390,17 +377,16 @@ export function ActiviteitstypesInstellingen() {
             onChange={(event) => setNewName(event.target.value)}
             className="h-control flex-1 min-w-0 rounded-control border border-border px-3.5 text-sm font-semibold text-ink focus-visible:outline-hidden focus:border-accent focus:ring-2 focus:ring-accent/30"
           />
-          <button
-            type="button"
+          <Knop
+            variant="primair" className="flex-none gap-1.5"
             disabled={creating || newName.trim() === ""}
             onClick={createType}
-            className="flex h-control flex-none items-center gap-1.5 rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-track disabled:text-muted"
           >
             <span aria-hidden="true" className="text-base leading-none">
               +
             </span>
             toevoegen
-          </button>
+          </Knop>
         </div>
       </div>
     </div>

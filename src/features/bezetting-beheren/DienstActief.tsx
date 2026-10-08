@@ -1,5 +1,6 @@
 "use client";
 
+import { Knop } from "@/components/Knop";
 import { useEffect, useRef, useState } from "react";
 import { LeesFout } from "@/components/LeesFout";
 import { useLeesHerstel } from "@/hooks/useLeesHerstel";
@@ -186,14 +187,13 @@ export function DienstActief({
             >
               Bezetting
             </h3>
-            <button
-              type="button"
+            <Knop
+              variant="tekst"
               onClick={() => setOverlayOpen(true)}
               aria-label="Bezetting wijzigen"
-              className="text-[11px] font-bold text-muted transition-colors hover:text-ink"
             >
               wijzigen
-            </button>
+            </Knop>
           </div>
 
           {shiftMembers.status === "loading" && !bezettingHerstel.toonFout && (
@@ -243,13 +243,11 @@ export function DienstActief({
           </p>
         )}
 
-        <button
-          type="button"
+        <Knop variant="primair" maat="groot" className="flex-none"
           onClick={() => setAfsluitenOverlayOpen(true)}
-          className="flex h-control-lg flex-none items-center justify-center rounded-control bg-rail text-sm font-extrabold text-white transition-colors hover:bg-black"
         >
           Dienst afsluiten
-        </button>
+        </Knop>
       </ZijPaneel>
 
       {overlayOpen && (

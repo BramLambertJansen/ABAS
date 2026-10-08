@@ -1,5 +1,6 @@
 "use client";
 
+import { Knop } from "@/components/Knop";
 import { useState } from "react";
 import { formatTime } from "@/lib/date";
 import { DienstAfsluitenOverlay } from "@/features/dienst-afsluiten/DienstAfsluitenOverlay";
@@ -66,13 +67,12 @@ export function DienstenApparaten() {
                     {shift.activityTypeName ? ` · ${shift.activityTypeName}` : ""}
                   </span>
                 </div>
-                <button
-                  type="button"
+                <Knop
+                  className="flex-none"
                   onClick={() => setAfsluiten(shift)}
-                  className="flex h-control flex-none items-center rounded-control border border-border bg-surface px-3.5 text-xs font-extrabold text-ink transition-colors hover:border-ink"
                 >
                   {ADMIN_MELDING.afsluiten}
-                </button>
+                </Knop>
               </div>
               {shift.sessions.length === 0 ? (
                 <p className="text-xs font-semibold text-danger">
@@ -116,14 +116,13 @@ export function DienstenApparaten() {
                 </span>
               </div>
               {!s.isOwn && (
-                <button
-                  type="button"
+                <Knop
+                  className="flex-none"
                   onClick={() => setAfmelden(s)}
                   aria-label={`${BEHEERDER_INGREEP.afmeldenKnop}: ${s.memberName}`}
-                  className="flex h-control flex-none items-center rounded-control border border-border bg-surface px-3.5 text-xs font-extrabold text-ink transition-colors hover:border-ink"
                 >
                   {BEHEERDER_INGREEP.afmeldenKnop}
-                </button>
+                </Knop>
               )}
             </li>
           ))}

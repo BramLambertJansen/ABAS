@@ -1,5 +1,6 @@
 "use client";
 
+import { Knop } from "@/components/Knop";
 import { useEffect, useId, useRef, useState, type RefObject } from "react";
 import { TabList, TabPanel, tabElementId, type TabItem } from "@/components/Tabs";
 import { SaldoTab } from "./SaldoTab";
@@ -87,13 +88,12 @@ export function PortalDashboard({
               sessie-context. */}
           <span className="sr-only">Ingelogd als {email}.</span>
         </div>
-        <button
-          type="button"
+        <Knop
+          className="flex-none whitespace-nowrap"
           onClick={onSignOut}
-          className="flex h-control flex-none items-center whitespace-nowrap rounded-control border border-border px-3.5 text-xs font-extrabold text-muted transition-colors hover:border-accent hover:text-accent-active"
         >
           Uitloggen
-        </button>
+        </Knop>
       </header>
 
       <TabList

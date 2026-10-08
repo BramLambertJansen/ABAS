@@ -1,5 +1,6 @@
 "use client";
 
+import { Knop } from "@/components/Knop";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { StartScherm } from "@/components/StartScherm";
@@ -178,13 +179,12 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
               om een nieuw wachtwoord in te stellen.
             </p>
             <p className="text-xs font-medium text-rail-muted">De link is 1 uur geldig.</p>
-            <button
-              type="button"
+            <Knop
+              variant="tekst" tone="rail"
               onClick={backToLogin}
-              className="text-xs font-semibold text-rail-muted underline hover:text-rail-light"
             >
               ← terug naar inloggen
-            </button>
+            </Knop>
           </div>
         ) : (
           <form
@@ -215,21 +215,20 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
               onChange={(event) => setEmail(event.target.value)}
             />
 
-            <button
+            <Knop
+              variant="primair" tone="rail" maat="groot" className="w-full"
               type="submit"
               disabled={resetRequest.status === "pending"}
-              className="flex h-control-lg w-full items-center justify-center rounded-card bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:opacity-50"
             >
               Stuur herstellink
-            </button>
+            </Knop>
 
-            <button
-              type="button"
+            <Knop
+              variant="tekst" tone="rail"
               onClick={backToLogin}
-              className="text-center text-xs font-semibold text-rail-muted hover:text-rail-light"
             >
               ← terug naar inloggen
-            </button>
+            </Knop>
           </form>
         )
       ) : magicLinkSent ? (
@@ -246,13 +245,12 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
           <p className="text-xs font-medium text-rail-muted">
             Open de link in de mail om in te loggen — dat mag ook op een ander apparaat.
           </p>
-          <button
-            type="button"
+          <Knop
+            variant="tekst" tone="rail"
             onClick={otherLoginMethod}
-            className="text-xs font-semibold text-rail-muted underline hover:text-rail-light"
           >
             Andere inlogmethode
-          </button>
+          </Knop>
         </div>
       ) : (
         <form
@@ -324,26 +322,25 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
               value={password}
               onChange={(event) => setPassword(event.target.value)}
             >
-              <button
-                type="button"
+              <Knop
+                variant="tekst" tone="rail" className="self-end"
                 onClick={openForgot}
-                className="self-end text-xs font-semibold text-rail-muted underline hover:text-rail-light"
               >
                 Wachtwoord vergeten?
-              </button>
+              </Knop>
             </TekstVeld>
           )}
 
           {/* aria-disabled, niet disabled: een disabled knop verliest de
               focus, en na een mislukte poging stond die dan op <body> (#77).
               onSubmit blokkeert dubbel versturen zelf. */}
-          <button
+          <Knop
+            variant="primair" tone="rail" maat="groot" className="w-full"
             type="submit"
             aria-disabled={loginPending}
-            className="flex h-control-lg w-full items-center justify-center rounded-card bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
           >
             {method === "magic_link" ? "Stuur inloglink" : "Inloggen"}
-          </button>
+          </Knop>
 
           <Link href="/" className="text-center text-xs font-semibold text-rail-muted hover:text-rail-light">
             ← terug naar bardienst

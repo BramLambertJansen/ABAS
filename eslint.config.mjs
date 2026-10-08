@@ -19,6 +19,24 @@ const compat = new FlatCompat({
 // ook de reparatie-instructie voor een agent.
 const ARBITRARY = "Geen arbitrary Tailwind-waarde: kies een token uit @theme in src/app/globals.css (zie src/components/README.md). Ontbreekt het token, vraag het aan Bram.";
 
+// Knop is een variantcomponent (docs/features/knop.md): className is alleen voor
+// layout. Kleur, rand, vorm, hoogte, tekst en toestanden komen uit variant/tone/maat.
+const KNOP_VERBODEN =
+  "(?:^|\\s)(?:[a-z0-9-]+:)*(?:bg-|text-|border|rounded|shadow|font-|h-|min-h-|max-h-|p-|px-|py-|pt-|pb-|pl-|pr-|ring|outline|hover:|active:|disabled:|aria-|focus)";
+const KNOP_ELEMENT = "/^(Knop|OverlaySluitKnop)$/";
+const KNOP_MELDING =
+  "className op Knop is alleen voor layout (flex-1, w-full, marges): gebruik variant, tone en maat voor kleur, rand, vorm, hoogte en tekst (docs/features/knop.md).";
+const KNOP_CLASSNAME_REGELS = [
+  {
+    selector: `JSXOpeningElement[name.name=${KNOP_ELEMENT}] > JSXAttribute[name.name='className'] Literal[value=/${KNOP_VERBODEN}/]`,
+    message: KNOP_MELDING,
+  },
+  {
+    selector: `JSXOpeningElement[name.name=${KNOP_ELEMENT}] > JSXAttribute[name.name='className'] TemplateElement[value.raw=/${KNOP_VERBODEN}/]`,
+    message: KNOP_MELDING,
+  },
+];
+
 const eslintConfig = [
   {
     ignores: [
@@ -96,6 +114,7 @@ const eslintConfig = [
           selector: "Literal[value=/laden…$/]",
           message: "Losse laadtekst: gebruik het gedeelde laad-/leeg-/foutpatroon (LeesFout, VerversStatus) en tekst uit één plek.",
         },
+        ...KNOP_CLASSNAME_REGELS,
       ],
     },
   },

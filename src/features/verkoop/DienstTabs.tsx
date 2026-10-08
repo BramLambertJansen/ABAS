@@ -139,7 +139,8 @@ export function DienstTabs({
             )}
             <UitloggenKnop
               shift={shift}
-              className="flex w-[70px] items-center justify-center rounded-sm border border-rail-border py-2 text-[10.5px] font-bold text-rail-muted transition-colors hover:border-accent hover:text-white"
+              tone="rail"
+              className="w-full"
             />
           </div>
         </nav>

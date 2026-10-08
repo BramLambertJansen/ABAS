@@ -1,5 +1,6 @@
 "use client";
 
+import { Knop } from "@/components/Knop";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LeesFout } from "@/components/LeesFout";
 import { useLeesHerstel } from "@/hooks/useLeesHerstel";
@@ -67,16 +68,15 @@ export function ProductenLijst() {
         <h1 ref={kopRef} tabIndex={-1} className="text-dialog-title font-extrabold tracking-[-0.02em]">
           Assortiment
         </h1>
-        <button
-          type="button"
+        <Knop
+          variant="primair" className="gap-1.5"
           onClick={() => setOverlay({ kind: "new" })}
-          className="flex h-control items-center gap-1.5 rounded-control bg-accent px-[18px] text-[13px] font-extrabold text-rail transition-colors hover:bg-accent-hover"
         >
           <span aria-hidden="true" className="text-base leading-none">
             +
           </span>
           nieuw product
-        </button>
+        </Knop>
       </div>
 
       <div aria-live="polite" role="status" className="empty:-mt-5">
@@ -134,13 +134,11 @@ export function ProductenLijst() {
           <p className="text-sm font-semibold text-muted">
             {`Geen producten gevonden voor “${query.trim()}”.`}
           </p>
-          <button
-            type="button"
+          <Knop
             onClick={() => setQuery("")}
-            className="flex h-control items-center justify-center rounded-control border border-border bg-surface px-4 text-sm font-bold text-ink transition-colors hover:border-ink"
           >
             Zoekopdracht wissen
-          </button>
+          </Knop>
         </div>
       )}
 

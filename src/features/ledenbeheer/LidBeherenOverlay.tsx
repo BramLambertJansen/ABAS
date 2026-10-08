@@ -1,6 +1,6 @@
 "use client";
 
-import { KNOP_ACCENT_DONKER } from "@/components/knopStijlen";
+import { Knop } from "@/components/Knop";
 
 import { useId, useRef, useState } from "react";
 import { NAAM_VERPLICHT_TEKST } from "@/lib/veldFouten";
@@ -457,14 +457,13 @@ export function LidBeherenOverlay({
                 setGelukt((g) => ({ ...g, naam: false }));
                 if (nameMutation.errorCode) nameMutation.reset();
               }} />
-            <button
-              type="button"
+            <Knop
+              variant="primair"
               disabled={!canSaveName}
               onClick={saveName}
-              className={`flex h-control items-center justify-center rounded-control px-4 text-sm font-bold ${KNOP_ACCENT_DONKER}`}
             >
               {nameBusy ? OPSLAAN_BEZIG_TEKST : "Opslaan"}
-            </button>
+            </Knop>
           </div>
           <VeldFout id={`${nameId}-fout`} tekst={naamMelding} alert={naamMoment.pogingAlert} />
         </OpslaanSectie>
@@ -494,14 +493,13 @@ export function LidBeherenOverlay({
                 emailMoment.bijWijzig();
                 if (emailMutation.errorCode) emailMutation.reset();
               }} />
-            <button
-              type="button"
+            <Knop
+              variant="primair"
               disabled={!canSaveEmail}
               onClick={saveEmail}
-              className={`flex h-control items-center justify-center rounded-control px-4 text-sm font-bold ${KNOP_ACCENT_DONKER}`}
             >
               {emailBusy ? OPSLAAN_BEZIG_TEKST : "Opslaan"}
-            </button>
+            </Knop>
           </div>
           <div id={emailUitlegId} className="flex flex-col gap-1 text-xs font-medium text-muted">
             <p>{CONTACTADRES_UITLEG}</p>
@@ -555,14 +553,13 @@ export function LidBeherenOverlay({
                 </option>
               ))}
             </select>
-            <button
-              type="button"
+            <Knop
+              variant="primair"
               disabled={!canSaveRole}
               onClick={saveRole}
-              className={`flex h-control items-center justify-center rounded-control px-4 text-sm font-bold ${KNOP_ACCENT_DONKER}`}
             >
               {roleBusy ? OPSLAAN_BEZIG_TEKST : "Opslaan"}
-            </button>
+            </Knop>
           </div>
         </OpslaanSectie>
 
@@ -613,19 +610,18 @@ export function LidBeherenOverlay({
           )}
           {member.email !== null && (
             <div className="flex flex-col gap-1.5">
-              <button
+              <Knop
+                variant="primair" className="w-full"
                 ref={inviteButtonRef}
-                type="button"
                 disabled={member.hasAccount || busy}
                 onClick={sendInvite}
-                className={`flex h-control w-full items-center justify-center rounded-control px-4 text-sm font-bold ${KNOP_ACCENT_DONKER}`}
               >
                 {inviteBusy
                   ? OPSLAAN_BEZIG_TEKST
                   : member.invitedAt === null
                     ? "Uitnodiging versturen"
                     : "Uitnodiging opnieuw versturen"}
-              </button>
+              </Knop>
               <span className="text-xs font-medium text-muted">
                 {member.hasAccount
                   ? "dit lid heeft al een account — een nieuwe uitnodiging is niet nodig"
