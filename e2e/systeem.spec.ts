@@ -17,6 +17,9 @@ const cfg = JSON.parse(readFileSync("scripts/kit/systeem.lokaal.json", "utf8")) 
   route: string;
   viewport: { width: number; height: number };
   testWachtwoord: string;
+  vensterRoute?: string;
+  vensters?: Record<string, { componenten: string[]; breedte: number; hoogte: number; eigenLandmark?: boolean }>;
+  interactiesPad?: string;
 };
 
 test.use({
@@ -28,6 +31,8 @@ const SECTIE = "[data-systeem]";
 const BRUIKBARE_KNOP = 'button:not([disabled]):not([aria-disabled="true"])';
 const FOCUSBAAR =
   'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+const AXE_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 
 async function openPagina(page: Page) {
   await page.goto(cfg.route);
@@ -110,7 +115,7 @@ test("focus: per sectie met een focusbaar element een screenshot na Tab (focus-v
 test("axe: de hele pagina heeft 0 violations (WCAG 2.2 AA)", async ({ page }) => {
   await openPagina(page);
   const results = await new AxeBuilder({ page })
-    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
+    .withTags(AXE_TAGS)
     .analyze();
   expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
 });
@@ -137,3 +142,139 @@ test("met een fout wachtwoord geeft de pagina 401", async ({ playwright, baseURL
     await fout.dispose();
   }
 });
+
+// --- Losse vensters (docs/features/ontwerpsysteem-uitzonderingen.md → Vensters) ---
+// Eén test per venster uit de config: viewport, één main en één h1, axe en een
+// screenshot van de viewport. Geen hover- of focus-screenshots per venster.
+
+const VENSTERS = Object.entries(cfg.vensters ?? {});
+const vensterUrl = (id: string) => `${cfg.vensterRoute}/${id}`;
+
+async function openVenster(page: Page, id: string) {
+  const v = cfg.vensters?.[id];
+  if (!v) throw new Error(`venster "${id}" staat niet in systeem.lokaal.json → vensters`);
+  await page.setViewportSize({ width: v.breedte, height: v.hoogte });
+  const antwoord = await page.goto(vensterUrl(id));
+  expect(antwoord?.status(), `venster ${id}: ${vensterUrl(id)} gaf geen 200`).toBe(200);
+  await page.evaluate(() => document.fonts.ready);
+}
+
+for (const [id] of VENSTERS) {
+  test(`venster ${id}: één main en één h1, axe en screenshot`, async ({ page }) => {
+    await openVenster(page, id);
+    await expect(page.locator("main"), `venster ${id}: niet precies één main`).toHaveCount(1);
+    await expect(page.locator("h1"), `venster ${id}: niet precies één h1`).toHaveCount(1);
+    const results = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();
+    expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
+    await page.evaluate(() => document.fonts.ready);
+    await expect(page).toHaveScreenshot(`venster-${id}.png`);
+  });
+}
+
+if (VENSTERS.length > 0) {
+  test("zonder inloggegevens geeft de vensterroute 401", async ({ playwright, baseURL }) => {
+    const zonder = await playwright.request.newContext({ baseURL, httpCredentials: undefined });
+    try {
+      expect((await zonder.get(vensterUrl(VENSTERS[0]![0]))).status()).toBe(401);
+    } finally {
+      await zonder.dispose();
+    }
+  });
+
+  test("een onbekend venster-id geeft 404", async ({ playwright, baseURL }) => {
+    let onbekend = "onbekend-venster";
+    while (cfg.vensters && Object.hasOwn(cfg.vensters, onbekend)) onbekend += "-x";
+    const met = await playwright.request.newContext({
+      baseURL,
+      httpCredentials: { username: "systeem", password: cfg.testWachtwoord },
+    });
+    try {
+      expect((await met.get(vensterUrl(onbekend))).status()).toBe(404);
+    } finally {
+      await met.dispose();
+    }
+  });
+}
+
+// --- Interacties (docs/features/ontwerpsysteem-uitzonderingen.md → Interacties) ---
+// Generieke runner: de stappen staan in het bestand op `interactiesPad`; de
+// vorm controleert check:catalogus (I1–I7). Eén test per interactie, elke
+// stap 5 s, geen soft-asserts en geen retries in de runner.
+
+type Doelwit = { rol?: string; naam?: string; label?: string; tekst?: string };
+type Stap = {
+  klik?: Doelwit;
+  keer?: number;
+  typ?: string;
+  in?: Doelwit;
+  toets?: string;
+  verwacht?: Doelwit;
+  staat?: "zichtbaar" | "uitgeschakeld";
+};
+type Interactie = { naam: string; sectie?: string; venster?: string; stappen: Stap[] };
+
+const STAP_TIMEOUT = 5_000;
+const INTERACTIES: Interactie[] = cfg.interactiesPad
+  ? (JSON.parse(readFileSync(cfg.interactiesPad, "utf8")) as { interacties: Interactie[] }).interacties
+  : [];
+
+function zoek(bereik: Locator, d: Doelwit): Locator {
+  if (d.rol !== undefined) {
+    const rol = d.rol as Parameters<Locator["getByRole"]>[0];
+    return d.naam !== undefined ? bereik.getByRole(rol, { name: d.naam, exact: true }) : bereik.getByRole(rol);
+  }
+  if (d.label !== undefined) return bereik.getByLabel(d.label, { exact: true });
+  return bereik.getByText(d.tekst ?? "", { exact: true });
+}
+
+function actieVan(stap: Stap): string {
+  return (["klik", "typ", "toets", "verwacht"] as const).find((a) => Object.hasOwn(stap, a)) ?? "?";
+}
+
+async function voerUit(page: Page, bereik: Locator, stap: Stap) {
+  if (stap.klik) {
+    const doel = zoek(bereik, stap.klik);
+    for (let i = 0; i < (stap.keer ?? 1); i++) await doel.click({ timeout: STAP_TIMEOUT });
+  } else if (stap.typ !== undefined) {
+    await zoek(bereik, stap.in ?? {}).fill(stap.typ, { timeout: STAP_TIMEOUT });
+  } else if (stap.toets !== undefined) {
+    for (let i = 0; i < (stap.keer ?? 1); i++) await page.keyboard.press(stap.toets);
+  } else if (stap.verwacht) {
+    const doel = zoek(bereik, stap.verwacht);
+    if (stap.staat === "uitgeschakeld") await expect(doel).toBeDisabled({ timeout: STAP_TIMEOUT });
+    else await expect(doel).toBeVisible({ timeout: STAP_TIMEOUT });
+  }
+}
+
+for (const interactie of INTERACTIES) {
+  const doel = interactie.sectie !== undefined ? `sectie ${interactie.sectie}` : `venster ${interactie.venster}`;
+  test(`interactie ${doel}/${interactie.naam}`, async ({ page }) => {
+    let bereik: Locator;
+    if (interactie.sectie !== undefined) {
+      await openPagina(page);
+      bereik = sectie(page, interactie.sectie);
+      if ((await bereik.count()) === 0) {
+        throw new Error(`interactie ${interactie.naam}: sectie "${interactie.sectie}" staat niet op ${cfg.route}`);
+      }
+    } else {
+      await openVenster(page, interactie.venster ?? "");
+      bereik = page.locator(":root");
+    }
+
+    for (const [index, stap] of interactie.stappen.entries()) {
+      try {
+        await voerUit(page, bereik, stap);
+      } catch (fout) {
+        const melding = fout instanceof Error ? fout.message : String(fout);
+        throw new Error(`interactie ${interactie.naam}, stap ${index + 1} (${actieVan(stap)}): ${melding}`, { cause: fout });
+      }
+    }
+
+    await page.evaluate(() => document.fonts.ready);
+    if (interactie.sectie !== undefined) {
+      await expect(bereik).toHaveScreenshot(`${interactie.sectie}-${interactie.naam}.png`);
+    } else {
+      await expect(page).toHaveScreenshot(`venster-${interactie.venster}-${interactie.naam}.png`);
+    }
+  });
+}

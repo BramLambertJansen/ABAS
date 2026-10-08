@@ -2,11 +2,12 @@
 // kit: generiek
 // check:catalogus — dekking van het ontwerpsysteem (docs/features/ontwerpsysteem.md).
 // Elke component in `componentenMap` staat als voorbeeld in het register van de
-// pagina `/design/systeem`, of is een bekende uitzondering (ratchet: de lijst
-// mag alleen krimpen) mét een code uit `CODES`
+// pagina `/design/systeem`, in een los venster (`vensters`), of is een bekende
+// uitzondering (ratchet: de lijst mag alleen krimpen) mét een code uit `CODES`
 // (docs/features/ontwerpsysteem-uitzonderingen.md). Geen ABAS-namen in deze
-// motor: paden, sleutel en uitzonderingen komen uit `systeem.lokaal.json`.
-import { readFileSync, readdirSync, statSync } from "node:fs";
+// motor: paden, sleutel, vensters en uitzonderingen komen uit
+// `systeem.lokaal.json`; de interactiestappen uit het bestand op `interactiesPad`.
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { ratchet } from "./ratchet.mjs";
@@ -77,13 +78,17 @@ function entryProbleem(naam, entry) {
 }
 
 /**
- * @param {{ componenten: string[], sleutels: string[], uitzonderingen: Record<string, unknown>, tolereerbaar: Iterable<string>, baselineSleutel?: string }} i
+ * @param {{ componenten: string[], sleutels: string[], uitzonderingen: Record<string, unknown>, tolereerbaar: Iterable<string>, vensters?: Record<string, any>, baselineSleutel?: string }} i
  * @returns {{ ontbrekend: string[], onbekend: string[], uitzonderingProblemen: string[] }}
  */
-export function analyseer({ componenten, sleutels, uitzonderingen, tolereerbaar, baselineSleutel = "systeem-zonder-voorbeeld" }) {
+export function analyseer({ componenten, sleutels, uitzonderingen, tolereerbaar, vensters = {}, baselineSleutel = "systeem-zonder-voorbeeld" }) {
   const heeft = new Set(componenten);
-  const inRegister = new Set(sleutels);
-  const ontbrekend = componenten.filter((c) => !inRegister.has(c)).sort();
+  // Gedekt: een voorbeeld in het register, of genoemd door minstens één venster.
+  const gedekt = new Set(sleutels);
+  for (const venster of Object.values(vensters)) {
+    if (Array.isArray(venster?.componenten)) for (const c of venster.componenten) gedekt.add(c);
+  }
+  const ontbrekend = componenten.filter((c) => !gedekt.has(c)).sort();
   const onbekend = sleutels.filter((s) => !heeft.has(s)).sort();
   const toegestaan = new Set(tolereerbaar);
   const uitzonderingProblemen = [];
@@ -101,6 +106,101 @@ export function analyseer({ componenten, sleutels, uitzonderingen, tolereerbaar,
     if (probleem) uitzonderingProblemen.push(probleem);
   }
   return { ontbrekend, onbekend, uitzonderingProblemen };
+}
+
+const KEBAB = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+const VENSTERVELDEN = new Set(["componenten", "breedte", "hoogte", "eigenLandmark"]);
+
+/** V1–V5: de vorm van `vensters` en of de genoemde componenten bestaan. */
+export function valideerVensters(vensters, componenten, componentenMap = "de componentenmap") {
+  const heeft = new Set(componenten);
+  const problemen = [];
+  for (const [id, venster] of Object.entries(vensters)) {
+    if (!KEBAB.test(id)) {
+      problemen.push(`${id}: venster-id alleen kleine letters, cijfers en streepjes`);
+      continue;
+    }
+    const v = venster !== null && typeof venster === "object" && !Array.isArray(venster) ? venster : {};
+    const vreemd = Object.keys(v).find((veld) => !VENSTERVELDEN.has(veld));
+    if (vreemd !== undefined) problemen.push(`${id}: onbekend veld "${vreemd}" in systeem.lokaal.json → vensters; toegestaan: componenten, breedte, hoogte, eigenLandmark`);
+    if (!Array.isArray(v.componenten) || v.componenten.length === 0) {
+      problemen.push(`${id}: venster zonder componenten in systeem.lokaal.json → vensters`);
+    } else {
+      for (const c of v.componenten) if (!heeft.has(c)) problemen.push(`${id}: venster noemt ${c}, maar ${c} bestaat niet in ${componentenMap} — haal hem weg`);
+    }
+    const maat = (n) => Number.isInteger(n) && n >= 200 && n <= 2000;
+    if (!maat(v.breedte) || !maat(v.hoogte)) problemen.push(`${id}: breedte en hoogte moeten gehele getallen tussen 200 en 2000 zijn`);
+  }
+  return problemen;
+}
+
+const ACTIES = ["klik", "typ", "toets", "verwacht"];
+const STAPVELDEN = { klik: ["keer"], typ: ["in"], toets: ["keer"], verwacht: ["staat"] };
+
+function geldigDoelwit(d) {
+  if (d === null || typeof d !== "object" || Array.isArray(d)) return false;
+  const sleutels = Object.keys(d);
+  const tekst = (w) => typeof w === "string" && w.trim() !== "";
+  if (Object.hasOwn(d, "rol")) return tekst(d.rol) && sleutels.every((k) => k === "rol" || k === "naam") && (!Object.hasOwn(d, "naam") || tekst(d.naam));
+  if (Object.hasOwn(d, "label")) return sleutels.length === 1 && tekst(d.label);
+  if (Object.hasOwn(d, "tekst")) return sleutels.length === 1 && tekst(d.tekst);
+  return false;
+}
+
+/** I1–I7: de statische vorm van de interacties (docs/features/ontwerpsysteem-uitzonderingen.md → Interacties). */
+export function valideerInteracties(interacties, vensters) {
+  const problemen = [];
+  const gezien = new Set();
+  for (const interactie of Array.isArray(interacties) ? interacties : []) {
+    const i = interactie !== null && typeof interactie === "object" ? interactie : {};
+    const naam = typeof i.naam === "string" ? i.naam : "?";
+    const heeftSectie = typeof i.sectie === "string" && i.sectie !== "";
+    const heeftVenster = typeof i.venster === "string" && i.venster !== "";
+    if (heeftSectie === heeftVenster || (Object.hasOwn(i, "sectie") && Object.hasOwn(i, "venster"))) {
+      problemen.push(`interactie ${naam}: kies precies één doel: sectie of venster`);
+      continue;
+    }
+    if (heeftVenster && !Object.hasOwn(vensters, i.venster)) problemen.push(`interactie ${naam}: venster "${i.venster}" bestaat niet in systeem.lokaal.json → vensters`);
+    const doel = heeftSectie ? `sectie ${i.sectie}` : `venster ${i.venster}`;
+    const sleutel = `${doel}/${naam}`;
+    if (typeof i.naam !== "string" || !KEBAB.test(i.naam) || gezien.has(sleutel)) {
+      problemen.push(`interactie ${naam}: naam ontbreekt, is geen kebab-case of is dubbel bij ${doel}`);
+    }
+    gezien.add(sleutel);
+    if (!Array.isArray(i.stappen) || i.stappen.length === 0) {
+      problemen.push(`interactie ${naam}, stap 1: ongeldige waarde voor stappen`);
+      continue;
+    }
+    i.stappen.forEach((stap, index) => {
+      const n = index + 1;
+      const s = stap !== null && typeof stap === "object" && !Array.isArray(stap) ? stap : {};
+      const acties = ACTIES.filter((a) => Object.hasOwn(s, a));
+      if (acties.length !== 1) {
+        problemen.push(`interactie ${naam}, stap ${n}: kies precies één actie: klik, typ, toets, verwacht`);
+        return;
+      }
+      const actie = acties[0];
+      const vreemd = Object.keys(s).find((k) => k !== actie && !STAPVELDEN[actie].includes(k));
+      if (vreemd !== undefined) {
+        problemen.push(`interactie ${naam}, stap ${n}: ongeldige waarde voor ${vreemd}`);
+        return;
+      }
+      const doelwit = actie === "typ" ? s.in : actie === "toets" ? null : s[actie];
+      if (actie !== "toets" && !geldigDoelwit(doelwit)) {
+        problemen.push(`interactie ${naam}, stap ${n}: doelwit is precies één van rol (met optioneel naam), label of tekst`);
+        return;
+      }
+      if (Object.hasOwn(s, "keer") && !(Number.isInteger(s.keer) && s.keer >= 1 && s.keer <= 10)) problemen.push(`interactie ${naam}, stap ${n}: ongeldige waarde voor keer`);
+      else if (actie === "toets" && !(typeof s.toets === "string" && s.toets.trim() !== "")) problemen.push(`interactie ${naam}, stap ${n}: ongeldige waarde voor toets`);
+      else if (actie === "typ" && typeof s.typ !== "string") problemen.push(`interactie ${naam}, stap ${n}: ongeldige waarde voor typ`);
+      else if (Object.hasOwn(s, "staat") && s.staat !== "zichtbaar" && s.staat !== "uitgeschakeld") problemen.push(`interactie ${naam}, stap ${n}: ongeldige waarde voor staat`);
+    });
+    const laatste = i.stappen.at(-1);
+    if (laatste === null || typeof laatste !== "object" || !Object.hasOwn(laatste, "verwacht")) {
+      problemen.push(`interactie ${naam}: eindig met een verwacht-stap, zodat de screenshot pas volgt als de staat er is`);
+    }
+  }
+  return problemen;
 }
 
 function bestanden(root, dir) {
@@ -124,6 +224,7 @@ export function draai(root = path.resolve(import.meta.dirname, "../..")) {
     sleutels,
     uitzonderingen: cfg.uitzonderingen ?? {},
     tolereerbaar,
+    vensters: cfg.vensters ?? {},
     baselineSleutel: cfg.baselineSleutel,
   });
 
@@ -134,11 +235,26 @@ export function draai(root = path.resolve(import.meta.dirname, "../..")) {
   }
   for (const o of onbekend) problemen.push(`${o}: staat in het register maar bestaat niet meer in ${cfg.componentenMap} — haal hem weg`);
   problemen.push(...uitzonderingProblemen);
+  if (cfg.vensters) problemen.push(...valideerVensters(cfg.vensters, componenten, cfg.componentenMap));
+  // Zonder `interactiesPad` worden geen interacties gecontroleerd.
+  if (cfg.interactiesPad) {
+    let bestand = null;
+    try {
+      bestand = existsSync(path.join(root, cfg.interactiesPad)) ? JSON.parse(readFileSync(path.join(root, cfg.interactiesPad), "utf8")) : null;
+    } catch {
+      bestand = null;
+    }
+    if (bestand === null || typeof bestand !== "object" || !Array.isArray(bestand.interacties)) {
+      problemen.push(`${cfg.interactiesPad}: ontbreekt of is geen geldige JSON`);
+    } else {
+      problemen.push(...valideerInteracties(bestand.interacties, cfg.vensters ?? {}));
+    }
+  }
   problemen.push(
     ...ratchet(
       cfg.baselineSleutel,
       ontbrekend,
-      `staat niet in ${cfg.route}: voeg een voorbeeld toe in ${cfg.registerPad}, of (alleen met Brams akkoord, label gate-wijziging) een uitzondering met een code (${CODELIJST}) in ${PLEK}`,
+      `staat niet in ${cfg.route}: voeg een voorbeeld toe in ${cfg.registerPad}${cfg.vensters ? " of een venster in systeem.lokaal.json → vensters" : ""}, of (alleen met Brams akkoord, label gate-wijziging) een uitzondering met een code (${CODELIJST}) in ${PLEK}`,
       path.join(root, ".kit/baseline.json"),
     ),
   );

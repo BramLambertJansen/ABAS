@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { leesThema, type ThemaGroep } from "@/lib/systeem/leesThema";
-import { NietOpDezePagina } from "@/lib/systeem/NietOpDezePagina";
+import { NietOpDezePagina, type VensterLink } from "@/lib/systeem/NietOpDezePagina";
 import { SysteemSectie } from "@/lib/systeem/SysteemSectie";
 import { TokenTabel } from "@/lib/systeem/TokenTabel";
 import systeem from "../../../../scripts/kit/systeem.lokaal.json";
-import { NIET_OP_DEZE_PAGINA, PAGINA, TOKENS } from "./teksten";
+import { NIET_OP_DEZE_PAGINA, PAGINA, TOKENS, VENSTER_TEKSTEN, type VensterId } from "./teksten";
 import { Voorbeelden } from "./voorbeelden";
 
 export const dynamic = "force-static";
@@ -15,6 +15,14 @@ export const metadata: Metadata = {
 };
 
 const TOKEN_GROEPEN = ["kleuren", "hoogtes", "radii", "schaduwen", "tekstmaten", "overig"] as const satisfies readonly ThemaGroep[];
+
+/** De losse vensters in de volgorde van de config, met adres en naam. */
+const VENSTER_LINKS: readonly VensterLink[] = (Object.keys(systeem.vensters) as VensterId[]).map((id) => ({
+  id,
+  naam: VENSTER_TEKSTEN[id].naam,
+  href: `${systeem.vensterRoute}/${id}`,
+  componenten: systeem.vensters[id].componenten,
+}));
 
 /**
  * Het ontwerpsysteem op één pagina (docs/features/ontwerpsysteem.md): de tokens
@@ -39,7 +47,7 @@ export default function SysteemPagina() {
       )}
       <Voorbeelden />
       <SysteemSectie id="niet-op-deze-pagina" titel={NIET_OP_DEZE_PAGINA.titel} uitleg={NIET_OP_DEZE_PAGINA.uitleg}>
-        <NietOpDezePagina uitzonderingen={systeem.uitzonderingen} teksten={NIET_OP_DEZE_PAGINA} />
+        <NietOpDezePagina uitzonderingen={systeem.uitzonderingen} vensters={VENSTER_LINKS} teksten={NIET_OP_DEZE_PAGINA} />
       </SysteemSectie>
     </main>
   );

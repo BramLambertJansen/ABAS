@@ -1,0 +1,52 @@
+{
+  "interacties": [
+    {
+      "naam": "lijst-open",
+      "sectie": "lid-zoeker-zoeken",
+      "stappen": [
+        { "typ": "a", "in": { "label": "Zoek lid op naam" } },
+        { "verwacht": { "rol": "listbox", "naam": "Gevonden leden" } }
+      ]
+    },
+    {
+      "naam": "fout",
+      "sectie": "code-invoer-fout",
+      "stappen": [
+        { "klik": { "rol": "button", "naam": "Cijfer 1" }, "keer": 6 },
+        { "verwacht": { "tekst": "onjuiste code — probeer het opnieuw" } }
+      ]
+    },
+    {
+      "naam": "bezig",
+      "sectie": "code-invoer-bezig",
+      "stappen": [
+        { "klik": { "rol": "button", "naam": "Cijfer 1" }, "keer": 6 },
+        { "verwacht": { "rol": "button", "naam": "Cijfer 2" }, "staat": "uitgeschakeld" }
+      ]
+    },
+    {
+      "naam": "klaar",
+      "sectie": "code-invoer-bevestigen",
+      "stappen": [
+        { "klik": { "rol": "button", "naam": "Cijfer 1" }, "keer": 6 },
+        { "verwacht": { "rol": "button", "naam": "Bevestigen" } }
+      ]
+    },
+    {
+      "naam": "melding",
+      "venster": "overlay-bezig",
+      "stappen": [
+        { "toets": "Escape" },
+        { "verwacht": { "tekst": "Even wachten, de actie wordt nog verwerkt." } }
+      ]
+    },
+    {
+      "naam": "weggooien-vraag",
+      "venster": "overlay-onopgeslagen",
+      "stappen": [
+        { "toets": "Escape" },
+        { "verwacht": { "rol": "button", "naam": "Weggooien" } }
+      ]
+    }
+  ]
+}

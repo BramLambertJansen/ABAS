@@ -1,5 +1,5 @@
 {
-  "$comment": "ABAS-specifieke invulling van systeem.mjs en e2e/systeem.spec.ts (docs/features/ontwerpsysteem.md → Raamwerk-extractie). Wijzigen = gate-wijziging (label gate-wijziging). 'uitzonderingen': per component dat (nog) niet in /design/systeem staat een code (context, data, schermvullend, staten; zie CODES in systeem.mjs) en een toelichting (verplicht bij data). De namen moeten precies gelijk zijn aan .kit/baseline.json onder 'baselineSleutel'; die lijst mag alleen krimpen (docs/features/ontwerpsysteem-uitzonderingen.md).",
+  "$comment": "ABAS-specifieke invulling van systeem.mjs en e2e/systeem.spec.ts (docs/features/ontwerpsysteem.md → Raamwerk-extractie). Wijzigen = gate-wijziging (label gate-wijziging). 'vensters': losse documenten onder 'vensterRoute' voor componenten die een eigen document nodig hebben (id, viewport, componenten). 'interactiesPad': de interactiestappen (de Tester schrijft dat bestand). 'uitzonderingen': per component dat (nog) niet in /design/systeem staat een code (context, data, schermvullend, staten; zie CODES in systeem.mjs) en een toelichting (verplicht bij data). De namen moeten precies gelijk zijn aan .kit/baseline.json onder 'baselineSleutel'; die lijst mag alleen krimpen (docs/features/ontwerpsysteem-uitzonderingen.md).",
   "componentenMap": "src/components",
   "registerPad": "src/app/design/systeem/voorbeelden.tsx",
   "registerNaam": "VOORBEELDEN",
@@ -32,26 +32,90 @@
     "OnbekendeUitkomstMelding": {
       "code": "data",
       "toelichting": "geldflow (onbekend resultaat); leest geldverzoeken"
-    },
-    "Overlay": {
-      "code": "context",
-      "toelichting": "vraagt shell, focus-trap en overlay-context; modal/sheet is een eigen voorbeeldsoort"
-    },
-    "OverlayPresenceProvider": {
-      "code": "context",
-      "toelichting": "context-provider, geen visuele uitvoer"
-    },
-    "OverlaySluitKnop": {
-      "code": "context",
-      "toelichting": "werkt alleen binnen Overlay (gooit erbuiten een fout)"
-    },
-    "StartScherm": {
-      "code": "schermvullend",
-      "toelichting": "rendert een eigen <main> met min-h-screen; geeft een dubbele main op de pagina"
-    },
-    "ZijPaneel": {
-      "code": "schermvullend",
-      "toelichting": "h-[max(32rem,100dvh)] en breekpuntgedrag; niet in een sectie te tonen"
     }
-  }
+  },
+  "vensterRoute": "/design/systeem/venster",
+  "vensters": {
+    "overlay-modal": {
+      "componenten": [
+        "Overlay",
+        "OverlaySluitKnop"
+      ],
+      "breedte": 768,
+      "hoogte": 560
+    },
+    "overlay-modal-detail": {
+      "componenten": [
+        "Overlay"
+      ],
+      "breedte": 768,
+      "hoogte": 640
+    },
+    "overlay-sheet": {
+      "componenten": [
+        "Overlay"
+      ],
+      "breedte": 390,
+      "hoogte": 720
+    },
+    "overlay-sheet-detail": {
+      "componenten": [
+        "Overlay"
+      ],
+      "breedte": 390,
+      "hoogte": 720
+    },
+    "overlay-bezig": {
+      "componenten": [
+        "Overlay"
+      ],
+      "breedte": 768,
+      "hoogte": 560
+    },
+    "overlay-onopgeslagen": {
+      "componenten": [
+        "Overlay",
+        "OverlaySluitKnop"
+      ],
+      "breedte": 768,
+      "hoogte": 560
+    },
+    "overlay-sluit-knop": {
+      "componenten": [
+        "OverlaySluitKnop"
+      ],
+      "breedte": 768,
+      "hoogte": 560
+    },
+    "overlay-presence-provider": {
+      "componenten": [
+        "OverlayPresenceProvider"
+      ],
+      "breedte": 768,
+      "hoogte": 560
+    },
+    "start-scherm": {
+      "componenten": [
+        "StartScherm"
+      ],
+      "breedte": 768,
+      "hoogte": 560,
+      "eigenLandmark": true
+    },
+    "zij-paneel": {
+      "componenten": [
+        "ZijPaneel"
+      ],
+      "breedte": 900,
+      "hoogte": 560
+    },
+    "zij-paneel-smal": {
+      "componenten": [
+        "ZijPaneel"
+      ],
+      "breedte": 600,
+      "hoogte": 640
+    }
+  },
+  "interactiesPad": "e2e/systeem.interacties.json"
 }
