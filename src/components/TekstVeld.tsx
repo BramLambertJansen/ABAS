@@ -2,18 +2,18 @@
 
 import { useId, type InputHTMLAttributes, type ReactNode, type Ref } from "react";
 
-const MATEN = { "44": "h-11", "48": "h-12", "52": "h-[52px]", "54": "h-[54px]" } as const;
+const MATEN = { "44": "h-control", "52": "h-control-lg" } as const;
 
 const TONES = {
   rail: {
     label: "text-xs font-bold text-rail-muted",
     input:
-      "h-[52px] rounded-[15px] border border-rail-border bg-rail px-4 text-sm font-semibold text-white outline-hidden focus:border-accent",
+      "h-control-lg rounded-card border border-rail-border bg-rail px-4 text-sm font-semibold text-white outline-hidden focus:border-accent",
   },
   light: {
     label: "text-xs font-bold text-muted",
     input:
-      "h-[54px] rounded-2xl border border-border bg-white px-4 text-sm font-semibold text-ink outline-hidden focus:border-accent",
+      "h-control-lg rounded-card border border-border bg-surface px-4 text-sm font-semibold text-ink outline-hidden focus:border-accent",
   },
 } as const;
 
@@ -22,8 +22,8 @@ const TONES = {
  * rail-schermen (`BeheerLogin`, `TabletKoppelen`); `tone="light"` die van de
  * lichte portal-sheets (`NaamWijzigenSheet`, #17). Alleen opmaak en de label-koppeling
  * (`htmlFor`/`id`, via `useId`): geen validatie, geen eigen state.
- * Een expliciete id blijft behouden. `maat` bewaart bestaande
- * beheervelden (44/48px); prefix is decoratief, validatie blijft bij de
+ * Een expliciete id blijft behouden. `maat` kiest de controlhoogte
+ * (`h-control` 44px of `h-control-lg` 52px); prefix is decoratief, validatie blijft bij de
  * consument. `readOnly` blijft focusbaar; `disabled` verlaat de tabvolgorde.
  * gewone input-attributen gaan ongewijzigd door naar de `<input>`.
  * `children` komen onder het veld, binnen dezelfde groep (bv. de
@@ -48,7 +48,7 @@ export function TekstVeld({
   ...inputProps
 }: {
   label: string;
-  maat?: "44" | "48" | "52" | "54";
+  maat?: keyof typeof MATEN;
   prefix?: ReactNode;
   labelVerborgen?: boolean;
   /** Alleen de veldgroep/layout; inputpresentatie komt uit tone/maat. */
@@ -78,7 +78,7 @@ export function TekstVeld({
         {label}
       </label>
       {prefix ? (
-        <div className={`flex min-w-0 items-center gap-2 rounded-control border px-3.5 focus-within:border-accent ${tone === "rail" ? "border-rail-border bg-rail" : "border-border bg-white"}`}>
+        <div className={`flex min-w-0 items-center gap-2 rounded-control border px-3.5 focus-within:border-accent ${tone === "rail" ? "border-rail-border bg-rail" : "border-border bg-surface"}`}>
           <span aria-hidden="true" className={`text-sm font-bold ${tone === "rail" ? "text-rail-muted" : "text-muted"}`}>{prefix}</span>
           <input ref={inputRef} id={id} {...inputProps}
             aria-invalid={fout ? true : inputProps["aria-invalid"]}
@@ -90,7 +90,7 @@ export function TekstVeld({
           aria-invalid={fout ? true : inputProps["aria-invalid"]}
           aria-describedby={beschrijving}
           className={maat
-            ? `${MATEN[maat]} rounded-control border px-3.5 text-sm font-semibold outline-hidden focus:border-accent ${tone === "rail" ? "border-rail-border bg-rail text-white" : "border-border bg-white text-ink"}`
+            ? `${MATEN[maat]} rounded-control border px-3.5 text-sm font-semibold outline-hidden focus:border-accent ${tone === "rail" ? "border-rail-border bg-rail text-white" : "border-border bg-surface text-ink"}`
             : TONES[tone].input} />
       )}
       {hint && (

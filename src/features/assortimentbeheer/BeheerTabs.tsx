@@ -14,7 +14,7 @@ import { useBarSessie } from "../bar-sessie/BarSessieContext";
 type Tab = "assortiment" | "leden" | "instellingen" | "logboek" | "diensten";
 
 const beheerTabClass = (selected: boolean) =>
-  `flex h-9 items-center whitespace-nowrap rounded-[10px] px-[15px] text-metadata font-extrabold transition-colors ${
+  `flex h-control items-center whitespace-nowrap rounded-control px-[15px] text-metadata font-extrabold transition-colors ${
     selected ? "bg-ink text-white" : "text-muted-strong hover:bg-border-subtle"
   }`;
 
@@ -85,7 +85,7 @@ export function BeheerTabs({
     <main className="flex min-h-screen w-full flex-col bg-canvas font-sans text-ink antialiased">
       {/* Eén kopbalk zoals het prototype (`beheerOpen`): terug-link, tabs als
           pillen (actief = donker), rechts de BEHEER-badge en uitloggen. */}
-      <header className="flex min-h-[60px] flex-none flex-wrap items-center gap-x-3.5 gap-y-2 border-b border-border bg-white px-5 py-2">
+      <header className="flex min-h-[60px] flex-none flex-wrap items-center gap-x-3.5 gap-y-2 border-b border-border bg-surface px-5 py-2">
         <TabList
           idBase={idBase}
           label="Beheer-navigatie"
@@ -106,7 +106,7 @@ export function BeheerTabs({
           <button
             type="button"
             onClick={onSignOut}
-            className="flex h-9 flex-none items-center gap-[7px] whitespace-nowrap rounded-[10px] border border-border px-3.5 text-xs font-extrabold text-muted transition-colors hover:border-accent hover:text-accent-active"
+            className="flex h-control flex-none items-center gap-[7px] whitespace-nowrap rounded-control border border-border px-3.5 text-xs font-extrabold text-muted transition-colors hover:border-accent hover:text-accent-active"
           >
             <svg
               width="14"

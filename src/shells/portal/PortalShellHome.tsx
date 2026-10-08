@@ -64,7 +64,7 @@ export default function PortalShellHome() {
         <button
           type="button"
           onClick={() => session.signOut()}
-          className="flex h-11 items-center rounded-control px-4 text-sm font-bold text-muted underline underline-offset-2 hover:text-ink focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          className="flex h-control items-center rounded-control px-4 text-sm font-bold text-muted underline underline-offset-2 hover:text-ink focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           Uitloggen
         </button>

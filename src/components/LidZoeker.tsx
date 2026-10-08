@@ -161,7 +161,7 @@ export function LidZoeker({
         }}
         onKeyDown={handleKeyDown}
         onBlur={() => setOpen(false)}
-        className="h-[50px] w-full rounded-card border border-border bg-white pl-[46px] pr-[18px] text-[14.5px] font-medium text-ink shadow-surface focus-visible:outline-hidden placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
+        className="h-control-lg w-full rounded-card border border-border bg-surface pl-[46px] pr-[18px] text-[14.5px] font-medium text-ink shadow-surface focus-visible:outline-hidden placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
       />
 
       <p
@@ -190,7 +190,7 @@ export function LidZoeker({
         onMouseDown={(event) => event.preventDefault()}
         // `hidden` als klasse, niet als attribuut: `flex` zou het attribuut
         // overschrijven (zelfde patroon als Select).
-        className={`absolute inset-x-0 top-14 z-30 ${listVisible ? "flex" : "hidden"} max-h-[300px] flex-col overflow-auto rounded-card border border-border bg-white p-[7px] shadow-dropdown`}
+        className={`absolute inset-x-0 top-14 z-30 ${listVisible ? "flex" : "hidden"} max-h-[300px] flex-col overflow-auto rounded-card border border-border bg-surface p-[7px] shadow-dropdown`}
       >
         {matches.map((member, index) => {
           const low = member.balanceCents < lowBalanceThresholdCents;
@@ -206,7 +206,7 @@ export function LidZoeker({
               aria-selected={isActive}
               onPointerEnter={() => setActiveIndex(index)}
               onClick={() => choose(index)}
-              className={`flex min-h-[44px] cursor-pointer items-center gap-3 rounded-xl p-2.5 text-left transition-colors ${
+              className={`flex min-h-control cursor-pointer items-center gap-3 rounded-control p-2.5 text-left transition-colors ${
                 isActive ? "bg-canvas" : ""
               }`}
             >

@@ -25,14 +25,14 @@ export function SheetKnoppen({
     <div className="flex gap-[10px]">
       <OverlaySluitKnop
         disabled={cancelDisabled}
-        className={`flex h-[52px] flex-1 items-center justify-center rounded-2xl text-sm font-bold ${KNOP_RAND}`}
+        className={`flex h-control-lg flex-1 items-center justify-center rounded-card text-sm font-bold ${KNOP_RAND}`}
       >
         Annuleren
       </OverlaySluitKnop>
       <button
         type="submit"
         aria-disabled={disabled}
-        className={`flex h-[52px] flex-1 items-center justify-center rounded-2xl text-sm font-bold ${KNOP_ACCENT_DONKER}`}
+        className={`flex h-control-lg flex-1 items-center justify-center rounded-card text-sm font-bold ${KNOP_ACCENT_DONKER}`}
       >
         {submitLabel}
       </button>

@@ -26,7 +26,7 @@ export function BezettingKeuze({
   disabled?: boolean;
 }) {
   return (
-    <fieldset disabled={disabled} className="flex flex-col gap-2 rounded-2xl bg-canvas p-3">
+    <fieldset disabled={disabled} className="flex flex-col gap-2 rounded-card bg-canvas p-3">
       <legend className="float-left flex w-full items-baseline justify-between gap-2">
         <span className="text-[10.5px] font-extrabold uppercase tracking-wide text-muted">
           {legend}
@@ -42,10 +42,10 @@ export function BezettingKeuze({
             type="button"
             aria-pressed={selectedId === option.id}
             onClick={() => { if (!disabled) onSelect(option.id); }}
-            className={`min-h-[40px] rounded-full border px-4 text-xs font-extrabold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+            className={`min-h-control rounded-full border px-4 text-xs font-extrabold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
               selectedId === option.id
                 ? "border-accent bg-accent-active text-white"
-                : "border-border bg-white text-ink hover:border-accent"
+                : "border-border bg-surface text-ink hover:border-accent"
             }`}
           >
             {option.name}

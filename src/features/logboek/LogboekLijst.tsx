@@ -88,7 +88,7 @@ export function LogboekLijst() {
             placeholder="Zoek op naam, product of handeling"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="h-11 w-full rounded-control border border-border bg-white pl-[42px] pr-4 text-detail font-medium text-ink focus-visible:outline-hidden placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/12"
+            className="h-control w-full rounded-control border border-border bg-surface pl-[42px] pr-4 text-detail font-medium text-ink focus-visible:outline-hidden placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/12"
           />
         </div>
         <div
@@ -102,10 +102,10 @@ export function LogboekLijst() {
               type="button"
               aria-pressed={filter === f.id}
               onClick={() => setFilter(f.id)}
-              className={`h-9 whitespace-nowrap rounded-[9px] px-3 text-[11.5px] font-bold transition-colors ${
+              className={`h-control whitespace-nowrap rounded-sm px-3 text-[11.5px] font-bold transition-colors ${
                 filter === f.id
                   ? "bg-ink text-white"
-                  : "text-muted-strong hover:bg-white"
+                  : "text-muted-strong hover:bg-surface"
               }`}
             >
               {f.label}
@@ -114,7 +114,7 @@ export function LogboekLijst() {
         </div>
       </div>
 
-      <div className="flex min-h-[180px] flex-1 flex-col overflow-auto rounded-card border border-border bg-white px-1.5 py-1">
+      <div className="flex min-h-[180px] flex-1 flex-col overflow-auto rounded-card border border-border bg-surface px-1.5 py-1">
         {logboek.status === "loading" && !herstel.toonFout && (
           <p className="py-11 text-center text-detail font-bold text-muted" role="status">
             Logboek laden…
@@ -179,7 +179,7 @@ function LogboekRow({ entry, nu }: { entry: LogboekEntry; nu: Date }) {
           // Zelfde bg-accent-soft/text-danger-paar als LedenLijst.tsx's
           // BEHEER-badge — kleur is hier niet het enige onderscheid, de
           // tekst "LET OP" zelf is dat (a11y, spec → Schermflow §3).
-          flagged ? "bg-white text-danger" : "bg-track text-success"
+          flagged ? "bg-surface text-danger" : "bg-track text-success"
         }`}
       >
         {tag}

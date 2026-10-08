@@ -186,14 +186,14 @@ export function Mandje({
               type="button"
               disabled={topupDisabled}
               onClick={onOpenTopup}
-              className="flex h-11 flex-1 items-center justify-center rounded-[11px] border border-border text-metadata font-bold text-ink transition-colors hover:border-accent hover:text-accent-active disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-control flex-1 items-center justify-center rounded-control border border-border text-metadata font-bold text-ink transition-colors hover:border-accent hover:text-accent-active disabled:cursor-not-allowed disabled:opacity-50"
             >
               saldo opwaarderen
             </button>
             <button
               type="button"
               onClick={() => { focusOpZoeker.current = true; onClearMember(); }}
-              className="flex h-11 flex-none items-center justify-center rounded-[11px] border border-border px-4 text-metadata font-bold text-muted transition-colors hover:border-ink hover:text-ink"
+              className="flex h-control flex-none items-center justify-center rounded-control border border-border px-4 text-metadata font-bold text-muted transition-colors hover:border-ink hover:text-ink"
             >
               wissel
             </button>
@@ -235,14 +235,14 @@ export function Mandje({
                     // Terug naar de zoeker, met de zoekterm intact.
                     document.getElementById("verkoop-member-search")?.focus();
                   }}
-                  className="flex h-11 flex-1 items-center justify-center rounded-[9px] border border-warning-fg text-xs font-extrabold"
+                  className="flex h-control flex-1 items-center justify-center rounded-sm border border-warning-fg text-xs font-extrabold"
                 >
                   Terug
                 </button>
                 <button
                   type="button"
                   onClick={bevestigWissen}
-                  className="flex h-11 flex-1 items-center justify-center rounded-[9px] bg-accent-active px-3 text-xs font-extrabold text-white"
+                  className="flex h-control flex-1 items-center justify-center rounded-sm bg-accent-active px-3 text-xs font-extrabold text-white"
                 >
                   Wissen en kiezen
                 </button>
@@ -284,7 +284,7 @@ export function Mandje({
 
       {cartLines.length === 0 ? (
         <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 py-6">
-          <span aria-hidden="true" className="h-[46px] w-[46px] rounded-[14px] border-[1.5px] border-dashed border-border" />
+          <span aria-hidden="true" className="h-[46px] w-[46px] rounded-card border-[1.5px] border-dashed border-border" />
           <p className="text-[13px] font-semibold text-muted">nog niets getikt</p>
         </div>
       ) : (
@@ -312,7 +312,7 @@ export function Mandje({
                   type="button"
                   onClick={() => onDec(line.productId)}
                   aria-label={`Eén ${line.name} minder`}
-                  className="flex h-11 w-11 items-center justify-center rounded-[10px] border border-border bg-white pb-0.5 text-dialog-title font-bold leading-none text-muted transition-colors hover:border-accent hover:text-accent-active"
+                  className="flex h-control w-11 items-center justify-center rounded-control border border-border bg-surface pb-0.5 text-dialog-title font-bold leading-none text-muted transition-colors hover:border-accent hover:text-accent-active"
                 >
                   −
                 </button>
@@ -323,7 +323,7 @@ export function Mandje({
                   type="button"
                   onClick={() => onInc(line.productId)}
                   aria-label={`Eén ${line.name} meer`}
-                  className="flex h-11 w-11 items-center justify-center rounded-[10px] border border-border bg-white pb-0.5 text-dialog-title font-bold leading-none text-muted transition-colors hover:border-accent hover:text-accent-active"
+                  className="flex h-control w-11 items-center justify-center rounded-control border border-border bg-surface pb-0.5 text-dialog-title font-bold leading-none text-muted transition-colors hover:border-accent hover:text-accent-active"
                 >
                   +
                 </button>
@@ -335,7 +335,7 @@ export function Mandje({
                 type="button"
                 onClick={() => onRemove(line.productId)}
                 aria-label={`Verwijder ${line.name} uit het mandje`}
-                className="col-start-2 row-start-1 flex h-[30px] w-[30px] items-center justify-center justify-self-end self-start rounded-[9px] text-[15px] font-bold text-muted hover:bg-canvas hover:text-danger"
+                className="col-start-2 row-start-1 flex h-[30px] w-[30px] items-center justify-center justify-self-end self-start rounded-sm text-[15px] font-bold text-muted hover:bg-canvas hover:text-danger"
               >
                 ×
               </button>
@@ -373,7 +373,7 @@ export function Mandje({
             type="button"
             disabled={topupDisabled}
             onClick={onOpenTopup}
-            className="flex-none rounded-[9px] bg-warning-fg px-3 py-2 text-xs font-extrabold text-warning-bg transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex-none rounded-sm bg-warning-fg px-3 py-2 text-xs font-extrabold text-warning-bg transition-colors hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             opwaarderen
           </button>
@@ -381,7 +381,7 @@ export function Mandje({
       )}
 
       {rosterEmpty && (
-        <p className="flex-none rounded-xl bg-warning-bg px-3 py-2 text-xs font-bold text-warning-fg" role="alert">
+        <p className="flex-none rounded-control bg-warning-bg px-3 py-2 text-xs font-bold text-warning-fg" role="alert">
           {rosterEmptyMessage}
         </p>
       )}
@@ -390,7 +390,7 @@ export function Mandje({
         type="button"
         disabled={checkoutDisabled}
         onClick={onOpenCheckout}
-        className={`flex h-[54px] flex-none items-center justify-center gap-2.5 rounded-card text-[15.5px] font-extrabold tracking-[-0.01em] shadow-checkout disabled:shadow-none ${KNOP_ACCENT_WIT}`}
+        className={`flex h-control-lg flex-none items-center justify-center gap-2.5 rounded-card text-[15.5px] font-extrabold tracking-[-0.01em] shadow-checkout disabled:shadow-none ${KNOP_ACCENT_WIT}`}
       >
         <span>
           Tik afrekenen

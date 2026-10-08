@@ -41,13 +41,13 @@ export function HervatScherm() {
         <button
           type="button"
           onClick={sessie.bevestig}
-          className="flex h-[52px] w-full items-center justify-center rounded-[15px] bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover"
+          className="flex h-control-lg w-full items-center justify-center rounded-card bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover"
         >
           {HERVATTEN.verder}
         </button>
         <UitloggenKnop
           shift={shift}
-          className="flex h-12 w-full items-center justify-center rounded-[15px] border border-rail-border text-sm font-bold text-rail-muted transition-colors hover:border-accent hover:text-rail-light"
+          className="flex h-control-lg w-full items-center justify-center rounded-card border border-rail-border text-sm font-bold text-rail-muted transition-colors hover:border-accent hover:text-rail-light"
         >
           {HERVATTEN.uitloggen}
         </UitloggenKnop>

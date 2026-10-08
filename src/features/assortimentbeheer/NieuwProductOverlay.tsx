@@ -108,7 +108,7 @@ export function NieuwProductOverlay({
       </p>
 
       <div className="flex flex-col gap-1.5">
-        <TekstVeld label="Naam" tone="light" maat="48"
+        <TekstVeld label="Naam" tone="light" maat="52"
           inputRef={nameInputRef}
           id={nameId}
           type="text"
@@ -133,10 +133,10 @@ export function NieuwProductOverlay({
                 setCategory(option);
                 wijzig();
               }}
-              className={`flex h-9 items-center justify-center rounded-full border px-3.5 text-xs font-bold transition-colors ${
+              className={`flex h-control items-center justify-center rounded-full border px-3.5 text-xs font-bold transition-colors ${
                 category === option
                   ? "border-accent bg-accent text-rail"
-                  : "border-border bg-white text-ink hover:border-accent"
+                  : "border-border bg-surface text-ink hover:border-accent"
               }`}
             >
               {option}
@@ -146,7 +146,7 @@ export function NieuwProductOverlay({
       </fieldset>
 
       <div className="flex flex-col gap-1.5">
-        <TekstVeld label="Prijs" tone="light" maat="48" prefix="€"
+        <TekstVeld label="Prijs" tone="light" maat="52" prefix="€"
             inputRef={priceInputRef}
             id={priceId}
             aria-invalid={priceMelding ? true : undefined}
@@ -169,7 +169,7 @@ export function NieuwProductOverlay({
       <div className="flex gap-2.5">
         <OverlaySluitKnop
           disabled={closeBlocked}
-          className={`flex h-11 flex-1 items-center justify-center rounded-control text-sm font-bold ${KNOP_RAND}`}
+          className={`flex h-control flex-1 items-center justify-center rounded-control text-sm font-bold ${KNOP_RAND}`}
         >
           Annuleren
         </OverlaySluitKnop>
@@ -177,7 +177,7 @@ export function NieuwProductOverlay({
           type="button"
           disabled={!canSubmit}
           onClick={submit}
-          className={`flex h-11 flex-1 items-center justify-center rounded-control text-sm font-bold ${KNOP_ACCENT_DONKER}`}
+          className={`flex h-control flex-1 items-center justify-center rounded-control text-sm font-bold ${KNOP_ACCENT_DONKER}`}
         >
           {pending ? OPSLAAN_BEZIG_TEKST : "Toevoegen"}
         </button>

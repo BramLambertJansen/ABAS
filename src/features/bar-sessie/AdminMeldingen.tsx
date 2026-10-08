@@ -42,7 +42,7 @@ export function AdminMeldingen({
         <section
           key={melding.id}
           aria-labelledby={`melding-${melding.id}`}
-          className="flex flex-col gap-2 rounded-card border border-accent/60 bg-white p-4 text-left text-ink shadow-lg"
+          className="flex flex-col gap-2 rounded-card border border-accent/60 bg-surface p-4 text-left text-ink shadow-lg"
         >
           <h2 id={`melding-${melding.id}`} className="text-sm font-extrabold text-ink">
             {ADMIN_MELDING.titel}
@@ -60,7 +60,7 @@ export function AdminMeldingen({
               <button
                 type="button"
                 onClick={() => setOvernemen(melding)}
-                className={`flex h-10 flex-1 items-center justify-center rounded-xl text-[13px] font-bold ${KNOP_ACCENT_WIT}`}
+                className={`flex h-control flex-1 items-center justify-center rounded-control text-[13px] font-bold ${KNOP_ACCENT_WIT}`}
               >
                 {ADMIN_MELDING.overnemen}
               </button>
@@ -68,7 +68,7 @@ export function AdminMeldingen({
             <button
               type="button"
               onClick={() => setAfsluiten(melding)}
-              className={`flex h-10 flex-1 items-center justify-center rounded-xl text-[13px] font-bold ${KNOP_RAND}`}
+              className={`flex h-control flex-1 items-center justify-center rounded-control text-[13px] font-bold ${KNOP_RAND}`}
             >
               {ADMIN_MELDING.afsluiten}
             </button>

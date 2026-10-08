@@ -3,11 +3,11 @@ import { VERVERS_TEKSTEN } from "@/lib/verversen";
 const TONES = {
   light: {
     text: "text-danger",
-    knop: "border-border bg-white text-ink hover:border-ink focus-visible:outline-accent",
+    knop: "border-border bg-surface text-ink hover:border-ink focus-visible:outline-accent",
   },
   rail: {
     text: "text-rail-error",
-    knop: "border-rail-border bg-rail-card text-rail-light hover:border-accent focus-visible:outline-accent",
+    knop: "border-rail-border bg-surface-rail text-rail-light hover:border-accent focus-visible:outline-accent",
   },
 } as const;
 
@@ -50,7 +50,7 @@ export function LeesFout({
         onClick={() => {
           if (!bezig) onRetry();
         }}
-        className={`flex h-11 items-center rounded-control border px-4 text-sm font-bold transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-60 ${t.knop}`}
+        className={`flex h-control items-center rounded-control border px-4 text-sm font-bold transition-colors focus-visible:outline-solid focus-visible:outline-2 focus-visible:outline-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-60 ${t.knop}`}
       >
         {bezig ? VERVERS_TEKSTEN.opnieuwProberenBezig : VERVERS_TEKSTEN.opnieuwProberen}
       </button>

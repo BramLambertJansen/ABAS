@@ -137,7 +137,7 @@ export function BezettingOverlay({
       {membersStatus === "error" && (
         <div className="flex flex-col gap-2">
           <p className="text-sm font-semibold text-danger" role="alert">Kan de bezetting niet laden.</p>
-          <button type="button" onClick={onMembersChanged} className="min-h-[44px] text-sm font-bold text-ink">
+          <button type="button" onClick={onMembersChanged} className="min-h-control text-sm font-bold text-ink">
             Bezetting opnieuw laden
           </button>
         </div>
@@ -152,7 +152,7 @@ export function BezettingOverlay({
       {candidates.status === "error" && (
         <div className="flex flex-col gap-2">
           <p className="text-sm font-semibold text-danger" role="alert">{candidates.message}</p>
-          <button type="button" onClick={candidates.refetch} className="min-h-[44px] text-sm font-bold text-ink">
+          <button type="button" onClick={candidates.refetch} className="min-h-control text-sm font-bold text-ink">
             Bardienst-lijst opnieuw laden
           </button>
         </div>
@@ -195,10 +195,10 @@ export function BezettingOverlay({
                     inBezetting ? ", in de bezetting — tik om af te melden" : ", tik om toe te voegen"
                   }`}
                   onClick={() => toggle(member)}
-                  className={`flex w-full min-h-[44px] items-center gap-3 rounded-2xl border p-3 text-left transition-colors disabled:opacity-50 ${
+                  className={`flex w-full min-h-control items-center gap-3 rounded-card border p-3 text-left transition-colors disabled:opacity-50 ${
                     inBezetting
-                      ? "border-accent bg-white"
-                      : "border-border bg-white"
+                      ? "border-accent bg-surface"
+                      : "border-border bg-surface"
                   }`}
                 >
                   <InitialsAvatar name={member.name} size="sm" tone="light" />
@@ -234,7 +234,7 @@ export function BezettingOverlay({
         type="button"
         disabled={closeBlocked}
         onClick={onClose}
-        className={`flex h-11 w-full items-center justify-center rounded-2xl text-sm font-bold ${KNOP_ACCENT_WIT}`}
+        className={`flex h-control w-full items-center justify-center rounded-card text-sm font-bold ${KNOP_ACCENT_WIT}`}
       >
         Klaar
       </button>

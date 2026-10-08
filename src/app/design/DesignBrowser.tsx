@@ -50,7 +50,7 @@ export function DesignBrowser({
               key={active}
               src={`/design/files/designs/${encodeURIComponent(active)}`}
               title={active}
-              className="h-[80vh] w-full rounded-card border border-border bg-white"
+              className="h-[80vh] w-full rounded-card border border-border bg-surface"
             />
             <a
               className="text-sm text-accent underline"

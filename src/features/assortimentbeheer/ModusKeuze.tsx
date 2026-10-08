@@ -105,7 +105,7 @@ export function ModusKeuze({
             type="button"
             disabled={pending}
             onClick={onChooseBar}
-            className="flex flex-1 flex-col items-center gap-2.5 rounded-[18px] border border-rail-border bg-rail-card px-[18px] py-6 text-center transition-colors hover:border-accent hover:bg-rail-hover disabled:opacity-50"
+            className="flex flex-1 flex-col items-center gap-2.5 rounded-card border border-rail-border bg-surface-rail px-[18px] py-6 text-center transition-colors hover:border-accent hover:bg-rail-hover disabled:opacity-50"
           >
             <svg width="22" height="22" viewBox="0 0 19 19" fill="none" aria-hidden="true" className="text-rail-light">
               <rect x="5.2" y="2.6" width="8.6" height="13.8" rx="2.6" stroke="currentColor" strokeWidth="1.6" />
@@ -129,7 +129,7 @@ export function ModusKeuze({
                 markeerWissel();
                 onChooseBeheer();
               }}
-              className={`flex flex-1 flex-col items-center gap-2.5 rounded-[18px] border border-rail-border bg-rail-card px-[18px] py-6 text-center transition-colors ${
+              className={`flex flex-1 flex-col items-center gap-2.5 rounded-card border border-rail-border bg-surface-rail px-[18px] py-6 text-center transition-colors ${
                 beheerUit ? "cursor-not-allowed" : "hover:border-accent hover:bg-rail-hover"
               }`}
             >

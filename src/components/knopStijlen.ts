@@ -1,7 +1,7 @@
 /**
  * Gedeelde kleur- en toestandsklassen voor knoppen (T12, #132). Platte
  * stringconstanten, geen component: de knoppen verschillen in maat, vorm en
- * schaduw (`flex-1`, `h-[50px]`, `h-[54px]`), en dat blijft bij de aanroeper.
+ * schaduw (`flex-1`, `h-control`, `h-control-lg`), en dat blijft bij de aanroeper.
  * Hier staat alleen wat het contrast en de toestanden bewaakt. Tailwind scant
  * `./src/**\/*.{ts,tsx}`, dus klassen in dit bestand worden gebouwd.
  *
@@ -19,8 +19,9 @@
  *   (`methodLabel`).
  * - Uitnodiging: nooit "Invite" in UI-tekst.
  *
- * Controlmaten (nieuw werk kiest uit deze twee): knop/invoer `h-11` (44px)
- * met `rounded-control`; grote primaire dialoogknop `KNOP_DIALOOG_MAAT`.
+ * Controlmaten (nieuw werk kiest uit deze twee): knop/invoer `h-control` (44px)
+ * met `rounded-control`; grote primaire dialoogknop `KNOP_DIALOOG_MAAT`
+ * (`h-control-lg`, 52px).
  */
 
 /**
@@ -39,7 +40,7 @@ export const KNOP_ACCENT_DONKER =
 
 /** Witte knop met rand (Sluiten, Annuleren). */
 export const KNOP_RAND =
-  "border border-border bg-white text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50";
+  "border border-border bg-surface text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50";
 
 /** De tweede (grote) maat: primaire dialoogknop. */
-export const KNOP_DIALOOG_MAAT = "h-[50px] rounded-2xl";
+export const KNOP_DIALOOG_MAAT = "h-control-lg rounded-card";

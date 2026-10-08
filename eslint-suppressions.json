@@ -39,11 +39,6 @@
   },
   "src/components/BezettingKeuze.tsx": {
     "better-tailwindcss/no-restricted-classes": {
-      "count": 3
-    }
-  },
-  "src/components/CodeInvoer.tsx": {
-    "better-tailwindcss/no-restricted-classes": {
       "count": 2
     }
   },
@@ -57,7 +52,7 @@
       "count": 4
     },
     "better-tailwindcss/no-restricted-classes": {
-      "count": 11
+      "count": 9
     }
   },
   "src/components/NieuwWachtwoordVelden.tsx": {
@@ -75,7 +70,7 @@
       "count": 4
     },
     "better-tailwindcss/no-restricted-classes": {
-      "count": 17
+      "count": 14
     }
   },
   "src/components/PinToetsenbord.tsx": {
@@ -89,9 +84,6 @@
   "src/components/ProductAfbeelding.tsx": {
     "@typescript-eslint/no-confusing-void-expression": {
       "count": 1
-    },
-    "better-tailwindcss/no-restricted-classes": {
-      "count": 1
     }
   },
   "src/components/RoleBadge.tsx": {
@@ -104,7 +96,7 @@
       "count": 5
     },
     "better-tailwindcss/no-restricted-classes": {
-      "count": 5
+      "count": 4
     }
   },
   "src/components/StatCard.tsx": {
@@ -135,7 +127,7 @@
       "count": 1
     },
     "better-tailwindcss/no-restricted-classes": {
-      "count": 7
+      "count": 5
     }
   },
   "src/components/overlayShield.ts": {
@@ -154,7 +146,7 @@
       "count": 1
     },
     "better-tailwindcss/no-restricted-classes": {
-      "count": 2
+      "count": 1
     },
     "no-restricted-syntax": {
       "count": 10
@@ -182,7 +174,7 @@
       "count": 2
     },
     "better-tailwindcss/no-restricted-classes": {
-      "count": 6
+      "count": 2
     },
     "no-restricted-syntax": {
       "count": 8
@@ -193,7 +185,7 @@
       "count": 1
     },
     "better-tailwindcss/no-restricted-classes": {
-      "count": 7
+      "count": 6
     },
     "no-restricted-syntax": {
       "count": 1
@@ -201,7 +193,7 @@
   },
   "src/features/assortimentbeheer/ModusKeuze.tsx": {
     "better-tailwindcss/no-restricted-classes": {
-      "count": 14
+      "count": 12
     },
     "no-restricted-syntax": {
       "count": 4
@@ -251,7 +243,7 @@
       "count": 8
     },
     "better-tailwindcss/no-restricted-classes": {
-      "count": 13
+      "count": 11
     },
     "no-restricted-syntax": {
       "count": 3
@@ -293,7 +285,7 @@
       "count": 1
     },
     "better-tailwindcss/no-restricted-classes": {
-      "count": 8
+      "count": 3
     },
     "no-restricted-syntax": {
       "count": 7
@@ -313,9 +305,6 @@
   "src/features/bar-sessie/AfmeldenOverlay.tsx": {
     "@typescript-eslint/no-misused-promises": {
       "count": 1
-    },
-    "better-tailwindcss/no-restricted-classes": {
-      "count": 2
     },
     "no-restricted-syntax": {
       "count": 2
@@ -338,7 +327,7 @@
   },
   "src/features/bar-sessie/HervatScherm.tsx": {
     "better-tailwindcss/no-restricted-classes": {
-      "count": 5
+      "count": 2
     },
     "no-restricted-syntax": {
       "count": 1
@@ -351,17 +340,11 @@
     "@typescript-eslint/switch-exhaustiveness-check": {
       "count": 1
     },
-    "better-tailwindcss/no-restricted-classes": {
-      "count": 2
-    },
     "no-restricted-syntax": {
       "count": 2
     }
   },
   "src/features/bar-sessie/SessieMeldingOverlay.tsx": {
-    "better-tailwindcss/no-restricted-classes": {
-      "count": 1
-    },
     "no-restricted-syntax": {
       "count": 1
     }
@@ -371,7 +354,7 @@
       "count": 3
     },
     "better-tailwindcss/no-restricted-classes": {
-      "count": 3
+      "count": 1
     },
     "no-restricted-syntax": {
       "count": 4
@@ -385,7 +368,7 @@
       "count": 1
     },
     "better-tailwindcss/no-restricted-classes": {
-      "count": 9
+      "count": 3
     },
     "no-restricted-syntax": {
       "count": 5
@@ -399,7 +382,7 @@
       "count": 1
     },
     "better-tailwindcss/no-restricted-classes": {
-      "count": 5
+      "count": 2
     },
     "no-restricted-syntax": {
       "count": 3
@@ -411,9 +394,6 @@
     },
     "@typescript-eslint/no-misused-promises": {
       "count": 1
-    },
-    "better-tailwindcss/no-restricted-classes": {
-      "count": 3
     },
     "no-restricted-syntax": {
       "count": 4
@@ -432,7 +412,7 @@
       "count": 10
     },
     "better-tailwindcss/no-restricted-classes": {
-      "count": 35
+      "count": 31
     },
     "no-restricted-syntax": {
       "count": 2
@@ -441,9 +421,6 @@
   "src/features/dienst-afsluiten/DienstAfsluitenOverlay.tsx": {
     "@typescript-eslint/no-misused-promises": {
       "count": 1
-    },
-    "better-tailwindcss/no-restricted-classes": {
-      "count": 2
     },
     "no-restricted-syntax": {
       "count": 2
@@ -454,7 +431,7 @@
       "count": 4
     },
     "better-tailwindcss/no-restricted-classes": {
-      "count": 41
+      "count": 35
     },
     "no-restricted-syntax": {
       "count": 4
@@ -475,9 +452,6 @@
     "@typescript-eslint/no-misused-promises": {
       "count": 1
     },
-    "better-tailwindcss/no-restricted-classes": {
-      "count": 6
-    },
     "no-restricted-syntax": {
       "count": 3
     }
@@ -490,7 +464,7 @@
       "count": 1
     },
     "better-tailwindcss/no-restricted-classes": {
-      "count": 3
+      "count": 2
     }
   },
   "src/features/dienst-starten/PinPad.tsx": {
@@ -516,9 +490,6 @@
     "@typescript-eslint/no-confusing-void-expression": {
       "count": 4
     },
-    "better-tailwindcss/no-restricted-classes": {
-      "count": 2
-    },
     "no-restricted-syntax": {
       "count": 2
     }
@@ -528,7 +499,7 @@
       "count": 9
     },
     "better-tailwindcss/no-restricted-classes": {
-      "count": 19
+      "count": 17
     },
     "no-restricted-syntax": {
       "count": 2
@@ -558,7 +529,7 @@
       "count": 2
     },
     "better-tailwindcss/no-restricted-classes": {
-      "count": 21
+      "count": 20
     },
     "no-restricted-syntax": {
       "count": 2
@@ -578,7 +549,7 @@
       "count": 1
     },
     "better-tailwindcss/no-restricted-classes": {
-      "count": 10
+      "count": 7
     },
     "no-restricted-syntax": {
       "count": 4
@@ -589,7 +560,7 @@
       "count": 1
     },
     "better-tailwindcss/no-restricted-classes": {
-      "count": 2
+      "count": 1
     },
     "no-restricted-syntax": {
       "count": 1
@@ -600,7 +571,7 @@
       "count": 2
     },
     "better-tailwindcss/no-restricted-classes": {
-      "count": 9
+      "count": 3
     },
     "no-restricted-syntax": {
       "count": 1
@@ -616,7 +587,7 @@
       "count": 1
     },
     "better-tailwindcss/no-restricted-classes": {
-      "count": 3
+      "count": 1
     },
     "no-restricted-syntax": {
       "count": 1
@@ -630,9 +601,6 @@
       "count": 2
     },
     "@typescript-eslint/no-misused-promises": {
-      "count": 2
-    },
-    "better-tailwindcss/no-restricted-classes": {
       "count": 2
     },
     "no-restricted-syntax": {
@@ -658,7 +626,7 @@
       "count": 13
     },
     "better-tailwindcss/no-restricted-classes": {
-      "count": 8
+      "count": 6
     },
     "no-restricted-syntax": {
       "count": 2
@@ -677,7 +645,7 @@
   },
   "src/features/portal-profiel/PincodeSheet.tsx": {
     "better-tailwindcss/no-restricted-classes": {
-      "count": 2
+      "count": 1
     },
     "no-restricted-syntax": {
       "count": 1
@@ -685,7 +653,7 @@
   },
   "src/features/portal-profiel/SheetKnoppen.tsx": {
     "better-tailwindcss/no-restricted-classes": {
-      "count": 3
+      "count": 1
     },
     "no-restricted-syntax": {
       "count": 1
@@ -693,7 +661,7 @@
   },
   "src/features/portal-profiel/TweestapSheet.tsx": {
     "better-tailwindcss/no-restricted-classes": {
-      "count": 6
+      "count": 2
     },
     "no-restricted-syntax": {
       "count": 4
@@ -707,7 +675,7 @@
       "count": 1
     },
     "better-tailwindcss/no-restricted-classes": {
-      "count": 4
+      "count": 3
     }
   },
   "src/features/verkoop/AfrekenenOverlay.tsx": {
@@ -732,7 +700,7 @@
       "count": 6
     },
     "better-tailwindcss/no-restricted-classes": {
-      "count": 20
+      "count": 16
     },
     "no-restricted-syntax": {
       "count": 8
@@ -743,7 +711,7 @@
       "count": 1
     },
     "better-tailwindcss/no-restricted-classes": {
-      "count": 20
+      "count": 18
     }
   },
   "src/features/verkoop/Mandje.tsx": {
@@ -751,7 +719,7 @@
       "count": 3
     },
     "better-tailwindcss/no-restricted-classes": {
-      "count": 44
+      "count": 34
     },
     "no-restricted-syntax": {
       "count": 9

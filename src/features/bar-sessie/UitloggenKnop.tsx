@@ -78,7 +78,7 @@ export function UitloggenKnop({
                 setKeuzeOpen(false);
                 setAfsluitenOpen(true);
               }}
-              className={`flex h-[50px] items-center justify-center rounded-2xl text-sm font-bold ${KNOP_ACCENT_WIT}`}
+              className={`flex h-control-lg items-center justify-center rounded-card text-sm font-bold ${KNOP_ACCENT_WIT}`}
             >
               {UITLOGGEN.dienstAfsluiten}
             </button>
@@ -86,7 +86,7 @@ export function UitloggenKnop({
               type="button"
               disabled={bezig}
               onClick={() => void uitloggen(false)}
-              className={`flex h-[50px] items-center justify-center rounded-2xl text-sm font-bold ${KNOP_RAND}`}
+              className={`flex h-control-lg items-center justify-center rounded-card text-sm font-bold ${KNOP_RAND}`}
             >
               {UITLOGGEN.openLaten}
             </button>

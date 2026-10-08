@@ -26,11 +26,14 @@ paths:
 - Sluiten, Annuleren en Klaar volgen `src/components/README.md` → "Sluiten en
   taal".
 
-Tailwind v4 is gebouwd (#185): tokens staan in `@theme` in
-`src/app/globals.css`, Tailwind scant alleen `src/`.
+Tailwind v4 met gereset thema (`--*: initial`, #185 en de tokenschaal in
+`docs/features/tokenschaal.md`): alleen wat `@theme` in `src/app/globals.css`
+declareert bestaat. Controlhoogte `h-control` (44) / `h-control-lg` (52),
+radius `sm`/`control`/`card`/`panel`/`sheet`/`full`, vlakken `bg-surface` /
+`bg-surface-rail`. Een standaardklasse buiten het thema (`bg-red-500`) faalt in
+de lint; breid het thema niet uit zonder ontwerpbesluit.
 
-Besloten maar nog niet gebouwd (ADR 0025 → roadmap): een gereset thema
-(`--*: initial`) met de tokenschaal, `Knop`/`Toets`/`Tegel`/`Chip` met een variantobject
+Besloten maar nog niet gebouwd (ADR 0025 → roadmap): `Knop`/`Toets`/`Tegel`/`Chip` met een variantobject
 (`className` alleen voor layout), `density` bepaalt de controlmaat
 (comfortable 52px, compact 44px), `<AsyncInhoud>` en een copycatalogus,
 `/design/systeem` met screenshots.

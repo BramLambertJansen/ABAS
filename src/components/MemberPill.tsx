@@ -26,7 +26,7 @@ export function MemberPill({
     <li
       className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold ${
         tone === "light"
-          ? "border-border bg-white text-ink"
+          ? "border-border bg-surface text-ink"
           : "border-rail-border bg-rail text-white"
       }`}
     >

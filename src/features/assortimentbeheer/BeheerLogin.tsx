@@ -150,7 +150,7 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
       {passwordChanged && view === "login" && (
         <p
           role="status"
-          className="w-full max-w-sm rounded-card border border-rail-border bg-rail-card px-4 py-3 text-center text-sm font-bold text-rail-light"
+          className="w-full max-w-sm rounded-card border border-rail-border bg-surface-rail px-4 py-3 text-center text-sm font-bold text-rail-light"
         >
           Je wachtwoord is gewijzigd. Log in met je nieuwe wachtwoord.
         </p>
@@ -159,7 +159,7 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
       {deniedMessage && !magicLinkSent && !passwordChanged && view === "login" && (
         <p
           role="alert"
-          className="w-full max-w-sm rounded-card border border-rail-border bg-rail-card px-4 py-3 text-center text-sm font-bold text-rail-error"
+          className="w-full max-w-sm rounded-card border border-rail-border bg-surface-rail px-4 py-3 text-center text-sm font-bold text-rail-error"
         >
           {deniedMessage}
         </p>
@@ -167,7 +167,7 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
 
       {view === "forgot" ? (
         resetRequest.status === "sent" ? (
-          <div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-card border border-rail-border bg-rail-card p-6 text-center">
+          <div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-card border border-rail-border bg-surface-rail p-6 text-center">
             <p
               ref={forgotSentRef}
               tabIndex={-1}
@@ -190,7 +190,7 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
           <form
             onSubmit={onSubmitForgot}
             aria-labelledby={forgotHeadingId}
-            className="flex w-full max-w-sm flex-col gap-4 rounded-card border border-rail-border bg-rail-card p-6"
+            className="flex w-full max-w-sm flex-col gap-4 rounded-card border border-rail-border bg-surface-rail p-6"
           >
             <div className="flex flex-col gap-1">
               <h2
@@ -218,7 +218,7 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
             <button
               type="submit"
               disabled={resetRequest.status === "pending"}
-              className="flex h-[52px] w-full items-center justify-center rounded-[15px] bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:opacity-50"
+              className="flex h-control-lg w-full items-center justify-center rounded-card bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:opacity-50"
             >
               Stuur herstellink
             </button>
@@ -233,7 +233,7 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
           </form>
         )
       ) : magicLinkSent ? (
-        <div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-card border border-rail-border bg-rail-card p-6 text-center">
+        <div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-card border border-rail-border bg-surface-rail p-6 text-center">
           <p
             ref={magicLinkSentRef}
             tabIndex={-1}
@@ -257,7 +257,7 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
       ) : (
         <form
           onSubmit={onSubmit}
-          className="flex w-full max-w-sm flex-col gap-4 rounded-card border border-rail-border bg-rail-card p-6"
+          className="flex w-full max-w-sm flex-col gap-4 rounded-card border border-rail-border bg-surface-rail p-6"
         >
           <p className="text-sm font-bold text-rail-error empty:-mt-4" role="alert">
             {login.errorCode ? errorMessage(login.errorCode) : ""}
@@ -340,7 +340,7 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
           <button
             type="submit"
             aria-disabled={loginPending}
-            className="flex h-[52px] w-full items-center justify-center rounded-[15px] bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
+            className="flex h-control-lg w-full items-center justify-center rounded-card bg-accent text-sm font-bold text-rail transition-colors hover:bg-accent-hover aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
           >
             {method === "magic_link" ? "Stuur inloglink" : "Inloggen"}
           </button>

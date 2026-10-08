@@ -14,7 +14,7 @@ export function ZijPaneel({
   children: ReactNode;
 }) {
   return (
-    <Element className="flex h-[max(32rem,100dvh)] w-full flex-none flex-col gap-3 overflow-auto border-t min-[700px]:h-auto min-[700px]:min-h-0 min-[700px]:w-[clamp(300px,36vw,372px)] min-[700px]:border-l min-[700px]:border-t-0 border-border bg-white p-[18px]">
+    <Element className="flex h-[max(32rem,100dvh)] w-full flex-none flex-col gap-3 overflow-auto border-t min-[700px]:h-auto min-[700px]:min-h-0 min-[700px]:w-[clamp(300px,36vw,372px)] min-[700px]:border-l min-[700px]:border-t-0 border-border bg-surface p-[18px]">
       {children}
     </Element>
   );

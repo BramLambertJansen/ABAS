@@ -9,7 +9,7 @@ Het huidige in-app design system is leidend; het prototype beschrijft de eerste 
 | Taak | Bouwblok | Varianten, states en huidige consumers |
 |---|---|---|
 | Gewone invoer | `TekstVeld` | `tone=rail/light`; expliciete `id`, `inputRef`, `fout`, `foutAlert`, `hint`, `labelVerborgen`. Login, portalprofiel, nieuw lid/product en wachtwoordvelden. |
-| Bedrag invoeren | `TekstVeld prefix="€"` | Lichte presentatie, maat 44/48; prefix decoratief, geen parsing. Productprijs en startsaldo (ook nieuw product). |
+| Bedrag invoeren | `TekstVeld prefix="€"` | Lichte presentatie, maat 44/52 (`h-control`/`h-control-lg`); prefix decoratief, geen parsing. Productprijs en startsaldo (ook nieuw product). |
 | Lokale veldmelding | `VeldFout` | Alleen tekst bij blur/poging; `alert` alleen direct na opslagpoging. Bedrag-, naam- en adresvelden. |
 | Knop | `knopStijlen.ts` | `KNOP_ACCENT_WIT`, `KNOP_ACCENT_DONKER`, `KNOP_RAND`; native én aria-disabled-stijl. Maat/layout blijven bij consument; grote actie `KNOP_DIALOOG_MAAT`. |
 | Zoekinput | `ZoekVeld` + `ZoekIcoon` | Beheerlijsten. Andere zoekrollen mogen hun eigen input behouden; hetzelfde decoratieve icoon bij assortiment en lidzoeker. |
@@ -36,7 +36,7 @@ Het huidige in-app design system is leidend; het prototype beschrijft de eerste 
 ## Voorbeelden en semantiek
 
 ```tsx
-<TekstVeld id={naamId} inputRef={naamRef} label="Naam" tone="light" maat="48"
+<TekstVeld id={naamId} inputRef={naamRef} label="Naam" tone="light" maat="52"
   value={naam} onChange={wijzigNaam} onBlur={naamMoment.bijBlur}
   fout={naamMelding} foutAlert={naamMoment.pogingAlert} readOnly={pending} />
 <TekstVeld label="Nieuwe prijs" labelVerborgen tone="light" maat="44" prefix="€"
@@ -77,14 +77,23 @@ veldlabels, `text-metadata`/`text-detail` voor de bestaande secundaire rollen.
 De eigen rollen bewaren de huidige pixelwaarden; dit is geen volledige migratie
 van alle legacyteksten naar rem of een kleinere typografieschaal.
 
-Surfaces kiezen rounded-card/rounded-control en shadow-surface, shadow-dialog,
+Het thema is gereset (`--*: initial`, docs/features/tokenschaal.md): alleen
+wat `@theme` declareert bestaat; een standaardklasse als `bg-red-500` faalt in
+de lint. Radius kiest uit `rounded-sm` (8px: kleine chips, productafbeeldingen),
+`rounded-control` (12px), `rounded-card` (16px), `rounded-panel` (22px: grote
+kaarten en tegels), `rounded-t-sheet` (28px: bovenrand van de sheet) en
+`rounded-full` (pillen, avatars). Vlakken: `bg-canvas` is de achtergrond,
+`bg-surface` het lichte vlak (kaarten, velden en lijsten op canvas),
+`bg-surface-rail` het donkere vlak op `rail`; `white` blijft voor tekst en
+iconen op accent of rail. Schaduw: shadow-surface, shadow-dialog,
 shadow-dropdown, shadow-menu of de expliciete donkere/merkvariant. Accentschaduwen
 en het railgradient worden uit dezelfde accentkleur afgeleid; SVG's erven
 currentColor. Themawijziging vraagt nog contrast- en visuele controle.
 
-Nieuw werk: gewone knop/invoer 44px met rounded-control; grote primaire
-modalactie 50px met rounded-2xl. Bestaande 48/52/54px-controls blijven bewust
-behouden. Portal-tabs groeien/wrappen bij vergrote letters. Bestaande iconbuttons,
+Controlhoogte: `h-control` (44px) of `h-control-lg` (52px), ook als
+`min-h-control`. Gewone knop/invoer `h-control` met rounded-control; grote
+primaire modalactie `KNOP_DIALOOG_MAAT` (`h-control-lg rounded-card`).
+Portal-tabs groeien/wrappen bij vergrote letters. Bestaande iconbuttons,
 chips en samengestelde controls zijn geen belofte dat alles al op 44px staat.
 Een brede maatharmonisatie of verkleining van de tekstschaal vraagt een afzonderlijke
 visuele beslissing en schermcontrole.

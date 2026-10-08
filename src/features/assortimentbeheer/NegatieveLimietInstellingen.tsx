@@ -110,7 +110,7 @@ export function NegatieveLimietInstellingen() {
   }
 
   return (
-    <div className="flex max-w-md flex-col gap-4 rounded-card border border-border bg-white p-5">
+    <div className="flex max-w-md flex-col gap-4 rounded-card border border-border bg-surface p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1">
           <h2 ref={kopRef} tabIndex={-1} className="text-base font-extrabold tracking-tight">
@@ -138,7 +138,7 @@ export function NegatieveLimietInstellingen() {
 
       <div aria-live="polite" role="status" className="empty:-mt-4">
         {toast && (
-          <p className="w-fit rounded-control border border-border bg-white px-3.5 py-2 text-sm font-bold text-ink">
+          <p className="w-fit rounded-control border border-border bg-surface px-3.5 py-2 text-sm font-bold text-ink">
             {toast}
           </p>
         )}
@@ -176,10 +176,10 @@ export function NegatieveLimietInstellingen() {
               disabled={pending}
               aria-pressed={cents === currentCents}
               onClick={() => apply(cents)}
-              className={`flex h-11 min-w-[62px] flex-1 items-center justify-center rounded-control border px-3 text-sm font-extrabold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+              className={`flex h-control min-w-[62px] flex-1 items-center justify-center rounded-control border px-3 text-sm font-extrabold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
                 cents === currentCents
                   ? "border-accent bg-accent-active text-white"
-                  : "border-border bg-white text-ink hover:border-accent"
+                  : "border-border bg-surface text-ink hover:border-accent"
               }`}
             >
               {cents === 0 ? "geen" : formatCents(cents)}
@@ -210,7 +210,7 @@ export function NegatieveLimietInstellingen() {
             setCustomAmount(event.target.value);
             moment.bijWijzig();
           }}
-          className="h-12 flex-1 min-w-0 rounded-control border border-border px-3.5 text-sm font-semibold text-ink focus-visible:outline-hidden focus:border-accent focus:ring-2 focus:ring-accent/30"
+          className="h-control-lg flex-1 min-w-0 rounded-control border border-border px-3.5 text-sm font-semibold text-ink focus-visible:outline-hidden focus:border-accent focus:ring-2 focus:ring-accent/30"
         />
         <button
           type="button"
@@ -223,7 +223,7 @@ export function NegatieveLimietInstellingen() {
             }
             apply(parsedCustomCents);
           }}
-          className="flex h-12 items-center justify-center rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-track disabled:text-muted"
+          className="flex h-control-lg items-center justify-center rounded-control bg-accent px-4 text-sm font-bold text-rail transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-track disabled:text-muted"
         >
           opslaan
         </button>

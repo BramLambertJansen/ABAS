@@ -81,7 +81,7 @@ export function WachtwoordWijzigenSheet({
           <p className="text-sm font-medium leading-relaxed text-muted">{TWEESTAP_TEKSTEN.wachtwoordCodeStap}</p>
           <CodeInvoer tone="light" onVerifieer={verifieer} />
           <OverlaySluitKnop
-            className="flex h-[52px] w-full items-center justify-center rounded-2xl border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink"
+            className="flex h-control-lg w-full items-center justify-center rounded-card border border-border bg-surface text-sm font-bold text-ink transition-colors hover:border-ink"
           >
             Annuleren
           </OverlaySluitKnop>

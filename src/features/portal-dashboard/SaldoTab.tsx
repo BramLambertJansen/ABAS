@@ -110,7 +110,7 @@ export function SaldoTab({ onShowAll }: { onShowAll: () => void }) {
             role="group"
             aria-label="Saldo"
             tabIndex={-1}
-            className="flex flex-none flex-col gap-1.5 rounded-[22px] bg-ink p-6 text-white"
+            className="flex flex-none flex-col gap-1.5 rounded-panel bg-ink p-6 text-white"
           >
             <span className="text-[11px] font-bold tracking-widest text-white/60">
               HUIDIG SALDO
@@ -135,7 +135,7 @@ export function SaldoTab({ onShowAll }: { onShowAll: () => void }) {
           )}
 
           {isLowBalance && lowBalanceThresholdCents !== null && (
-            <div className="flex flex-none flex-col gap-1 rounded-[22px] bg-warning-bg p-4">
+            <div className="flex flex-none flex-col gap-1 rounded-panel bg-warning-bg p-4">
               <span className="text-sm font-extrabold text-warning-fg">Saldo bijna op</span>
               <p className="text-xs font-medium leading-relaxed text-warning-fg">
                 Onder {formatCents(lowBalanceThresholdCents)} vraagt de bardienst je mogelijk om
@@ -144,7 +144,7 @@ export function SaldoTab({ onShowAll }: { onShowAll: () => void }) {
             </div>
           )}
 
-          <div className="flex flex-none flex-col gap-1 rounded-[22px] border border-border bg-white p-4">
+          <div className="flex flex-none flex-col gap-1 rounded-panel border border-border bg-surface p-4">
             <p className="text-sm font-bold text-ink">
               Zelf opwaarderen via iDEAL komt in een volgende versie. Voor nu waardeer je op bij
               de bar.
@@ -169,7 +169,7 @@ export function SaldoTab({ onShowAll }: { onShowAll: () => void }) {
                 <button
                   type="button"
                   onClick={onShowAll}
-                  className="flex h-11 flex-none items-center whitespace-nowrap rounded-[10px] px-2 text-xs font-extrabold text-accent-active underline"
+                  className="flex h-control flex-none items-center whitespace-nowrap rounded-control px-2 text-xs font-extrabold text-accent-active underline"
                 >
                   Alle transacties
                 </button>
@@ -191,7 +191,7 @@ export function SaldoTab({ onShowAll }: { onShowAll: () => void }) {
               />
             )}
             {transactions.status === "ready" && recent.length === 0 && (
-              <div className="flex flex-col items-center gap-1 rounded-[22px] border border-border bg-white px-4 py-8 text-center">
+              <div className="flex flex-col items-center gap-1 rounded-panel border border-border bg-surface px-4 py-8 text-center">
                 <span className="text-sm font-bold text-muted">Nog geen transacties</span>
                 <span className="text-xs font-medium text-muted">
                   Elke bestelling en opwaardering komt hier te staan
@@ -200,7 +200,7 @@ export function SaldoTab({ onShowAll }: { onShowAll: () => void }) {
             )}
             {transactions.status === "ready" && recent.length > 0 && (
               <>
-                <ul className="rounded-[22px] border border-border bg-white px-3">
+                <ul className="rounded-panel border border-border bg-surface px-3">
                   {recent.map((t) => (
                     <TransactieRij key={t.id} transaction={t} />
                   ))}

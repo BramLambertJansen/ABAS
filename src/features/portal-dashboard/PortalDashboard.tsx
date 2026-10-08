@@ -9,8 +9,8 @@ import { AccountTab } from "@/features/portal-profiel/AccountTab";
 type Tab = "saldo" | "transacties" | "account";
 
 const portalTabClass = (selected: boolean) =>
-  `flex min-h-10 min-w-fit max-w-full flex-1 items-center justify-center rounded-xl px-2 py-2 text-sm font-bold transition-colors ${
-    selected ? "bg-white text-ink shadow-xs" : "text-muted-strong"
+  `flex min-h-control min-w-fit max-w-full flex-1 items-center justify-center rounded-control px-2 py-2 text-sm font-bold transition-colors ${
+    selected ? "bg-surface text-ink shadow-xs" : "text-muted-strong"
   }`;
 
 const PORTAL_TABS: TabItem[] = [
@@ -72,7 +72,7 @@ export function PortalDashboard({
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-[560px] flex-col bg-canvas sm:border-x sm:border-border font-sans text-ink antialiased">
-      <header className="flex flex-none flex-wrap items-center justify-between gap-3 border-b border-border bg-white px-5 py-4">
+      <header className="flex flex-none flex-wrap items-center justify-between gap-3 border-b border-border bg-surface px-5 py-4">
         <div className="flex min-w-0 basis-28 flex-1 flex-col">
           <h1
             ref={kopRef}
@@ -90,7 +90,7 @@ export function PortalDashboard({
         <button
           type="button"
           onClick={onSignOut}
-          className="flex h-11 flex-none items-center whitespace-nowrap rounded-[10px] border border-border px-3.5 text-xs font-extrabold text-muted transition-colors hover:border-accent hover:text-accent-active"
+          className="flex h-control flex-none items-center whitespace-nowrap rounded-control border border-border px-3.5 text-xs font-extrabold text-muted transition-colors hover:border-accent hover:text-accent-active"
         >
           Uitloggen
         </button>
@@ -103,7 +103,7 @@ export function PortalDashboard({
         selected={tab}
         onSelect={(key) => setTab(key as Tab)}
         items={PORTAL_TABS}
-        className="mx-5 mt-4 flex flex-none flex-wrap gap-1 rounded-2xl bg-track p-1"
+        className="mx-5 mt-4 flex flex-none flex-wrap gap-1 rounded-card bg-track p-1"
       />
 
       {tab === "saldo" && (

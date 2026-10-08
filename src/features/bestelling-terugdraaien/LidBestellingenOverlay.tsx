@@ -113,7 +113,7 @@ export function LidBestellingenOverlay({
             setReason(e.target.value);
             if (errorCode === "reason_required") setErrorCode(null);
           }}
-          className="h-12 w-full rounded-[13px] border border-border bg-white px-3.5 text-detail font-semibold text-ink focus-visible:outline-hidden placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
+          className="h-control-lg w-full rounded-control border border-border bg-surface px-3.5 text-detail font-semibold text-ink focus-visible:outline-hidden placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
         />
       </div>
 
@@ -172,7 +172,7 @@ export function LidBestellingenOverlay({
         type="button"
         disabled={pending}
         onClick={onClose}
-        className="flex h-11 w-full items-center justify-center rounded-control border border-border bg-white text-sm font-bold text-ink transition-colors hover:border-ink disabled:opacity-50"
+        className="flex h-control w-full items-center justify-center rounded-control border border-border bg-surface text-sm font-bold text-ink transition-colors hover:border-ink disabled:opacity-50"
       >
         Sluiten
       </button>
@@ -204,7 +204,7 @@ function OrderRow({
 
   if (order.reversed) {
     return (
-      <li className="flex items-center gap-3 rounded-[13px] border border-border bg-canvas px-3.5 py-3">
+      <li className="flex items-center gap-3 rounded-control border border-border bg-canvas px-3.5 py-3">
         <span className="flex-none text-metadata font-bold text-muted">{when}</span>
         <span className="min-w-0 flex-1 truncate text-detail font-bold text-ink">{items}</span>
         <span className="flex-none text-detail font-extrabold text-muted line-through">
@@ -221,7 +221,7 @@ function OrderRow({
         type="button"
         onClick={onAsk}
         aria-expanded={confirming}
-        className={`flex items-center gap-3 rounded-[13px] border px-3.5 py-3 text-left transition-colors ${
+        className={`flex items-center gap-3 rounded-control border px-3.5 py-3 text-left transition-colors ${
           confirming ? "border-danger bg-danger-bg" : "border-border hover:border-danger"
         }`}
       >
@@ -233,7 +233,7 @@ function OrderRow({
         <span className="flex-none text-xs font-extrabold text-danger">terugdraaien →</span>
       </button>
       {confirming && (
-        <div className="flex flex-wrap items-center gap-3 rounded-[13px] bg-danger-bg px-3.5 py-3">
+        <div className="flex flex-wrap items-center gap-3 rounded-control bg-danger-bg px-3.5 py-3">
           <span className="min-w-0 flex-1 text-metadata font-bold text-ink">
             {reasonMissing
               ? "Vul eerst een reden in."
@@ -243,7 +243,7 @@ function OrderRow({
             type="button"
             onClick={onCancel}
             disabled={pending}
-            className="flex h-9 flex-none items-center rounded-[11px] border border-border bg-white px-3.5 text-metadata font-extrabold text-ink transition-colors hover:border-ink disabled:opacity-50"
+            className="flex h-control flex-none items-center rounded-control border border-border bg-surface px-3.5 text-metadata font-extrabold text-ink transition-colors hover:border-ink disabled:opacity-50"
           >
             annuleren
           </button>
@@ -251,7 +251,7 @@ function OrderRow({
             type="button"
             onClick={onConfirm}
             disabled={pending || reasonMissing}
-            className="flex h-9 flex-none items-center rounded-[11px] bg-danger px-4 text-metadata font-extrabold text-white transition-colors hover:bg-ink disabled:cursor-not-allowed disabled:bg-track disabled:text-muted"
+            className="flex h-control flex-none items-center rounded-control bg-danger px-4 text-metadata font-extrabold text-white transition-colors hover:bg-ink disabled:cursor-not-allowed disabled:bg-track disabled:text-muted"
           >
             {pending ? "bezig…" : "terugdraaien"}
           </button>

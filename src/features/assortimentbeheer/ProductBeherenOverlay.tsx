@@ -302,7 +302,7 @@ export function ProductBeherenOverlay({
             type="button"
             disabled={busy}
             onClick={chooseImage}
-            className="flex h-11 items-center justify-center rounded-control border border-border bg-white px-4 text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex h-control items-center justify-center rounded-control border border-border bg-surface px-4 text-sm font-bold text-ink transition-colors hover:border-ink disabled:cursor-not-allowed disabled:opacity-50"
           >
             {imageMutation.pendingAction === "upload"
               ? UPLOAD_BEZIG_TEKST
@@ -315,7 +315,7 @@ export function ProductBeherenOverlay({
               type="button"
               disabled={busy}
               onClick={removeImage}
-              className="flex h-11 items-center justify-center rounded-control border border-border bg-white px-4 text-sm font-bold text-danger transition-colors hover:border-danger disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex h-control items-center justify-center rounded-control border border-border bg-surface px-4 text-sm font-bold text-danger transition-colors hover:border-danger disabled:cursor-not-allowed disabled:opacity-50"
             >
               {imageMutation.pendingAction === "remove" ? OPSLAAN_BEZIG_TEKST : "Verwijderen"}
             </button>
@@ -368,7 +368,7 @@ export function ProductBeherenOverlay({
             type="button"
             disabled={!canSavePrice}
             onClick={savePrice}
-            className={`flex h-11 items-center justify-center rounded-control px-4 text-sm font-bold ${KNOP_ACCENT_DONKER}`}
+            className={`flex h-control items-center justify-center rounded-control px-4 text-sm font-bold ${KNOP_ACCENT_DONKER}`}
           >
             {priceBusy ? OPSLAAN_BEZIG_TEKST : "Opslaan"}
           </button>
@@ -414,7 +414,7 @@ export function ProductBeherenOverlay({
 
       <OverlaySluitKnop
         disabled={closeBlocked}
-        className={`flex h-11 w-full items-center justify-center rounded-control text-sm font-bold ${KNOP_RAND}`}
+        className={`flex h-control w-full items-center justify-center rounded-control text-sm font-bold ${KNOP_RAND}`}
       >
         Sluiten
       </OverlaySluitKnop>
