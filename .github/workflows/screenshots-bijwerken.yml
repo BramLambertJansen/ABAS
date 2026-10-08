@@ -1,0 +1,63 @@
+name: Screenshots bijwerken
+
+# Maakt de baselines van de ontwerpsysteem-screenshots op de CI-runner (zelfde
+# Chromium, zelfde fonts als de vergelijking) en commit ze op de gekozen branch
+# (docs/features/ontwerpsysteem.md). Handmatig starten na een bewuste visuele
+# wijziging; bekijk daarna de PNG's in de PR-diff.
+#
+# Een push met de standaardtoken start geen nieuwe CI-run. Zet daarom het secret
+# SCREENSHOTS_TOKEN (fijnmazig, alleen contents: write op deze repo); zonder dat
+# secret valt de workflow terug op de standaardtoken en blijven de checks op de
+# nieuwe commit leeg tot er opnieuw gepusht wordt (zie docs/operations/rails-checklist.md).
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Branch waarop de baselines gecommit worden
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: screenshots-${{ inputs.branch }}
+  cancel-in-progress: false
+
+jobs:
+  bijwerken:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ inputs.branch }}
+          token: ${{ secrets.SCREENSHOTS_TOKEN || github.token }}
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx playwright install --with-deps chromium
+
+      # Spec en snapshotmap komen uit de lokale configuratie, niet uit deze
+      # workflow (raamwerk-extractie).
+      - name: Baselines maken
+        run: |
+          SPEC=$(jq -r .specPad scripts/kit/systeem.lokaal.json)
+          echo "SPEC=$SPEC" >> "$GITHUB_ENV"
+          npx playwright test "$SPEC" --update-snapshots
+
+      - name: Committen en pushen
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "${SPEC}-snapshots"
+          if git diff --cached --quiet; then
+            echo "Geen wijzigingen in de baselines."
+          else
+            git commit -m "Screenshots bijwerken (ontwerpsysteem)"
+            git push origin "HEAD:${{ inputs.branch }}"
+          fi
