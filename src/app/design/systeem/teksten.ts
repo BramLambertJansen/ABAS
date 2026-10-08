@@ -232,3 +232,13 @@ export const VOORBEELD_TEKSTEN = {
     tekst: "Vul een naam in.",
   },
 } as const;
+
+export const NIET_OP_DEZE_PAGINA = {
+  titel: "Niet op deze pagina",
+  uitleg:
+    "Deze componenten staan hier niet. Uitzonderingen hebben een code en zijn bewust niet getoond; de componenten met een los venster staan elk in een eigen document.",
+  caption: "Niet op deze pagina",
+  kolommen: { component: "Component", code: "Code", toelichting: "Toelichting" },
+  vensterKop: "Losse vensters",
+  geenUitzonderingen: "Er zijn geen uitzonderingen: elke component staat hier of in een los venster.",
+} as const;
