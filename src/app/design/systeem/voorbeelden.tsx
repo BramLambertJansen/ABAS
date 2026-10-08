@@ -27,7 +27,8 @@ import { ZoekIcoon } from "@/components/ZoekIcoon";
 import { ZoekVeld } from "@/components/ZoekVeld";
 import { SysteemSectie } from "@/lib/systeem/SysteemSectie";
 import type { SysteemTone, Voorbeeldregister } from "@/lib/systeem/types";
-import type { CodeFout } from "@/lib/mfa";
+import { TWEESTAP_TEKSTEN, type CodeFout } from "@/lib/mfa";
+import { OPSLAAN_BEZIG_TEKST } from "@/lib/opslaan";
 import { STATEN, VOORBEELD_TEKSTEN } from "./teksten";
 
 /** De donkere strook van rail-secties (project: ABAS). */
@@ -722,7 +723,7 @@ function OpslaanSectieVoorbeeld() {
         </OpslaanStaat>
         <OpslaanStaat titel={S.pending}>
           <OpslaanSectie pending wachtOpAnder={false} fout={null}>
-            <Knop variant="primair" aria-disabled>{T.knopBezig}</Knop>
+            <Knop variant="primair" aria-disabled>{OPSLAAN_BEZIG_TEKST}</Knop>
           </OpslaanSectie>
         </OpslaanStaat>
         <OpslaanStaat titel={S.wachtOpAnder}>
@@ -869,7 +870,7 @@ function CodeInvoerVoorbeeld() {
             <Groep titel={S.leeg}><CodeInvoer tone="light" onVerifieer={ONJUISTE_CODE} /></Groep>
           </div>
           <div className="flex w-72 flex-col gap-3">
-            <Groep titel={S.metKnop}><CodeInvoer tone="light" onVerifieer={ONJUISTE_CODE} submitLabel={T.submitLabel} /></Groep>
+            <Groep titel={S.metKnop}><CodeInvoer tone="light" onVerifieer={ONJUISTE_CODE} submitLabel={TWEESTAP_TEKSTEN.stap2Knop} /></Groep>
           </div>
         </Rij>
       </Sectie>
@@ -891,7 +892,7 @@ function CodeInvoerVoorbeeld() {
       <Sectie naam="CodeInvoer" deel="bevestigen" titel={T.bevestigen.titel} uitleg={T.bevestigen.uitleg}>
         <div className="flex w-72 flex-col gap-3">
           <Groep titel={T.bevestigen.kop}>
-            <CodeInvoer tone="light" onVerifieer={ONJUISTE_CODE} submitLabel={T.submitLabel} />
+            <CodeInvoer tone="light" onVerifieer={ONJUISTE_CODE} submitLabel={TWEESTAP_TEKSTEN.stap2Knop} />
           </Groep>
         </div>
       </Sectie>

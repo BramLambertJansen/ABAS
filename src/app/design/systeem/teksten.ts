@@ -248,7 +248,6 @@ export const VOORBEELD_TEKSTEN = {
       labelEnKop: "Met label (groep) en kop",
     },
     knop: "Opslaan",
-    knopBezig: "Opslaan…",
     statusTekst: "Prijs opgeslagen",
     foutmelding: "Opslaan is niet gelukt. Probeer het opnieuw.",
     archiveren: "Archiveren",
@@ -305,7 +304,6 @@ export const VOORBEELD_TEKSTEN = {
       metKnop: "Met submitLabel (knop aria-disabled)",
       rail: "Leeg, rail",
     },
-    submitLabel: "Bevestigen",
     fout: {
       titel: "CodeInvoer: onjuiste code",
       uitleg: "De controle geeft altijd \"onjuiste code\". Voer zes cijfers in om de foutmelding te zien.",
