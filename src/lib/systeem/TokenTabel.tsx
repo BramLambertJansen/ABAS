@@ -13,7 +13,9 @@ function Label({ token }: { token: ThemaToken }) {
 }
 
 function Voorbeeld({ groep, token, voorbeeldtekst }: { groep: ThemaGroep; token: ThemaToken; voorbeeldtekst: string }) {
-  const variabele = `var(${token.naam})`;
+  // Tailwind v4 schrijft alleen gebruikte tokens als custom property uit; de
+  // fallback houdt een (nog) ongebruikt token zichtbaar met zijn eigen waarde.
+  const variabele = `var(${token.naam}, ${token.waarde})`;
   switch (groep) {
     case "kleuren":
       return <span aria-hidden="true" className="block h-12 w-12 flex-none" style={{ backgroundColor: variabele, border: RAND, borderRadius: "0.5rem" }} />;
