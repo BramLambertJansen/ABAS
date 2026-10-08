@@ -1416,7 +1416,8 @@ Visual tokens (color, radii, type) aren't restated here — read
 `designs/Bar App.dc.html` directly when building a screen (it's inline
 `style="..."` per element, easy to grep for the section you need). Key
 constants worth knowing up front: accent `#ee5a24`, warm background `#faf7f3`,
-Manrope typeface, 44–52px tap targets (bar tablet, used with busy/wet hands).
+Manrope typeface, 44 or 52px tap targets (`h-control`/`h-control-lg`; bar
+tablet, used with busy/wet hands).
 
 **`accent` vs. `accent-active` (settled, 2026-08-26)**: `accent.DEFAULT`
 (`#ee5a24`, the prototype's literal accent color) only clears WCAG AA
@@ -1466,7 +1467,7 @@ and `focus:outline-*` (0,2,0). A second rule suppresses the ring on
 headings/blocks with `tabindex="-1"`. Fields with their own ring set
 `focus-visible:outline-hidden`. Manrope is self-hosted via `next/font/local`
 (`src/app/layout.tsx`, `src/app/fonts/`, latin subset, SIL OFL; variable
-`--font-manrope`, used by `fontFamily.sans`), so there is no request to Google.
+`--font-manrope`, used by `--font-sans`), so there is no request to Google.
 All portal screens (`PortalDashboard`, loading/error states in
 `PortalShellHome`, `PortalWachtwoordHerstellen`) and the portal sheet in
 `Overlay` are capped at `max-w-[560px]`, centred, with `sm:border-x`.
