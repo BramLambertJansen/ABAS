@@ -15,7 +15,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
  * baseline van de tijdelijke boom en niet die van de echte repo.
  */
 const KIT = join(dirname(fileURLToPath(import.meta.url)), "..", "scripts", "kit");
-const { analyseer, componentNamen, registerSleutels, CODES, draai: draaiEcht } = await import(pathToFileURL(join(KIT, "systeem.mjs")).href);
+const { analyseer, componentNamen, registerSleutels, CODES, valideerVensters, valideerInteracties, draai: draaiEcht } = await import(pathToFileURL(join(KIT, "systeem.mjs")).href);
 const tmpDirs: string[] = [];
 after(() => {
   for (const d of tmpDirs) rmSync(d, { recursive: true, force: true });
@@ -224,9 +224,11 @@ type Boom = {
   uitzonderingen: Record<string, unknown>;
   /** Extra sleutels in systeem.lokaal.json (bijvoorbeeld de oude `redenen`). */
   extra?: Record<string, unknown>;
+  /** Extra bestanden in de boom (pad relatief aan de root → inhoud), bijvoorbeeld het interactiebestand. */
+  bestanden?: Record<string, string>;
 };
 
-async function draaiIn({ componenten, register, baseline, uitzonderingen, extra = {} }: Boom): Promise<string[]> {
+async function draaiIn({ componenten, register, baseline, uitzonderingen, extra = {}, bestanden = {} }: Boom): Promise<string[]> {
   const dir = mkdtempSync(join(tmpdir(), "systeem-catalogus-"));
   tmpDirs.push(dir);
   const schrijf = (rel: string, inhoud: string) => {
@@ -236,6 +238,7 @@ async function draaiIn({ componenten, register, baseline, uitzonderingen, extra 
   for (const [naam, inhoud] of Object.entries(componenten)) schrijf(`src/components/${naam}`, inhoud);
   schrijf("src/voorbeelden.tsx", register);
   schrijf(".kit/baseline.json", JSON.stringify(baseline));
+  for (const [rel, inhoud] of Object.entries(bestanden)) schrijf(rel, inhoud);
   schrijf(
     "scripts/kit/systeem.lokaal.json",
     JSON.stringify({
@@ -388,6 +391,370 @@ test("draai: ontbrekend register geeft een melding", async () => {
   assert.match(p[0] ?? "", /register `VOORBEELDEN` niet gevonden/);
 });
 
+// --- vensters (PR 3): dekking en V1–V5 ------------------------------------------
+
+const V1 = (id: string, x: string, map = "src/components") => `${id}: venster noemt ${x}, maar ${x} bestaat niet in ${map} — haal hem weg`;
+const V2 = (id: string) => `${id}: venster zonder componenten in systeem.lokaal.json → vensters`;
+const V3 = (id: string) => `${id}: breedte en hoogte moeten gehele getallen tussen 200 en 2000 zijn`;
+const V4 = (id: string) => `${id}: venster-id alleen kleine letters, cijfers en streepjes`;
+const V5 = (id: string, veld: string) =>
+  `${id}: onbekend veld "${veld}" in systeem.lokaal.json → vensters; toegestaan: componenten, breedte, hoogte, eigenLandmark`;
+
+const venster = (extra: Record<string, unknown> = {}) => ({ componenten: ["Overlay"], breedte: 768, hoogte: 560, ...extra });
+const eenVenster = (id: string, v: unknown, componenten = ["Overlay", "Knop"]) =>
+  valideerVensters({ [id]: v }, componenten, "src/components");
+
+test("analyseer: een component dat alleen in een venster staat is gedekt (geen G1)", () => {
+  const r = analyseer({
+    componenten: ["Knop", "Overlay", "StartScherm"],
+    sleutels: ["Knop"],
+    uitzonderingen: {},
+    tolereerbaar: [],
+    vensters: { "overlay-modal": venster(), "start-scherm": venster({ componenten: ["StartScherm"], eigenLandmark: true }) },
+  });
+  assert.deepEqual(r, { ontbrekend: [], onbekend: [], uitzonderingProblemen: [] });
+});
+
+test("analyseer: een venster dekt alleen de componenten die het noemt", () => {
+  const r = analyseer({
+    componenten: ["Overlay", "ZijPaneel"],
+    sleutels: [],
+    uitzonderingen: {},
+    tolereerbaar: [],
+    vensters: { "overlay-modal": venster() },
+  });
+  assert.deepEqual(r.ontbrekend, ["ZijPaneel"]);
+});
+
+test("analyseer: G4 ook voor een component dat een venster heeft maar nog een uitzondering-entry", () => {
+  const r = analyseer({
+    componenten: ["Overlay"],
+    sleutels: [],
+    uitzonderingen: { Overlay: { code: "context" } },
+    tolereerbaar: [],
+    vensters: { "overlay-modal": venster() },
+  });
+  assert.deepEqual(r.uitzonderingProblemen, [G4("Overlay")]);
+});
+
+test("valideerVensters: geldige vensters, met en zonder eigenLandmark, en de grenzen 200 en 2000", () => {
+  assert.deepEqual(
+    valideerVensters(
+      {
+        "overlay-modal": venster({ componenten: ["Overlay", "Knop"] }),
+        "start-scherm": venster({ eigenLandmark: true }),
+        a1: venster({ breedte: 200, hoogte: 2000 }),
+      },
+      ["Overlay", "Knop"],
+      "src/components",
+    ),
+    [],
+  );
+  assert.deepEqual(valideerVensters({}, ["Overlay"], "src/components"), []);
+});
+
+test("valideerVensters: V1 een venster noemt een component dat niet bestaat; noemt de componentenMap", () => {
+  assert.deepEqual(eenVenster("overlay-modal", venster({ componenten: ["Overlay", "Weg"] })), [V1("overlay-modal", "Weg")]);
+  assert.deepEqual(valideerVensters({ x: venster({ componenten: ["Weg"] }) }, [], "lib/ui"), [V1("x", "Weg", "lib/ui")]);
+});
+
+test("valideerVensters: V2 venster zonder componenten (ontbrekend, leeg, geen lijst)", () => {
+  for (const componenten of [undefined, [], "Overlay", null, { Overlay: true }]) {
+    const v = venster({ componenten });
+    if (componenten === undefined) delete (v as Record<string, unknown>).componenten;
+    assert.deepEqual(eenVenster("leeg", v), [V2("leeg")], JSON.stringify(componenten));
+  }
+});
+
+test("valideerVensters: V3 breedte of hoogte geen geheel getal tussen 200 en 2000", () => {
+  const fout: Record<string, unknown>[] = [
+    { breedte: 199 },
+    { breedte: 2001 },
+    { hoogte: 199 },
+    { hoogte: 2001 },
+    { breedte: 768.5 },
+    { breedte: "768" },
+    { hoogte: null },
+    { breedte: -768 },
+  ];
+  for (const extra of fout) assert.deepEqual(eenVenster("maat", venster(extra)), [V3("maat")], JSON.stringify(extra));
+  const zonderHoogte = venster();
+  delete (zonderHoogte as Record<string, unknown>).hoogte;
+  assert.deepEqual(eenVenster("maat", zonderHoogte), [V3("maat")]);
+});
+
+test("valideerVensters: V4 venster-id geen kebab-case", () => {
+  for (const id of ["Overlay-Modal", "overlay_modal", "overlay modal", "-overlay", "overlay-", "overlay--modal", "overlay.modal", "é"]) {
+    assert.deepEqual(eenVenster(id, venster()), [V4(id)], id);
+  }
+});
+
+test("valideerVensters: V5 onbekend veld", () => {
+  assert.deepEqual(eenVenster("veld", venster({ viewport: { width: 768 } })), [V5("veld", "viewport")]);
+  assert.deepEqual(eenVenster("veld", venster({ width: 768 })), [V5("veld", "width")]);
+});
+
+// --- interacties (PR 3): I1–I7 --------------------------------------------------
+
+const I1 = (n: string) => `interactie ${n}: kies precies één doel: sectie of venster`;
+const I2 = (n: string, id: string) => `interactie ${n}: venster "${id}" bestaat niet in systeem.lokaal.json → vensters`;
+const I3 = (n: string, doel: string) => `interactie ${n}: naam ontbreekt, is geen kebab-case of is dubbel bij ${doel}`;
+const I4 = (n: string, stap: number) => `interactie ${n}, stap ${stap}: kies precies één actie: klik, typ, toets, verwacht`;
+const I5 = (n: string, stap: number) => `interactie ${n}, stap ${stap}: doelwit is precies één van rol (met optioneel naam), label of tekst`;
+const I6 = (n: string, stap: number, veld: string) => `interactie ${n}, stap ${stap}: ongeldige waarde voor ${veld}`;
+const I7 = (n: string) => `interactie ${n}: eindig met een verwacht-stap, zodat de screenshot pas volgt als de staat er is`;
+
+const VENSTERS = { "overlay-bezig": venster() };
+const VERWACHT = { verwacht: { tekst: "klaar" } };
+/** Eén interactie `x` op sectie `s` met de gegeven stappen. */
+const stappen = (...s: unknown[]) => valideerInteracties([{ naam: "x", sectie: "s", stappen: s }], VENSTERS);
+
+test("valideerInteracties: geldige interacties met elke actie, elk doelwit en beide doelen", () => {
+  const interacties = [
+    {
+      naam: "alles",
+      sectie: "code-invoer",
+      stappen: [
+        { klik: { rol: "button", naam: "Cijfer 1" }, keer: 6 },
+        { klik: { rol: "button" } },
+        { klik: { label: "Zoek" }, keer: 1 },
+        { klik: { tekst: "Anna" }, keer: 10 },
+        { typ: "a", in: { label: "Zoek lid op naam" } },
+        { typ: "", in: { rol: "combobox", naam: "Zoek lid op naam" } },
+        { toets: "Escape" },
+        { toets: "Tab", keer: 2 },
+        { verwacht: { rol: "listbox", naam: "Gevonden leden" }, staat: "zichtbaar" },
+        { verwacht: { rol: "button", naam: "Cijfer 2" }, staat: "uitgeschakeld" },
+        { verwacht: { tekst: "klaar" } },
+      ],
+    },
+    { naam: "melding", venster: "overlay-bezig", stappen: [{ toets: "Escape" }, VERWACHT] },
+    // Dezelfde naam bij een ander doel mag.
+    { naam: "melding", sectie: "code-invoer", stappen: [VERWACHT] },
+  ];
+  assert.deepEqual(valideerInteracties(interacties, VENSTERS), []);
+  assert.deepEqual(valideerInteracties([], VENSTERS), []);
+});
+
+test("valideerInteracties: I1 niet precies één doel", () => {
+  assert.deepEqual(valideerInteracties([{ naam: "x", stappen: [VERWACHT] }], VENSTERS), [I1("x")]);
+  assert.deepEqual(valideerInteracties([{ naam: "x", sectie: "s", venster: "overlay-bezig", stappen: [VERWACHT] }], VENSTERS), [I1("x")]);
+  assert.deepEqual(valideerInteracties([{ naam: "x", sectie: "", stappen: [VERWACHT] }], VENSTERS), [I1("x")]);
+  assert.deepEqual(valideerInteracties([{ naam: "x", sectie: 3, stappen: [VERWACHT] }], VENSTERS), [I1("x")]);
+});
+
+test("valideerInteracties: I2 het venster bestaat niet in vensters", () => {
+  assert.deepEqual(valideerInteracties([{ naam: "x", venster: "overlay-weg", stappen: [VERWACHT] }], VENSTERS), [I2("x", "overlay-weg")]);
+  assert.deepEqual(valideerInteracties([{ naam: "x", venster: "overlay-bezig", stappen: [VERWACHT] }], {}), [I2("x", "overlay-bezig")]);
+});
+
+test("valideerInteracties: I3 naam geen kebab-case of dubbel bij hetzelfde doel", () => {
+  for (const naam of ["Lijst-Open", "lijst_open", "lijst open", ""]) {
+    assert.deepEqual(valideerInteracties([{ naam, sectie: "s", stappen: [VERWACHT] }], VENSTERS), [I3(naam, "sectie s")], naam);
+  }
+  const dubbel = [
+    { naam: "fout", sectie: "s", stappen: [VERWACHT] },
+    { naam: "fout", sectie: "s", stappen: [VERWACHT] },
+  ];
+  assert.deepEqual(valideerInteracties(dubbel, VENSTERS), [I3("fout", "sectie s")]);
+  const dubbelVenster = [
+    { naam: "melding", venster: "overlay-bezig", stappen: [VERWACHT] },
+    { naam: "melding", venster: "overlay-bezig", stappen: [VERWACHT] },
+  ];
+  assert.deepEqual(valideerInteracties(dubbelVenster, VENSTERS), [I3("melding", "venster overlay-bezig")]);
+});
+
+test("valideerInteracties: I3 naam ontbreekt (de melding noemt het doel)", () => {
+  const p = valideerInteracties([{ sectie: "s", stappen: [VERWACHT] }], VENSTERS);
+  assert.equal(p.length, 1);
+  assert.match(p[0], /^interactie .*: naam ontbreekt, is geen kebab-case of is dubbel bij sectie s$/);
+});
+
+test("valideerInteracties: I4 een stap zonder of met meer dan één actie", () => {
+  assert.deepEqual(stappen({}, VERWACHT), [I4("x", 1)]);
+  assert.deepEqual(stappen({ keer: 2 }, VERWACHT), [I4("x", 1)]);
+  assert.deepEqual(stappen({ klik: { tekst: "a" }, toets: "Enter" }, VERWACHT), [I4("x", 1)]);
+  assert.deepEqual(stappen(VERWACHT, { typ: "a", in: { label: "b" }, verwacht: { tekst: "c" } }, VERWACHT), [I4("x", 2)]);
+  assert.deepEqual(stappen(null, VERWACHT), [I4("x", 1)]);
+  assert.deepEqual(stappen("klik", VERWACHT), [I4("x", 1)]);
+});
+
+test("valideerInteracties: I5 ongeldig doelwit", () => {
+  const fout: unknown[] = [
+    {},
+    null,
+    "Cijfer 1",
+    { naam: "Cijfer 1" },
+    { rol: "button", label: "Cijfer 1" },
+    { label: "a", tekst: "b" },
+    { rol: "button", tekst: "b" },
+    { label: "" },
+    { tekst: "  " },
+    { rol: "" },
+    { rol: "button", naam: "" },
+    { label: "a", naam: "b" },
+    { css: ".knop" },
+  ];
+  for (const doelwit of fout) {
+    assert.deepEqual(stappen({ klik: doelwit }, VERWACHT), [I5("x", 1)], `klik ${JSON.stringify(doelwit)}`);
+    assert.deepEqual(stappen(VERWACHT, { verwacht: doelwit }), [I5("x", 2)], `verwacht ${JSON.stringify(doelwit)}`);
+    assert.deepEqual(stappen({ typ: "a", in: doelwit }, VERWACHT), [I5("x", 1)], `typ ${JSON.stringify(doelwit)}`);
+  }
+  // typ zonder `in`.
+  assert.deepEqual(stappen({ typ: "a" }, VERWACHT), [I5("x", 1)]);
+});
+
+test("valideerInteracties: I6 ongeldige keer, toets, typ, staat of lege stappen", () => {
+  for (const keer of [0, 11, 1.5, "2", null, -1]) {
+    assert.deepEqual(stappen({ klik: { tekst: "a" }, keer }, VERWACHT), [I6("x", 1, "keer")], `klik keer ${JSON.stringify(keer)}`);
+    assert.deepEqual(stappen({ toets: "Tab", keer }, VERWACHT), [I6("x", 1, "keer")], `toets keer ${JSON.stringify(keer)}`);
+  }
+  for (const toets of ["", "  ", 5, null, ["Escape"]]) {
+    assert.deepEqual(stappen({ toets }, VERWACHT), [I6("x", 1, "toets")], `toets ${JSON.stringify(toets)}`);
+  }
+  for (const typ of [5, null, ["a"], { a: 1 }]) {
+    assert.deepEqual(stappen({ typ, in: { label: "b" } }, VERWACHT), [I6("x", 1, "typ")], `typ ${JSON.stringify(typ)}`);
+  }
+  assert.deepEqual(stappen(VERWACHT, { verwacht: { tekst: "a" }, staat: "verborgen" }), [I6("x", 2, "staat")]);
+  // Een veld dat niet bij de actie hoort.
+  assert.deepEqual(stappen({ toets: "Escape", in: { label: "a" } }, VERWACHT), [I6("x", 1, "in")]);
+  assert.deepEqual(stappen({ verwacht: { tekst: "a" }, keer: 2 }), [I6("x", 1, "keer")]);
+  // Lege of ontbrekende stappen.
+  assert.deepEqual(valideerInteracties([{ naam: "x", sectie: "s", stappen: [] }], VENSTERS), [I6("x", 1, "stappen")]);
+  assert.deepEqual(valideerInteracties([{ naam: "x", sectie: "s" }], VENSTERS), [I6("x", 1, "stappen")]);
+});
+
+test("valideerInteracties: I7 de laatste stap is geen verwacht", () => {
+  assert.deepEqual(stappen({ klik: { tekst: "a" } }), [I7("x")]);
+  assert.deepEqual(stappen(VERWACHT, { toets: "Escape" }), [I7("x")]);
+  assert.deepEqual(stappen(VERWACHT, { typ: "a", in: { label: "b" } }), [I7("x")]);
+});
+
+test("valideerInteracties: meldingen per interactie lopen door; de volgende interactie wordt ook gecontroleerd", () => {
+  const p = valideerInteracties(
+    [
+      { naam: "a", stappen: [VERWACHT] },
+      { naam: "b", venster: "weg", stappen: [VERWACHT] },
+      { naam: "c", sectie: "s", stappen: [{ toets: "Escape" }] },
+    ],
+    VENSTERS,
+  );
+  assert.deepEqual(p, [I1("a"), I2("b", "weg"), I7("c")]);
+});
+
+// --- draai(root) met vensters en interacties (PR 3) ---------------------------
+
+const G1venster = (x: string) =>
+  `${x}: staat niet in /design/systeem: voeg een voorbeeld toe in src/voorbeelden.tsx of een venster in systeem.lokaal.json → vensters, of (alleen met Brams akkoord, label gate-wijziging) een uitzondering met een code (${CODELIJST}) in ${PLEK}`;
+const PAD = "e2e/systeem.interacties.json";
+const ONGELDIG_BESTAND = `${PAD}: ontbreekt of is geen geldige JSON`;
+const GELDIGE_INTERACTIES = JSON.stringify({
+  interacties: [
+    { naam: "melding", venster: "chip-venster", stappen: [{ toets: "Escape" }, { verwacht: { tekst: "klaar" } }] },
+    { naam: "open", sectie: "knop", stappen: [{ klik: { rol: "button", naam: "Knop" } }, { verwacht: { rol: "dialog" } }] },
+  ],
+});
+const CHIP_VENSTER = { "chip-venster": { componenten: ["Chip"], breedte: 768, hoogte: 560 } };
+
+test("draai: een component dat alleen in een venster staat slaagt", async () => {
+  const p = await draaiIn({
+    componenten: { "Knop.tsx": KNOP, "Chip.tsx": CHIP },
+    register: REGISTER("Knop"),
+    baseline: {},
+    uitzonderingen: {},
+    extra: { vensterRoute: "/design/systeem/venster", vensters: CHIP_VENSTER },
+  });
+  assert.deepEqual(p, []);
+});
+
+test("draai: G1 met de vensterzin zodra de config vensters heeft", async () => {
+  const p = await draaiIn({
+    componenten: { "Knop.tsx": KNOP, "Chip.tsx": CHIP, "Segment.tsx": "export function Segment() {}\n" },
+    register: REGISTER("Knop"),
+    baseline: {},
+    uitzonderingen: {},
+    extra: { vensters: CHIP_VENSTER },
+  });
+  assert.deepEqual(p, [G1venster("Segment")]);
+});
+
+test("draai: V1 via de config, met de componentenMap uit de config", async () => {
+  const p = await draaiIn({
+    componenten: { "Knop.tsx": KNOP },
+    register: REGISTER("Knop"),
+    baseline: {},
+    uitzonderingen: {},
+    extra: { vensters: { "spook-venster": { componenten: ["Spook"], breedte: 768, hoogte: 560 } } },
+  });
+  assert.deepEqual(p, [V1("spook-venster", "Spook")]);
+});
+
+test("draai: een geldig interactiebestand slaagt; een leeg bestand ook", async () => {
+  for (const inhoud of [GELDIGE_INTERACTIES, '{ "interacties": [] }']) {
+    const p = await draaiIn({
+      componenten: { "Knop.tsx": KNOP, "Chip.tsx": CHIP },
+      register: REGISTER("Knop"),
+      baseline: {},
+      uitzonderingen: {},
+      extra: { vensters: CHIP_VENSTER, interactiesPad: PAD },
+      bestanden: { [PAD]: inhoud },
+    });
+    assert.deepEqual(p, [], inhoud);
+  }
+});
+
+test("draai: een ontbrekend interactiebestand faalt", async () => {
+  const p = await draaiIn({
+    componenten: { "Knop.tsx": KNOP, "Chip.tsx": CHIP },
+    register: REGISTER("Knop"),
+    baseline: {},
+    uitzonderingen: {},
+    extra: { vensters: CHIP_VENSTER, interactiesPad: PAD },
+  });
+  assert.deepEqual(p, [ONGELDIG_BESTAND]);
+});
+
+test("draai: een interactiebestand dat geen geldige JSON is faalt", async () => {
+  for (const inhoud of ["", "{", "{ interacties: [] }", '{ "interacties": [ ] , }']) {
+    const p = await draaiIn({
+      componenten: { "Knop.tsx": KNOP, "Chip.tsx": CHIP },
+      register: REGISTER("Knop"),
+      baseline: {},
+      uitzonderingen: {},
+      extra: { vensters: CHIP_VENSTER, interactiesPad: PAD },
+      bestanden: { [PAD]: inhoud },
+    });
+    assert.deepEqual(p, [ONGELDIG_BESTAND], JSON.stringify(inhoud));
+  }
+});
+
+test("draai: I-meldingen uit het interactiebestand komen in de gate", async () => {
+  const p = await draaiIn({
+    componenten: { "Knop.tsx": KNOP, "Chip.tsx": CHIP },
+    register: REGISTER("Knop"),
+    baseline: {},
+    uitzonderingen: {},
+    extra: { vensters: CHIP_VENSTER, interactiesPad: PAD },
+    bestanden: {
+      [PAD]: JSON.stringify({ interacties: [{ naam: "melding", venster: "weg", stappen: [{ toets: "Escape" }] }] }),
+    },
+  });
+  assert.deepEqual(p, [I2("melding", "weg"), I7("melding")]);
+});
+
+test("draai: zonder interactiesPad worden geen interacties gecontroleerd", async () => {
+  const p = await draaiIn({
+    componenten: { "Knop.tsx": KNOP, "Chip.tsx": CHIP },
+    register: REGISTER("Knop"),
+    baseline: {},
+    uitzonderingen: {},
+    extra: { vensters: CHIP_VENSTER },
+    // Een kapot bestand op de gebruikelijke plek telt niet zonder interactiesPad.
+    bestanden: { [PAD]: "{" },
+  });
+  assert.deepEqual(p, []);
+});
+
 // --- de echte config ----------------------------------------------------------
 
 const ROOT = join(KIT, "..", "..");
@@ -404,4 +771,22 @@ test("echte config: de namen in uitzonderingen zijn precies die in .kit/baseline
   const namen = Object.keys(cfg.uitzonderingen).sort();
   const inBaseline = [...(baseline[cfg.baselineSleutel] ?? [])].sort();
   assert.deepEqual(namen, inBaseline);
+});
+
+test("echte config: de ratchet houdt 4 uitzonderingen, alle vier met code data", () => {
+  const cfg = JSON.parse(readFileSync(join(ROOT, "scripts/kit/systeem.lokaal.json"), "utf8"));
+  const baseline = JSON.parse(readFileSync(join(ROOT, ".kit/baseline.json"), "utf8"));
+  assert.equal((baseline[cfg.baselineSleutel] ?? []).length, 4);
+  for (const [naam, entry] of Object.entries(cfg.uitzonderingen) as [string, { code: string }][]) {
+    assert.equal(entry.code, "data", naam);
+  }
+});
+
+test("echte config: vensters, vensterRoute en interactiesPad staan erin; het interactiebestand is geldig", () => {
+  const cfg = JSON.parse(readFileSync(join(ROOT, "scripts/kit/systeem.lokaal.json"), "utf8"));
+  assert.equal(typeof cfg.vensterRoute, "string");
+  assert.ok(Object.keys(cfg.vensters ?? {}).length > 0);
+  const bestand = JSON.parse(readFileSync(join(ROOT, cfg.interactiesPad), "utf8"));
+  assert.ok(Array.isArray(bestand.interacties));
+  assert.deepEqual(valideerInteracties(bestand.interacties, cfg.vensters), []);
 });

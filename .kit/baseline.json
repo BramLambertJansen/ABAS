@@ -66,11 +66,6 @@
     "EerdereGeldActie",
     "GeldActieHerstel",
     "GeldActieHerstelInhoud",
-    "OnbekendeUitkomstMelding",
-    "Overlay",
-    "OverlayPresenceProvider",
-    "OverlaySluitKnop",
-    "StartScherm",
-    "ZijPaneel"
+    "OnbekendeUitkomstMelding"
   ]
 }

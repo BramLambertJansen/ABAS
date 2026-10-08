@@ -1,3 +1,5 @@
+import type systeem from "../../../../scripts/kit/systeem.lokaal.json";
+
 /**
  * Alle teksten van /design/systeem: titels, uitleg, labels en de vaste
  * voorbeeldinhoud. De pagina en de voorbeelden bevatten zelf geen tekst.
@@ -331,3 +333,86 @@ export const NIET_OP_DEZE_PAGINA = {
   vensterKop: "Losse vensters",
   geenUitzonderingen: "Er zijn geen uitzonderingen: elke component staat hier of in een los venster.",
 } as const;
+
+/** Een venster-id uit systeem.lokaal.json → vensters. */
+export type VensterId = keyof typeof systeem.vensters;
+
+/** Voorbeeldinhoud van de beide detailvensters: genoeg secties om te scrollen. */
+const DETAIL = {
+  titel: "Lid beheren",
+  beschrijving: "Wijzigingen aan Anna de Vries.",
+  rol: "beheerder",
+  saldoCents: 1250,
+  saldoLabel: "Saldo",
+  secties: [
+    { kop: "Profiel", tekst: "Naam en e-mailadres van het lid. Een nieuw e-mailadres krijgt eerst een bevestiging." },
+    { kop: "Rol", tekst: "Lid, bardienst of beheerder. Een beheerder heeft ook een tweede factor nodig." },
+    { kop: "Toegang", tekst: "Of het lid kan inloggen, en of er een uitnodiging openstaat." },
+    { kop: "Pincode", tekst: "Een optionele snelkoppeling voor de bar. Het wachtwoord blijft verplicht." },
+    { kop: "Bestellingen", tekst: "De laatste bestellingen en opwaarderingen van het lid, nieuwste eerst." },
+    { kop: "Archief", tekst: "Een gearchiveerd lid staat niet meer op de namenlijst; de historie blijft bewaard." },
+  ],
+} as const;
+
+/** Het formulier van de modal-, bezig- en onopgeslagen-vensters. */
+const PRIJS = {
+  titel: "Prijs wijzigen",
+  beschrijving: "Geldt voor nieuwe bestellingen; eerdere bestellingen houden hun prijs.",
+  veldLabel: "Nieuwe prijs",
+  waarde: "2,50",
+  annuleren: "Annuleren",
+  opslaan: "Opslaan",
+} as const;
+
+/** Inhoud van de beide ZijPaneel-vensters. */
+const ZIJ_PANEEL = {
+  inhoudKop: "Inhoud",
+  inhoudTekst: "Het inhoudsvlak. Vanaf 700px staat het zijpaneel ernaast, smaller staat het eronder.",
+  paneelKop: "Mandje",
+  paneelTekst: "Het zijpaneel scrollt binnen zichzelf.",
+} as const;
+
+/**
+ * De teksten van de losse vensters (/design/systeem/venster/<id>): de
+ * vensternaam (voor de h1 en de <title>) en de voorbeeldinhoud. Getypt op de
+ * ids uit systeem.lokaal.json: een ontbrekend of extra venster faalt in typecheck.
+ */
+export const VENSTER_TEKSTEN = {
+  "overlay-modal": { naam: "Overlay als modal", ...PRIJS },
+  "overlay-modal-detail": { naam: "Overlay als modal, variant detail", ...DETAIL },
+  "overlay-sheet": {
+    naam: "Overlay als sheet",
+    titel: "Naam wijzigen",
+    beschrijving: "Zo zien de bardienst en de beheerder je naam.",
+    veldLabel: "Naam",
+    waarde: "Anna de Vries",
+    annuleren: "Annuleren",
+    opslaan: "Opslaan",
+  },
+  "overlay-sheet-detail": { naam: "Overlay als sheet, variant detail", ...DETAIL },
+  "overlay-bezig": { naam: "Overlay tijdens een actie (closeBlocked)", ...PRIJS },
+  "overlay-onopgeslagen": { naam: "Overlay met niet-opgeslagen invoer (onopgeslagen)", ...PRIJS },
+  "overlay-sluit-knop": {
+    naam: "OverlaySluitKnop in drie vormen",
+    titel: "Sluitknoppen",
+    beschrijving: "Elke vorm vraagt de Overlay om te sluiten, met dezelfde regels als Escape.",
+    knop: "Sluiten",
+    vormen: {
+      secundair: "variant=\"secundair\" (standaard)",
+      tekst: "variant=\"tekst\"",
+      groot: "maat=\"groot\"",
+    },
+  },
+  "overlay-presence-provider": {
+    naam: "OverlayPresenceProvider met een open overlay",
+    titel: "Overlay-aanwezigheid",
+    beschrijving: "Deze overlay meldt zich aan bij de provider eromheen; de teller leest useOpenOverlayCount().",
+    teller: "Open overlays onder deze provider:",
+  },
+  "start-scherm": {
+    naam: "StartScherm",
+    titel: "Dienst starten",
+  },
+  "zij-paneel": { naam: "ZijPaneel vanaf 700px", ...ZIJ_PANEEL },
+  "zij-paneel-smal": { naam: "ZijPaneel onder 700px", ...ZIJ_PANEEL },
+} as const satisfies Record<VensterId, { naam: string; [veld: string]: unknown }>;
