@@ -1,6 +1,6 @@
 # Knop, Toets, Tegel en Chip
 
-Status: **voorstel**
+Status: **goedgekeurd**
 
 Roadmap fase 3, stap 3 (ADR 0025 → R3; R5 herzien door
 [ADR 0026](../adr/0026-controlmaat-per-rol.md)). Bouwt op de tokenschaal
@@ -88,7 +88,7 @@ Maat per context, niet per shell (zie ADR 0026):
    Dit geldt in PR 2.
 4. **Twee PR's**, zie Doel.
 
-### Voorstel — technische invulling (door Claude, ter goedkeuring)
+### Technische invulling (goedgekeurd door Bram, 2026-10-08)
 
 Bram liet de keuzes op raamwerkniveau aan "wat het beste past in het
 framework". Hieronder staan ze apart, zodat hij ze bij de goedkeuring kan

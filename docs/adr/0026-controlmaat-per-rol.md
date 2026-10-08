@@ -1,6 +1,6 @@
 # ADR 0026 — Controlmaat per rol, niet per density
 
-Status: **voorstel**
+Status: **goedgekeurd**
 
 Toelichting: herziet ADR 0025 → R5. Bram liet de keuze op 2026-10-08 aan "wat
 het beste past in het framework". Uitgewerkt in
