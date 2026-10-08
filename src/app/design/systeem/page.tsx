@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { leesThema, type ThemaGroep } from "@/lib/systeem/leesThema";
 import { SysteemSectie } from "@/lib/systeem/SysteemSectie";
 import { TokenTabel } from "@/lib/systeem/TokenTabel";
+import systeem from "../../../../scripts/kit/systeem.lokaal.json";
 import { PAGINA, TOKENS } from "./teksten";
 import { Voorbeelden } from "./voorbeelden";
 
@@ -21,7 +22,7 @@ const TOKEN_GROEPEN = ["kleuren", "hoogtes", "radii", "schaduwen", "tekstmaten",
  * De toegang loopt via de poort van /design (src/middleware.ts).
  */
 export default function SysteemPagina() {
-  const thema = leesThema("src/app/globals.css");
+  const thema = leesThema(systeem.themaPad);
   return (
     <main className="mx-auto flex max-w-5xl flex-col gap-6 px-6 py-10">
       <header className="flex flex-col gap-2">
