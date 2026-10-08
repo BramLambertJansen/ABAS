@@ -201,6 +201,8 @@ De Developer legde een lijst voor; Bram besliste:
     ook de placeholder);
   - de railtoets van `PinToetsenbord` blijft `h-14` (56px). Een keypad is een
     eigen toetsenbordrol en valt bewust buiten de schaal.
+  - `rounded-r-[3px]` op de actieve-tabbalk in de rail (`DienstTabs`) blijft
+    staan: een decoratieve balk van 3px, geen vlak.
 
 ### Wat vaststaat (ADR 0025 R4)
 
@@ -213,7 +215,8 @@ De Developer legde een lijst voor; Bram besliste:
   nieuw scherm.
 - Copy: n.v.t. — geen zichtbare tekst.
 - Toon en shell: n.v.t. tot stap 3 (`useShell().density`).
-- Toegankelijkheid: controls blijven minstens zo groot als nu. Dezelfde
+- Toegankelijkheid: geen control wordt kleiner dan 44px (`h-control`). Door
+  besluit 1 krimpen de 54px-controls naar 52px; dat is bewust. Dezelfde
   contrastparen houden AA (`test/accentContrast.test.ts` leest `@theme`). De
   focusring uit stap 1 blijft ongewijzigd.
 
