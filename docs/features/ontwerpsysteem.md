@@ -1,6 +1,6 @@
 # Ontwerpsysteem (`/design/systeem`)
 
-Status: **voorstel**
+Status: **goedgekeurd**
 
 Roadmap fase 3, stap 6 (ADR 0025). Bouwt op de tokenschaal
 ([tokenschaal.md](tokenschaal.md)) en de knopcomponenten ([knop.md](knop.md)).
@@ -55,8 +55,42 @@ n.v.t. — geen ledendata of rollen. Toegang loopt via de bestaande poort van
    dekking af, met een uitzonderingslijst die alleen mag krimpen.
 3. **Baselines:** een handmatige CI-workflow maakt ze op de CI-runner en commit
    ze op de gekozen branch. De gewone CI vergelijkt daarna ertegen.
+4. **Raamwerk:** Bram wil ABAS' raamwerk later extraheren (ADR 0025 R9). Zijn
+   woorden: "doe je beste ingeving, hou het framework in je achterhoofd". Dit
+   ontwerp scheidt daarom het generieke deel (motor, gate, workflow, spec) van
+   het ABAS-specifieke deel (voorbeelden, paden, teksten). Zie
+   "Raamwerk-extractie". Bram heeft op 2026-10-08 de spec daarmee goedgekeurd.
 
-### Technische invulling (voorstel, ter goedkeuring)
+### Raamwerk-extractie (ADR 0025 R9)
+
+De regel is dezelfde als bij `rolhek.mjs` tegenover `rolhek.lokaal.json`:
+**generiek in code, projectspecifiek in een `*.lokaal.json` of een
+voorbeeldbestand.** Een volgend project neemt het generieke deel over en vult
+alleen het lokale deel.
+
+| Onderdeel | Generiek (naar het raamwerk) | ABAS-specifiek (blijft hier) |
+|---|---|---|
+| Gate | `scripts/kit/systeem.mjs`: leest paden uit de config, vergelijkt componenten met het register en de uitzonderingen; geen ABAS-namen | `scripts/kit/systeem.lokaal.json` |
+| Configuratie | het formaat van `systeem.lokaal.json` | de waarden: `componentenMap`, `registerPad`, `themaPad`, `route`, `baselineSleutel`, `wachtwoordEnv`, `viewport`, `drempel` |
+| Pagina-motor | `src/lib/systeem/`: `leesThema(cssPad)` (parser van het `@theme`-blok), `SysteemSectie` (zet `id` en `data-systeem`), `TokenTabel` | `src/app/design/systeem/page.tsx` (dun: roept de motor aan) |
+| Voorbeelden | het type `Voorbeeldregister` | `src/app/design/systeem/voorbeelden.tsx` en `teksten.ts` (alle paginateksten) |
+| Playwright | `e2e/systeem.spec.ts`: loopt over elke `[data-systeem]`-sectie, zonder componentnamen; leest route, wachtwoord, venster en drempel uit de config | de interactiegevallen (hover, focus) staan in een eigen lijst in de lokale config, niet in de spec |
+| Workflow | `.github/workflows/screenshots-bijwerken.yml`: geen ABAS-paden; spec-pad en snapshotmap komen uit de config | de naam van het secret blijft `SCREENSHOTS_TOKEN` |
+| Poort | de gedachte "achter bestaande poort" | `designPreviewGate` in `src/middleware.ts` |
+
+Gevolgen voor de bouw:
+- Generieke bestanden krijgen bovenaan de regel `// kit: generiek` en
+  verwijzen nooit naar een ABAS-pad, -tokennaam of -componentnaam. Dat is een
+  afspraak voor de Reviewer; er komt geen gate op.
+- Alle paden en getallen staan één keer in `systeem.lokaal.json`.
+- Tokennamen (`h-control` enz.) worden uit het CSS-bestand gelezen, nooit
+  vastgelegd in de motor. De conventie `--color-*`, `--height-*`,
+  `--radius-*`, `--shadow-*`, `--text-*` is die van Tailwind v4 en dus
+  generiek.
+- `docs/ROADMAP-rails.md` fase 4 krijgt bij de extractie een lijst van deze
+  bestanden. Die lijst is de tabel hierboven.
+
+### Technische invulling (goedgekeurd, met bovenstaande scheiding)
 
 **Route.** `src/app/design/systeem/page.tsx` (server component). Elk onderdeel
 staat in een `<section>` met `id` en `data-systeem="<naam>"`, zodat een
@@ -97,16 +131,19 @@ Het register is voorbeeldcode: geen netwerk, geen Supabase, vaste data.
 versie op, elk met een reden. De Developer legt de exacte lijst vast en meldt
 afwijkingen; hij kiest niet zelf wat erbij komt.
 
-**`check:catalogus`** (`scripts/kit/catalogus.mjs --systeem` of een eigen
-script, geregistreerd in `scripts/kit/gates.mjs`, deel van `check:fast`):
-- leest de component-exports in `src/components/*.tsx` (hoofdletternamen);
+**`check:catalogus`** (`scripts/kit/systeem.mjs`, geregistreerd in
+`scripts/kit/gates.mjs` en als `check:catalogus` in `package.json`, deel van
+`check:fast`; paden uit `scripts/kit/systeem.lokaal.json`):
+- leest de component-exports in de `componentenMap` uit de config
+  (`src/components/*.tsx`, hoofdletternamen);
 - faalt voor elke component die noch in `VOORBEELDEN` staat noch op de
-  uitzonderingslijst in `.kit/baseline.json`;
+  uitzonderingslijst in `.kit/baseline.json` (sleutel uit de config);
 - faalt voor een uitzondering of voorbeeld zonder bestaande component;
 - de ratchet laat de lijst alleen dalen (`npm run ratchet:update` na een
   daling).
 
-**Playwright** (`e2e/systeem.spec.ts`, eigen project in `playwright.config.ts`):
+**Playwright** (`e2e/systeem.spec.ts`, eigen project in `playwright.config.ts`;
+alle waarden uit `systeem.lokaal.json`):
 - vast venster 1280×900, `deviceScaleFactor` 1, alleen Chromium;
 - `webServer.env.DESIGN_PREVIEW_PASSWORD` = een testwachtwoord, en
   `httpCredentials` voor deze spec;
@@ -144,6 +181,13 @@ script, geregistreerd in `scripts/kit/gates.mjs`, deel van `check:fast`):
 - **Toegankelijkheid:** de pagina heeft één `main`, kopniveaus in volgorde en
   alle voorbeeldknoppen een toegankelijke naam. Axe moet groen zijn, ook met
   alle varianten op de pagina.
+
+### Wie schrijft wat
+
+Dit is een gate-wijziging. De Developer is read-only voor `scripts/kit/`,
+`playwright.config.ts`, `.github/` en `.kit/`; de hoofdsessie schrijft die. De
+Developer bouwt de pagina, de motor in `src/lib/systeem/`, de voorbeelden en de
+teksten. De Tester schrijft `e2e/systeem.spec.ts` en `test/systeemCatalogus.test.ts`.
 
 ## Randgevallen
 
