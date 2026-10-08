@@ -25,7 +25,11 @@ Na deze stap:
 - `scanAxe(page)` in `e2e/helpers/scanAxe.ts` is de enige plek die
   `@axe-core/playwright` importeert;
 - de tagset is vast: `wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`, `wcag22aa`;
-- lint verbiedt elke andere import van `@axe-core/playwright` of `axe-core`.
+- lint verbiedt elke andere import van `@axe-core/playwright` of `axe-core`;
+- best-practice kan erbij (`bestPractice: true`), de WCAG-set kan nooit
+  kleiner;
+- regels uitzetten of gebieden overslaan mag alleen met een reden, en een
+  nieuwe gate `check:axe` telt die uitzonderingen tegen `.kit/baseline.json`.
 
 Let op de betekenis van "`wcag22aa`". axe-tags tellen niet op: de tag
 `wcag22aa` alleen selecteert in axe-core 4.13 precies één regel
@@ -35,8 +39,10 @@ nu al in `AXE_TAGS` in `e2e/systeem.spec.ts`.
 ## Betrokken shell(s)
 
 Geen shell-code. Het gaat om testtooling in `e2e/`, `test/` en
-`eslint.config.mjs`. Indirect raakt het beide shells: de strengere tagset kan
-op bestaande schermen nieuwe violations vinden (zie open vraag V1).
+`eslint.config.mjs`, plus een nieuwe gate in `scripts/kit/`. Indirect raakt
+het beide shells: de strengere tagset kan op bestaande schermen nieuwe
+violations vinden. Welke dat zijn, staat straks in "Meting"; de reparaties
+liggen pas vast na Brams besluit daarover.
 
 ## Datamodel
 
@@ -109,6 +115,24 @@ niet alleen `a11y.spec.ts`. Twee beschrijvingen lopen daardoor achter:
 linting. `eslint-suppressions.json` heeft geen enkele regel voor `e2e/`.
 `no-restricted-imports` staat nog nergens in `eslint.config.mjs`.
 
+
+### Besluiten (Bram, 2026-10-08)
+
+1. **Eerst meten.** Vóór de bouw draait de hoofdsessie de suite met de
+   volledige 2.2-AA-set en vult de sectie "Meting" hieronder. Daarna beslist
+   Bram of de reparaties in `src/` in dezelfde PR gaan. Tot die meting ligt
+   de scope van de reparaties niet vast.
+2. **Best-practice is een optie die alleen uitbreidt:**
+   `scanAxe(page, { bestPractice: true })`. De WCAG-set kan nooit kleiner
+   worden.
+3. **Regels uitzetten en `exclude` mogen alleen met een verplichte reden.**
+   Het aantal staat in `.kit/baseline.json` (ratchet, mag alleen dalen). De
+   beginstand is het ene huidige geval: `color-contrast` in de dialoogtest.
+4. **Scope (`binnen`) mag.**
+5. **Eén PR** met helper, migratie, lintregel en de telling, met het label
+   `gate-wijziging`.
+6. **Het audit-script** in `docs/audits/` blijft staan als bevroren bewijs.
+
 ### Ontwerp
 
 **De helper.** Nieuw bestand `e2e/helpers/scanAxe.ts`. De eerste regel is
@@ -122,24 +146,30 @@ import type { Page } from "@playwright/test";
 export const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"] as const;
 
 export type ScanAxeOpties = {
-  /** Beperk de scan tot dit gebied (CSS-selector). Zie open vraag V4. */
+  /** Beperk de scan tot dit gebied (CSS-selector). */
   binnen?: string;
-  // Verdere opties alleen na Brams besluit over V2 en V3; zie daar.
+  /** Voegt de tag `best-practice` toe. Kan alleen uitbreiden. */
+  bestPractice?: boolean;
+  /** Regel niet uitvoeren. Telt mee in .kit/baseline.json → axe-uitzondering. */
+  uitgezet?: readonly { regel: string; reden: string }[];
+  /** Gebied niet scannen (exclude). Telt mee in .kit/baseline.json → axe-uitzondering. */
+  overslaan?: readonly { selector: string; reden: string }[];
 };
 
 export async function scanAxe(page: Page, opties?: ScanAxeOpties): Promise<void>;
 ```
 
-- **Tagset.** Altijd `withTags(WCAG_TAGS)`. Er is geen parameter voor tags of
-  regels. `WCAG_TAGS` wordt geëxporteerd voor de meta-test en voor
-  documentatie. Hij vervangt `AXE_TAGS` in `e2e/systeem.spec.ts`.
-- **Uitvoering.** De scan draait in
-  `test.step("axe: WCAG 2.2 AA", …)`, zodat het rapport laat zien welke scan
-  faalde als een test er meerdere doet.
+- **Tagset.** Altijd `WCAG_TAGS`. Met `bestPractice: true` wordt het
+  `[...WCAG_TAGS, "best-practice"]`. Er is geen parameter die tags of
+  regels kiest (`withRules`), dus de WCAG-set kan niet kleiner worden.
+  `WCAG_TAGS` wordt geëxporteerd voor de meta-test. Hij vervangt `AXE_TAGS` in
+  `e2e/systeem.spec.ts`.
+- **Uitvoering.** De scan draait in `test.step("axe: WCAG 2.2 AA", …)`. Met
+  best-practice heet de stap `axe: WCAG 2.2 AA + best-practice`. Zo laat het
+  rapport zien welke scan faalde als een test er meerdere doet.
 - **Resultaat.** De functie geeft niets terug. Een geslaagde scan is stil, een
-  mislukte faalt via `expect`. Geen spec gebruikt nu iets anders dan
-  `violations`, dus de functie geeft geen `AxeResults` terug. Daardoor kan ook
-  niemand eromheen filteren.
+  mislukte faalt via `expect`. Wie geen resultaten krijgt, kan er ook niet
+  omheen filteren.
 - **Foutmelding.** De assertie is
   `expect(violations.map((v) => v.id), melding).toEqual([])`. De diff toont
   dan de regel-ids, en `melding` is leesbare tekst, per violation:
@@ -161,16 +191,67 @@ export async function scanAxe(page: Page, opties?: ScanAxeOpties): Promise<void>
   Per regel komen er hoogstens 5 elementen in de melding, daarna `(+N meer)`.
   Per element staan `target` (samengevoegd met ` > ` voor iframes/shadow) en
   `failureSummary`. De Engelse teksten komen ongewijzigd uit axe. De kop en de
-  structuur zijn Nederlands, zoals in `e2e/systeem.spec.ts`.
+  structuur zijn Nederlands, zoals in `e2e/systeem.spec.ts`. Zijn er
+  uitzonderingen, dan volgt onder de kop een regel per uitzondering:
+  `uitgezet: color-contrast — <reden>` of `overslaan: <selector> — <reden>`.
 - **Scope.** `binnen` wordt `.include(binnen)`. De tagset blijft gelijk; alleen
-  het gebied wordt kleiner. Eén aanroep gebruikt dit nu
-  (`opslaan-sluiten-pending.spec.ts:61`). Of scope mag, staat in V4.
-- **Uitzonderingen.** Regels uitzetten (`disableRules`), extra tags
-  (`best-practice`), losse regels (`withRules`) en `exclude` biedt de helper
-  in dit voorstel niet aan. Zie V2 en V3. Valt het besluit op "toegestaan",
-  dan komt er een optie die een reden eist (type `{ regel: string; reden:
-  string }`, met een lege reden als runtime-fout). Over een telling in
-  `.kit/baseline.json` beslist Bram (V3).
+  het gebied wordt kleiner. `binnen` telt niet als uitzondering: een scan van
+  één gebied kiest bewust wat hij bekijkt. Wat erbinnen valt, wordt volledig
+  gescand.
+- **Uitzonderingen.**
+  - `uitgezet` wordt `.disableRules([...])`, `overslaan` wordt
+    `.exclude(selector)` per item.
+  - Een lege of alleen-witruimte `reden`, een lege `regel` of `selector`, of
+    een `regel` die axe niet kent, is een runtime-fout van de helper:
+    `scanAxe: uitzondering zonder reden (<regel|selector>)` of
+    `scanAxe: onbekende axe-regel "<regel>"`. Die fout valt vóór de scan.
+  - De helper zet elke uitzondering ook als annotatie op de test
+    (`test.info().annotations`, type `axe-uitzondering`), zodat het rapport
+    hem toont.
+
+**De telling (ratchet).** De reden staat bij de aanroep; het aantal staat in
+`.kit/baseline.json` → `axe-uitzondering`. Een nieuwe gate `check:axe`
+(`scripts/kit/axe.mjs`, `// kit: generiek`) telt statisch en gebruikt
+`ratchet()` uit `scripts/kit/ratchet.mjs`, net als `check:rls` en
+`check:catalogus`.
+
+- **Wat hij leest:** elk `*.ts`-bestand onder `e2e/`, behalve
+  `e2e/helpers/scanAxe.ts` en de meta-test `e2e/scan-axe.spec.ts`. Hij parset met de TypeScript-compiler-API
+  (`typescript` staat al in de devDependencies), dus niet met een regex.
+- **Wat hij zoekt:** elke aanroep `scanAxe(…)`. Is er een tweede argument,
+  dan moet dat een object-literal zijn. Voor `uitgezet` en `overslaan` geldt:
+  - de waarde is een array-literal;
+  - elk element is een object-literal;
+  - `regel` of `selector` is een string-literal en `reden` een niet-lege
+    string-literal.
+
+  Een variabele, spread of berekende waarde faalt, zodat de gate niets mist:
+  `<pad>:<regel>: scanAxe-opties moeten letterlijk zijn (object, array en strings), zodat check:axe uitzonderingen kan tellen`.
+- **Sleutels.** Per uitzondering één stabiele sleutel:
+  - `<pad> uitgezet:<regel>`;
+  - `<pad> overslaan:<selector>`.
+
+  Komt dezelfde sleutel in één bestand vaker voor, dan krijgt de tweede
+  ` #2`, de derde ` #3`, enzovoort. Zo telt ook een herhaling. Regelnummers
+  zitten bewust niet in de sleutel: die verschuiven bij elke wijziging.
+- **Meldingen**, de standaardvormen van `ratchet()` met deze uitleg:
+  - nieuw: `<sleutel>: nieuwe axe-uitzondering — los de violation op in src/ in plaats van de regel uit te zetten; alleen Bram kan hem toevoegen aan .kit/baseline.json → axe-uitzondering (label gate-wijziging)`;
+  - opgelost: `<sleutel>: staat in .kit/baseline.json → axe-uitzondering maar is opgelost — draai `npm run ratchet:update` en commit de daling`.
+- **Beginstand** van `.kit/baseline.json`:
+  ```json
+  "axe-uitzondering": ["e2e/dialogen-tabs-landmarks.spec.ts uitgezet:color-contrast"]
+  ```
+- **Aansluiting:**
+  - `check:axe` komt in `check:fast` (het telt statisch, zonder browser);
+  - de gate komt in het register `scripts/kit/gates.mjs` met de beschrijving
+    "axe-uitzonderingen (`uitgezet`/`overslaan` in `scanAxe`) letterlijk, met
+    reden, en niet meer dan `.kit/baseline.json` → axe-uitzondering";
+  - `ratchet:update` krijgt `RATCHET_UPDATE=1 npm run check:axe` erbij.
+
+Een gate en geen lintregel, want lint kan niet tellen tegen een baseline.
+`eslint-suppressions.json` zou het aantal wel bijhouden, maar dan per regel en
+bestand, zonder de naam van de uitgezette axe-regel. Een tweede uitgezette
+regel in hetzelfde bestand zou zo onzichtbaar blijven.
 
 **De lintregel.** Nieuw blok in `eslint.config.mjs`, na de bestaande blokken:
 
@@ -214,39 +295,76 @@ Waarom zo:
 - Het verbod zit op de import en niet op de identifier `AxeBuilder`. Zonder
   import bestaat de klasse niet. Een hernoemde import
   (`import X from "@axe-core/playwright"`) wordt ook gevangen.
+- `scripts/kit/axe.mjs` importeert `typescript`, niet `axe-core`. Het tweede
+  blok raakt het dus niet.
 
 **Migratie.** Alle 68 aanroepen worden `await scanAxe(page)` (of
 `scanAxe(tom)` of `scanAxe(femke)` waar de spec een eigen `Page` heeft), samen
-met de bijbehorende `expect(…violations…)`. Gevolgen:
+met de bijbehorende `expect(…violations…)`:
 
-- de 62 scans met `wcag2a`/`wcag2aa` krijgen de volledige set (V1);
+| Huidige aanroep | Wordt |
+|---|---|
+| 62× `wcag2a`/`wcag2aa`, 3× volledige set | `scanAxe(page)` |
+| `dialogen-tabs-landmarks.spec.ts:100` (`axeScan`) | `scanAxe(page, { bestPractice: true, uitgezet: [{ regel: "color-contrast", reden: "contrast meet e2e/a11y.spec.ts al op dezelfde schermen" }] })` |
+| `a11y.spec.ts:1434` (#125, `withRules`) | `scanAxe(page, { bestPractice: true })`. Dit is breder dan nu: de volledige WCAG-set plus alle best-practice-regels in plaats van twee regels. |
+| `opslaan-sluiten-pending.spec.ts:61` (`include`, zonder tags) | `scanAxe(page, { binnen: '[aria-label="Eerdere geldacties"]', bestPractice: true })`. Zo blijft de best-practice-dekking binnen dat gebied. |
+
+Verder:
+
 - `AXE_TAGS` in `e2e/systeem.spec.ts` vervalt;
-- `axeScan()` in `e2e/dialogen-tabs-landmarks.spec.ts` en `scan()` in
-  `e2e/a11y.spec.ts:1433` worden `scanAxe`. Wat er met hun best-practice-deel
-  gebeurt, hangt af van V2;
+- de lokale wrappers `axeScan()` (dialoogtest) en `scan()`
+  (`a11y.spec.ts:1433`) blijven bestaan of verdwijnen naar keuze van de
+  Tester, zolang de opties letterlijk in de `scanAxe`-aanroep staan;
 - testtitels die de tagset noemen (`has no WCAG2A/AA violations`) worden
   `has no WCAG 2.2 AA violations`.
 
 Screenshot-baselines raakt de migratie niet: de namen staan expliciet in
 `toHaveScreenshot`.
 
+### Meting
+
+_In te vullen door de hoofdsessie, vóór de bouw (besluit 1). Tot dit is
+ingevuld en Bram heeft besloten, ligt de scope van reparaties in `src/` niet
+vast._
+
+**Werkwijze.**
+
+- Op een lokale, niet te pushen tak zet de hoofdsessie in alle 68 aanroepen
+  de tags op de volledige set (`wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`,
+  `wcag22aa`), zonder andere wijziging.
+- Voor de drie afwijkende scans komt `best-practice` erbij, zoals in de
+  migratietabel. `color-contrast` blijft in de dialoogtest uitgezet.
+- Daarna draait `npm run check:a11y`.
+
+| Spec en test | Geschonden regel(s) | Elementen (selector) | Nieuw door 2.1/2.2 of door best-practice? |
+|---|---|---|---|
+| _nog te meten_ | | | |
+
+**Datum, commit, axe-core-versie:** _nog te meten._
+
+**Besluit Bram over reparaties:** _open; volgt op de meting._
+
 ### Generiek en ABAS (ADR 0025 R9)
 
 | Onderdeel | Generiek (`// kit: generiek`) | ABAS (lokaal) |
 |---|---|---|
-| Helper | `e2e/helpers/scanAxe.ts`: tagset, scope, foutmelding; geen ABAS-pad, -route of -selector | — |
+| Helper | `e2e/helpers/scanAxe.ts`: tagset, best-practice, scope, uitzonderingen met reden, foutmelding; geen ABAS-pad, -route of -selector | — |
+| Telling | `scripts/kit/axe.mjs`: parset `scanAxe`-aanroepen, maakt sleutels, roept `ratchet()` aan | de baseline `.kit/baseline.json` → `axe-uitzondering` |
 | Meta-test | `e2e/scan-axe.spec.ts`: werkt met `page.setContent`, zonder app-routes | — |
 | Lintregel | de vorm (twee blokken, melding) | de blokken in `eslint.config.mjs`, met het helperpad |
-| Lint-test | — | `test/scanAxeLint.test.ts`: leest de projectconfig |
-| Gatebeschrijving | — | `scripts/kit/gates.mjs` → `check:a11y` |
+| Lint- en teltest | — | `test/scanAxeLint.test.ts`, `test/axeUitzonderingen.test.ts` |
+| Gatebeschrijving | — | `scripts/kit/gates.mjs` → `check:a11y`, `check:axe` |
 
 De tagset staat als constante in de generieke helper, niet in een
 `*.lokaal.json`. Eén vaste set is juist het doel. Een project dat een andere
-set wil, past de kit aan en doet dat niet per project.
+set wil, past de kit aan en doet dat niet per project. De map `e2e/` en de
+functienaam `scanAxe` zijn kitconventies; ze staan als constante bovenaan
+`scripts/kit/axe.mjs`.
 
 ### Wie schrijft wat
 
-Volgorde binnen één PR. Zo blijft `check:fast` na elke stap groen, wat de
+Eén PR (besluit 5), na de meting en Brams besluit over de reparaties. De
+volgorde houdt `check:fast` na elke stap groen, wat de
 groen-voor-klaar-hook van de Tester eist:
 
 1. **Tester:**
@@ -254,26 +372,34 @@ groen-voor-klaar-hook van de Tester eist:
    - `e2e/scan-axe.spec.ts`;
    - de migratie van de 19 bestaande e2e-bestanden.
 
-   `check:fast` blijft groen, want de lintregel bestaat nog niet.
-2. **Developer**, alleen als de strengere tagset violations vindt in
-   `check:a11y`: de reparatie in `src/`. Dit hangt af van V1.
+   `check:fast` blijft groen, want de lintregel en `check:axe` bestaan nog
+   niet.
+2. **Developer**, alleen als Bram na de meting besluit dat reparaties in
+   deze PR gaan: de reparatie in `src/`.
 3. **Hoofdsessie** (gatepaden):
    - het lintblok in `eslint.config.mjs`;
-   - de beschrijving van `check:a11y` in `scripts/kit/gates.mjs`, voorstel:
-     "WCAG 2.2 AA via `scanAxe` (axe-core, Playwright) op elk gescand scherm;
-     lint verbiedt losse `AxeBuilder`";
+   - `scripts/kit/axe.mjs`;
+   - de beginstand in `.kit/baseline.json`;
+   - in `package.json` → `scripts`: `check:axe`, de opname in `check:fast` en
+     de uitbreiding van `ratchet:update`;
+   - het register in `scripts/kit/gates.mjs`: `check:axe` erbij, en voor
+     `check:a11y` de beschrijving "WCAG 2.2 AA via `scanAxe` (axe-core,
+     Playwright) op elk gescand scherm; lint verbiedt losse `AxeBuilder`";
    - een conventieregel in `scripts/kit/feiten.mjs`: "A11y-scan: alleen
-     `scanAxe(page)` uit `e2e/helpers/scanAxe.ts` (lint)".
+     `scanAxe(page)` uit `e2e/helpers/scanAxe.ts` (lint); uitzonderingen met
+     reden, geteld door `check:axe`".
 
-   Er komen geen suppressies bij: na stap 1 staat er geen losse import meer.
-4. **Tester:** `test/scanAxeLint.test.ts`. Die test kan pas groen worden nadat
-   de regel bestaat.
+   Er komen geen ESLint-suppressies bij: na stap 1 staat er geen losse import
+   meer.
+4. **Tester:** `test/scanAxeLint.test.ts` en `test/axeUitzonderingen.test.ts`.
+   Die kunnen pas groen worden nadat de regel en de gate bestaan.
 5. **Docs**, na de bouw: de WCAG-alinea in `docs/ARCHITECTURE.md` en de status
    van deze spec en van de roadmapstap.
 
-**Label `gate-wijziging`: ja.** De PR wijzigt `eslint.config.mjs` en
-`scripts/kit/`, en past 19 bestaande e2e-bestanden aan (de diff-guard telt
-een wijziging in `e2e/`). Alleen Bram zet het label.
+**Label `gate-wijziging`: ja** (besluit 5). De PR wijzigt `eslint.config.mjs`,
+`scripts/kit/`, `.kit/baseline.json` en `package.json` → `scripts`, en past 19
+bestaande e2e-bestanden aan (de diff-guard telt een wijziging in `e2e/`).
+Alleen Bram zet het label.
 
 De roadmap zegt "elke stap verlaagt `eslint-suppressions.json`". Deze stap
 verlaagt niets en voegt niets toe: `e2e/` heeft geen suppressies.
@@ -286,7 +412,12 @@ verlaagt niets en voegt niets toe: `e2e/` heeft geen suppressies.
   - de lintmelding `AXE_MELDING` letterlijk zoals hierboven;
   - de kop van de foutmelding: `axe (WCAG 2.2 AA): <n> regel(s) geschonden op
     <url>`;
-  - de staplabel: `axe: WCAG 2.2 AA`.
+  - de staplabels: `axe: WCAG 2.2 AA` en `axe: WCAG 2.2 AA + best-practice`;
+  - de runtime-fouten: `scanAxe: uitzondering zonder reden (<regel|selector>)`
+    en `scanAxe: onbekende axe-regel "<regel>"`;
+  - de `check:axe`-meldingen letterlijk zoals onder "De telling";
+  - de reden bij de beginstand: `contrast meet e2e/a11y.spec.ts al op dezelfde
+    schermen`.
 - **Toon en shell:** n.v.t.
 - **Toegankelijkheid:** dit is de gate zelf. Focusvolgorde en toetsenbord
   blijven buiten axe (reviewwerk, `.claude/agents/reviewer.md` punt 6).
@@ -298,9 +429,17 @@ verlaagt niets en voegt niets toe: `e2e/` heeft geen suppressies.
 | Spec importeert `@axe-core/playwright` (default, named of hernoemd) | `no-restricted-imports` met `AXE_MELDING`; lint faalt |
 | `await import("@axe-core/playwright")` of `require(…)` in `e2e/`, `test/`, `integration/`, `scripts/` | `no-restricted-syntax` met `AXE_MELDING` |
 | `import axe from "axe-core"` plus `page.addScriptTag` + `axe.run` | De import wordt gevangen. `addScriptTag({ path: "node_modules/axe-core/axe.min.js" })` zonder import wordt niet gevangen. Dat blijft een restrisico voor de Reviewer, zoals ADR 0025 dat ook voor het rolhek noemt. |
-| Bestand in `docs/**` | ESLint negeert `docs/**`; het audit-script blijft staan (V6) |
-| Helper-bestand zelf | Uitgezonderd via `ignores` op het exacte pad |
-| Een update van axe-core voegt een regel toe aan een van de vijf tags | De scan wordt strenger en CI kan rood worden. Dat is bedoeld: de update-PR (Dependabot) toont het. |
+| Nieuwe `uitgezet` of `overslaan` zonder baseline-regel | `check:axe` faalt met de melding voor een nieuwe uitzondering |
+| Uitzondering verwijderd, baseline nog niet bijgewerkt | `check:axe` faalt tot `npm run ratchet:update` |
+| Dezelfde uitzondering twee keer in één bestand | Sleutels `… uitgezet:<regel>` en `… uitgezet:<regel> #2`; de tweede is nieuw en faalt |
+| Opties via een variabele of spread (`scanAxe(page, opts)`) | `check:axe` faalt: de opties moeten letterlijk zijn |
+| `reden: ""` of alleen witruimte | De statische check faalt al in `check:axe`; de helper gooit ook een runtime-fout |
+| `uitgezet: [{ regel: "bestaat-niet", … }]` | Runtime-fout `scanAxe: onbekende axe-regel "bestaat-niet"` |
+| `bestPractice: false` of weggelaten | Alleen de WCAG-set; nooit minder |
+| Bestand in `docs/**` | ESLint negeert `docs/**`; het audit-script blijft staan (besluit 6) |
+| Helper-bestand zelf | Uitgezonderd via `ignores` en door `check:axe` overgeslagen, op het exacte pad |
+| `e2e/scan-axe.spec.ts` | Wel gelint (scanAxe-import mag), niet geteld door `check:axe` |
+| Een update van axe-core voegt een regel toe aan een van de tags | De scan wordt strenger en CI kan rood worden. Dat is bedoeld: de update-PR (Dependabot) toont het. |
 | Scan zonder violations maar met `incomplete` | Slaagt, zoals nu. `incomplete` wordt niet gemeld. |
 | `binnen` matcht geen element | axe gooit een fout ("No elements found for include"). De helper vangt die niet af: een scope die niets raakt, is een testfout. |
 | Meer dan 5 elementen per regel | De melding toont er 5, plus `(+N meer)`. De id-diff blijft volledig. |
@@ -319,11 +458,23 @@ Gebruikt `page.setContent` met een minimaal geldig document (`lang`,
 4. Twee knoppen van 10×10 px vlak naast elkaar falen met `target-size`. Dat
    bewijst dat `wcag22aa` aan staat. Dit geval ving geen van de 62
    2.0-scans.
-5. Een violation buiten `binnen` slaagt, dezelfde violation binnen `binnen`
-   faalt. Dit geval vervalt als V4 "geen scope" wordt.
-6. Zes elementen met dezelfde violation geven `(+1 meer)` in de melding.
+5. Een document met twee `<main>`-elementen slaagt zonder opties en faalt met
+   `bestPractice: true` (`landmark-no-duplicate-main`).
+6. Een violation buiten `binnen` slaagt, dezelfde violation binnen `binnen`
+   faalt.
+7. `uitgezet: [{ regel: "image-alt", reden: "test" }]` laat geval 2 slagen;
+   `overslaan: [{ selector: "img", reden: "test" }]` ook. Beide zetten een
+   annotatie van het type `axe-uitzondering`.
+8. Een lege `reden` en een onbekende `regel` geven de runtime-fouten, nog vóór
+   de scan.
+9. Zes elementen met dezelfde violation geven `(+1 meer)` in de melding.
 
 De gevallen gebruiken `await expect(scanAxe(page)).rejects.toThrow(/…/)`.
+
+`check:axe` slaat `e2e/scan-axe.spec.ts` over, als tweede vast pad naast de
+helper. De uitzonderingen in geval 7 en 8 testen de helper zelf, niet een
+scherm. Zo blijft de beginstand gelijk aan het ene echte geval (besluit 3).
+Een ander bestand overslaan vraagt een wijziging van de gate (label).
 
 **`test/scanAxeLint.test.ts` (Tester, draait in `check:fast`).** Zelfde
 patroon als `test/knopLint.test.ts`: één `ESLint`-instantie met de
@@ -343,62 +494,36 @@ want `e2e/` heeft die niet.
 - Positief: dezelfde default-import met `filePath` `e2e/helpers/scanAxe.ts`
   geeft geen melding.
 
+**`test/axeUitzonderingen.test.ts` (Tester, draait in `check:fast`).** Test
+de analysefunctie die `scripts/kit/axe.mjs` exporteert (bronnen in, sleutels
+en problemen uit, met een tijdelijke baseline). Zelfde aanpak als
+`test/systeemCatalogus.test.ts`.
+
+- Sleutels:
+  - één `uitgezet` geeft `<pad> uitgezet:<regel>`;
+  - één `overslaan` geeft `<pad> overslaan:<selector>`;
+  - een herhaling geeft ` #2`.
+- Niet letterlijk faalt: opties als variabele, een spread in de array, een
+  template-literal met expressie als `reden`, of een lege `reden`.
+- `binnen` en `bestPractice` tellen niet mee.
+- Ratchet:
+  - een nieuwe sleutel geeft de melding voor een nieuwe uitzondering;
+  - een sleutel die verdwenen is, geeft de opgelost-melding;
+  - gelijk aan de baseline geeft geen problemen.
+- Het helperbestand en `e2e/scan-axe.spec.ts` worden overgeslagen.
+
 **Bestaande e2e.** De 68 gemigreerde scans zijn zelf het bewijs dat de
-strengere set op de huidige schermen slaagt (of niet, zie V1).
-
-## Open vragen voor Bram
-
-- **V1 — Strengere set op 62 bestaande scans.**
-  - **Wat er verandert:** de migratie zet daar `wcag21a`, `wcag21aa` en
-    `wcag22aa` aan. In axe-core 4.13 zijn dat `autocomplete-valid`,
-    `avoid-inline-spacing`, `css-orientation-lock` en `target-size` (24 px).
-    `label-content-name-mismatch` is experimenteel en draait niet.
-  - **Wat onbekend is:** hoeveel schermen daarop falen. De suite is niet
-    gedraaid voor deze spec; dat vraagt build en Supabase.
-  - **De vraag:** mag de PR wachten tot de Developer de gevonden violations in
-    `src/` heeft opgelost (stap 2)? Of eerst een meet-PR met alleen de
-    helper en de meta-test, waarna de Tester lokaal meet en rapporteert,
-    gevolgd door de migratie met de reparaties?
-  - **Uitgesloten:** een tijdelijk lagere tagset per scan. Die maakt de stap
-    ongedaan.
-- **V2 — Best-practice-regels.** Twee scans controleren nu meer dan WCAG:
-  - `dialogen-tabs-landmarks` draait alle best-practice-regels;
-  - `a11y.spec.ts:1434` (#125) draait `landmark-one-main` en `region`.
-
-  Opties:
-  - (a) de helper krijgt een optie die best-practice erbij zet; de WCAG-set
-    blijft altijd aan, de optie kan alleen uitbreiden;
-  - (b) best-practice staat altijd aan voor elke scan (strenger; V1 wordt
-    groter);
-  - (c) geen best-practice: de #125-controle wordt een DOM-assertie (één
-    `main`, staat er al) en de dialoogtest verliest de best-practice-regels.
-- **V3 — Regels uitzetten en `exclude`.**
-  - **Nu:** het enige gebruik is `disableRules(["color-contrast"])` in
-    `dialogen-tabs-landmarks`. De reden is dat contrast elders al gemeten
-    wordt; het is geen uitzondering op het scherm. Na migratie zonder
-    uitzetten meet die test contrast gewoon mee.
-  - **Opties:**
-    - (a) verboden, de helper biedt het niet aan;
-    - (b) toegestaan met een verplichte reden per regel;
-    - (c) als (b), plus een teller in `.kit/baseline.json` die alleen mag
-      dalen.
-  - **`exclude`:** wordt nu nergens gebruikt. Hoort het bij dezelfde keuze?
-- **V4 — Scope (`binnen`).** Eén scan beperkt zich tot het gebied "Eerdere
-  geldacties". Mag de helper `binnen` aanbieden? Scope verkleint de scan wel,
-  maar de tagset blijft vast. Of wordt dat één scan van de hele pagina?
-- **V5 — Eén PR of twee.** Dit voorstel is één PR met het label, in de
-  volgorde hierboven. Wil je de lintregel liever in een aparte PR na de
-  migratie?
-- **V6 — Audit-script.**
-  `docs/audits/2026-10-06-componenten-tokens/tools/screen-audit.cjs` gebruikt
-  `AxeBuilder` met de volledige set. Voorstel: laten staan als bevroren
-  bewijs; `docs/**` valt buiten lint. Akkoord?
+strengere set op de huidige schermen slaagt. Wat ze na de migratie vinden,
+staat eerst in "Meting".
 
 ## Expliciet buiten scope
 
 - Focusvolgorde, toetsenbord en screenreadergedrag: blijft reviewwerk.
 - `incomplete`-resultaten melden of laten falen.
 - Een gate die eist dat elke route of elk scherm een `scanAxe` heeft.
-- Het audit-script in `docs/audits/` (tenzij V6 anders uitvalt).
+- Het audit-script
+  `docs/audits/2026-10-06-componenten-tokens/tools/screen-audit.cjs`: blijft
+  staan als bevroren bewijs (besluit 6).
 - Andere axe-integraties (jest-axe, Storybook): bestaan niet.
 - De focusgate (roadmap fase 3, stap 7).
+- Reparaties in `src/`: de scope volgt pas na "Meting" en Brams besluit.
