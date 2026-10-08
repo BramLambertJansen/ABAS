@@ -1,3 +1,4 @@
+import { Chip } from "@/components/Chip";
 import { InitialsAvatar } from "@/components/InitialsAvatar";
 import type { ShiftMember } from "@/hooks/queries/useShiftMembers";
 
@@ -26,15 +27,14 @@ export function BezettingPil({
         : `${first} +${members.length - 1}`;
 
   return (
-    <button
-      type="button"
+    <Chip
       onClick={onOpen}
       // Bewust niet "Bezetting wijzigen …": die naam heeft de wijzig-knop
       // op het Dienst-scherm al, en daar staat deze pil ook.
       aria-label={`Bezetting: ${
         members.length ? members.map((m) => m.name).join(", ") : "nog niemand"
       } — tik om te wijzigen`}
-      className="flex h-control flex-none items-center gap-[9px] rounded-full border border-border bg-surface px-[7px] transition-colors hover:border-ink"
+      className="flex-none"
     >
       {members.length > 0 && (
         <span className="flex items-center">
@@ -58,6 +58,6 @@ export function BezettingPil({
       >
         +
       </span>
-    </button>
+    </Chip>
   );
 }

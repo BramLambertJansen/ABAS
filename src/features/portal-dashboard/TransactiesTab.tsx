@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { LeesFout } from "@/components/LeesFout";
+import { Segment, SegmentBalk } from "@/components/Segment";
 import { VerversStatus } from "@/components/VerversStatus";
 import { useFocusNaHerstel } from "@/hooks/useFocusNaHerstel";
 import { useVerversBijTerugkeer } from "@/hooks/useVerversBijTerugkeer";
@@ -65,27 +66,24 @@ export function TransactiesTab() {
         />
       )}
 
-      <div
+      <SegmentBalk
         ref={filtersRef}
         tabIndex={-1}
         role="group"
         aria-label="Filter op soort transactie"
-        className="flex flex-none flex-wrap gap-1 rounded-card bg-track p-1"
+        className="flex-none flex-wrap"
       >
         {FILTERS.map((f) => (
-          <button
+          <Segment
             key={f.id}
-            type="button"
-            aria-pressed={filter === f.id}
+            geselecteerd={filter === f.id}
             onClick={() => setFilter(f.id)}
-            className={`flex min-h-control min-w-fit max-w-full flex-1 items-center justify-center rounded-control px-2 py-2 text-xs font-bold transition-colors ${
-              filter === f.id ? "bg-surface text-ink shadow-xs" : "text-muted-strong"
-            }`}
+            className="min-w-fit max-w-full flex-1"
           >
             {f.label}
-          </button>
+          </Segment>
         ))}
-      </div>
+      </SegmentBalk>
 
       {transactions.status === "loading" && (
         <p className="py-10 text-center text-sm font-bold text-muted" role="status">

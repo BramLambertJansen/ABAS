@@ -14,22 +14,17 @@ import { useBarSessie } from "../bar-sessie/BarSessieContext";
 
 type Tab = "assortiment" | "leden" | "instellingen" | "logboek" | "diensten";
 
-const beheerTabClass = (selected: boolean) =>
-  `flex h-control items-center whitespace-nowrap rounded-control px-[15px] text-metadata font-extrabold transition-colors ${
-    selected ? "bg-ink text-white" : "text-muted-strong hover:bg-border-subtle"
-  }`;
-
 // Wat hier staat is wat gerenderd wordt: Diensten en Logboek alleen voor de
 // beheerder, dus pijlnavigatie slaat ze voor een bardienst vanzelf over.
 const BARDIENST_TABS: TabItem[] = [
-  { key: "assortiment", label: "Assortiment", className: beheerTabClass },
-  { key: "leden", label: "Leden", className: beheerTabClass },
-  { key: "instellingen", label: "Instellingen", className: beheerTabClass },
+  { key: "assortiment", label: "Assortiment" },
+  { key: "leden", label: "Leden" },
+  { key: "instellingen", label: "Instellingen" },
 ];
 const BEHEERDER_TABS: TabItem[] = [
   ...BARDIENST_TABS,
-  { key: "diensten", label: "Diensten", className: beheerTabClass },
-  { key: "logboek", label: "Logboek", className: beheerTabClass },
+  { key: "diensten", label: "Diensten" },
+  { key: "logboek", label: "Logboek" },
 ];
 
 /**
@@ -84,8 +79,8 @@ export function BeheerTabs({
 
   return (
     <main className="flex min-h-screen w-full flex-col bg-canvas font-sans text-ink antialiased">
-      {/* Eén kopbalk zoals het prototype (`beheerOpen`): terug-link, tabs als
-          pillen (actief = donker), rechts de BEHEER-badge en uitloggen. */}
+      {/* Eén kopbalk zoals het prototype (`beheerOpen`): terug-link, tabs in
+          een segmentbalk (actief = wit vlak), rechts de BEHEER-badge en uitloggen. */}
       <header className="flex min-h-[60px] flex-none flex-wrap items-center gap-x-3.5 gap-y-2 border-b border-border bg-surface px-5 py-2">
         <TabList
           idBase={idBase}
@@ -94,7 +89,8 @@ export function BeheerTabs({
           selected={tab}
           onSelect={(key) => setTab(key as Tab)}
           items={role === "beheerder" ? BEHEERDER_TABS : BARDIENST_TABS}
-          className="flex flex-wrap items-center gap-1"
+          stijl="segment"
+          className="flex-wrap"
         />
 
         <div className="ml-auto flex flex-none items-center gap-2.5">

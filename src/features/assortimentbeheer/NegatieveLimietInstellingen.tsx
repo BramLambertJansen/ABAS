@@ -1,5 +1,6 @@
 "use client";
 
+import { Chip } from "@/components/Chip";
 import { Knop } from "@/components/Knop";
 import { useEffect, useId, useRef, useState } from "react";
 import { VeldFout } from "@/components/TekstVeld";
@@ -171,20 +172,15 @@ export function NegatieveLimietInstellingen() {
         </span>
         <div className="flex flex-wrap gap-2" role="group" aria-label="Snel instellen">
           {chipValues.map((cents) => (
-            <button
+            <Chip
               key={cents}
-              type="button"
               disabled={pending}
-              aria-pressed={cents === currentCents}
+              geselecteerd={cents === currentCents}
               onClick={() => apply(cents)}
-              className={`flex h-control min-w-[62px] flex-1 items-center justify-center rounded-control border px-3 text-sm font-extrabold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-                cents === currentCents
-                  ? "border-accent bg-accent-active text-white"
-                  : "border-border bg-surface text-ink hover:border-accent"
-              }`}
+              className="min-w-16 flex-1"
             >
               {cents === 0 ? "geen" : formatCents(cents)}
-            </button>
+            </Chip>
           ))}
         </div>
       </div>

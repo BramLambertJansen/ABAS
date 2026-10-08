@@ -1,5 +1,7 @@
 "use client";
 
+import { Toets } from "./Toets";
+
 export const PIN_LENGTH = 4;
 const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "⌫"] as const;
 
@@ -46,9 +48,6 @@ export function PinToetsenbord({
   const dark = tone === "rail";
   const dotFilled = errorMessage ? (dark ? "bg-rail-error" : "bg-danger") : "bg-accent";
   const dotEmpty = dark ? "bg-rail-border" : "bg-border";
-  const keyClasses = dark
-    ? "h-14 rounded-card border-rail-border bg-surface-rail text-white hover:bg-rail-key-hover"
-    : "h-control-lg rounded-control border-border bg-surface text-ink";
 
   return (
     <>
@@ -78,16 +77,16 @@ export function PinToetsenbord({
           key === "" ? (
             <div key={`empty-${i}`} aria-hidden="true" />
           ) : (
-            <button
+            <Toets
               key={key}
-              type="button"
+              soort="keypad"
+              tone={dark ? "rail" : "licht"}
               disabled={pending}
               onClick={key === "⌫" ? onBackspace : () => onDigit(key)}
               aria-label={key === "⌫" ? "Wis laatste cijfer" : `Cijfer ${key}`}
-              className={`flex items-center justify-center border text-lg font-bold transition-colors hover:border-accent disabled:opacity-50 ${keyClasses}`}
             >
               {key}
-            </button>
+            </Toets>
           )
         )}
       </div>

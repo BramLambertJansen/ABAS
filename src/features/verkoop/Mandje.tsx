@@ -1,6 +1,7 @@
 "use client";
 
 import { Knop } from "@/components/Knop";
+import { Toets } from "@/components/Toets";
 import { useEffect, useId, useRef, useState } from "react";
 import { formatCents } from "@/lib/money";
 import { InitialsAvatar } from "@/components/InitialsAvatar";
@@ -308,25 +309,23 @@ export function Mandje({
                 </p>
               </div>
               <div className="col-start-1 row-start-2 flex w-fit items-center gap-0.5 rounded-control bg-canvas p-[3px]">
-                <button
-                  type="button"
+                <Toets
+                  soort="stap"
                   onClick={() => onDec(line.productId)}
                   aria-label={`Eén ${line.name} minder`}
-                  className="flex h-control w-11 items-center justify-center rounded-control border border-border bg-surface pb-0.5 text-dialog-title font-bold leading-none text-muted transition-colors hover:border-accent hover:text-accent-active"
                 >
                   −
-                </button>
+                </Toets>
                 <span className="min-w-[28px] text-center text-[15px] font-extrabold">
                   {line.qty}
                 </span>
-                <button
-                  type="button"
+                <Toets
+                  soort="stap"
                   onClick={() => onInc(line.productId)}
                   aria-label={`Eén ${line.name} meer`}
-                  className="flex h-control w-11 items-center justify-center rounded-control border border-border bg-surface pb-0.5 text-dialog-title font-bold leading-none text-muted transition-colors hover:border-accent hover:text-accent-active"
                 >
                   +
-                </button>
+                </Toets>
               </div>
               <span className="col-start-2 row-start-2 min-w-[58px] text-right text-sm font-extrabold text-ink">
                 {formatCents(line.lineTotalCents)}

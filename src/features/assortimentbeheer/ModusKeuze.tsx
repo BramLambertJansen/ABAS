@@ -101,6 +101,7 @@ export function ModusKeuze({
           {errorMessage ?? ""}
         </p>
         <div className="flex w-full gap-3.5">
+          {/* Eigen markup: tegel (afbeelding/tekst in een kaart), geen Chip/Segment. PR 2: bewust eigen markup, zie docs/features/knop.md */}
           <button
             type="button"
             disabled={pending}
@@ -120,6 +121,7 @@ export function ModusKeuze({
           {role === "beheerder" && (
             // aria-disabled, niet disabled: de tegel zonder factor moet
             // focusbaar en voorleesbaar blijven, met de uitleg erin.
+            // Eigen markup: tegel (afbeelding/tekst in een kaart), geen Chip/Segment. PR 2: bewust eigen markup, zie docs/features/knop.md
             <button
               ref={beheerTegelRef}
               type="button"

@@ -9,15 +9,13 @@ import { AccountTab } from "@/features/portal-profiel/AccountTab";
 
 type Tab = "saldo" | "transacties" | "account";
 
-const portalTabClass = (selected: boolean) =>
-  `flex min-h-control min-w-fit max-w-full flex-1 items-center justify-center rounded-control px-2 py-2 text-sm font-bold transition-colors ${
-    selected ? "bg-surface text-ink shadow-xs" : "text-muted-strong"
-  }`;
+// Stijl komt van TabList stijl="segment"; hier alleen layout.
+const portalTabLayout = () => "min-w-fit max-w-full flex-1";
 
 const PORTAL_TABS: TabItem[] = [
-  { key: "saldo", label: "Saldo", className: portalTabClass },
-  { key: "transacties", label: "Transacties", className: portalTabClass },
-  { key: "account", label: "Account", className: portalTabClass },
+  { key: "saldo", label: "Saldo", className: portalTabLayout },
+  { key: "transacties", label: "Transacties", className: portalTabLayout },
+  { key: "account", label: "Account", className: portalTabLayout },
 ];
 
 /**
@@ -103,7 +101,8 @@ export function PortalDashboard({
         selected={tab}
         onSelect={(key) => setTab(key as Tab)}
         items={PORTAL_TABS}
-        className="mx-5 mt-4 flex flex-none flex-wrap gap-1 rounded-card bg-track p-1"
+        stijl="segment"
+        className="mx-5 mt-4 flex-none flex-wrap"
       />
 
       {tab === "saldo" && (

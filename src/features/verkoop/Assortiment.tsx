@@ -1,6 +1,8 @@
 "use client";
 
+import { Chip } from "@/components/Chip";
 import { Knop } from "@/components/Knop";
+import { Segment, SegmentBalk } from "@/components/Segment";
 import { ZoekIcoon } from "@/components/ZoekIcoon";
 
 import { useMemo } from "react";
@@ -85,19 +87,6 @@ export function Assortiment({
     return map;
   }, [cart]);
 
-  const chipClass = (active: boolean) =>
-    `flex h-control items-center whitespace-nowrap rounded-full border px-[18px] text-detail font-bold transition-colors ${
-      active
-        ? "border-accent-active bg-accent-active text-white shadow-accent-chip"
-        : "border-border bg-surface text-muted-strong hover:border-ink"
-    }`;
-  const segClass = (active: boolean) =>
-    `flex h-control items-center justify-center whitespace-nowrap rounded-control px-[15px] text-metadata font-bold transition-[background-color,color,box-shadow] ${
-      active
-        ? "bg-surface text-ink shadow-segment"
-        : "text-muted-strong hover:text-ink"
-    }`;
-
   // Layout naar designs/Bar App.dc.html → `isSales`: zoekveld (52px, met
   // icoon) + galerij/lijst-schakelaar, categorie-chips, dan kaarten of
   // rijen met een ronde "+"-knop. Elke kaart en rij toont de
@@ -127,39 +116,31 @@ export function Assortiment({
             className="h-control-lg w-full rounded-control border border-border bg-surface pl-[46px] pr-[18px] text-[14.5px] font-medium text-ink focus-visible:outline-hidden placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/15"
           />
         </div>
-        <div
-          role="group"
-          aria-label="Weergave"
-          className="flex h-control-lg flex-none items-center gap-0.5 rounded-control bg-track p-0.5"
-        >
-          <button type="button" aria-pressed={view === "grid"} onClick={() => setView("grid")} className={segClass(view === "grid")}>
+        <SegmentBalk role="group" aria-label="Weergave" className="flex-none">
+          <Segment geselecteerd={view === "grid"} onClick={() => setView("grid")}>
             galerij
-          </button>
-          <button type="button" aria-pressed={view === "list"} onClick={() => setView("list")} className={segClass(view === "list")}>
+          </Segment>
+          <Segment geselecteerd={view === "list"} onClick={() => setView("list")}>
             lijst
-          </button>
-        </div>
+          </Segment>
+        </SegmentBalk>
       </div>
 
       <div className="flex flex-none flex-wrap gap-2" role="group" aria-label="Categorie">
-        <button
-          type="button"
-          aria-pressed={!trimmedQuery && category === ALL_CATEGORIES}
+        <Chip
+          geselecteerd={!trimmedQuery && category === ALL_CATEGORIES}
           onClick={() => chooseCategory(ALL_CATEGORIES)}
-          className={chipClass(!trimmedQuery && category === ALL_CATEGORIES)}
         >
           Alle
-        </button>
+        </Chip>
         {categories.map((cat) => (
-          <button
+          <Chip
             key={cat}
-            type="button"
-            aria-pressed={!trimmedQuery && category === cat}
+            geselecteerd={!trimmedQuery && category === cat}
             onClick={() => chooseCategory(cat)}
-            className={chipClass(!trimmedQuery && category === cat)}
           >
             {cat}
-          </button>
+          </Chip>
         ))}
       </div>
 
@@ -201,6 +182,7 @@ export function Assortiment({
             const qty = qtyByProduct.get(product.id) ?? 0;
             return (
               <li key={product.id}>
+                {/* Eigen markup: tegel (afbeelding/tekst in een kaart), geen Chip/Segment. PR 2: bewust eigen markup, zie docs/features/knop.md */}
                 <button
                   type="button"
                   onClick={() => onAdd(product.id)}
@@ -231,6 +213,7 @@ export function Assortiment({
             const qty = qtyByProduct.get(product.id) ?? 0;
             return (
               <li key={product.id} className="border-b border-border-subtle last:border-b-0">
+                {/* Eigen markup: optierij, geen Chip/Segment. PR 2: bewust eigen markup, zie docs/features/knop.md */}
                 <button
                   type="button"
                   onClick={() => onAdd(product.id)}

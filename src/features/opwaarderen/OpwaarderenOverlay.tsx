@@ -1,5 +1,6 @@
 "use client";
 
+import { Chip } from "@/components/Chip";
 import { Knop } from "@/components/Knop";
 import { useId, useRef, useState } from "react";
 import { VeldFout } from "@/components/TekstVeld";
@@ -245,20 +246,15 @@ export function OpwaarderenOverlay({
 
       <div className="grid grid-cols-4 gap-2">
         {AMOUNT_CHIPS_CENTS.map((cents) => (
-          <button
+          <Chip
             key={cents}
-            type="button"
+            maat="groot"
             disabled={inVlucht}
-            aria-pressed={chipSelected(cents)}
+            geselecteerd={chipSelected(cents)}
             onClick={() => chooseChip(cents)}
-            className={`flex h-control-lg items-center justify-center rounded-control border text-sm font-extrabold transition-colors ${
-              chipSelected(cents)
-                ? "border-accent bg-accent-active text-white"
-                : "border-border bg-surface text-ink hover:border-accent hover:bg-canvas hover:text-accent-active"
-            }`}
           >
             {formatCents(cents)}
-          </button>
+          </Chip>
         ))}
       </div>
 

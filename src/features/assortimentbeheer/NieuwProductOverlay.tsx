@@ -1,5 +1,6 @@
 "use client";
 
+import { Chip } from "@/components/Chip";
 import { Knop } from "@/components/Knop";
 
 import { useId, useRef, useState } from "react";
@@ -124,23 +125,17 @@ export function NieuwProductOverlay({
         <legend className="float-left w-full text-xs font-bold text-muted">Categorie</legend>
         <div className="flex flex-wrap gap-2" role="group" aria-label="Categorie">
           {PRODUCT_CATEGORIES.map((option) => (
-            <button
+            <Chip
               key={option}
-              type="button"
-              aria-pressed={category === option}
+              geselecteerd={category === option}
               disabled={pending}
               onClick={() => {
                 setCategory(option);
                 wijzig();
               }}
-              className={`flex h-control items-center justify-center rounded-full border px-3.5 text-xs font-bold transition-colors ${
-                category === option
-                  ? "border-accent bg-accent text-rail"
-                  : "border-border bg-surface text-ink hover:border-accent"
-              }`}
             >
               {option}
-            </button>
+            </Chip>
           ))}
         </div>
       </fieldset>
