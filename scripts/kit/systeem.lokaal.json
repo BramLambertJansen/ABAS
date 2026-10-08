@@ -1,5 +1,5 @@
 {
-  "$comment": "ABAS-specifieke invulling van systeem.mjs en e2e/systeem.spec.ts (docs/features/ontwerpsysteem.md → Raamwerk-extractie). Wijzigen = gate-wijziging (label gate-wijziging). 'redenen': waarom een component (nog) niet in /design/systeem staat; de namen staan ook in .kit/baseline.json onder 'baselineSleutel' en die lijst mag alleen krimpen.",
+  "$comment": "ABAS-specifieke invulling van systeem.mjs en e2e/systeem.spec.ts (docs/features/ontwerpsysteem.md → Raamwerk-extractie). Wijzigen = gate-wijziging (label gate-wijziging). 'uitzonderingen': per component dat (nog) niet in /design/systeem staat een code (context, data, schermvullend, staten; zie CODES in systeem.mjs) en een toelichting (verplicht bij data). De namen moeten precies gelijk zijn aan .kit/baseline.json onder 'baselineSleutel'; die lijst mag alleen krimpen (docs/features/ontwerpsysteem-uitzonderingen.md).",
   "componentenMap": "src/components",
   "registerPad": "src/app/design/systeem/voorbeelden.tsx",
   "registerNaam": "VOORBEELDEN",
@@ -16,19 +16,58 @@
     "maxDiffPixelRatio": 0.001
   },
   "specPad": "e2e/systeem.spec.ts",
-  "redenen": {
-    "CodeInvoer": "eigen state en MFA-logica (lib/mfa); niet zonder inlogcontext te tonen",
-    "EerdereGeldActie": "leest bewaarde geldverzoeken (localStorage/Supabase); geldflow, niet met nepdata te tonen",
-    "GeldActieHerstel": "leest bewaarde geldverzoeken (usePendingMoneyRequests, useMembers); geldflow",
-    "GeldActieHerstelInhoud": "onderdeel van GeldActieHerstel; leest geldverzoeken en leden",
-    "LidZoeker": "combobox met useListbox en ledendata (laden/fout/leden)",
-    "NieuwWachtwoordVelden": "eigen validatiestate; volgt als eigen voorbeeld met alle regelstaten",
-    "OnbekendeUitkomstMelding": "geldflow (onbekend resultaat); leest geldverzoeken",
-    "OpslaanSectie": "leest lib/opslaan-state (pending/fout/succes); volgt als voorbeeld per staat",
-    "Overlay": "vraagt shell, focus-trap en overlay-context; modal/sheet is een eigen voorbeeldsoort",
-    "OverlayPresenceProvider": "context-provider, geen visuele uitvoer",
-    "OverlaySluitKnop": "werkt alleen binnen Overlay (gooit erbuiten een fout)",
-    "StartScherm": "rendert een eigen <main> met min-h-screen; geeft een dubbele main op de pagina",
-    "ZijPaneel": "h-[max(32rem,100dvh)] en breekpuntgedrag; niet in een sectie te tonen"
+  "uitzonderingen": {
+    "CodeInvoer": {
+      "code": "staten",
+      "toelichting": "eigen state en MFA-logica (lib/mfa); niet zonder inlogcontext te tonen"
+    },
+    "EerdereGeldActie": {
+      "code": "data",
+      "toelichting": "leest bewaarde geldverzoeken (localStorage/Supabase); geldflow, niet met nepdata te tonen"
+    },
+    "GeldActieHerstel": {
+      "code": "data",
+      "toelichting": "leest bewaarde geldverzoeken (usePendingMoneyRequests, useMembers); geldflow"
+    },
+    "GeldActieHerstelInhoud": {
+      "code": "data",
+      "toelichting": "onderdeel van GeldActieHerstel; leest geldverzoeken en leden"
+    },
+    "LidZoeker": {
+      "code": "staten",
+      "toelichting": "combobox met useListbox en ledendata (laden/fout/leden)"
+    },
+    "NieuwWachtwoordVelden": {
+      "code": "staten",
+      "toelichting": "eigen validatiestate; volgt als eigen voorbeeld met alle regelstaten"
+    },
+    "OnbekendeUitkomstMelding": {
+      "code": "data",
+      "toelichting": "geldflow (onbekend resultaat); leest geldverzoeken"
+    },
+    "OpslaanSectie": {
+      "code": "staten",
+      "toelichting": "leest lib/opslaan-state (pending/fout/succes); volgt als voorbeeld per staat"
+    },
+    "Overlay": {
+      "code": "context",
+      "toelichting": "vraagt shell, focus-trap en overlay-context; modal/sheet is een eigen voorbeeldsoort"
+    },
+    "OverlayPresenceProvider": {
+      "code": "context",
+      "toelichting": "context-provider, geen visuele uitvoer"
+    },
+    "OverlaySluitKnop": {
+      "code": "context",
+      "toelichting": "werkt alleen binnen Overlay (gooit erbuiten een fout)"
+    },
+    "StartScherm": {
+      "code": "schermvullend",
+      "toelichting": "rendert een eigen <main> met min-h-screen; geeft een dubbele main op de pagina"
+    },
+    "ZijPaneel": {
+      "code": "schermvullend",
+      "toelichting": "h-[max(32rem,100dvh)] en breekpuntgedrag; niet in een sectie te tonen"
+    }
   }
 }

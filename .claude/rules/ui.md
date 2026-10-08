@@ -42,5 +42,9 @@ hoofdactie van een dialoog, inlog- of afrekenscherm). `density` bepaalt de maat
 niet. `Tegel` en optierijen hebben nog geen component; houd eigen markup en zet
 er een reden-commentaar bij.
 
+Een nieuw component in `src/components` krijgt een voorbeeld in
+`src/app/design/systeem/voorbeelden.tsx` (`check:catalogus`); een uitzondering
+vraagt een code en Brams akkoord.
+
 Besloten maar nog niet gebouwd (ADR 0025 → roadmap): `<AsyncInhoud>` en een
-copycatalogus, `/design/systeem` met screenshots.
+copycatalogus.

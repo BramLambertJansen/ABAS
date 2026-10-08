@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { leesThema, type ThemaGroep } from "@/lib/systeem/leesThema";
+import { NietOpDezePagina } from "@/lib/systeem/NietOpDezePagina";
 import { SysteemSectie } from "@/lib/systeem/SysteemSectie";
 import { TokenTabel } from "@/lib/systeem/TokenTabel";
 import systeem from "../../../../scripts/kit/systeem.lokaal.json";
-import { PAGINA, TOKENS } from "./teksten";
+import { NIET_OP_DEZE_PAGINA, PAGINA, TOKENS } from "./teksten";
 import { Voorbeelden } from "./voorbeelden";
 
 export const dynamic = "force-static";
@@ -37,6 +38,9 @@ export default function SysteemPagina() {
         ),
       )}
       <Voorbeelden />
+      <SysteemSectie id="niet-op-deze-pagina" titel={NIET_OP_DEZE_PAGINA.titel} uitleg={NIET_OP_DEZE_PAGINA.uitleg}>
+        <NietOpDezePagina uitzonderingen={systeem.uitzonderingen} teksten={NIET_OP_DEZE_PAGINA} />
+      </SysteemSectie>
     </main>
   );
 }

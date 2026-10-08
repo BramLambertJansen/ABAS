@@ -59,7 +59,7 @@ beveiligingsscans, productie alleen via release.
    - Screenshotvergelijking per scherm niet uitgevoerd (`docs/features/knop.md` → Tests).
 4. `<AsyncInhoud>` op de leesvorm uit fase 2, plus een copycatalogus `src/copy/nl.ts` met een woordenlijsttest.
 5. `scanAxe(page)` met `wcag22aa` als enige ingang (lintverbod op losse `AxeBuilder`).
-6. `/design/systeem` (dev-only) met `toHaveScreenshot`-baselines en `check:catalogus`.
+6. `/design/systeem` (dev-only) met `toHaveScreenshot`-baselines en `check:catalogus`. **Gebouwd (#200, #201).** Pagina onder de `/design`-poort, baselines via de workflow `screenshots-bijwerken`; uitzonderingen hebben een code ([spec](features/ontwerpsysteem-uitzonderingen.md)), de lijst daalt in twee vervolg-PR's van 13 naar 4.
 7. Een focusgate: `outline-none` alleen samen met `focus-visible:ring-*`.
 
 Elke stap verlaagt `eslint-suppressions.json`; `npm run lint:prune` legt dat vast.
