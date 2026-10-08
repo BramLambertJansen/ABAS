@@ -1,6 +1,6 @@
 # Ontwerpsysteem (`/design/systeem`)
 
-Status: **goedgekeurd**
+Status: **gebouwd**
 
 Roadmap fase 3, stap 6 (ADR 0025). Bouwt op de tokenschaal
 ([tokenschaal.md](tokenschaal.md)) en de knopcomponenten ([knop.md](knop.md)).
@@ -141,8 +141,8 @@ afwijkingen; hij kiest niet zelf wat erbij komt.
 - faalt voor een uitzondering of voorbeeld zonder bestaande component;
 - de namen van de uitzonderingen staan in `.kit/baseline.json` en de ratchet
   laat die lijst alleen dalen (`npm run ratchet:update` na een daling); de
-  redenen staan in `systeem.lokaal.json` → `redenen`, en elke uitzondering
-  moet er een hebben.
+  code en toelichting staan in `systeem.lokaal.json` → `uitzonderingen`
+  (herzien in [ontwerpsysteem-uitzonderingen](ontwerpsysteem-uitzonderingen.md)).
 
 **Playwright** (`e2e/systeem.spec.ts` in het bestaande project van
 `playwright.config.ts`, dus onderdeel van `check:a11y`; alle waarden uit
