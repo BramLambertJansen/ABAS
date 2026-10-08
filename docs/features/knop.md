@@ -1,6 +1,10 @@
 # Knop, Toets, Tegel en Chip
 
-Status: **goedgekeurd**
+Status: **gebouwd**
+
+Gebouwd in #198 (`Knop`) en #199 (`Chip`, `Segment`, `Toets`). `Tegel` en de
+optierijen zijn bewust niet gebouwd: ze houden eigen markup met een
+reden-commentaar.
 
 Roadmap fase 3, stap 3 (ADR 0025 → R3; R5 herzien door
 [ADR 0026](../adr/0026-controlmaat-per-rol.md)). Bouwt op de tokenschaal
@@ -18,8 +22,8 @@ Er komen **twee PR's** (Bram, 2026-10-08):
 
 - **PR 1** — `Knop` (alle knoprollen), de lintregel, en de migratie van alle
   knop-rollen uit de inventaris (±118 plekken). `knopStijlen.ts` vervalt.
-- **PR 2** — `Toets`, `Tegel`, `Chip`, de segment- en tabstijl en de optierijen
-  (±30 plekken).
+- **PR 2** — `Chip`, `Segment` en `Toets` (zie "Aanvulling PR 2"). `Tegel` en
+  de optierijen vielen er na Brams keuze van 2026-10-08 buiten.
 
 ## Betrokken shell(s)
 

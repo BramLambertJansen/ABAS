@@ -1,4 +1,4 @@
-import { existsSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { defineConfig } from "@playwright/test";
 
 /**
@@ -22,6 +22,15 @@ const executablePath =
     ? preinstalledChromium
     : undefined;
 
+// Ontwerpsysteem (docs/features/ontwerpsysteem.md): wachtwoord voor de
+// /design-poort en de screenshotdrempel komen uit één bestand, dat ook
+// e2e/systeem.spec.ts en scripts/kit/systeem.mjs lezen.
+const systeem = JSON.parse(readFileSync("scripts/kit/systeem.lokaal.json", "utf8")) as {
+  wachtwoordEnv: string;
+  testWachtwoord: string;
+  drempel: { maxDiffPixelRatio: number };
+};
+
 export default defineConfig({
   testDir: "./e2e",
   timeout: 30_000,
@@ -29,6 +38,9 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: "list",
+  expect: {
+    toHaveScreenshot: { animations: "disabled", ...systeem.drempel },
+  },
   use: {
     baseURL: "http://127.0.0.1:3100",
     // Zonder overgangen meet axe de eindkleuren, niet een tussenkleur
@@ -42,5 +54,7 @@ export default defineConfig({
     url: "http://127.0.0.1:3100",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
+    // Zonder wachtwoord geeft de productiebuild /design* een 404.
+    env: { [systeem.wachtwoordEnv]: systeem.testWachtwoord },
   },
 });

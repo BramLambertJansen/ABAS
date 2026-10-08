@@ -61,5 +61,20 @@
     "docs/features/tablet-koppelen.md",
     "docs/features/verkoop.md",
     "docs/features/wachtwoord-vergeten.md"
+  ],
+  "systeem-zonder-voorbeeld": [
+    "CodeInvoer",
+    "EerdereGeldActie",
+    "GeldActieHerstel",
+    "GeldActieHerstelInhoud",
+    "LidZoeker",
+    "NieuwWachtwoordVelden",
+    "OnbekendeUitkomstMelding",
+    "OpslaanSectie",
+    "Overlay",
+    "OverlayPresenceProvider",
+    "OverlaySluitKnop",
+    "StartScherm",
+    "ZijPaneel"
   ]
 }

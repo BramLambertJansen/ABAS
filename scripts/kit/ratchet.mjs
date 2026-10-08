@@ -16,13 +16,13 @@ const root = path.resolve(import.meta.dirname, "../..");
 const BESTAND = path.join(root, ".kit/baseline.json");
 const UPDATE = process.env.RATCHET_UPDATE === "1";
 
-function lees() {
-  return existsSync(BESTAND) ? JSON.parse(readFileSync(BESTAND, "utf8")) : {};
+function lees(bestand) {
+  return existsSync(bestand) ? JSON.parse(readFileSync(bestand, "utf8")) : {};
 }
 
 /** @returns {string[]} problemen voor deze regel */
-export function ratchet(regel, gevonden, uitleg) {
-  const baseline = lees();
+export function ratchet(regel, gevonden, uitleg, bestand = BESTAND) {
+  const baseline = lees(bestand);
   const toegestaan = new Set(baseline[regel] ?? []);
   const nu = new Set(gevonden);
   const problemen = [];
@@ -32,7 +32,7 @@ export function ratchet(regel, gevonden, uitleg) {
     if (opgelost.length) {
       baseline[regel] = [...toegestaan].filter((t) => nu.has(t)).sort();
       if (baseline[regel].length === 0) delete baseline[regel];
-      writeFileSync(BESTAND, JSON.stringify(baseline, null, 2) + "\n");
+      writeFileSync(bestand, JSON.stringify(baseline, null, 2) + "\n");
     }
   } else {
     for (const o of opgelost) {

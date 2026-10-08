@@ -1,0 +1,34 @@
+{
+  "$comment": "ABAS-specifieke invulling van systeem.mjs en e2e/systeem.spec.ts (docs/features/ontwerpsysteem.md → Raamwerk-extractie). Wijzigen = gate-wijziging (label gate-wijziging). 'redenen': waarom een component (nog) niet in /design/systeem staat; de namen staan ook in .kit/baseline.json onder 'baselineSleutel' en die lijst mag alleen krimpen.",
+  "componentenMap": "src/components",
+  "registerPad": "src/app/design/systeem/voorbeelden.tsx",
+  "registerNaam": "VOORBEELDEN",
+  "baselineSleutel": "systeem-zonder-voorbeeld",
+  "themaPad": "src/app/globals.css",
+  "route": "/design/systeem",
+  "wachtwoordEnv": "DESIGN_PREVIEW_PASSWORD",
+  "testWachtwoord": "systeem-test",
+  "viewport": {
+    "width": 1280,
+    "height": 900
+  },
+  "drempel": {
+    "maxDiffPixelRatio": 0.001
+  },
+  "specPad": "e2e/systeem.spec.ts",
+  "redenen": {
+    "CodeInvoer": "eigen state en MFA-logica (lib/mfa); niet zonder inlogcontext te tonen",
+    "EerdereGeldActie": "leest bewaarde geldverzoeken (localStorage/Supabase); geldflow, niet met nepdata te tonen",
+    "GeldActieHerstel": "leest bewaarde geldverzoeken (usePendingMoneyRequests, useMembers); geldflow",
+    "GeldActieHerstelInhoud": "onderdeel van GeldActieHerstel; leest geldverzoeken en leden",
+    "LidZoeker": "combobox met useListbox en ledendata (laden/fout/leden)",
+    "NieuwWachtwoordVelden": "eigen validatiestate; volgt als eigen voorbeeld met alle regelstaten",
+    "OnbekendeUitkomstMelding": "geldflow (onbekend resultaat); leest geldverzoeken",
+    "OpslaanSectie": "leest lib/opslaan-state (pending/fout/succes); volgt als voorbeeld per staat",
+    "Overlay": "vraagt shell, focus-trap en overlay-context; modal/sheet is een eigen voorbeeldsoort",
+    "OverlayPresenceProvider": "context-provider, geen visuele uitvoer",
+    "OverlaySluitKnop": "werkt alleen binnen Overlay (gooit erbuiten een fout)",
+    "StartScherm": "rendert een eigen <main> met min-h-screen; geeft een dubbele main op de pagina",
+    "ZijPaneel": "h-[max(32rem,100dvh)] en breekpuntgedrag; niet in een sectie te tonen"
+  }
+}

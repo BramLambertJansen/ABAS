@@ -51,7 +51,12 @@ beveiligingsscans, productie alleen via release.
    - better-tailwindcss gebruikt `entryPoint`; de suppressies dalen van 1082 naar 1060;
    - het thema is gereset (`--*: initial`, #197): wat `src` van de standaardschalen gebruikt staat expliciet in `@theme`, en `no-unknown-classes` keurt standaardklassen als `bg-red-500` af.
 2. Tokenschaal. **Gebouwd (#197).** `h-control`/`h-control-lg` (44/52px), radius `sm`/`control`/`card`/`panel`/`sheet` (8/12/16/22/28px), `surface`/`surface-rail` (`rail-card` vervalt), het gereset thema uit stap 1; de suppressies dalen van 1060 naar 947. Screenshotvergelijking per scherm niet uitgevoerd (`docs/features/tokenschaal.md` → Tests).
-3. `Knop`/`Toets`/`Tegel`/`Chip` met een variantobject. `density` stuurt de maat; `className` alleen voor layout (lintregel).
+3. `Knop`/`Toets`/`Tegel`/`Chip` met een variantobject. **Gebouwd (#198, #199), behalve `Tegel` en de optierijen.**
+   - `Knop` (variant, tone, maat, icoon, href), `Chip`, `Segment`/`SegmentBalk` en `Toets`; `knopStijlen.ts` is vervallen.
+   - De lintregel op `className` (alleen layout) geldt voor deze componenten; de suppressies dalen van 947 naar 810.
+   - De maat volgt de rol, niet `density` (`maat="normaal"` 44px of `"groot"` 52px, [ADR 0026](adr/0026-controlmaat-per-rol.md), herziet R5).
+   - Niet gebouwd: `Tegel` (5 plekken) en de optierijen (10), bewust eigen markup met een reden-commentaar. Een eigen spec volgt als dat nodig blijkt.
+   - Screenshotvergelijking per scherm niet uitgevoerd (`docs/features/knop.md` → Tests).
 4. `<AsyncInhoud>` op de leesvorm uit fase 2, plus een copycatalogus `src/copy/nl.ts` met een woordenlijsttest.
 5. `scanAxe(page)` met `wcag22aa` als enige ingang (lintverbod op losse `AxeBuilder`).
 6. `/design/systeem` (dev-only) met `toHaveScreenshot`-baselines en `check:catalogus`.
