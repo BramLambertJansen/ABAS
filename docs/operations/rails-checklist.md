@@ -53,6 +53,16 @@ Te doen:
 - [ ] Optioneel: Deployment Checks koppelen aan de GitHub-check `check-all`.
 - [ ] Previews: een apart Supabase-project (of een Supabase-branch) aan de Vercel-omgeving Preview hangen, of previews uitzetten. Nu is elke preview rood.
 
+## Screenshots (ontwerpsysteem)
+
+Nodig zodra `docs/features/ontwerpsysteem.md` gebouwd wordt:
+
+- [ ] **`SCREENSHOTS_TOKEN`** als repository-secret: een fijnmazige toegangstoken
+  met alleen `contents: write` op deze repo. Zonder die token start de push van
+  de workflow `screenshots-bijwerken` geen nieuwe CI-run (GitHub start geen
+  workflows vanuit een push met de standaardtoken), en blijven de verplichte
+  checks op de nieuwe commit leeg.
+
 ## Claude Code
 
 - [ ] Draai in een lokale sessie `/hooks` en controleer dat `rolhek` en `groen-voor-klaar` geladen zijn. Of projecthooks voor subagents in cloudsessies draaien (afhankelijk van trust), is niet geverifieerd.
