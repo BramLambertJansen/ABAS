@@ -104,3 +104,54 @@ test("zonder @theme-blok is elke groep leeg", () => {
   const thema = parseThema(".x { --color-a: red; }");
   assert.deepEqual(Object.values(thema).flat(), []);
 });
+
+test("leesThema met een niet-bestaand pad gooit", () => {
+  assert.throws(() => leesThema("src/app/bestaat-niet.css"), { code: "ENOENT" });
+});
+
+test("meerdere @theme-blokken worden samengevoegd, in volgorde", () => {
+  const thema = parseThema(`
+    @theme { --color-a: #111; }
+    .x { color: red; }
+    @theme { --color-b: #222; --radius-r: 4px; }
+  `);
+  assert.deepEqual(namen(thema.kleuren), ["--color-a", "--color-b"]);
+  assert.deepEqual(namen(thema.radii), ["--radius-r"]);
+});
+
+test("`@theme inline { … }` wordt herkend", () => {
+  const thema = parseThema("@theme inline { --color-a: var(--x); --height-h: 10px; }");
+  assert.deepEqual(namen(thema.kleuren), ["--color-a"]);
+  assert.equal(thema.kleuren[0]?.waarde, "var(--x)");
+  assert.deepEqual(namen(thema.hoogtes), ["--height-h"]);
+});
+
+test("een dubbel token: de laatste waarde wint, de eerste positie blijft", () => {
+  const thema = parseThema("@theme { --color-a: #111; --color-b: #333; --color-a: #222; }");
+  assert.deepEqual(namen(thema.kleuren), ["--color-a", "--color-b"]);
+  assert.equal(thema.kleuren[0]?.waarde, "#222");
+  // Ook over blokken heen.
+  const over = parseThema("@theme { --color-a: #111; --color-b: #333; } @theme inline { --color-a: #444; }");
+  assert.deepEqual(namen(over.kleuren), ["--color-a", "--color-b"]);
+  assert.equal(over.kleuren[0]?.waarde, "#444");
+});
+
+test("een `;` binnen url(…) knipt de waarde niet af", () => {
+  const thema = parseThema(`@theme {
+    --x-data: url(data:image/svg+xml;base64,AAA);
+    --x-pad: url("a;b.png");
+    --color-a: red;
+  }`);
+  assert.equal(thema.overig.find((t) => t.naam === "--x-data")?.waarde, "url(data:image/svg+xml;base64,AAA)");
+  assert.equal(thema.overig.find((t) => t.naam === "--x-pad")?.waarde, 'url("a;b.png")');
+  assert.deepEqual(namen(thema.kleuren), ["--color-a"]);
+});
+
+// Bevinding Tester, opgelost: `declaraties()` kent aanhalingstekens, dus een `;`
+// binnen een string knipt de waarde niet af.
+test("een `;` binnen een string knipt de waarde niet af", () => {
+  const thema = parseThema(`@theme { --font-q: "a;b"; --text-q: 'c;d'; --color-a: red; }`);
+  assert.equal(thema.overig.find((t) => t.naam === "--font-q")?.waarde, '"a;b"');
+  assert.equal(thema.tekstmaten.find((t) => t.naam === "--text-q")?.waarde, "'c;d'");
+  assert.deepEqual(namen(thema.kleuren), ["--color-a"]);
+});

@@ -139,11 +139,14 @@ afwijkingen; hij kiest niet zelf wat erbij komt.
 - faalt voor elke component die noch in `VOORBEELDEN` staat noch op de
   uitzonderingslijst in `.kit/baseline.json` (sleutel uit de config);
 - faalt voor een uitzondering of voorbeeld zonder bestaande component;
-- de ratchet laat de lijst alleen dalen (`npm run ratchet:update` na een
-  daling).
+- de namen van de uitzonderingen staan in `.kit/baseline.json` en de ratchet
+  laat die lijst alleen dalen (`npm run ratchet:update` na een daling); de
+  redenen staan in `systeem.lokaal.json` → `redenen`, en elke uitzondering
+  moet er een hebben.
 
-**Playwright** (`e2e/systeem.spec.ts`, eigen project in `playwright.config.ts`;
-alle waarden uit `systeem.lokaal.json`):
+**Playwright** (`e2e/systeem.spec.ts` in het bestaande project van
+`playwright.config.ts`, dus onderdeel van `check:a11y`; alle waarden uit
+`systeem.lokaal.json`):
 - vast venster 1280×900, `deviceScaleFactor` 1, alleen Chromium;
 - `webServer.env.DESIGN_PREVIEW_PASSWORD` = een testwachtwoord, en
   `httpCredentials` voor deze spec;

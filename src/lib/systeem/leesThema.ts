@@ -65,7 +65,19 @@ function declaraties(inhoud: string): string[] {
   let huidig = "";
   let haakjes = 0;
   let accolades = 0;
+  let aanhaling: string | null = null;
   for (const teken of inhoud) {
+    // Binnen een string (`"a;b"`) tellen `;`, haakjes en accolades niet mee.
+    if (aanhaling !== null) {
+      if (accolades === 0) huidig += teken;
+      if (teken === aanhaling) aanhaling = null;
+      continue;
+    }
+    if (teken === '"' || teken === "'") {
+      aanhaling = teken;
+      if (accolades === 0) huidig += teken;
+      continue;
+    }
     if (teken === "{") {
       if (accolades === 0) huidig = "";
       accolades++;

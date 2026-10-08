@@ -19,7 +19,8 @@ export function componentNamen(tekst) {
 
 /** Sleutels (op diepte 1) van `export const <registerNaam> … = { … }`. */
 export function registerSleutels(tekst, registerNaam) {
-  const start = new RegExp(`export\\s+const\\s+${registerNaam}\\b[^=]*=\\s*\\{`).exec(tekst);
+  // Het eerste `=` dat geen `=>` is (een functietype in de annotatie mag).
+  const start = new RegExp(`export\\s+const\\s+${registerNaam}\\b[\\s\\S]*?(?<![=!<>])=(?![=>])\\s*\\{`).exec(tekst);
   if (!start) return null;
   const sleutels = [];
   let diepte = 1;
@@ -88,6 +89,7 @@ export function draai(root = path.resolve(import.meta.dirname, "../..")) {
       cfg.baselineSleutel,
       ontbrekend,
       `staat niet in ${cfg.route}: voeg een voorbeeld toe in ${cfg.registerPad}, of (alleen met Brams akkoord, label gate-wijziging) een uitzondering met reden in systeem.lokaal.json`,
+      path.join(root, ".kit/baseline.json"),
     ),
   );
   return problemen;
