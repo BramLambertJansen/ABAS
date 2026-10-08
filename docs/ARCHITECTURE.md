@@ -270,7 +270,7 @@ Escape/backdrop/focus-trap. A dialog built outside `Overlay` isn't counted.
   portal and beheer, automatic for the rail), wrap-around, `aria-controls` only
   on the selected tab (panels still mount only while active). Key logic is the
   pure `nextTabIndex` in `src/lib/tabKeys.ts` (unit-tested). A `TabPanel`
-  without focusable content is itself a tab stop. Shells only pass classes.
+  without focusable content is itself a tab stop. With `stijl="eigen"` (default, `DienstTabs`) the shell passes the classes; with `stijl="segment"` (`PortalDashboard`, `BeheerTabs`) `TabList` renders the segment bar and segment classes itself.
 - **Landmarks:** `DienstTabs` renders `nav` ("Bar") then one `main` that wraps
   the `tabpanel`; `DienstTeLangOpenMelding` and `AdminMeldingen` sit inside that
   `main` as siblings of the panel. Portal and beheer keep their `main` + `header`.

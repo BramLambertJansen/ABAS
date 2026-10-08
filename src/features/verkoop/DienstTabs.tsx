@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState, type ReactNode } from "react";
-import { TabList, TabPanel, type TabItem } from "@/components/Tabs";
+import { TabList, TabPanel, type EigenTabItem } from "@/components/Tabs";
 import type { OpenShift } from "@/hooks/queries/useMijnDienst";
 import { DienstActief } from "@/features/bezetting-beheren/DienstActief";
 import { DienstTeLangOpenMelding } from "@/features/dienst-te-lang-open/DienstTeLangOpenMelding";
@@ -39,7 +39,7 @@ function railLabel(icon: ReactNode, text: string) {
   };
 }
 
-const RAIL_TABS: TabItem[] = [
+const RAIL_TABS: EigenTabItem[] = [
   {
     key: "verkoop",
     className: railTabClass,

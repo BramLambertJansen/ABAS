@@ -158,6 +158,7 @@ export function ProductenLijst() {
         <ul className="flex flex-col overflow-auto px-1.5 py-1">
           {zichtbaar.map((product) => (
             <li key={product.id}>
+              {/* Eigen markup: optierij, geen Chip/Segment. PR 2: bewust eigen markup, zie docs/features/knop.md */}
               <button
                 type="button"
                 onClick={() => setOverlay({ kind: "manage", product })}

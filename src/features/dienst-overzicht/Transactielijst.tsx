@@ -325,6 +325,7 @@ function PersonFilter({
             const selected = option.id === activeId;
             return (
               <li key={option.id}>
+                {/* Eigen markup: optierij, geen Chip/Segment. PR 2: bewust eigen markup, zie docs/features/knop.md */}
                 <button
                   type="button"
                   aria-pressed={selected}

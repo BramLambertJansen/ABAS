@@ -32,6 +32,11 @@ const NEGATIEF: Geval[] = [
   { naam: "ternary met shadow-lg", jsx: `<Knop className={x ? "shadow-lg" : "flex-1"}>x</Knop>` },
   { naam: "template-literal met border", jsx: "<Knop className={`flex-1 border ${x}`}>x</Knop>" },
   { naam: "OverlaySluitKnop bg-surface", jsx: `<OverlaySluitKnop className="bg-surface" />` },
+  // PR 2: Chip, Segment, SegmentBalk en Toets vallen onder dezelfde regel.
+  { naam: "Chip bg-accent", jsx: `<Chip className="bg-accent">x</Chip>` },
+  { naam: "Segment h-control", jsx: `<Segment className="h-control">x</Segment>` },
+  { naam: "SegmentBalk p-1", jsx: `<SegmentBalk className="p-1">x</SegmentBalk>` },
+  { naam: "Toets text-lg", jsx: `<Toets className="text-lg" aria-label="x" soort="keypad" />` },
 ];
 
 const POSITIEF: Geval[] = [
@@ -47,6 +52,13 @@ const POSITIEF: Geval[] = [
   "max-w-full",
   "whitespace-nowrap",
 ].map((k) => ({ naam: k, jsx: `<Knop className="${k}">x</Knop>` }));
+
+const PR2_ELEMENTEN = ["Chip", "Segment", "SegmentBalk", "Toets"];
+for (const el of PR2_ELEMENTEN) {
+  for (const k of ["flex-1", "w-full"]) {
+    POSITIEF.push({ naam: `${el} ${k}`, jsx: `<${el} className="${k}">x</${el}>` });
+  }
+}
 
 const ANDERE: Geval[] = [{ naam: "Anders bg-accent", jsx: `<Anders className="bg-accent">x</Anders>` }];
 

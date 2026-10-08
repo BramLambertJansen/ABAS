@@ -32,6 +32,7 @@ export function StaffPicker({
           style={{ gridTemplateColumns: `repeat(${shell.columns}, 1fr)` }}
         >
           {staff.map((member) => (
+            // Eigen markup: tegel (afbeelding/tekst in een kaart), geen Chip/Segment. PR 2: bewust eigen markup, zie docs/features/knop.md
             <button
               key={member.id}
               type="button"

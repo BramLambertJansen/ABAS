@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { nextTabIndex, type TabOrientation } from "@/lib/tabKeys";
+import { segmentBalkKlassen, segmentKlassen } from "./segmentKlassen";
 
 /**
  * Gedeelde tabbalk (docs/features/dialogen-tabs-landmarks.md → 6. Tabs).
@@ -21,6 +22,12 @@ import { nextTabIndex, type TabOrientation } from "@/lib/tabKeys";
  * - De tabs in `items` zijn wat gerenderd wordt: niet-getoonde tabs (bv. de
  *   beheerder-only tabs) horen er niet in en worden dus overgeslagen.
  *
+ * `stijl="eigen"` (standaard): de aanroeper levert de klassen per tab
+ * (`item.className`, verplicht), zoals `DienstTabs`. `stijl="segment"`: `TabList`
+ * rendert zelf de `SegmentBalk`-klassen en de segmentklassen per tab
+ * (docs/features/knop.md → Aanvulling PR 2); `item.className` is dan optioneel
+ * en mag alleen layout leveren (`flex-1`), `className` van de lijst ook.
+ *
  * Ids komen uit één `idBase` (de aanroeper geeft een `useId()`), zodat tab en
  * panel elkaar vinden zonder hardgecodeerde ids.
  */
@@ -29,9 +36,15 @@ export type TabItem = {
   key: string;
   /** Inhoud van de tab; een functie krijgt de selectiestatus. */
   label: ReactNode | ((selected: boolean) => ReactNode);
-  /** Klassen per shell, afhankelijk van de selectiestatus. */
-  className: (selected: boolean) => string;
+  /**
+   * Bij `stijl="eigen"`: klassen per shell, afhankelijk van de selectiestatus
+   * (verplicht, zie `EigenTabItem`). Bij `stijl="segment"`: optioneel, alleen layout.
+   */
+  className?: (selected: boolean) => string;
 };
+
+/** Een tab voor `stijl="eigen"`: de aanroeper levert de klassen. */
+export type EigenTabItem = TabItem & { className: (selected: boolean) => string };
 
 export function tabElementId(idBase: string, key: string) {
   return `${idBase}-tab-${key}`;
@@ -50,6 +63,7 @@ export function TabList({
   onSelect,
   items,
   className,
+  stijl = "eigen",
 }: {
   idBase: string;
   label: string;
@@ -57,9 +71,11 @@ export function TabList({
   activation?: "automatic" | "manual";
   selected: string;
   onSelect: (key: string) => void;
-  items: TabItem[];
   className?: string;
-}) {
+} & (
+  | { stijl?: "eigen"; items: EigenTabItem[] }
+  | { stijl: "segment"; items: TabItem[] }
+)) {
   const buttons = useRef<Map<string, HTMLButtonElement>>(new Map());
   // Alleen relevant bij manuele activatie: de tab waar de focus naartoe
   // gelopen is maar die nog niet geselecteerd is.
@@ -97,7 +113,7 @@ export function TabList({
           setFocusedKey(null);
         }
       }}
-      className={className}
+      className={stijl === "segment" ? segmentBalkKlassen(className) : className}
     >
       {items.map((item) => {
         const isSelected = item.key === selected;
@@ -118,7 +134,11 @@ export function TabList({
               setFocusedKey(null);
               onSelect(item.key);
             }}
-            className={item.className(isSelected)}
+            className={
+              stijl === "segment"
+                ? segmentKlassen({ geselecteerd: isSelected, className: item.className?.(isSelected) })
+                : item.className?.(isSelected)
+            }
           >
             {typeof item.label === "function" ? item.label(isSelected) : item.label}
           </button>

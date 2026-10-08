@@ -33,7 +33,14 @@ radius `sm`/`control`/`card`/`panel`/`sheet`/`full`, vlakken `bg-surface` /
 `bg-surface-rail`. Een standaardklasse buiten het thema (`bg-red-500`) faalt in
 de lint; breid het thema niet uit zonder ontwerpbesluit.
 
-Besloten maar nog niet gebouwd (ADR 0025 → roadmap): `Knop`/`Toets`/`Tegel`/`Chip` met een variantobject
-(`className` alleen voor layout), `density` bepaalt de controlmaat
-(comfortable 52px, compact 44px), `<AsyncInhoud>` en een copycatalogus,
-`/design/systeem` met screenshots.
+Knoppen komen uit `Knop`, `Chip`, `Segment`/`SegmentBalk` en `Toets`
+(`docs/features/knop.md`). Je kiest een rol via props (`variant`, `tone`,
+`maat`, `geselecteerd`, `soort`), nooit via klassen: `className` op deze
+componenten is alleen layout en de lint bewaakt dat. De controlmaat volgt de
+rol, niet de shell (ADR 0026): `maat="normaal"` (44px) of `maat="groot"` (52px,
+hoofdactie van een dialoog, inlog- of afrekenscherm). `density` bepaalt de maat
+niet. `Tegel` en optierijen hebben nog geen component; houd eigen markup en zet
+er een reden-commentaar bij.
+
+Besloten maar nog niet gebouwd (ADR 0025 → roadmap): `<AsyncInhoud>` en een
+copycatalogus, `/design/systeem` met screenshots.

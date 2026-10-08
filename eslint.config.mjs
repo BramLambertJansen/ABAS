@@ -23,9 +23,9 @@ const ARBITRARY = "Geen arbitrary Tailwind-waarde: kies een token uit @theme in 
 // layout. Kleur, rand, vorm, hoogte, tekst en toestanden komen uit variant/tone/maat.
 const KNOP_VERBODEN =
   "(?:^|\\s)(?:[a-z0-9-]+:)*(?:bg-|text-|border|rounded|shadow|font-|h-|min-h-|max-h-|p-|px-|py-|pt-|pb-|pl-|pr-|ring|outline|hover:|active:|disabled:|aria-|focus)";
-const KNOP_ELEMENT = "/^(Knop|OverlaySluitKnop)$/";
+const KNOP_ELEMENT = "/^(Knop|OverlaySluitKnop|Chip|Segment|SegmentBalk|Toets)$/";
 const KNOP_MELDING =
-  "className op Knop is alleen voor layout (flex-1, w-full, marges): gebruik variant, tone en maat voor kleur, rand, vorm, hoogte en tekst (docs/features/knop.md).";
+  "className op Knop is alleen voor layout (flex-1, w-full, marges). Dat geldt ook voor Chip, Segment, SegmentBalk en Toets: kies de rol via de props (Knop: variant, tone, maat; Chip en Segment: geselecteerd, maat; Toets: soort, tone) voor kleur, rand, vorm, hoogte en tekst (docs/features/knop.md).";
 const KNOP_CLASSNAME_REGELS = [
   {
     selector: `JSXOpeningElement[name.name=${KNOP_ELEMENT}] > JSXAttribute[name.name='className'] Literal[value=/${KNOP_VERBODEN}/]`,

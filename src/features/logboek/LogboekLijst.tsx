@@ -2,6 +2,7 @@
 
 import { useId, useMemo, useRef, useState } from "react";
 import { LeesFout } from "@/components/LeesFout";
+import { Segment, SegmentBalk } from "@/components/Segment";
 import { useLeesHerstel } from "@/hooks/useLeesHerstel";
 import { LOGBOEK_LIMIT, useLogboek, type LogboekEntry } from "@/hooks/queries/useLogboek";
 import { logboekKey } from "@/hooks/queries/logboekSamenvoegen";
@@ -91,27 +92,13 @@ export function LogboekLijst() {
             className="h-control w-full rounded-control border border-border bg-surface pl-[42px] pr-4 text-detail font-medium text-ink focus-visible:outline-hidden placeholder:text-muted focus:border-accent focus:ring-[3px] focus:ring-accent/12"
           />
         </div>
-        <div
-          role="group"
-          aria-label="Filter"
-          className="flex flex-none flex-wrap gap-[3px] rounded-control bg-canvas p-[3px]"
-        >
+        <SegmentBalk role="group" aria-label="Filter" className="flex-none flex-wrap">
           {LOGBOEK_FILTERS.map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              aria-pressed={filter === f.id}
-              onClick={() => setFilter(f.id)}
-              className={`h-control whitespace-nowrap rounded-sm px-3 text-[11.5px] font-bold transition-colors ${
-                filter === f.id
-                  ? "bg-ink text-white"
-                  : "text-muted-strong hover:bg-surface"
-              }`}
-            >
+            <Segment key={f.id} geselecteerd={filter === f.id} onClick={() => setFilter(f.id)}>
               {f.label}
-            </button>
+            </Segment>
           ))}
-        </div>
+        </SegmentBalk>
       </div>
 
       <div className="flex min-h-[180px] flex-1 flex-col overflow-auto rounded-card border border-border bg-surface px-1.5 py-1">

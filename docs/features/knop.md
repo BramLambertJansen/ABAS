@@ -165,9 +165,7 @@ De regel werkt met `no-restricted-syntax` op string- en template-literals in
 het `className`-attribuut van deze componenten. De melding verwijst naar
 `variant`, `tone` en `maat`.
 
-**PR 2** krijgt bij de start een eigen aanvulling op deze spec: `Toets`,
-`Tegel` en `Chip` met hun props, en de segmentstijl. Besluit 3 legt daarvoor
-de kleuren al vast.
+**PR 2** staat hieronder, onder "Aanvulling PR 2".
 
 ### Staten, copy, toon, toegankelijkheid
 
@@ -217,10 +215,137 @@ de kleuren al vast.
   benoemd: primair wit wordt donker, gevaar wordt overal gevuld, en
   tekstknoppen en de × worden groter.
 
+## Aanvulling PR 2 — Chip, Segment en Toets
+
+Status van deze aanvulling: **goedgekeurd** (Bram, 2026-10-08), inclusief de
+technische invulling.
+
+### Besluiten (Bram, 2026-10-08)
+
+1. **Omvang:** `Chip`, `Segment` en `Toets`. `Tegel` en de optierijen blijven
+   eigen markup (te verschillend van opbouw voor één variantobject); ze krijgen
+   een reden-commentaar in de code en staan hieronder onder "Bewust niet".
+2. **Chip is altijd een pil** (`rounded-full`). De limietchips in
+   `NegatieveLimietInstellingen` en de bedragchips in `OpwaarderenOverlay`
+   (nu `rounded-control`) worden dus pillen. Dat is zichtbaar.
+3. **Toets heeft een `soort`:** `keypad` en `stap`. De rail-keypadtoets blijft
+   56px en is daarmee een eigen toetsmaat, geen token (eerder besluit).
+4. **Selectie:**
+   - een chip wordt donker op accent;
+   - een segment of tab wordt een wit vlak met schaduw op `track`;
+   - `BeheerTabs` krijgt dezelfde balk als `PortalDashboard`
+     (`rounded-card bg-track p-1`). De zwarte geselecteerde tab verdwijnt;
+   - de railtabs (`DienstTabs`) houden hun eigen railstijl;
+   - `StatusFilter` is een chip, het filter in `LogboekLijst` een segment;
+   - de keuzerij in `Transactielijst` (wit op ink) is een optierij en valt
+     buiten PR 2.
+
+### Technische invulling (goedgekeurd)
+
+**`Chip`** (`src/components/Chip.tsx`, klassen in `chipKlassen.ts`):
+
+| Prop | Waarden | Standaard |
+|---|---|---|
+| `geselecteerd` | `true` / `false` → `aria-pressed`; weggelaten → geen `aria-pressed` (de bezettingspil opent een overlay) | — |
+| `maat` | `normaal` (h-control) · `groot` (h-control-lg, de bedragchips) | `normaal` |
+| `className` | alleen layout | — |
+| overige | `button`-attributen, `type="button"` standaard, `ref` | — |
+
+- Vorm: altijd `rounded-full`, `px-4`, `text-sm font-bold`, `whitespace-nowrap`.
+- Rust: `border border-border bg-surface text-ink`, hover `border-ink`.
+- Geselecteerd: `border-accent bg-accent text-rail` (5,18:1), hover
+  `bg-accent-hover`.
+- Uitgeschakeld: zoals secundaire `Knop` (`opacity-50`, `cursor-not-allowed`,
+  geen hover).
+- `StatusFilter` en `BezettingKeuze` bouwen op `Chip`. De teller in
+  `StatusFilter` blijft inhoud (children): `text-muted` in rust en in de
+  geselecteerde chip `text-rail` (volle dekking; met `/70` haalt hij maar
+  3,44:1).
+
+**`Segment`** en **`SegmentBalk`** (`src/components/Segment.tsx`,
+`segmentKlassen.ts`):
+
+| Onderdeel | Gedrag |
+|---|---|
+| `SegmentBalk` | container: `rounded-card bg-track p-1`, `flex`; `role="group"` met `aria-label` of tablist, door de aanroeper |
+| `Segment` | knop in de balk. Props: `geselecteerd`, `maat` (`normaal`), `className` voor layout (`flex-1`) |
+| `Segment` rust | `text-muted-strong` (5,95:1 op `track`; `text-muted` haalt maar 4,36:1), hover `text-ink`; `rounded-control`, `h-control`, `text-sm font-bold` |
+| `Segment` geselecteerd | `bg-surface text-ink shadow-segment` |
+
+- `TabList` (`Tabs.tsx`) krijgt `stijl="segment"` of `stijl="eigen"`
+  (standaard `eigen`, dus ongewijzigd). Met `segment` rendert `TabList` zelf de
+  balk en de segmentklassen; `item.className` is dan niet nodig. Roving
+  tabindex, toetsen en ARIA blijven zoals ze zijn.
+- Consumenten: `PortalDashboard` (al een balk), `BeheerTabs` (nieuw: balk),
+  `Assortiment` (galerij/lijst, `aria-pressed`), `LogboekLijst`
+  (`aria-pressed`) en `TransactiesTab` (`aria-pressed`). `DienstTabs` blijft
+  `eigen`.
+- `Segment` met `aria-pressed` voor de drie filter-/weergaveknoppen; in een
+  `TabList` krijgt de knop `role="tab"` en `aria-selected` van `TabList`.
+
+**`Toets`** (`src/components/Toets.tsx`, klassen in `toetsKlassen.ts`):
+
+| Prop | Waarden |
+|---|---|
+| `soort` | `keypad` · `stap` |
+| `tone` | `licht` · `rail` (alleen `keypad`; standaard `licht`) |
+| `className` | alleen layout |
+| overige | `button`-attributen, `aria-label` verplicht via het type |
+
+- `keypad` licht: `h-control-lg rounded-control border border-border
+  bg-surface text-ink text-lg font-bold`, hover `border-accent`.
+- `keypad` rail: `h-14 rounded-card border border-rail-border
+  bg-surface-rail text-white text-lg font-bold`, hover `bg-rail-key-hover`.
+  De `h-14` is de enige plek waar de schaal bewust wordt overschreden;
+  `toetsKlassen.ts` zegt dat in een commentaar.
+- `stap` (de ± in `Mandje`): `h-control w-11 rounded-control border
+  border-border bg-surface text-ink text-dialog-title`.
+- `PinToetsenbord` gebruikt `Toets soort="keypad"`; de ± in `Mandje` gebruikt
+  `Toets soort="stap"`.
+
+**Lintregel:** dezelfde `className`-regel als bij `Knop` geldt ook voor
+`Chip`, `Segment`, `SegmentBalk` en `Toets` (`KNOP_ELEMENT` wordt
+uitgebreid).
+
+**Zichtbare veranderingen in PR 2:**
+- chips: geselecteerd is accent in plaats van zwart of accent-active/wit;
+  de twee rechthoekige chip-groepen worden pillen;
+- `BeheerTabs` krijgt een grijze balk, geselecteerd is een wit vlak;
+- `LogboekLijst`-filter en `TransactiesTab` krijgen de segmentstijl;
+- toetsen: kleinere afwijkingen in rand, hover en tekst (`text-lg font-bold`
+  blijft);
+- de drie kale tekstlinks ("← terug naar inloggen/bardienst") worden
+  `Knop href variant="tekst"`: onderstreept en 44px hoog.
+
+**Bewust niet in PR 2:** `Tegel` (5: `ModusKeuze` ×2, `StaffPicker`,
+`BezettingOverlay`-lidtegel, producttegel in `Assortiment`), optierijen (12) en
+de "overig"-knoppen uit PR 1. Ze houden eigen markup met een
+reden-commentaar. De `no-restricted-syntax`-ratchet voor rauwe `<button>`
+houdt ze zichtbaar.
+
+**Docs in dezelfde PR:** `.claude/rules/ui.md` noemt nog dat `Knop`, `Toets`,
+`Tegel` en `Chip` en "`density` bepaalt de controlmaat" nog niet gebouwd zijn;
+dat wordt de gebouwde stand van `Knop`, `Chip`, `Segment` en `Toets`, met
+ADR 0026.
+
+### Tests (PR 2)
+
+- Unit per component, in de stijl van `test/knop.test.ts`: klassen per
+  `geselecteerd`/`maat`/`soort`/`tone`, `type="button"` standaard,
+  `aria-pressed` alleen als `geselecteerd` is gezet, volledige
+  klasseliteralen, geen `useShell`.
+- Lint: `test/knopLint.test.ts` uitbreiden naar `Chip`, `Segment`,
+  `SegmentBalk` en `Toets`.
+- Contrast: de paren `text-rail` op `accent` (geselecteerde chip), `ink` op
+  `surface` (segment geselecteerd), `muted-strong` op `track` (segment in rust), `white` op
+  `surface-rail` en `rail-border` (rail-keypad) in `accentContrast.test.ts`.
+- e2e/a11y: `e2e/a11y.spec.ts` en de contrast-/focustests blijven groen.
+  Tabtoetsenbordgedrag (pijlen, Home/End) blijft ongewijzigd.
+
 ## Expliciet buiten scope
 
-- PR 2: `Toets`, `Tegel`, `Chip`, segmenten, tabs en optierijen. Die krijgen
-  een eigen aanvulling op deze spec.
+- PR 2: `Tegel`, optierijen en de "overig"-knoppen blijven eigen markup (zie
+  Aanvulling PR 2).
 - `density` gebruiken voor iets anders dan de maat (ADR 0026, punt 2).
 - De combobox-trigger van `Select`, de disclosure in `Transactielijst` en de
   knoppen in de waarschuwingsblokken in `Mandje` ("overig" in de inventaris).

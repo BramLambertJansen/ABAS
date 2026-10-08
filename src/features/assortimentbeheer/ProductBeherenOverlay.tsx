@@ -381,6 +381,7 @@ export function ProductBeherenOverlay({
         wachtOpAnder={priceBusy || imageBusy}
         fout={archiveMutation.errorCode ? archiveErrorMessage(archiveMutation.errorCode) : null}
       >
+      {/* Eigen markup: optierij, geen Chip/Segment. PR 2: bewust eigen markup, zie docs/features/knop.md */}
       <button
         ref={archiveButtonRef}
         type="button"

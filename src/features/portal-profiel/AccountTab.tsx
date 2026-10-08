@@ -184,6 +184,7 @@ function AccountRij({
 }) {
   return (
     <li className="border-b border-border last:border-b-0">
+      {/* Eigen markup: optierij, geen Chip/Segment. PR 2: bewust eigen markup, zie docs/features/knop.md */}
       <button
         type="button"
         onClick={onClick}
@@ -222,6 +223,7 @@ function TweestapRij({ aan, onClick }: { aan: boolean; onClick: () => void }) {
   }
   return (
     <li className="border-b border-border last:border-b-0">
+      {/* Eigen markup: optierij, geen Chip/Segment. PR 2: bewust eigen markup, zie docs/features/knop.md */}
       <button
         type="button"
         onClick={onClick}

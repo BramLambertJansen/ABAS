@@ -217,6 +217,7 @@ function OrderRow({
 
   return (
     <li className="flex flex-col gap-2">
+      {/* Eigen markup: optierij, geen Chip/Segment. PR 2: bewust eigen markup, zie docs/features/knop.md */}
       <button
         type="button"
         onClick={onAsk}

@@ -639,6 +639,7 @@ export function LidBeherenOverlay({
           Bestellingen
         </h3>
         <div className="flex flex-col gap-1.5">
+          {/* Eigen markup: optierij, geen Chip/Segment. PR 2: bewust eigen markup, zie docs/features/knop.md */}
           <button
             type="button"
             disabled={busy}
@@ -674,6 +675,7 @@ export function LidBeherenOverlay({
           status={sectieStatus({ onopgeslagen: false, gelukt: gelukt.archief !== null, fout: archiveFout })}
           statusTekst={gelukt.archief === "teruggezet" ? "Teruggezet" : "Gearchiveerd"}
         >
+          {/* Eigen markup: optierij, geen Chip/Segment. PR 2: bewust eigen markup, zie docs/features/knop.md */}
           <button
             ref={archiveButtonRef}
             type="button"

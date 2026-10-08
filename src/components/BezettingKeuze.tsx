@@ -1,3 +1,4 @@
+import { Chip } from "./Chip";
 import type { ShiftMember } from "@/hooks/queries/useShiftMembers";
 
 /**
@@ -37,19 +38,13 @@ export function BezettingKeuze({
       </legend>
       <div className="flex flex-wrap gap-2">
         {crew.map((option) => (
-          <button
+          <Chip
             key={option.id}
-            type="button"
-            aria-pressed={selectedId === option.id}
+            geselecteerd={selectedId === option.id}
             onClick={() => { if (!disabled) onSelect(option.id); }}
-            className={`min-h-control rounded-full border px-4 text-xs font-extrabold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-              selectedId === option.id
-                ? "border-accent bg-accent-active text-white"
-                : "border-border bg-surface text-ink hover:border-accent"
-            }`}
           >
             {option.name}
-          </button>
+          </Chip>
         ))}
       </div>
     </fieldset>

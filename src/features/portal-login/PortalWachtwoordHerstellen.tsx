@@ -1,7 +1,6 @@
 "use client";
 
 import { Knop } from "@/components/Knop";
-import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { AuroraMerk } from "@/components/AuroraMerk";
 import { useFocusNaWissel } from "@/hooks/useFocusNaWissel";
@@ -116,9 +115,9 @@ export function PortalWachtwoordHerstellen({ tokenHash }: { tokenHash: string | 
             Wachtwoord opslaan
           </Knop>
 
-          <Link href="/portal" className="text-center text-xs font-semibold text-muted hover:text-ink">
+          <Knop href="/portal" variant="tekst">
             ← terug naar inloggen
-          </Link>
+          </Knop>
         </form>
       )}
     </main>

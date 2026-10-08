@@ -1,7 +1,6 @@
 "use client";
 
 import { Knop } from "@/components/Knop";
-import Link from "next/link";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { StartScherm } from "@/components/StartScherm";
 import { AuroraMerk } from "@/components/AuroraMerk";
@@ -342,9 +341,9 @@ export function BeheerLogin({ deniedMessage }: { deniedMessage?: string }) {
             {method === "magic_link" ? "Stuur inloglink" : "Inloggen"}
           </Knop>
 
-          <Link href="/" className="text-center text-xs font-semibold text-rail-muted hover:text-rail-light">
+          <Knop href="/" variant="tekst" tone="rail">
             ← terug naar bardienst
-          </Link>
+          </Knop>
         </form>
       )}
     </StartScherm>
