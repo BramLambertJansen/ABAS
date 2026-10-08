@@ -217,9 +217,8 @@ het `className`-attribuut van deze componenten. De melding verwijst naar
 
 ## Aanvulling PR 2 — Chip, Segment en Toets
 
-Status van deze aanvulling: **voorstel**. De keuzes in het kader hieronder
-heeft Bram op 2026-10-08 gemaakt; de technische invulling is een voorstel ter
-goedkeuring. PR 2 bouwt pas na zijn akkoord.
+Status van deze aanvulling: **goedgekeurd** (Bram, 2026-10-08), inclusief de
+technische invulling.
 
 ### Besluiten (Bram, 2026-10-08)
 
@@ -241,7 +240,7 @@ goedkeuring. PR 2 bouwt pas na zijn akkoord.
    - de keuzerij in `Transactielijst` (wit op ink) is een optierij en valt
      buiten PR 2.
 
-### Technische invulling (voorstel)
+### Technische invulling (goedgekeurd)
 
 **`Chip`** (`src/components/Chip.tsx`, klassen in `chipKlassen.ts`):
 
