@@ -1,5 +1,5 @@
 import { test, expect, type Page, type Route } from "@playwright/test";
-import AxeBuilder from "@axe-core/playwright";
+import { scanAxe } from "./helpers/scanAxe";
 import { USER, fakeSession, json, loginMetWachtwoord, mockBarSessie } from "./helpers/supabaseMock";
 
 /**
@@ -98,8 +98,7 @@ test("zonder afbeelding: kop met lege staat, het blok staat boven de prijs, a11y
   expect(kiezen!.y).toBeLessThan(prijs!.y);
   expect(prijs!.y).toBeLessThan(archief!.y);
 
-  const resultaat = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
-  expect(resultaat.violations).toEqual([]);
+  await scanAxe(page);
 });
 
 test("met afbeelding: kop toont de afbeelding met alt, Vervangen en Verwijderen, a11y-scan", async ({ page }) => {
@@ -115,8 +114,7 @@ test("met afbeelding: kop toont de afbeelding met alt, Vervangen en Verwijderen,
   await expect(groep.getByRole("button", { name: "Vervangen" })).toBeVisible();
   await expect(groep.getByRole("button", { name: "Verwijderen" })).toBeVisible();
 
-  const resultaat = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
-  expect(resultaat.violations).toEqual([]);
+  await scanAxe(page);
 });
 
 test("een vertraagde upload blokkeert sluiten en zet prijs en archief op disabled met uitleg", async ({ page }) => {
@@ -145,8 +143,7 @@ test("een vertraagde upload blokkeert sluiten en zet prijs en archief op disable
   await expect(dialog.getByText(WACHT)).toHaveCount(2);
   await focusNietOpBody(page);
 
-  const resultaat = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
-  expect(resultaat.violations).toEqual([]);
+  await scanAxe(page);
 
   vast.laatDoor();
   await expect(dialog.getByRole("button", { name: "Vervangen" })).toBeEnabled();
@@ -296,13 +293,11 @@ test("verkoop: galerij en lijst met en zonder afbeelding, decoratief, a11y-scan"
   await expect(pils.locator("img")).toHaveAttribute("alt", "");
   await expect(pils).toHaveAccessibleName(/^Pils, €\s2,50 — tik om toe te voegen$/);
   await expect(page.getByRole("button", { name: /^Spa rood, / }).locator("img")).toHaveCount(0);
-  let resultaat = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
-  expect(resultaat.violations).toEqual([]);
+  await scanAxe(page);
 
   await page.getByRole("button", { name: "lijst" }).click();
   await expect(page.getByRole("button", { name: /^Pils, / }).locator("img")).toHaveAttribute("alt", "");
-  resultaat = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
-  expect(resultaat.violations).toEqual([]);
+  await scanAxe(page);
 });
 
 // ── Negatieve aanvulling (Tester, PR #146) ───────────────────────────────

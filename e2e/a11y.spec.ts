@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import AxeBuilder from "@axe-core/playwright";
+import { scanAxe } from "./helpers/scanAxe";
 import { loginMetWachtwoord, portalLoginMetWachtwoord } from "./helpers/supabaseMock";
 import { FEMKE, TOM, WACHTWOORD_FEMKE, WACHTWOORD_TOM, logInOpBar } from "./helpers/barLogin";
 import { FEMKE_TOTP_SECRET, versTotpCode, vulCodeIn } from "./helpers/totp";
@@ -11,7 +11,8 @@ import { FEMKE_TOTP_SECRET, versTotpCode, vulCodeIn } from "./helpers/totp";
 test.describe.configure({ mode: "default" });
 
 /**
- * The WCAG-AA gate CLAUDE.md calls for: axe-core against every shell's
+ * The WCAG-AA gate CLAUDE.md calls for: an axe scan (WCAG 2.2 AA, via
+ * scanAxe in e2e/helpers/scanAxe.ts) against every shell's
  * scaffold entry point. Add a route here the moment a real screen lands —
  * this list is meant to grow with the app, not stay at two placeholder
  * pages. See docs/ARCHITECTURE.md → Verificatie for how this fits
@@ -47,15 +48,10 @@ const routes = [
 ];
 
 for (const { name, path } of routes) {
-  test(`${name} (${path}) has no WCAG2A/AA violations`, async ({ page }) => {
+  test(`${name} (${path}) has no WCAG 2.2 AA violations`, async ({ page }) => {
     await page.goto(path);
 
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-
-    expect(results.violations, JSON.stringify(results.violations, null, 2))
-      .toEqual([]);
+    await scanAxe(page);
   });
 }
 
@@ -88,7 +84,7 @@ test("a11y-scans draaien zonder kleurovergangen (#71)", async ({ page }) => {
  * de resulterende UI-staat telt).
  */
 test.describe("portal (a11y)", () => {
-  test("portal (/portal) methode-keuze met Wachtwoord geselecteerd has no WCAG2A/AA violations", async ({
+  test("portal (/portal) methode-keuze met Wachtwoord geselecteerd has no WCAG 2.2 AA violations", async ({
     page,
   }) => {
     await page.goto("/portal");
@@ -97,15 +93,10 @@ test.describe("portal (a11y)", () => {
     await page.locator('label:has(input[value="password"])').click();
     await page.locator('input[type="password"]').waitFor({ state: "visible" });
 
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-
-    expect(results.violations, JSON.stringify(results.violations, null, 2))
-      .toEqual([]);
+    await scanAxe(page);
   });
 
-  test("portal (/portal) 'link verstuurd'-bevestiging has no WCAG2A/AA violations", async ({
+  test("portal (/portal) 'link verstuurd'-bevestiging has no WCAG 2.2 AA violations", async ({
     page,
   }) => {
     await page.goto("/portal");
@@ -118,15 +109,10 @@ test.describe("portal (a11y)", () => {
       .filter({ hasText: "hebben we een inloglink gestuurd" })
       .waitFor({ state: "visible", timeout: 15_000 });
 
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-
-    expect(results.violations, JSON.stringify(results.violations, null, 2))
-      .toEqual([]);
+    await scanAxe(page);
   });
 
-  test("portal (/portal) wachtwoord-vergeten-aanvraag has no WCAG2A/AA violations", async ({
+  test("portal (/portal) wachtwoord-vergeten-aanvraag has no WCAG 2.2 AA violations", async ({
     page,
   }) => {
     await page.goto("/portal");
@@ -138,15 +124,10 @@ test.describe("portal (a11y)", () => {
       .getByRole("heading", { name: "Wachtwoord vergeten" })
       .waitFor({ state: "visible" });
 
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-
-    expect(results.violations, JSON.stringify(results.violations, null, 2))
-      .toEqual([]);
+    await scanAxe(page);
   });
 
-  test("portal (/portal) wachtwoord-vergeten-verstuurd has no WCAG2A/AA violations", async ({
+  test("portal (/portal) wachtwoord-vergeten-verstuurd has no WCAG 2.2 AA violations", async ({
     page,
   }) => {
     await page.goto("/portal");
@@ -161,12 +142,7 @@ test.describe("portal (a11y)", () => {
       .filter({ hasText: "hebben we een link gestuurd" })
       .waitFor({ state: "visible", timeout: 15_000 });
 
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-
-    expect(results.violations, JSON.stringify(results.violations, null, 2))
-      .toEqual([]);
+    await scanAxe(page);
   });
 
   /**
@@ -179,7 +155,7 @@ test.describe("portal (a11y)", () => {
    * Uitgebreide scenario's (Transacties-tabblad, laag-saldo-variant, lege
    * staat) zijn aan de Tester (spec → Randgevallen → "a11y").
    */
-  test("portal (/portal) ingelogde staat (Anna de Vries) has no WCAG2A/AA violations", async ({
+  test("portal (/portal) ingelogde staat (Anna de Vries) has no WCAG 2.2 AA violations", async ({
     page,
   }) => {
     await portalLoginMetWachtwoord(page, "anna.de.vries@aurora.local", "local-lid-dev-only");
@@ -195,12 +171,7 @@ test.describe("portal (a11y)", () => {
     await expect(page.getByText("Reden: verkeerd product getikt", { exact: true })).toBeVisible();
     await expect(page.getByText(/niet meer afgeschreven/)).toBeVisible();
 
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-
-    expect(results.violations, JSON.stringify(results.violations, null, 2))
-      .toEqual([]);
+    await scanAxe(page);
   });
 
   /**
@@ -211,7 +182,7 @@ test.describe("portal (a11y)", () => {
    * dekking (filters, maandgroepering, lege staat) — dat is de Tester's
    * werk, zie spec → Randgevallen → "a11y".
    */
-  test("portal (/portal) Transacties-tabblad (Anna de Vries) has no WCAG2A/AA violations", async ({
+  test("portal (/portal) Transacties-tabblad (Anna de Vries) has no WCAG 2.2 AA violations", async ({
     page,
   }) => {
     await portalLoginMetWachtwoord(page, "anna.de.vries@aurora.local", "local-lid-dev-only");
@@ -226,12 +197,7 @@ test.describe("portal (a11y)", () => {
     await expect(page.getByText("Reden: verkeerd product getikt", { exact: true })).toBeVisible();
     await expect(page.getByText(/niet meer afgeschreven/)).toBeVisible();
 
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-
-    expect(results.violations, JSON.stringify(results.violations, null, 2))
-      .toEqual([]);
+    await scanAxe(page);
   });
 
   /**
@@ -240,7 +206,7 @@ test.describe("portal (a11y)", () => {
    * de sessielookup (`members` met `auth_user_id`, zonder `balance_cents`)
    * krijgt een 500, zodat `usePortalSession` op `error` komt.
    */
-  test("portal (/portal) sessielookup-foutstaat has no WCAG2A/AA violations", async ({ page }) => {
+  test("portal (/portal) sessielookup-foutstaat has no WCAG 2.2 AA violations", async ({ page }) => {
     await page.route(/\/rest\/v1\/members\?/, (route) => {
       const url = decodeURIComponent(route.request().url());
       if (!url.includes("auth_user_id=eq.") || url.includes("balance_cents")) return route.fallback();
@@ -261,12 +227,7 @@ test.describe("portal (a11y)", () => {
       expect(box!.height).toBeGreaterThanOrEqual(44);
     }
 
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-
-    expect(results.violations, JSON.stringify(results.violations, null, 2))
-      .toEqual([]);
+    await scanAxe(page);
   });
 
   /**
@@ -279,7 +240,7 @@ test.describe("portal (a11y)", () => {
    * Anna de Vries' account in `portal-login.md`). Scant de "Saldo bijna
    * op"-kaart op het standaard geopende Saldo-tabblad.
    */
-  test("portal (/portal) laag-saldo-variant (Piet Bakker) has no WCAG2A/AA violations", async ({
+  test("portal (/portal) laag-saldo-variant (Piet Bakker) has no WCAG 2.2 AA violations", async ({
     page,
   }) => {
     await portalLoginMetWachtwoord(page, "piet.bakker@aurora.local", "local-lid-laag-saldo-dev-only");
@@ -288,12 +249,7 @@ test.describe("portal (a11y)", () => {
       .waitFor({ state: "visible", timeout: 15_000 });
     await page.getByText("Saldo bijna op").waitFor({ state: "visible" });
 
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-
-    expect(results.violations, JSON.stringify(results.violations, null, 2))
-      .toEqual([]);
+    await scanAxe(page);
   });
 
   /**
@@ -306,7 +262,7 @@ test.describe("portal (a11y)", () => {
    * losse toggle. Scant eerst de "Recente transacties"-lege-staat op het al open
    * Saldo-tabblad, dan dezelfde lege-staat op het Transacties-tabblad.
    */
-  test("portal (/portal) lege-transacties-staat (Piet Bakker) has no WCAG2A/AA violations", async ({
+  test("portal (/portal) lege-transacties-staat (Piet Bakker) has no WCAG 2.2 AA violations", async ({
     page,
   }) => {
     await portalLoginMetWachtwoord(page, "piet.bakker@aurora.local", "local-lid-laag-saldo-dev-only");
@@ -315,20 +271,12 @@ test.describe("portal (a11y)", () => {
       .waitFor({ state: "visible", timeout: 15_000 });
     await page.getByText("Nog geen transacties").waitFor({ state: "visible", timeout: 15_000 });
 
-    const saldoResults = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-    expect(saldoResults.violations, JSON.stringify(saldoResults.violations, null, 2))
-      .toEqual([]);
+    await scanAxe(page);
 
     await page.getByRole("tab", { name: "Transacties" }).click();
     await page.getByText("Nog geen transacties").waitFor({ state: "visible", timeout: 15_000 });
 
-    const txResults = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-    expect(txResults.violations, JSON.stringify(txResults.violations, null, 2))
-      .toEqual([]);
+    await scanAxe(page);
   });
 
   /**
@@ -347,7 +295,7 @@ test.describe("portal (a11y)", () => {
    * "Einde van de lijst"-voettekst bewijst dat de groepen daadwerkelijk
    * gerenderd zijn.
    */
-  test("portal (/portal) Transacties-tabblad met filters en maandgroepering (Anna de Vries) has no WCAG2A/AA violations", async ({
+  test("portal (/portal) Transacties-tabblad met filters en maandgroepering (Anna de Vries) has no WCAG 2.2 AA violations", async ({
     page,
   }) => {
     await portalLoginMetWachtwoord(page, "anna.de.vries@aurora.local", "local-lid-dev-only");
@@ -363,11 +311,7 @@ test.describe("portal (a11y)", () => {
     await page.getByText("Bestelling").first().waitFor({ state: "visible" });
     await page.getByText("Opgewaardeerd").first().waitFor({ state: "visible" });
 
-    const allesResults = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-    expect(allesResults.violations, JSON.stringify(allesResults.violations, null, 2))
-      .toEqual([]);
+    await scanAxe(page);
 
     // Filter "Uitgaven": de opwaardering verdwijnt, de (ook teruggedraaide)
     // bestellingen blijven staan (spec → Schermflow §2: "het is en blijft
@@ -378,11 +322,7 @@ test.describe("portal (a11y)", () => {
     await page.getByText("Bestelling").first().waitFor({ state: "visible" });
     await expect(page.getByText("Opgewaardeerd")).toHaveCount(0);
 
-    const uitgavenResults = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-    expect(uitgavenResults.violations, JSON.stringify(uitgavenResults.violations, null, 2))
-      .toEqual([]);
+    await scanAxe(page);
 
     // Filter "Opwaarderingen": het omgekeerde.
     const opwaarderingenFilter = page.getByRole("button", { name: "Opwaarderingen" });
@@ -391,13 +331,7 @@ test.describe("portal (a11y)", () => {
     await page.getByText("Opgewaardeerd").first().waitFor({ state: "visible" });
     await expect(page.getByText("Bestelling")).toHaveCount(0);
 
-    const opwaarderingenResults = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-    expect(
-      opwaarderingenResults.violations,
-      JSON.stringify(opwaarderingenResults.violations, null, 2)
-    ).toEqual([]);
+    await scanAxe(page);
   });
 
   /**
@@ -408,7 +342,7 @@ test.describe("portal (a11y)", () => {
    * ongekoppelde seed-account (`auth.users` zonder `members`-rij), zelfde
    * account als e2e/portal-login.spec.ts's denied-test.
    */
-  test("portal (/portal) denied-staat (ongekoppeld account) has no WCAG2A/AA violations", async ({
+  test("portal (/portal) denied-staat (ongekoppeld account) has no WCAG 2.2 AA violations", async ({
     page,
   }) => {
     await portalLoginMetWachtwoord(page, "e2e.ongekoppeld@aurora.local", "local-e2e-ongekoppeld-dev-only");
@@ -416,12 +350,7 @@ test.describe("portal (a11y)", () => {
       .getByText("Dit account is niet gekoppeld aan een lid.")
       .waitFor({ state: "visible", timeout: 15_000 });
 
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-
-    expect(results.violations, JSON.stringify(results.violations, null, 2))
-      .toEqual([]);
+    await scanAxe(page);
   });
 
   /**
@@ -444,14 +373,10 @@ test.describe("portal (a11y)", () => {
   }
 
   async function expectNoViolations(page: Page) {
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-    expect(results.violations, JSON.stringify(results.violations, null, 2))
-      .toEqual([]);
+    await scanAxe(page);
   }
 
-  test("portal (/portal) Account-tabblad als lid (Anna de Vries, zonder PIN-rij) has no WCAG2A/AA violations", async ({
+  test("portal (/portal) Account-tabblad als lid (Anna de Vries, zonder PIN-rij) has no WCAG 2.2 AA violations", async ({
     page,
   }) => {
     await openAccountTab(page, "anna.de.vries@aurora.local", "local-lid-dev-only", "Anna");
@@ -459,7 +384,7 @@ test.describe("portal (a11y)", () => {
     await expectNoViolations(page);
   });
 
-  test("portal (/portal) Account-tabblad als bardienst (Sanne Bakker, met PIN-rij) has no WCAG2A/AA violations", async ({
+  test("portal (/portal) Account-tabblad als bardienst (Sanne Bakker, met PIN-rij) has no WCAG 2.2 AA violations", async ({
     page,
   }) => {
     await openAccountTab(page, "sanne.bakker@aurora.local", "local-bardienst-dev-only", "Sanne");
@@ -467,7 +392,7 @@ test.describe("portal (a11y)", () => {
     await expectNoViolations(page);
   });
 
-  test("portal (/portal) naam-sheet, ook met foutmelding, has no WCAG2A/AA violations", async ({
+  test("portal (/portal) naam-sheet, ook met foutmelding, has no WCAG 2.2 AA violations", async ({
     page,
   }) => {
     await page.route(/\/rest\/v1\/rpc\/update_own_name(\?|$)/, (route) =>
@@ -489,14 +414,14 @@ test.describe("portal (a11y)", () => {
     await expectNoViolations(page);
   });
 
-  test("portal (/portal) wachtwoord-sheet has no WCAG2A/AA violations", async ({ page }) => {
+  test("portal (/portal) wachtwoord-sheet has no WCAG 2.2 AA violations", async ({ page }) => {
     await openAccountTab(page, "sanne.bakker@aurora.local", "local-bardienst-dev-only", "Sanne");
     await page.getByRole("button", { name: /^Wachtwoord wijzigen/ }).click();
     await page.getByRole("dialog", { name: "Wachtwoord wijzigen" }).waitFor({ state: "visible" });
     await expectNoViolations(page);
   });
 
-  test("portal (/portal) pincode-sheet (stap 1, stap 2, foutmelding) has no WCAG2A/AA violations", async ({
+  test("portal (/portal) pincode-sheet (stap 1, stap 2, foutmelding) has no WCAG 2.2 AA violations", async ({
     page,
   }) => {
     await openAccountTab(page, "sanne.bakker@aurora.local", "local-bardienst-dev-only", "Sanne");
@@ -595,7 +520,7 @@ async function loginToModusKeuze(page: Page) {
 }
 
 test.describe("beheer ingelogde staat (a11y)", () => {
-  test("beheer (/beheer) Assortiment-tab (ingelogd) has no WCAG2A/AA violations", async ({
+  test("beheer (/beheer) Assortiment-tab (ingelogd) has no WCAG 2.2 AA violations", async ({
     page,
   }) => {
     await loginAsBeheerder(page);
@@ -606,12 +531,7 @@ test.describe("beheer ingelogde staat (a11y)", () => {
       .getByRole("heading", { name: "Assortiment" })
       .waitFor({ state: "visible", timeout: 15_000 });
 
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-
-    expect(results.violations, JSON.stringify(results.violations, null, 2))
-      .toEqual([]);
+    await scanAxe(page);
   });
 
   /**
@@ -620,7 +540,7 @@ test.describe("beheer ingelogde staat (a11y)", () => {
    * standaardstand en met een zoekterm zonder treffers (lege uitkomst met
    * "Zoekopdracht wissen").
    */
-  test("beheer (/beheer) Assortiment-tab met zoeken en statuschips has no WCAG2A/AA violations", async ({
+  test("beheer (/beheer) Assortiment-tab met zoeken en statuschips has no WCAG 2.2 AA violations", async ({
     page,
   }) => {
     await loginAsBeheerder(page);
@@ -634,15 +554,10 @@ test.describe("beheer ingelogde staat (a11y)", () => {
       .getByRole("button", { name: "Zoekopdracht wissen" })
       .waitFor({ state: "visible", timeout: 15_000 });
 
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-
-    expect(results.violations, JSON.stringify(results.violations, null, 2))
-      .toEqual([]);
+    await scanAxe(page);
   });
 
-  test("beheer (/beheer) Instellingen-tab (ingelogd) has no WCAG2A/AA violations", async ({
+  test("beheer (/beheer) Instellingen-tab (ingelogd) has no WCAG 2.2 AA violations", async ({
     page,
   }) => {
     await loginAsBeheerder(page);
@@ -652,12 +567,7 @@ test.describe("beheer ingelogde staat (a11y)", () => {
       .getByRole("heading", { name: "Negatief saldo toestaan" })
       .waitFor({ state: "visible", timeout: 15_000 });
 
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-
-    expect(results.violations, JSON.stringify(results.violations, null, 2))
-      .toEqual([]);
+    await scanAxe(page);
   });
 
   /**
@@ -672,7 +582,7 @@ test.describe("beheer ingelogde staat (a11y)", () => {
    * seed rows from `0019_activiteittypes.sql` (`supabase/seed.sql` doesn't
    * override `activity_types`).
    */
-  test("beheer (/beheer) Activiteitstypes-kaart met geopend inline-bewerkveld has no WCAG2A/AA violations", async ({
+  test("beheer (/beheer) Activiteitstypes-kaart met geopend inline-bewerkveld has no WCAG 2.2 AA violations", async ({
     page,
   }) => {
     await loginAsBeheerder(page);
@@ -687,12 +597,7 @@ test.describe("beheer ingelogde staat (a11y)", () => {
       .getByLabel("Naam van Training")
       .waitFor({ state: "visible", timeout: 15_000 });
 
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-
-    expect(results.violations, JSON.stringify(results.violations, null, 2))
-      .toEqual([]);
+    await scanAxe(page);
   });
 
   /**
@@ -708,25 +613,19 @@ test.describe("beheer ingelogde staat (a11y)", () => {
    * modus-keuze, na een tik op "Beheer" met een aal1-sessie. Scant de lege
    * invoer; de muis gaat eerst van de knoppen af (hover-kleuren).
    */
-  test("beheer (/beheer) code-stap in de modus-keuze has no WCAG2A/AA violations", async ({ page }) => {
+  test("beheer (/beheer) code-stap in de modus-keuze has no WCAG 2.2 AA violations", async ({ page }) => {
     await naarCodeStap(page);
     await page.mouse.move(0, 0);
 
-    const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
-    expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
+    await scanAxe(page);
   });
 
-  test("beheer (/beheer) modus-keuze (ingelogd, vóór modus gekozen) has no WCAG2A/AA violations", async ({
+  test("beheer (/beheer) modus-keuze (ingelogd, vóór modus gekozen) has no WCAG 2.2 AA violations", async ({
     page,
   }) => {
     await loginToModusKeuze(page);
 
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-
-    expect(results.violations, JSON.stringify(results.violations, null, 2))
-      .toEqual([]);
+    await scanAxe(page);
   });
 
   /**
@@ -736,7 +635,7 @@ test.describe("beheer ingelogde staat (a11y)", () => {
    * Instellingen-tab scenarios above, just for the new third tab
    * (`LedenLijst.tsx`, `src/features/ledenbeheer/`).
    */
-  test("beheer (/beheer) Leden-tab (ingelogd) has no WCAG2A/AA violations", async ({
+  test("beheer (/beheer) Leden-tab (ingelogd) has no WCAG 2.2 AA violations", async ({
     page,
   }) => {
     await loginAsBeheerder(page);
@@ -746,12 +645,7 @@ test.describe("beheer ingelogde staat (a11y)", () => {
       .getByRole("heading", { name: "Leden" })
       .waitFor({ state: "visible", timeout: 15_000 });
 
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-
-    expect(results.violations, JSON.stringify(results.violations, null, 2))
-      .toEqual([]);
+    await scanAxe(page);
   });
 
   /**
@@ -761,7 +655,7 @@ test.describe("beheer ingelogde staat (a11y)", () => {
    * open-dialog-then-scan shape as the bar-shell overlay scenarios below,
    * just reached from the beheer-sessie rather than a started shift).
    */
-  test("beheer (/beheer) Nieuw-lid-overlay has no WCAG2A/AA violations", async ({
+  test("beheer (/beheer) Nieuw-lid-overlay has no WCAG 2.2 AA violations", async ({
     page,
   }) => {
     await loginAsBeheerder(page);
@@ -780,12 +674,7 @@ test.describe("beheer ingelogde staat (a11y)", () => {
     // docs/features/bezetting-beheren.md → useShell()-contract).
     await expect(dialog).toBeFocused();
 
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-
-    expect(results.violations, JSON.stringify(results.violations, null, 2))
-      .toEqual([]);
+    await scanAxe(page);
   });
 
   /**
@@ -801,7 +690,7 @@ test.describe("beheer ingelogde staat (a11y)", () => {
    * Randgevallen), which this a11y-only scan never exercises anyway (no
    * button here is clicked beyond opening the dialog).
    */
-  test("beheer (/beheer) Lid-beheren-overlay has no WCAG2A/AA violations", async ({
+  test("beheer (/beheer) Lid-beheren-overlay has no WCAG 2.2 AA violations", async ({
     page,
   }) => {
     await loginAsBeheerder(page);
@@ -820,12 +709,7 @@ test.describe("beheer ingelogde staat (a11y)", () => {
     // docs/features/bezetting-beheren.md → useShell()-contract).
     await expect(dialog).toBeFocused();
 
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-
-    expect(results.violations, JSON.stringify(results.violations, null, 2))
-      .toEqual([]);
+    await scanAxe(page);
   });
 
   /**
@@ -843,7 +727,7 @@ test.describe("beheer ingelogde staat (a11y)", () => {
    * databron, geen foutmelding) as a state worth covering here, not a new
    * scenario type of its own.
    */
-  test("beheer (/beheer) Logboek-tab (ingelogd) has no WCAG2A/AA violations", async ({
+  test("beheer (/beheer) Logboek-tab (ingelogd) has no WCAG 2.2 AA violations", async ({
     page,
   }) => {
     await loginAsBeheerder(page);
@@ -859,12 +743,7 @@ test.describe("beheer ingelogde staat (a11y)", () => {
       .getByText("Logboek laden…")
       .waitFor({ state: "hidden", timeout: 15_000 });
 
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-
-    expect(results.violations, JSON.stringify(results.violations, null, 2))
-      .toEqual([]);
+    await scanAxe(page);
 
     // Randgevallen → "Assortiment-/Leden-filter aangetikt": geen databron,
     // dus de eerlijke "Nog niet geregistreerd"-lege-staat — geen foutmelding.
@@ -873,14 +752,7 @@ test.describe("beheer ingelogde staat (a11y)", () => {
       .getByText("Nog niet geregistreerd")
       .waitFor({ state: "visible", timeout: 15_000 });
 
-    const filteredResults = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-
-    expect(
-      filteredResults.violations,
-      JSON.stringify(filteredResults.violations, null, 2)
-    ).toEqual([]);
+    await scanAxe(page);
   });
 
   /**
@@ -1127,8 +999,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
     const added = await add;
     expect(added.ok()).toBe(true);
     await expect(sanne).toHaveAttribute("aria-pressed", "true");
-    const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
-    expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
+    await scanAxe(page);
     const remove = page.waitForResponse(/\/rpc\/remove_shift_member/);
     await sanne.click();
     const removed = await remove;
@@ -1145,22 +1016,17 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
    * begint met een verse context) kan alleen het wachtwoord: het veld, de
    * uitleg waarom de pincode hier nog niet kan, en "Wachtwoord vergeten?".
    */
-  test("bar shell (/) inlogscherm met wachtwoord has no WCAG2A/AA violations", async ({ page }) => {
+  test("bar shell (/) inlogscherm met wachtwoord has no WCAG 2.2 AA violations", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: FEMKE }).click();
     await page.locator('input[type="password"]').waitFor({ state: "visible", timeout: 15_000 });
 
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-
-    expect(results.violations, JSON.stringify(results.violations, null, 2))
-      .toEqual([]);
+    await scanAxe(page);
   });
 
   /** Schermflow punt 2 → "Wachtwoord vergeten?": de aanvraagweergave vanaf de
    *  namenlijst. Er wordt niets verstuurd; alleen de weergave wordt gescand. */
-  test("bar shell (/) wachtwoord vergeten vanaf de namenlijst has no WCAG2A/AA violations", async ({
+  test("bar shell (/) wachtwoord vergeten vanaf de namenlijst has no WCAG 2.2 AA violations", async ({
     page,
   }) => {
     await page.goto("/");
@@ -1170,12 +1036,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
       .getByRole("button", { name: "Stuur herstellink" })
       .waitFor({ state: "visible", timeout: 15_000 });
 
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-
-    expect(results.violations, JSON.stringify(results.violations, null, 2))
-      .toEqual([]);
+    await scanAxe(page);
   });
 
   /**
@@ -1186,7 +1047,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
    * a11y-only scan). `ensureNoOpenShift()` closes any leftover shift first
    * (#88).
    */
-  test("bar shell (/) activiteitkeuze-stap (dienst starten) has no WCAG2A/AA violations", async ({
+  test("bar shell (/) activiteitkeuze-stap (dienst starten) has no WCAG 2.2 AA violations", async ({
     page,
   }) => {
     await ensureNoOpenShift(page);
@@ -1199,12 +1060,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
       .getByRole("listbox", { name: "Activiteit" })
       .waitFor({ state: "visible", timeout: 15_000 });
 
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-
-    expect(results.violations, JSON.stringify(results.violations, null, 2))
-      .toEqual([]);
+    await scanAxe(page);
   });
 
   /**
@@ -1215,7 +1071,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
    * bar-sessie is te hervatten. Scant het hervatscherm zelf en bewijst dat
    * "Verder" de gewone schermen teruggeeft.
    */
-  test("bar shell (/) hervatscherm (Verder als …) has no WCAG2A/AA violations", async ({ page }) => {
+  test("bar shell (/) hervatscherm (Verder als …) has no WCAG 2.2 AA violations", async ({ page }) => {
     await ensureNoOpenShift(page);
 
     await page.context().clearCookies({ name: "abas_bar_bevestigd" });
@@ -1225,12 +1081,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
       .getByRole("heading", { name: /^Verder als / })
       .waitFor({ state: "visible", timeout: 15_000 });
 
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-
-    expect(results.violations, JSON.stringify(results.violations, null, 2))
-      .toEqual([]);
+    await scanAxe(page);
 
     await page.getByRole("button", { name: "Verder", exact: true }).click();
     await page
@@ -1247,7 +1098,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
    * bar-scherm zonder scan zou zijn. Scant de pad in zijn lege staat en tikt
    * geen cijfers: een vierde cijfer logt in.
    */
-  test("bar shell (/) pincode-invoer op een vertrouwd apparaat has no WCAG2A/AA violations", async ({
+  test("bar shell (/) pincode-invoer op een vertrouwd apparaat has no WCAG 2.2 AA violations", async ({
     page,
   }) => {
     await logInOpBar(page, TOM, WACHTWOORD_TOM);
@@ -1261,12 +1112,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
       .getByRole("button", { name: "Cijfer 1" })
       .waitFor({ state: "visible", timeout: 15_000 });
 
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-
-    expect(results.violations, JSON.stringify(results.violations, null, 2))
-      .toEqual([]);
+    await scanAxe(page);
   });
 
   /**
@@ -1276,7 +1122,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
    * of sluit af). Femke start de dienst in de ene context, Tom logt in de andere
    * in.
    */
-  test("bar shell (/) 'Er loopt al een dienst' voor een bardienst has no WCAG2A/AA violations", async ({
+  test("bar shell (/) 'Er loopt al een dienst' voor een bardienst has no WCAG 2.2 AA violations", async ({
     page,
     browser,
   }) => {
@@ -1291,12 +1137,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
         .waitFor({ state: "visible", timeout: 15_000 });
       await expect(tom.getByRole("button", { name: "Overnemen", exact: true })).toHaveCount(0);
 
-      const results = await new AxeBuilder({ page: tom })
-        .withTags(["wcag2a", "wcag2aa"])
-        .analyze();
-
-      expect(results.violations, JSON.stringify(results.violations, null, 2))
-        .toEqual([]);
+      await scanAxe(tom);
     } finally {
       await tweedeContext.close();
     }
@@ -1308,7 +1149,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
    * ("Dienst overnemen?") is een echte `Overlay`. Scant de dialoog open en
    * annuleert, zodat de dienst blijft staan.
    */
-  test("bar shell (/) overnemen-dialoog has no WCAG2A/AA violations", async ({ page, browser }) => {
+  test("bar shell (/) overnemen-dialoog has no WCAG 2.2 AA violations", async ({ page, browser }) => {
     await ensureShiftStarted(page);
 
     const tweedeContext = await browser.newContext();
@@ -1321,12 +1162,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
       await dialog.waitFor({ state: "visible" });
       await expect(dialog).toBeFocused();
 
-      const results = await new AxeBuilder({ page: femke })
-        .withTags(["wcag2a", "wcag2aa"])
-        .analyze();
-
-      expect(results.violations, JSON.stringify(results.violations, null, 2))
-        .toEqual([]);
+      await scanAxe(femke);
 
       await dialog.getByRole("button", { name: "Annuleren" }).click();
     } finally {
@@ -1344,7 +1180,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
    * this drives the app into a real open-dialog state before scanning so the
    * modal itself is under the WCAG-AA gate, not just its trigger.
    */
-  test("bar shell (/) bezetting-overlay has no WCAG2A/AA violations", async ({
+  test("bar shell (/) bezetting-overlay has no WCAG 2.2 AA violations", async ({
     page,
   }) => {
     await ensureShiftStarted(page);
@@ -1367,12 +1203,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
     // useShell()-contract: focus moves into the dialog on open.
     await expect(dialog).toBeFocused();
 
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-
-    expect(results.violations, JSON.stringify(results.violations, null, 2))
-      .toEqual([]);
+    await scanAxe(page);
   });
 
   /**
@@ -1391,7 +1222,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
    * is the whole point here, not exercising the RPC (that's
    * end_shift.test.sql's job, supabase/tests/).
    */
-  test("bar shell (/) dienst-afsluiten-overlay has no WCAG2A/AA violations", async ({
+  test("bar shell (/) dienst-afsluiten-overlay has no WCAG 2.2 AA violations", async ({
     page,
   }) => {
     await ensureShiftStarted(page);
@@ -1411,18 +1242,13 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
     // docs/features/bezetting-beheren.md → useShell()-contract).
     await expect(dialog).toBeFocused();
 
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-
-    expect(results.violations, JSON.stringify(results.violations, null, 2))
-      .toEqual([]);
+    await scanAxe(page);
   });
 
   /**
    * docs/features/dialogen-tabs-landmarks.md (#125, F28) → Teststrategie →
    * Axe: de actieve Verkoop- en Dienst-weergave en een open dialoog, met de
-   * best-practice-regels `landmark-one-main` en `region` niet uitgezet.
+   * best-practice-regels (waaronder `landmark-one-main` en `region`) aan.
    * Dezelfde scans draaien gemockt in e2e/dialogen-tabs-landmarks.spec.ts.
    */
   test("bar shell (/) Verkoop, Dienst en open dialoog: één main, geen region-melding (#125)", async ({
@@ -1431,11 +1257,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
     await ensureShiftStarted(page);
 
     const scan = async () => {
-      const results = await new AxeBuilder({ page })
-        .withTags(["wcag2a", "wcag2aa"])
-        .withRules(["landmark-one-main", "region"])
-        .analyze();
-      expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
+      await scanAxe(page, { bestPractice: true });
     };
 
     const product = page.getByRole("button", { name: /^Pils,/ });
@@ -1475,7 +1297,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
    * The filter's option list only renders while open, so it's opened and
    * scanned as a second pass.
    */
-  test("bar shell (/) Dienst-scherm has no WCAG2A/AA violations", async ({
+  test("bar shell (/) Dienst-scherm has no WCAG 2.2 AA violations", async ({
     page,
   }) => {
     await ensureShiftStarted(page);
@@ -1503,11 +1325,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
       .getByText("Boekingen laden…")
       .waitFor({ state: "hidden", timeout: 15_000 });
 
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-    expect(results.violations, JSON.stringify(results.violations, null, 2))
-      .toEqual([]);
+    await scanAxe(page);
 
     const personFilter = page.getByRole("button", { name: /^Geboekt door:/ });
     await expect(personFilter).toBeVisible();
@@ -1516,13 +1334,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
       .getByRole("button", { name: /^Iedereen/ })
       .waitFor({ state: "visible" });
 
-    const openResults = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-    expect(
-      openResults.violations,
-      JSON.stringify(openResults.violations, null, 2)
-    ).toEqual([]);
+    await scanAxe(page);
   });
 
   /**
@@ -1536,7 +1348,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
    * boekt het bedrag terug op Anna's saldo, dus de latere tests (die op
    * haar saldo leunen) houden hun marge.
    */
-  test("bar shell (/) bestelling terugdraaien has no WCAG2A/AA violations", async ({
+  test("bar shell (/) bestelling terugdraaien has no WCAG 2.2 AA violations", async ({
     page,
   }) => {
     await ensureShiftStarted(page);
@@ -1571,11 +1383,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
     await expect(dialog.getByRole("button", { name: "terugdraaien", exact: true })).toBeDisabled();
     await dialog.getByLabel("Reden").fill("a11y-test: verkeerd lid getikt");
 
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-    expect(results.violations, JSON.stringify(results.violations, null, 2))
-      .toEqual([]);
+    await scanAxe(page);
 
     // Femke staat alleen in de bezetting (zie de afrekenbevestiging-test
     // hieronder), dus geen keuze nodig: de knop is nu actief.
@@ -1610,7 +1418,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
    * would need seeding a second bar/beheer member into the bezetting first,
    * which no current fixture/test in this suite does.
    */
-  test("bar shell (/) afrekenbevestiging has no WCAG2A/AA violations", async ({
+  test("bar shell (/) afrekenbevestiging has no WCAG 2.2 AA violations", async ({
     page,
   }) => {
     await ensureShiftStarted(page);
@@ -1637,12 +1445,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
     // docs/features/bezetting-beheren.md → useShell()-contract).
     await expect(dialog).toBeFocused();
 
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-
-    expect(results.violations, JSON.stringify(results.violations, null, 2))
-      .toEqual([]);
+    await scanAxe(page);
   });
 
   /**
@@ -1659,7 +1462,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
    * "Wie geeft uit?"-picker), not the 2+ picker-visible path. Noted
    * explicitly per tester.md rather than silently assumed covered.
    */
-  test("bar shell (/) opwaardeerscherm has no WCAG2A/AA violations", async ({
+  test("bar shell (/) opwaardeerscherm has no WCAG 2.2 AA violations", async ({
     page,
   }) => {
     await ensureShiftStarted(page);
@@ -1681,12 +1484,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
     // docs/features/bezetting-beheren.md → useShell()-contract).
     await expect(dialog).toBeFocused();
 
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-
-    expect(results.violations, JSON.stringify(results.violations, null, 2))
-      .toEqual([]);
+    await scanAxe(page);
   });
 
   /**
@@ -1735,7 +1533,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
    * melding achterblijft (elke volgende test krijgt sowieso een verse
    * pagina met de echte klok).
    */
-  test("bar shell (/) dienst-te-lang-open-melding has no WCAG2A/AA violations", async ({
+  test("bar shell (/) dienst-te-lang-open-melding has no WCAG 2.2 AA violations", async ({
     page,
   }) => {
     await page.clock.install();
@@ -1755,12 +1553,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
     // contrast van 3,42 in plaats van dat van de rustkleur.
     await page.mouse.move(0, 0);
 
-    const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
-      .analyze();
-
-    expect(results.violations, JSON.stringify(results.violations, null, 2))
-      .toEqual([]);
+    await scanAxe(page);
 
     await dialog.getByRole("button", { name: "Nog bezig" }).click();
     await expect(dialog).toBeHidden();

@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import AxeBuilder from "@axe-core/playwright";
+import { scanAxe } from "./helpers/scanAxe";
 import {
   USER,
   alertOf,
@@ -129,8 +129,7 @@ async function openLid(page: Page) {
 }
 
 async function axe(page: Page) {
-  const resultaat = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
-  expect(resultaat.violations, JSON.stringify(resultaat.violations, null, 2)).toEqual([]);
+  await scanAxe(page);
 }
 
 /** Bevat elk bereikbaar element na elke Tab de dialoog? */

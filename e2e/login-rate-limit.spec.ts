@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import AxeBuilder from "@axe-core/playwright";
+import { scanAxe } from "./helpers/scanAxe";
 import { alertOf, json } from "./helpers/supabaseMock";
 
 /**
@@ -75,8 +75,7 @@ test("na 5 foute wachtwoorden: de tekst bij rate_limited", async ({ page }) => {
   await expect(alertOf(page).filter({ hasText: RATE_LIMIT_TEKST })).toBeVisible();
 
   await page.mouse.move(0, 0);
-  const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
-  expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
+  await scanAxe(page);
 });
 
 test("na 5 foute PIN's, verdeeld over twee leden: dezelfde tekst", async ({ page }) => {

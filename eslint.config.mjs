@@ -37,6 +37,9 @@ const KNOP_CLASSNAME_REGELS = [
   },
 ];
 
+const AXE_MELDING =
+  "Scan toegankelijkheid alleen met scanAxe(page) uit e2e/helpers/scanAxe.ts: vaste WCAG 2.2 AA-tagset en een leesbare foutmelding (docs/features/scan-axe.md). Geen losse AxeBuilder of axe-core.";
+
 const eslintConfig = [
   {
     ignores: [
@@ -115,6 +118,36 @@ const eslintConfig = [
           message: "Losse laadtekst: gebruik het gedeelde laad-/leeg-/foutpatroon (LeesFout, VerversStatus) en tekst uit één plek.",
         },
         ...KNOP_CLASSNAME_REGELS,
+      ],
+    },
+  },
+  // scanAxe als enige ingang voor axe (docs/features/scan-axe.md).
+  {
+    files: ["**/*.{ts,tsx,js,mjs,cjs}"],
+    ignores: ["e2e/helpers/scanAxe.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          paths: [
+            { name: "@axe-core/playwright", message: AXE_MELDING },
+            { name: "axe-core", message: AXE_MELDING },
+          ],
+          patterns: [{ group: ["@axe-core/*", "axe-core/*"], message: AXE_MELDING }],
+        },
+      ],
+    },
+  },
+  {
+    // no-restricted-imports ziet import() en require() niet. Zonder src/**:
+    // daar staat al een no-restricted-syntax-blok dat anders vervangen wordt.
+    files: ["e2e/**", "test/**", "integration/**", "scripts/**"],
+    ignores: ["e2e/helpers/scanAxe.ts"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        { selector: "ImportExpression[source.value=/^(@axe-core\\/|axe-core)/]", message: AXE_MELDING },
+        { selector: "CallExpression[callee.name='require'][arguments.0.value=/^(@axe-core\\/|axe-core)/]", message: AXE_MELDING },
       ],
     },
   },

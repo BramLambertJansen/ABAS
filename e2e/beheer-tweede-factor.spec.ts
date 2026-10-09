@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import AxeBuilder from "@axe-core/playwright";
+import { scanAxe } from "./helpers/scanAxe";
 import {
   USER,
   USER_ZONDER_FACTOR,
@@ -58,8 +58,7 @@ const codeKop = (page: Page) => page.getByRole("heading", { name: "Code uit je a
 
 async function scan(page: Page) {
   await page.mouse.move(0, 0);
-  const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
-  expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
+  await scanAxe(page);
 }
 
 // ── Code-stap in ModusKeuze ──────────────────────────────────────────────

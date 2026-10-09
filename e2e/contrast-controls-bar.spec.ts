@@ -1,5 +1,5 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
-import AxeBuilder from "@axe-core/playwright";
+import { scanAxe } from "./helpers/scanAxe";
 import { USER, fakeSession, json, loginMetWachtwoord, mockBarSessie } from "./helpers/supabaseMock";
 
 /**
@@ -47,8 +47,7 @@ async function openBar(page: Page, openForMs = 20 * 60 * 1000) {
 }
 
 async function axeSchoon(page: Page) {
-  const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
-  expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
+  await scanAxe(page);
 }
 
 /** Echte hover, dan ingedrukt, beide gescand; de muisknop gaat weer los

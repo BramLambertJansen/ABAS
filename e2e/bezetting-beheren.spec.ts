@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import AxeBuilder from "@axe-core/playwright";
+import { scanAxe } from "./helpers/scanAxe";
 import { USER, fakeSession, json, loginMetWachtwoord, mockBarSessie } from "./helpers/supabaseMock";
 
 // UI-regressies, met queryfilters die de fixture daadwerkelijk toepast.
@@ -148,8 +148,7 @@ test("een fout bij kandidaten verbergt bestaande crew niet en kan worden herstel
   state.candidatesError = false;
   await dialog.getByRole("button", { name: "Bardienst-lijst opnieuw laden" }).click();
   await expect(dialog.getByRole("button", { name: /^Zonder PIN,/ })).toBeVisible();
-  const axe = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
-  expect(axe.violations, JSON.stringify(axe.violations, null, 2)).toEqual([]);
+  await scanAxe(page);
 });
 
 test("kandidaten blijven uitgeschakeld totdat de bestaande crew bekend is", async ({ page }) => {
