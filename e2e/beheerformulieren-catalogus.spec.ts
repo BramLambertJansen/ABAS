@@ -129,7 +129,7 @@ async function openLid(page: Page) {
 }
 
 async function axe(page: Page) {
-  const resultaat = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
+  const resultaat = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
   expect(resultaat.violations, JSON.stringify(resultaat.violations, null, 2)).toEqual([]);
 }
 

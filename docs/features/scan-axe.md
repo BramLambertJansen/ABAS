@@ -323,26 +323,26 @@ Screenshot-baselines raakt de migratie niet: de namen staan expliciet in
 
 ### Meting
 
-_In te vullen door de hoofdsessie, vóór de bouw (besluit 1). Tot dit is
-ingevuld en Bram heeft besloten, ligt de scope van reparaties in `src/` niet
-vast._
+**Werkwijze.** In alle 64 `.withTags([...])`-aanroepen in `e2e/` die nog niet
+de volledige set hadden, stonden de tags tijdelijk op `wcag2a`, `wcag2aa`,
+`wcag21a`, `wcag21aa`, `wcag22aa` (`best-practice` bleef waar het stond;
+`color-contrast` bleef in de dialoogtest uitgezet). Gemeten in twee rondes:
 
-**Werkwijze.**
-
-- Op een lokale, niet te pushen tak zet de hoofdsessie in alle 68 aanroepen
-  de tags op de volledige set (`wcag2a`, `wcag2aa`, `wcag21a`, `wcag21aa`,
-  `wcag22aa`), zonder andere wijziging.
-- Voor de drie afwijkende scans komt `best-practice` erbij, zoals in de
-  migratietabel. `color-contrast` blijft in de dialoogtest uitgezet.
-- Daarna draait `npm run check:a11y`.
+- lokaal zonder Supabase: 96 axe-scans uitgevoerd, 0 overtredingen (zelfde
+  als de nulmeting); de ingelogde portal-, beheer- en bar-scenario's konden
+  daar niet draaien;
+- in CI met een lokale Supabase (draft-PR #205, commit `ff1e371`, gesloten en
+  teruggedraaid): `check-all` groen, **509 van 509 e2e-tests geslaagd**, dus
+  ook alle 39 scans die lokaal niet draaiden.
 
 | Spec en test | Geschonden regel(s) | Elementen (selector) | Nieuw door 2.1/2.2 of door best-practice? |
 |---|---|---|---|
-| _nog te meten_ | | | |
+| — | geen | — | — |
 
-**Datum, commit, axe-core-versie:** _nog te meten._
+**Datum, commit, axe-core-versie:** 2026-10-09, `ff1e371`, axe-core 4.13.0.
 
-**Besluit Bram over reparaties:** _open; volgt op de meting._
+**Gevolg:** de strengere set vraagt geen reparaties in `src/`. De bouw raakt
+alleen `e2e/`, de lint, de gate en de tests.
 
 ### Generiek en ABAS (ADR 0025 R9)
 

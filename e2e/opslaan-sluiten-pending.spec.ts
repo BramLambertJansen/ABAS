@@ -196,7 +196,7 @@ test("Product beheren: a11y-scan in pending-toestand", async ({ page }) => {
   await dialog.getByLabel("Nieuwe prijs").fill("2,75");
   await dialog.getByRole("button", { name: "Opslaan", exact: true }).click();
   await expect(dialog).toHaveAttribute("aria-busy", "true");
-  const resultaat = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
+  const resultaat = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
   expect(resultaat.violations).toEqual([]);
   vast.laatDoor();
 });

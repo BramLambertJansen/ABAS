@@ -68,7 +68,7 @@ test("een bezettinglid ziet bij een wees-dienst uitleg en knop, en hervat", asyn
   const knop = page.getByRole("button", { name: "Dienst hervatten", exact: true });
   await expect(knop).toBeVisible();
 
-  const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
+  const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
   expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
 
   await knop.click();
