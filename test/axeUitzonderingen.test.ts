@@ -165,3 +165,65 @@ test("echte repo: groen, met precies de beginstand in de baseline", () => {
   const baseline = JSON.parse(readFileSync(join(ROOT, ".kit/baseline.json"), "utf8")) as Record<string, string[]>;
   assert.deepEqual(baseline[REGEL], ["e2e/dialogen-tabs-landmarks.spec.ts uitgezet:color-contrast"]);
 });
+
+// --- regressie: gaten 1–5 uit de eerste testronde ---------------------------
+
+const REGRESSIE_LETTERLIJK: { naam: string; tekst: string }[] = [
+  { naam: "(1) shorthand `{ uitgezet }`", tekst: `const uitgezet = [{ regel: "image-alt", reden: "x" }];\n` + scan("{ uitgezet }") },
+  { naam: "(1) shorthand `{ overslaan }`", tekst: `const overslaan = [{ selector: "img", reden: "x" }];\n` + scan("{ overslaan }") },
+  { naam: "(2) getter `get uitgezet()`", tekst: "\n" + scan(`{ get uitgezet() { return [{ regel: "image-alt", reden: "x" }]; } }`) },
+  { naam: "(2) methode `uitgezet()`", tekst: "\n" + scan(`{ uitgezet() { return []; } }`) },
+];
+
+for (const g of REGRESSIE_LETTERLIJK) {
+  test(`regressie: ${g.naam} in de opties geeft de letterlijk-melding`, () => {
+    const r = analyseerBestand(PAD, g.tekst);
+    assert.deepEqual(r.sleutels, []);
+    assert.equal(r.problemen.length, 1, JSON.stringify(r.problemen));
+    assert.ok(r.problemen[0]?.startsWith(`${PAD}:2: ${LETTERLIJK}`), r.problemen[0]);
+  });
+}
+
+test("regressie (3): een hernoemde named import van scanAxe wordt herkend", () => {
+  const tekst =
+    `import { scanAxe as scan } from "./helpers/scanAxe";\n` +
+    `await scan(page, { uitgezet: [{ regel: "image-alt", reden: "x" }] });\n` +
+    `await scan(page, opties);\n`;
+  const r = analyseerBestand(PAD, tekst);
+  assert.deepEqual(r.sleutels, [`${PAD} uitgezet:image-alt`]);
+  assert.equal(r.problemen.length, 1);
+  assert.ok(r.problemen[0]?.startsWith(`${PAD}:3: ${LETTERLIJK}`));
+});
+
+test("regressie (3): een andere hernoemde import telt niet als scanAxe", () => {
+  const tekst =
+    `import { iets as scan } from "./helpers/iets";\n` +
+    `await scan(page, { uitgezet: [{ regel: "image-alt", reden: "x" }] });\n`;
+  assert.deepEqual(analyseerBestand(PAD, tekst), { sleutels: [], problemen: [] });
+});
+
+test("regressie (4): `x.scanAxe(…)` wordt herkend", () => {
+  const tekst =
+    `await helpers.scanAxe(page, { overslaan: [{ selector: "#kaart", reden: "x" }] });\n` +
+    `await helpers.scanAxe(page, opties);\n`;
+  const r = analyseerBestand(PAD, tekst);
+  assert.deepEqual(r.sleutels, [`${PAD} overslaan:#kaart`]);
+  assert.equal(r.problemen.length, 1);
+  assert.ok(r.problemen[0]?.startsWith(`${PAD}:2: ${LETTERLIJK}`));
+});
+
+test("regressie (5): e2e-bestanden met elke JS/TS-extensie worden gescand, andere niet", () => {
+  const extensies = ["ts", "tsx", "js", "jsx", "mjs", "cjs", "mts", "cts"];
+  const bestanden: Record<string, string> = { "e2e/notities.md": UITGEZET, "e2e/data.json": UITGEZET };
+  for (const ext of extensies) bestanden[`e2e/voorbeeld-${ext}.${ext}`] = UITGEZET;
+  const dir = boom(bestanden, []);
+  const nieuw = draai(dir)
+    .map((p) => p.split(" ")[0])
+    .sort();
+  assert.deepEqual(nieuw, extensies.map((ext) => `e2e/voorbeeld-${ext}.${ext}`).sort());
+});
+
+test("regressie (5): JSX in een .tsx-bestand verhindert het tellen niet", () => {
+  const tekst = `const el = <div className="x">hoi</div>;\n` + UITGEZET;
+  assert.deepEqual(analyseerBestand("e2e/x.spec.tsx", tekst), { sleutels: ["e2e/x.spec.tsx uitgezet:image-alt"], problemen: [] });
+});
