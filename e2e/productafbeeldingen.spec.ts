@@ -98,7 +98,7 @@ test("zonder afbeelding: kop met lege staat, het blok staat boven de prijs, a11y
   expect(kiezen!.y).toBeLessThan(prijs!.y);
   expect(prijs!.y).toBeLessThan(archief!.y);
 
-  const resultaat = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+  const resultaat = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
   expect(resultaat.violations).toEqual([]);
 });
 
@@ -115,7 +115,7 @@ test("met afbeelding: kop toont de afbeelding met alt, Vervangen en Verwijderen,
   await expect(groep.getByRole("button", { name: "Vervangen" })).toBeVisible();
   await expect(groep.getByRole("button", { name: "Verwijderen" })).toBeVisible();
 
-  const resultaat = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+  const resultaat = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
   expect(resultaat.violations).toEqual([]);
 });
 
@@ -145,7 +145,7 @@ test("een vertraagde upload blokkeert sluiten en zet prijs en archief op disable
   await expect(dialog.getByText(WACHT)).toHaveCount(2);
   await focusNietOpBody(page);
 
-  const resultaat = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+  const resultaat = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
   expect(resultaat.violations).toEqual([]);
 
   vast.laatDoor();
@@ -296,12 +296,12 @@ test("verkoop: galerij en lijst met en zonder afbeelding, decoratief, a11y-scan"
   await expect(pils.locator("img")).toHaveAttribute("alt", "");
   await expect(pils).toHaveAccessibleName(/^Pils, €\s2,50 — tik om toe te voegen$/);
   await expect(page.getByRole("button", { name: /^Spa rood, / }).locator("img")).toHaveCount(0);
-  let resultaat = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+  let resultaat = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
   expect(resultaat.violations).toEqual([]);
 
   await page.getByRole("button", { name: "lijst" }).click();
   await expect(page.getByRole("button", { name: /^Pils, / }).locator("img")).toHaveAttribute("alt", "");
-  resultaat = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+  resultaat = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
   expect(resultaat.violations).toEqual([]);
 });
 

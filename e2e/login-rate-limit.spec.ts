@@ -75,7 +75,7 @@ test("na 5 foute wachtwoorden: de tekst bij rate_limited", async ({ page }) => {
   await expect(alertOf(page).filter({ hasText: RATE_LIMIT_TEKST })).toBeVisible();
 
   await page.mouse.move(0, 0);
-  const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+  const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
   expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
 });
 

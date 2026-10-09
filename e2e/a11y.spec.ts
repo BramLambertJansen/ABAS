@@ -51,7 +51,7 @@ for (const { name, path } of routes) {
     await page.goto(path);
 
     const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
 
     expect(results.violations, JSON.stringify(results.violations, null, 2))
@@ -98,7 +98,7 @@ test.describe("portal (a11y)", () => {
     await page.locator('input[type="password"]').waitFor({ state: "visible" });
 
     const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
 
     expect(results.violations, JSON.stringify(results.violations, null, 2))
@@ -119,7 +119,7 @@ test.describe("portal (a11y)", () => {
       .waitFor({ state: "visible", timeout: 15_000 });
 
     const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
 
     expect(results.violations, JSON.stringify(results.violations, null, 2))
@@ -139,7 +139,7 @@ test.describe("portal (a11y)", () => {
       .waitFor({ state: "visible" });
 
     const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
 
     expect(results.violations, JSON.stringify(results.violations, null, 2))
@@ -162,7 +162,7 @@ test.describe("portal (a11y)", () => {
       .waitFor({ state: "visible", timeout: 15_000 });
 
     const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
 
     expect(results.violations, JSON.stringify(results.violations, null, 2))
@@ -196,7 +196,7 @@ test.describe("portal (a11y)", () => {
     await expect(page.getByText(/niet meer afgeschreven/)).toBeVisible();
 
     const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
 
     expect(results.violations, JSON.stringify(results.violations, null, 2))
@@ -227,7 +227,7 @@ test.describe("portal (a11y)", () => {
     await expect(page.getByText(/niet meer afgeschreven/)).toBeVisible();
 
     const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
 
     expect(results.violations, JSON.stringify(results.violations, null, 2))
@@ -262,7 +262,7 @@ test.describe("portal (a11y)", () => {
     }
 
     const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
 
     expect(results.violations, JSON.stringify(results.violations, null, 2))
@@ -289,7 +289,7 @@ test.describe("portal (a11y)", () => {
     await page.getByText("Saldo bijna op").waitFor({ state: "visible" });
 
     const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
 
     expect(results.violations, JSON.stringify(results.violations, null, 2))
@@ -316,7 +316,7 @@ test.describe("portal (a11y)", () => {
     await page.getByText("Nog geen transacties").waitFor({ state: "visible", timeout: 15_000 });
 
     const saldoResults = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
     expect(saldoResults.violations, JSON.stringify(saldoResults.violations, null, 2))
       .toEqual([]);
@@ -325,7 +325,7 @@ test.describe("portal (a11y)", () => {
     await page.getByText("Nog geen transacties").waitFor({ state: "visible", timeout: 15_000 });
 
     const txResults = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
     expect(txResults.violations, JSON.stringify(txResults.violations, null, 2))
       .toEqual([]);
@@ -364,7 +364,7 @@ test.describe("portal (a11y)", () => {
     await page.getByText("Opgewaardeerd").first().waitFor({ state: "visible" });
 
     const allesResults = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
     expect(allesResults.violations, JSON.stringify(allesResults.violations, null, 2))
       .toEqual([]);
@@ -379,7 +379,7 @@ test.describe("portal (a11y)", () => {
     await expect(page.getByText("Opgewaardeerd")).toHaveCount(0);
 
     const uitgavenResults = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
     expect(uitgavenResults.violations, JSON.stringify(uitgavenResults.violations, null, 2))
       .toEqual([]);
@@ -392,7 +392,7 @@ test.describe("portal (a11y)", () => {
     await expect(page.getByText("Bestelling")).toHaveCount(0);
 
     const opwaarderingenResults = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
     expect(
       opwaarderingenResults.violations,
@@ -417,7 +417,7 @@ test.describe("portal (a11y)", () => {
       .waitFor({ state: "visible", timeout: 15_000 });
 
     const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
 
     expect(results.violations, JSON.stringify(results.violations, null, 2))
@@ -445,7 +445,7 @@ test.describe("portal (a11y)", () => {
 
   async function expectNoViolations(page: Page) {
     const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
     expect(results.violations, JSON.stringify(results.violations, null, 2))
       .toEqual([]);
@@ -607,7 +607,7 @@ test.describe("beheer ingelogde staat (a11y)", () => {
       .waitFor({ state: "visible", timeout: 15_000 });
 
     const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
 
     expect(results.violations, JSON.stringify(results.violations, null, 2))
@@ -635,7 +635,7 @@ test.describe("beheer ingelogde staat (a11y)", () => {
       .waitFor({ state: "visible", timeout: 15_000 });
 
     const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
 
     expect(results.violations, JSON.stringify(results.violations, null, 2))
@@ -653,7 +653,7 @@ test.describe("beheer ingelogde staat (a11y)", () => {
       .waitFor({ state: "visible", timeout: 15_000 });
 
     const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
 
     expect(results.violations, JSON.stringify(results.violations, null, 2))
@@ -688,7 +688,7 @@ test.describe("beheer ingelogde staat (a11y)", () => {
       .waitFor({ state: "visible", timeout: 15_000 });
 
     const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
 
     expect(results.violations, JSON.stringify(results.violations, null, 2))
@@ -712,7 +712,7 @@ test.describe("beheer ingelogde staat (a11y)", () => {
     await naarCodeStap(page);
     await page.mouse.move(0, 0);
 
-    const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+    const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
     expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
   });
 
@@ -722,7 +722,7 @@ test.describe("beheer ingelogde staat (a11y)", () => {
     await loginToModusKeuze(page);
 
     const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
 
     expect(results.violations, JSON.stringify(results.violations, null, 2))
@@ -747,7 +747,7 @@ test.describe("beheer ingelogde staat (a11y)", () => {
       .waitFor({ state: "visible", timeout: 15_000 });
 
     const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
 
     expect(results.violations, JSON.stringify(results.violations, null, 2))
@@ -781,7 +781,7 @@ test.describe("beheer ingelogde staat (a11y)", () => {
     await expect(dialog).toBeFocused();
 
     const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
 
     expect(results.violations, JSON.stringify(results.violations, null, 2))
@@ -821,7 +821,7 @@ test.describe("beheer ingelogde staat (a11y)", () => {
     await expect(dialog).toBeFocused();
 
     const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
 
     expect(results.violations, JSON.stringify(results.violations, null, 2))
@@ -860,7 +860,7 @@ test.describe("beheer ingelogde staat (a11y)", () => {
       .waitFor({ state: "hidden", timeout: 15_000 });
 
     const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
 
     expect(results.violations, JSON.stringify(results.violations, null, 2))
@@ -874,7 +874,7 @@ test.describe("beheer ingelogde staat (a11y)", () => {
       .waitFor({ state: "visible", timeout: 15_000 });
 
     const filteredResults = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
 
     expect(
@@ -1127,7 +1127,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
     const added = await add;
     expect(added.ok()).toBe(true);
     await expect(sanne).toHaveAttribute("aria-pressed", "true");
-    const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+    const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
     expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
     const remove = page.waitForResponse(/\/rpc\/remove_shift_member/);
     await sanne.click();
@@ -1151,7 +1151,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
     await page.locator('input[type="password"]').waitFor({ state: "visible", timeout: 15_000 });
 
     const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
 
     expect(results.violations, JSON.stringify(results.violations, null, 2))
@@ -1171,7 +1171,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
       .waitFor({ state: "visible", timeout: 15_000 });
 
     const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
 
     expect(results.violations, JSON.stringify(results.violations, null, 2))
@@ -1200,7 +1200,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
       .waitFor({ state: "visible", timeout: 15_000 });
 
     const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
 
     expect(results.violations, JSON.stringify(results.violations, null, 2))
@@ -1226,7 +1226,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
       .waitFor({ state: "visible", timeout: 15_000 });
 
     const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
 
     expect(results.violations, JSON.stringify(results.violations, null, 2))
@@ -1262,7 +1262,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
       .waitFor({ state: "visible", timeout: 15_000 });
 
     const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
 
     expect(results.violations, JSON.stringify(results.violations, null, 2))
@@ -1292,7 +1292,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
       await expect(tom.getByRole("button", { name: "Overnemen", exact: true })).toHaveCount(0);
 
       const results = await new AxeBuilder({ page: tom })
-        .withTags(["wcag2a", "wcag2aa"])
+        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
         .analyze();
 
       expect(results.violations, JSON.stringify(results.violations, null, 2))
@@ -1322,7 +1322,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
       await expect(dialog).toBeFocused();
 
       const results = await new AxeBuilder({ page: femke })
-        .withTags(["wcag2a", "wcag2aa"])
+        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
         .analyze();
 
       expect(results.violations, JSON.stringify(results.violations, null, 2))
@@ -1368,7 +1368,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
     await expect(dialog).toBeFocused();
 
     const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
 
     expect(results.violations, JSON.stringify(results.violations, null, 2))
@@ -1412,7 +1412,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
     await expect(dialog).toBeFocused();
 
     const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
 
     expect(results.violations, JSON.stringify(results.violations, null, 2))
@@ -1432,7 +1432,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
 
     const scan = async () => {
       const results = await new AxeBuilder({ page })
-        .withTags(["wcag2a", "wcag2aa"])
+        .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
         .withRules(["landmark-one-main", "region"])
         .analyze();
       expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
@@ -1504,7 +1504,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
       .waitFor({ state: "hidden", timeout: 15_000 });
 
     const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
     expect(results.violations, JSON.stringify(results.violations, null, 2))
       .toEqual([]);
@@ -1517,7 +1517,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
       .waitFor({ state: "visible" });
 
     const openResults = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
     expect(
       openResults.violations,
@@ -1572,7 +1572,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
     await dialog.getByLabel("Reden").fill("a11y-test: verkeerd lid getikt");
 
     const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
     expect(results.violations, JSON.stringify(results.violations, null, 2))
       .toEqual([]);
@@ -1638,7 +1638,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
     await expect(dialog).toBeFocused();
 
     const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
 
     expect(results.violations, JSON.stringify(results.violations, null, 2))
@@ -1682,7 +1682,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
     await expect(dialog).toBeFocused();
 
     const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
 
     expect(results.violations, JSON.stringify(results.violations, null, 2))
@@ -1756,7 +1756,7 @@ test.describe.serial("stateful bar-shell scenarios (persoonlijke sessies)", () =
     await page.mouse.move(0, 0);
 
     const results = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa"])
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
       .analyze();
 
     expect(results.violations, JSON.stringify(results.violations, null, 2))

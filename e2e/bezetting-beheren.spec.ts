@@ -148,7 +148,7 @@ test("een fout bij kandidaten verbergt bestaande crew niet en kan worden herstel
   state.candidatesError = false;
   await dialog.getByRole("button", { name: "Bardienst-lijst opnieuw laden" }).click();
   await expect(dialog.getByRole("button", { name: /^Zonder PIN,/ })).toBeVisible();
-  const axe = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+  const axe = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
   expect(axe.violations, JSON.stringify(axe.violations, null, 2)).toEqual([]);
 });
 

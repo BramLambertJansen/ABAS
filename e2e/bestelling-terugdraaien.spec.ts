@@ -112,7 +112,7 @@ test("terugdraaien in beheer: alleen order-id en reden gaan mee, met bevestiging
     dialog.getByText("Terugdraaien zet € 7,50 terug op het saldo van Anna de Vries.")
   ).toBeVisible();
 
-  const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+  const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
   expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
 
   await dialog.getByRole("button", { name: "terugdraaien", exact: true }).click();

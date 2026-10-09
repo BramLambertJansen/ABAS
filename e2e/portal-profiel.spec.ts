@@ -259,7 +259,7 @@ test.describe("gemockt — tweestapsverificatie (ADR 0017)", () => {
 
   async function scan(page: Page) {
     await page.mouse.move(0, 0);
-    const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
+    const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
     expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
   }
 
