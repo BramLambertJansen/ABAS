@@ -1,0 +1,13 @@
+# Exacte historische false positives; classificatie in docs/audits/2026-10-09-secretscan.json.
+# Nieuwe commits en nieuwe vindplaatsen blijven gescand.
+a66b01301b0fa57c5c0462ff30887170b3785bc5:docs/audits/2026-10-06-componenten-tokens/sha256.json:generic-api-key:83
+f795e6118f05547d7182666590f90779c12a8622:docs/audits/2026-10-06-componenten-tokens/sha256.json:generic-api-key:83
+094a50f43aaa1655b32ede8983495c33a2887165:test/backupPlatform.test.ts:generic-credential-uri:8
+094a50f43aaa1655b32ede8983495c33a2887165:test/backupPlatform.test.ts:generic-credential-uri:12
+cd50e2f196279a2b28eec558461ba7af9139de1f:docs/features/sessie-na-afmelden.md:generic-password:473
+558dd722c6a6941d226a40d27b13b3ec477d226a:e2e/portal-profiel.spec.ts:generic-password:366
+558dd722c6a6941d226a40d27b13b3ec477d226a:e2e/beheer-tweede-factor.spec.ts:generic-password:223
+4e713c5a56d76662cdb38f47d66b1da6a9823afb:test/barLogin.test.ts:generic-password:111
+efb0d25f8d3f3f5c8d6a0cf08f8f408e79285458:e2e/portal-profiel.spec.ts:generic-password:131
+dafbb865bbb145955fbca3d9d7078a750dd3f0d0:e2e/portal-login.spec.ts:generic-password:522
+ad8e57240c52e89656564423ad3cea17f9d38f9e:e2e/wachtwoord-vergeten.spec.ts:generic-password:29

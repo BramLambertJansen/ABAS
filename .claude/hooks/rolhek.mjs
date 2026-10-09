@@ -19,6 +19,7 @@ import { fileURLToPath } from "node:url";
 const hier = path.dirname(fileURLToPath(import.meta.url));
 const lokaal = JSON.parse(readFileSync(path.join(hier, "rolhek.lokaal.json"), "utf8"));
 const GATES = lokaal.gates.map((r) => new RegExp(r));
+const TESTPADEN = lokaal.testpaden.map((r) => new RegExp(r));
 const SCHRIJFRECHT = Object.fromEntries(
   Object.entries(lokaal.schrijfrecht).map(([rol, lijst]) => [rol, lijst && lijst.map((r) => new RegExp(r))]),
 );
@@ -73,7 +74,7 @@ function controleerPad(rel, fromShell = false) {
   if (toegestaan && !toegestaan.some((r) => r.test(rel))) {
     weiger(`rol ${rol} mag ${rel} niet schrijven. Toegestaan: ${toegestaan.map(String).join(", ") || "niets"}.`);
   }
-  if (rol === "developer" && (isGate(rel) || (fromShell ? rel in JSON_GATES : raaktJsonGate(rel)))) {
+  if (rol === "developer" && (isGate(rel) || TESTPADEN.some((r) => r.test(rel)) || (fromShell ? rel in JSON_GATES : raaktJsonGate(rel)))) {
     weiger(
       `${rel} is een gate of test en read-only voor de Developer. Fix de bron, niet de test; ` +
         `een gate-wijziging vraag je aan Bram (PR-label gate-wijziging).`,
@@ -89,8 +90,17 @@ if (tool === "Bash") {
   // Voor iedereen, ook de hoofdsessie: de pre-commit hook niet omzeilen.
   // Alleen als echt argument van git commit/push of als env-prefix, niet als tekst in een string.
   const zonderStrings = cmd.replace(/'[^']*'|"(?:[^"\\]|\\.)*"/g, "''");
-  if (/(^|[;&|]\s*)HUSKY=0\s|\bgit\s+(commit|push|merge)\b[^;&|]*\s(--no-verify|-n)(\s|$)/.test(zonderStrings)) {
+  const opties = cmd.replace(/["']/g, "");
+  if (/(^|[\s;&|])(?:export\s+)?HUSKY=0(?:\s|$)|\bgit\b[^;&|\n]*\b(commit|push|merge)\b[^;&|\n]*\s(--no-verify|-n)(\s|$)/.test(zonderStrings) ||
+      /\bgit\b[^;&|\n]*\s-c\s*core\.hooksPath\s*=|\bgit\s+config\b[^;&|\n]*\bcore\.hooksPath\b/.test(opties) && !/\bgit\s+config\s+--(?:get|get-all|get-regexp)\b/.test(opties)) {
     weiger("de pre-commit hook (check:fast) omzeilen mag niet. Maak check:fast groen.");
+  }
+  // Een label is een menselijke handeling; ook de hoofdsessie keurt zichzelf
+  // niet goed. De servercontrole vereist daarnaast een review op de exacte SHA.
+  if (/\bgh\s+(pr|issue)\s+edit\b[^;&|\n]*--(?:add|remove)-label\b[^;&|\n]*\bgate-wijziging\b/.test(opties) ||
+      /\bgh\s+api\b[^;&|\n]*(?:\/labels|\/reviews|\/statuses|\/check-runs)\b/.test(opties) &&
+      /\b(?:POST|PUT|PATCH|DELETE)\b|\s(?:-f|-F|--field|--raw-field|--input)(?:[=\s]|$)/.test(opties)) {
+    weiger("agents geven geen gate-goedkeuring, reviews of checkstatussen af; vraag Bram om review van de actuele commit.");
   }
   if (rol !== "hoofd") {
     if (/\bgit\b[^;&|]*\b(push|merge|rebase|reset\s+--hard)\b|\bgh\s+pr\s+(merge|close)\b/.test(cmd)) {

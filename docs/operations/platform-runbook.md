@@ -1,16 +1,17 @@
 # ABAS platformrunbook
 
-Bijgewerkt op 2026-10-06. Het bestaande ABAS-project is productie. Open acties staan expliciet gemarkeerd.
+Bijgewerkt op 2026-10-09. Actuele externe status en uitrolvoorbereiding staan
+in [rails-checklist](rails-checklist.md) en [review-herstel-uitrol](review-herstel-uitrol.md). Het bestaande ABAS-project is productie. Open acties staan expliciet gemarkeerd.
 
 ## Omgevingen
 
 | Onderdeel | Huidige inrichting |
 | --- | --- |
-| GitHub | Private `BramLambertJansen/ABAS`, productiebranch `main` |
+| GitHub | Public `BramLambertJansen/ABAS` (read-only vastgesteld 2026-10-09), productiebranch `main` |
 | Vercel | Project `abas`, productiealias `abas-one.vercel.app`, Node.js 24 |
 | Supabase productie | `zlyysbywrvaolpslcbid`, `eu-west-1`, Postgres 17 |
 | Lokale ontwikkeling / CI | Supabase CLI 2.118.0, Postgres 17 volgens `config.toml` (deze wijziging) |
-| Databaseversie productie | Migraties tot en met `0040`, gecontroleerd op 2026-10-05 |
+| Databaseversie productie | Migraties tot en met `0040`, gecontroleerd op 2026-10-09 |
 | Vercel functionregio | Deze PR stelt `dub1` in; pas actief in een nieuwe deployment |
 
 **Open: previews delen nu de productiedatabase.** Gebruik previews niet voor
@@ -51,15 +52,17 @@ logs. Nieuwe env-vars werken pas na een nieuwe deployment.
    `apply_migration` kan timestampversies toekennen: laat de geschiedenis
    overeenkomen met de repo. Correctie vereist een gecontroleerde mapping
    van exact dezelfde al toegepaste SQL; voer die migratie niet opnieuw uit.
-6. Merge na review en groene CI. Vercel bouwt `main` voor productie en draait
-   `check:deployment` vóór de build. Controleer deploymentstatus, build-SHA,
+6. Merge na review en groene CI. Native main-auto-deploy is in vercel.json
+   uitgezet. Gebruik de handmatige Release-workflow voor de gecontroleerde
+   main-SHA; zij draait `check:deployment` vóór de build. Controleer deploymentstatus, build-SHA,
    regio, login, producten en de bedoelde feature. Financiële smoke tests
    vereisen een afgesproken beheerhandeling.
 
 `check:deployment` leest met de server-key alleen het PostgREST OpenAPI-schema.
 Hij vereist `products.image_path`, `members.invited_auth_user_id`,
 `set_product_image`, de tweeargumentige `mark_member_invite_sent`, de drie
-financiële `*_once`-wrappers en `inspect_money_request`, met hun argumenten.
+financiële `*_once`-wrappers, `inspect_money_request` en
+`caller_session_alive`, met hun argumenten.
 Hij faalt gesloten bij ontbrekende velden/signaturen, ontbrekende env-vars,
 netwerk-/authfouten of onverwachte antwoorden. Geen datareads of RPC-calls.
 Werk het contract bij als de app nieuwe databasevereisten krijgt.
@@ -68,10 +71,11 @@ De controle bewijst geen RLS-, Auth- of data-integriteit en leest geen
 migratiegeschiedenis. CI controleert het contract tegen de echte lokale
 stack; unittests bewaken ook afwijzing van het oude schema.
 
-**Open: technisch afgedwongen merge-/releasegate.** `main` is onbeschermd;
-GitHub meldt dat branchregels voor deze private repository een betaald plan
-vereisen. De procedure is dus een afspraak. Vercel wacht niet op volledige
-GitHub CI. Maak de repository hiervoor niet openbaar.
+**Open: technisch afgedwongen merge-/releasegate.** `main` is onbeschermd
+(read-only bevestigd 2026-10-09). De repository is inmiddels public; de oude
+private-planbeperking verklaart dit niet meer. De huidige koppeling krijgt
+HTTP 403 op beheermetadata. Activeer bescherming en een aparte agentidentiteit
+volgens de rails-checklist. Release-config/environments zijn nog niet bewezen.
 
 ## Rollback
 
@@ -126,7 +130,7 @@ na zo'n geslaagde test.
 
 | Actie | Stand |
 | --- | --- |
-| Productie `0037` → `0040` | Uitgevoerd, SQL-catalogus gecontroleerd op 2026-10-05 |
+| Productie `0037` → `0040` | Uitgevoerd, SQL-catalogus gecontroleerd op 2026-10-09 |
 | Server-only, buildguard, dependency-patches, Node 24 in CI | Deze PR |
 | Next.js-projectinstelling en EU-functionregio | Projectinstelling gecorrigeerd op 2026-10-05; regio na nieuwe deployment |
 | Eigen previewdatabase | Free-aanmaak geweigerd: twee actieve projecten; geen ander project gewijzigd |
@@ -173,10 +177,10 @@ succesvolle volledige CI voor de actuele main-SHA en controleert die vlak vóór
 deploy nogmaals. Zij bouwt met productie-env-vars en deployt dezelfde artifact.
 Gebruik hiervoor ook de Vercel CLI-skill en controleer de gepinde CLI-help.
 
-Deze workflow alleen stopt de huidige native Git-auto-deploy niet. Schakel die
-pas uit nadat de alternatieve route aantoonbaar werkt, of activeer de native
-Deployment Check. Tot die activering is CI als releasevoorwaarde niet volledig
-afgedwongen; maak `main` hiervoor niet openbaar en wijzig geen betaald plan.
+De native main-auto-deploy is inmiddels uitgezet in vercel.json. Verifieer
+dit na merge in Vercel; controleer tegelijk dat de handmatige Release-route
+en bescherming van environment `production` werken. Verander visibility of
+plan niet als onderdeel van deze reparatie.
 
 ### Financiële herstelcontrole
 

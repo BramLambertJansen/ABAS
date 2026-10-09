@@ -10,6 +10,7 @@ export const REQUIRED_COLUMNS = {
   members: ["invited_auth_user_id"],
 };
 export const REQUIRED_RPCS = {
+  caller_session_alive: [],
   inspect_money_request: ["p_request_id", "p_operation", "p_payload", "p_cancel"],
   place_order_once: ["p_request_id", "p_shift_id", "p_member_id", "p_lines", "p_served_by"],
   top_up_once: ["p_request_id", "p_shift_id", "p_member_id", "p_amount_cents", "p_method", "p_served_by"],
@@ -29,7 +30,7 @@ export function validateSchema(schema) {
     const body = schema.paths?.[`/rpc/${name}`]?.post?.parameters?.find((p) => p.in === "body")?.schema;
     const definition = body?.$ref ? schema.definitions?.[body.$ref.split("/").at(-1)] : body;
     const actual = Object.keys(definition?.properties ?? {}).sort();
-    if (actual.join(",") !== [...args].sort().join(",")) problems.push(`missing or incompatible RPC ${name}`);
+    if (!schema.paths?.[`/rpc/${name}`]?.post || actual.join(",") !== [...args].sort().join(",")) problems.push(`missing or incompatible RPC ${name}`);
   }
   return problems;
 }

@@ -1,8 +1,8 @@
 name: Beveiliging
 
 # Dependency- en secretscan (ADR 0025). Adviserend tot Bram ze in branch
-# protection verplicht maakt. Geen SARIF-upload: de repo is privé zonder
-# GitHub Code Security, dus de uitkomst is de exitcode en de log.
+# protection verplicht maakt. Alleen geredigeerde metadata als artifact;
+# geen credentialwaarden of broncontext publiceren.
 on:
   pull_request:
   push:
@@ -41,4 +41,17 @@ jobs:
           docker run --rm -v "$PWD:/repo" -w /repo \
             -e GIT_CONFIG_COUNT=1 -e GIT_CONFIG_KEY_0=safe.directory -e GIT_CONFIG_VALUE_0=/repo \
             ghcr.io/betterleaks/betterleaks:v1.9.0@sha256:e3b95b0db6c2735db17165c009b0ad6d9cef34fb4578659232b98f69d7346cac \
-            git /repo --redact=100 --exit-code 1 "${opts[@]}"
+            git /repo --redact=100 --report-format=json --report-path=/repo/.betterleaks-report.json --exit-code 1 "${opts[@]}"
+      - name: Veilige scanmetadata
+        if: always()
+        run: |
+          if [ -f .betterleaks-report.json ]; then
+            jq '[.[] | {rule: .RuleID, file: .File, line: .StartLine, commit: .Commit, fingerprint: .Fingerprint}]' .betterleaks-report.json > secretscan-metadata.json
+          fi
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: secretscan-metadata
+          path: secretscan-metadata.json
+          if-no-files-found: warn
+          retention-days: 14

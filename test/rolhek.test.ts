@@ -12,6 +12,15 @@ const hook = path.join(root, ".claude/hooks/rolhek.mjs");
 type Geval = [naam: string, rol: string | null, tool: string, input: Record<string, string>, exit: 0 | 2];
 
 const gevallen: Geval[] = [
+  ["developer schrijft geen test-test", "developer", "Write", { file_path: "test/x.test.ts" }, 2],
+  ["developer schrijft geen e2e-test", "developer", "Write", { file_path: "e2e/x.test.ts" }, 2],
+  ["developer schrijft geen integration-test", "developer", "Write", { file_path: "integration/x.test.ts" }, 2],
+  ["hoofdsessie: hooksPath override", null, "Bash", { command: "git -c core.hooksPath=/dev/null commit -m x" }, 2],
+  ["hoofdsessie: hooksPath config", null, "Bash", { command: "git config core.hooksPath /dev/null" }, 2],
+  ["hoofdsessie: hooksPath lezen", null, "Bash", { command: "git config --get core.hooksPath" }, 0],
+  ["hoofdsessie: label toekennen", null, "Bash", { command: "gh pr edit 1 --add-label gate-wijziging" }, 2],
+  ["hoofdsessie: review toekennen", null, "Bash", { command: "gh api repos/a/b/pulls/1/reviews -f event=APPROVE" }, 2],
+  ["hoofdsessie: label lezen", null, "Bash", { command: "gh api repos/a/b/issues/1/labels" }, 0],
   ["developer schrijft geen gate", "developer", "Edit", { file_path: `${root}/scripts/check-rls.mjs` }, 2],
   ["developer schrijft geen pgTAP-test", "developer", "Write", { file_path: "supabase/tests/x.test.sql" }, 2],
   ["developer schrijft bron", "developer", "Edit", { file_path: `${root}/src/lib/money.ts` }, 0],

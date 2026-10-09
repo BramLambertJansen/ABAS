@@ -19,16 +19,19 @@ RPC-catalogus, de ADR's met status en de afgedwongen conventies. Dat is de
 bron, niet dit document (ADR 0025).
 
 CI draait `npm run check:all` op elke PR en moet groen zijn vóór merge; CI
-draait alleen op PR's, dus open bij de eerste push meteen een PR. De
-pre-commit hook draait `check:fast`; omzeilen kan niet en mag niet.
+draait op PR's en main; open bij de eerste push meteen een PR. De
+pre-commit hook draait `check:fast`; omzeilen mag niet. Lokale hooks zijn
+geen sandbox; onafhankelijke serverchecks blijven noodzakelijk.
 Bekende schuld staat in een ratchet: tellers mogen alleen dalen.
 
 Een PR die een gate wijzigt of een bestaande test aanpast of verwijdert
-(paden: `.claude/hooks/rolhek.lokaal.json` → gates) krijgt het label
-`gate-wijziging`; alleen Bram zet dat, ook voor de hoofdsessie. Een nieuwe
-test toevoegen mag zonder label. Het
+(paden: `.claude/hooks/rolhek.lokaal.json` → gates/testpaden) krijgt het label
+`gate-wijziging` én onafhankelijke review op de actuele head-SHA (ADR 0027);
+alleen Bram geeft dat akkoord, ook voor de hoofdsessie. Een nieuwe
+test toevoegen mag zonder dit akkoord. Het
 rolhek (`.claude/hooks/rolhek.mjs`) begrenst per rol wat een agent mag
-schrijven; de echte grens is branch protection.
+schrijven in Claude Code; Codex leest `AGENTS.md`. De echte grens vereist
+branch protection én aparte beperkte agentcredentials.
 
 Reviewwerk, geen gate: dat `served_by` tegen de bezetting gecontroleerd wordt
 bewijzen de tests in `supabase/tests/`, maar of een nieuwe geld-RPC dat ook

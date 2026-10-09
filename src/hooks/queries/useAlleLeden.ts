@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { maakRondeGuard } from "@/lib/verversen";
 import { createClient } from "@/lib/supabase/client";
 import { logLocalError, reportClientError } from "@/lib/clientErrors";
 import { loadErrorMessage } from "@/lib/loadErrors";
@@ -107,13 +108,16 @@ function errorMessageFor(err: unknown): string {
 export function useAlleLeden(): State & { refetch: () => void } {
   const [state, setState] = useState<State>({ status: "loading" });
   const [tick, setTick] = useState(0);
+  const request = useRef(maakRondeGuard());
 
   const load = useCallback(async () => {
+    const ronde = request.current.start();
     setState({ status: "loading" });
     try {
       const supabase = createClient();
       const { data, error } = await supabase.rpc("list_members_admin");
 
+      if (!request.current.isActueel(ronde)) return;
       if (error) {
         // Niet `throw error`: een PostgrestError is een plain object, geen
         // Error-instantie, dus in de catch hieronder zou `err.message`
@@ -143,6 +147,7 @@ export function useAlleLeden(): State & { refetch: () => void } {
 
       setState({ status: "ready", members });
     } catch (err) {
+      if (!request.current.isActueel(ronde)) return;
       // Alles wat hier belandt is een echte throw (createClient() zonder
       // Supabase-config, netwerkfout) — geen RPC-foutcode, die is hierboven
       // al afgehandeld. Nooit de rauwe fout tonen op een bar-tablet: loggen
@@ -158,6 +163,7 @@ export function useAlleLeden(): State & { refetch: () => void } {
 
   useEffect(() => {
     let cancelled = false;
+    const guard = request.current;
     load().catch(() => {
       if (!cancelled) {
         setState({ status: "error", message: "Onbekende fout." });
@@ -165,6 +171,7 @@ export function useAlleLeden(): State & { refetch: () => void } {
     });
     return () => {
       cancelled = true;
+      guard.annuleer();
     };
   }, [tick, load]);
 

@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { maakRondeGuard } from "@/lib/verversen";
 import { createClient } from "@/lib/supabase/client";
 import { reportClientError } from "@/lib/clientErrors";
 import { loadErrorMessage } from "@/lib/loadErrors";
@@ -28,8 +29,10 @@ type State =
 export function useAlleActiviteitTypes(): State & { refetch: () => void } {
   const [state, setState] = useState<State>({ status: "loading" });
   const [tick, setTick] = useState(0);
+  const request = useRef(maakRondeGuard());
 
   const load = useCallback(async () => {
+    const ronde = request.current.start();
     setState({ status: "loading" });
     try {
       const supabase = createClient();
@@ -39,6 +42,7 @@ export function useAlleActiviteitTypes(): State & { refetch: () => void } {
         .order("archived", { ascending: true })
         .order("name", { ascending: true });
 
+      if (!request.current.isActueel(ronde)) return;
       if (error) throw error;
 
       const activityTypes: AlleActiviteitType[] = (data ?? []).map((row) => ({
@@ -49,6 +53,7 @@ export function useAlleActiviteitTypes(): State & { refetch: () => void } {
 
       setState({ status: "ready", activityTypes });
     } catch (err) {
+      if (!request.current.isActueel(ronde)) return;
       reportClientError(createClient, "useAlleActiviteitTypes", err);
       setState({
         status: "error",
@@ -59,6 +64,7 @@ export function useAlleActiviteitTypes(): State & { refetch: () => void } {
 
   useEffect(() => {
     let cancelled = false;
+    const guard = request.current;
     load().catch(() => {
       if (!cancelled) {
         setState({ status: "error", message: "Onbekende fout." });
@@ -66,6 +72,7 @@ export function useAlleActiviteitTypes(): State & { refetch: () => void } {
     });
     return () => {
       cancelled = true;
+      guard.annuleer();
     };
   }, [tick, load]);
 

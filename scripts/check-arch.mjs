@@ -13,6 +13,7 @@ import {
   resolveSpec,
   stripComments,
   fail,
+  analyzeModule,
 } from "./lib/scan.mjs";
 
 const root = process.cwd();
@@ -20,7 +21,7 @@ const files = walk(`${root}/src`, root);
 const problems = [];
 
 // Matches the `"use client"` / `'use client'` directive, which must be the
-// first statement in a module — so anchor at the start, allowing only
+// first statement in a clientModule — so anchor at the start, allowing only
 // leading comments/whitespace before it. Checked against comment-stripped
 // source so a file that merely *mentions* the directive in a comment isn't
 // treated as one.
@@ -83,7 +84,7 @@ function isPortalOnlyFile(file) {
 }
 
 // Resolved paths, not spec text: `../supabase/client` and `@/lib/supabase/client`
-// are the same module (ADR 0025). Rules 5–6 below match on the resolved path.
+// are the same clientModule (ADR 0025). Rules 5–6 below match on the resolved path.
 const resolveSet = new Set(files);
 // Runtime imports only: a type-only import hands out no client.
 //   client/portalClient (browser clients): src/lib/, src/hooks/queries/,
@@ -95,8 +96,29 @@ const DATA_LAYER = (file) =>
   file.startsWith("src/hooks/queries/") ||
   file === "src/middleware.ts" ||
   /^src\/app\/.*\/route\.ts$/.test(file);
-const SUPABASE_MODULE_ALLOWED = (file, module) =>
-  DATA_LAYER(file) || (!/^(client|portalClient)$/.test(module) && file.startsWith("src/app/"));
+const SUPABASE_MODULE_ALLOWED = (file, clientModule) =>
+  DATA_LAYER(file) || (!/^(client|portalClient)$/.test(clientModule) && file.startsWith("src/app/"));
+
+// Volg alleen geëxporteerde clients, niet een hook die intern data ophaalt.
+// Ook `import { createClient }; export { createClient }` is een re-export.
+const browserExports = new Map();
+for (const file of files) {
+  const clientModule = /^src\/lib\/supabase\/(client|portalClient)\.ts$/.exec(file)?.[1];
+  if (clientModule) browserExports.set(file, new Set([clientModule]));
+}
+let groeit = true;
+while (groeit) {
+  groeit = false;
+  for (const file of files) {
+    for (const spec of analyzeModule(read(root, file), file).exports) {
+      const target = resolveSpec(file, spec, resolveSet);
+      for (const clientModule of browserExports.get(target) ?? []) {
+        const modules = browserExports.get(file) ?? new Set();
+        if (!modules.has(clientModule)) { modules.add(clientModule); browserExports.set(file, modules); groeit = true; }
+      }
+    }
+  }
+}
 
 for (const file of files) {
   const source = read(root, file);
@@ -104,12 +126,13 @@ for (const file of files) {
   const runtimeSpecs = new Set(importRefsOf(source, file).filter((r) => !r.typeOnly).map((r) => r.spec));
 
   for (const spec of specs) {
+    const resolved = resolveSpec(file, spec, resolveSet) ?? (spec.startsWith("@/") ? `src/${spec.slice(2)}` : "");
     // 1. Shells isolated: shells/bar must not import from shells/portal,
     //    and vice versa.
-    if (file.startsWith("src/shells/bar/") && /shells\/portal/.test(spec)) {
+    if (file.startsWith("src/shells/bar/") && resolved.startsWith("src/shells/portal/")) {
       problems.push(`${file}: imports "${spec}" — shells/bar must not import from shells/portal`);
     }
-    if (file.startsWith("src/shells/portal/") && /shells\/bar/.test(spec)) {
+    if (file.startsWith("src/shells/portal/") && resolved.startsWith("src/shells/bar/")) {
       problems.push(`${file}: imports "${spec}" — shells/portal must not import from shells/bar`);
     }
 
@@ -117,8 +140,8 @@ for (const file of files) {
     //    import a specific shell's internals.
     if (
       file.startsWith("src/features/") &&
-      /shells\/(bar|portal)/.test(spec) &&
-      !/shells\/(bar|portal)\/capabilities$/.test(spec)
+      /^src\/shells\/(bar|portal)\//.test(resolved) &&
+      !/^src\/shells\/(bar|portal)\/capabilities\.ts$/.test(resolved)
     ) {
       problems.push(`${file}: imports "${spec}" — features/ must stay shell-agnostic (use useShell(), not a shell's internals)`);
     }
@@ -135,8 +158,7 @@ for (const file of files) {
       problems.push(`${file}: imports "${spec}" directly — only src/lib/supabase/{client,server}.ts (or src/middleware.ts) may do this`);
     }
 
-    const resolved = resolveSpec(file, spec, resolveSet) ?? "";
-    const supabaseModule = /^src\/lib\/supabase\/(\w+)\.ts$/.exec(resolved)?.[1];
+    const supabaseModule = /^src\/lib\/supabase\/(\w+)(?:\.ts)?$/.exec(resolved)?.[1];
 
     // 6. The Supabase client modules are private to the data layer: features,
     //    shells and components never get a client to call .from()/.rpc() on,
@@ -144,6 +166,13 @@ for (const file of files) {
     //    (src/app/**/route.ts) are data-layer entry points too.
     if (supabaseModule && runtimeSpecs.has(spec) && !SUPABASE_MODULE_ALLOWED(file, supabaseModule)) {
       problems.push(`${file}: imports "${spec}" — src/lib/supabase/${supabaseModule} is private to the data layer (src/lib/, src/hooks/queries/; use a hook)`);
+    }
+    for (const clientModule of browserExports.get(resolved) ?? []) {
+      if (!runtimeSpecs.has(spec) || resolved === `src/lib/supabase/${clientModule}.ts`) continue;
+      if (!SUPABASE_MODULE_ALLOWED(file, clientModule)) problems.push(`${file}: imports "${spec}" — re-exported ${clientModule} is private to the data layer`);
+      if (isPortalOnlyFile(file) && clientModule === "client" || !isPortalOnlyFile(file) && file !== SHARED_AUTH_CALLBACK_FILE && clientModule === "portalClient") {
+        problems.push(`${file}: imports "${spec}" — re-export violates portal/bar cookie isolation (ADR 0009)`);
+      }
     }
 
     // 5. Portal/bar-beheer session cookie isolation — see PORTAL_ONLY_DIRS/
@@ -181,7 +210,7 @@ const SECRET_KEY_NAME = "SUPABASE_SECRET_KEY";
 const SECRET_KEY_FILE = "src/lib/supabase/admin.ts";
 // Reachability uses `marked` (the marker anywhere — `next build` fails on
 // that too); the REQUIRED_SERVER_ONLY check demands the stricter form: the
-// marker as the module's first statement, only directives (`"use strict";`)
+// marker as the clientModule's first statement, only directives (`"use strict";`)
 // before it (startsWithServerOnly, on the AST).
 
 const fileSet = new Set(files);
@@ -245,12 +274,12 @@ for (const file of files) {
       const via = chain.slice(1);
       const where =
         current === file
-          ? " (the client module itself is marked)"
+          ? " (the client clientModule itself is marked)"
           : via.length
             ? ` via ${via.join(" → ")}`
             : "";
       problems.push(
-        `${file}: reaches server-only ${current}${where} — server-only modules never enter a client bundle (ADR 0021); move shared types/rules to a separate module`
+        `${file}: reaches server-only ${current}${where} — server-only modules never enter a client bundle (ADR 0021); move shared types/rules to a separate clientModule`
       );
     }
     for (const next of infoOf(current).edges) {

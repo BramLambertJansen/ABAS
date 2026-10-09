@@ -1,9 +1,9 @@
 {
-  "$comment": "ABAS-specifieke invulling van rolhek.mjs. Regex-strings, getest tegen repo-relatieve paden met '/'. Wijzigen = gate-wijziging (label gate-wijziging). jsonGates: bestand -> sleutels die als gate gelden (alleen een wijziging in die sleutels vraagt het label).",
+  "$comment": "ABAS-specifieke invulling van rolhek.mjs. Regex-strings, getest tegen repo-relatieve paden met '/'. Wijzigen = gate-wijziging (label en onafhankelijke review op actuele SHA). jsonGates: bestand -> sleutels die als gate gelden (alleen een wijziging in die sleutels vraagt het label).",
   "gates": [
     "^scripts/check-",
+    "^scripts/lib/",
     "^scripts/kit/",
-    "^supabase/tests/",
     "^\\.github/",
     "^\\.claude/",
     "^\\.husky/",
@@ -15,7 +15,20 @@
     "^eslint-suppressions\\.json$",
     "^next\\.config\\.",
     "^vercel\\.json$",
-    "^osv-scanner\\.toml$"
+    "^osv-scanner\\.toml$",
+    "^AGENTS\\.md$",
+    "^\\.betterleaks",
+    "^\\.git(?:/|$)",
+    "^\\.gitleaks"
+  ],
+  "testpaden": [
+    "^supabase/tests/",
+    "^test/",
+    "^e2e/",
+    "^integration/"
+  ],
+  "goedkeurders": [
+    "BramLambertJansen"
   ],
   "jsonGates": {
     "package.json": [

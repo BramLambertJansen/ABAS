@@ -1,36 +1,69 @@
 name: Diff-guard
 
-# Een PR die gates of bestaande tests wijzigt, heeft het label
-# `gate-wijziging` nodig (ADR 0025). Draait opnieuw bij (de)labelen.
+# Alleen defaultbranch-code uitvoeren; PR-code blijft git-data.
 on:
-  pull_request:
+  pull_request_target:
     types: [opened, synchronize, reopened, labeled, unlabeled]
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: PR-nummer om opnieuw te controleren na een review
+        required: true
+        type: string
 
 permissions:
   contents: read
+  pull-requests: read
+  statuses: write
+
+concurrency:
+  group: diff-guard-${{ github.event.pull_request.number || inputs.pr }}
+  cancel-in-progress: true
 
 jobs:
   diff-guard:
+    if: (github.event_name == 'pull_request_target' && github.event.pull_request.base.ref == github.event.repository.default_branch) || (github.event_name == 'workflow_dispatch' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
+          ref: ${{ github.event.repository.default_branch }}
           fetch-depth: 0
-      # Script en gatelijst van de basis, zodat een PR zijn eigen bewaker niet
-      # kan afzwakken. Bestaan ze op de basis nog niet (de PR die ze invoert),
-      # dan die van de PR zelf.
-      - name: Bewaker van de basisbranch
+      - name: Lees actuele PR en reviews
+        id: pr
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number || inputs.pr }}
         run: |
-          mkdir -p "$RUNNER_TEMP/guard"
-          git show "$BASE_SHA:scripts/kit/diff-guard.mjs" > "$RUNNER_TEMP/guard/diff-guard.mjs" 2>/dev/null \
-            || cp scripts/kit/diff-guard.mjs "$RUNNER_TEMP/guard/diff-guard.mjs"
-          git show "$BASE_SHA:.claude/hooks/rolhek.lokaal.json" > "$RUNNER_TEMP/guard/gates.json" 2>/dev/null \
-            || cp .claude/hooks/rolhek.lokaal.json "$RUNNER_TEMP/guard/gates.json"
-      - name: Controleer gate-wijzigingen
+          [[ "$PR" =~ ^[1-9][0-9]*$ ]] || exit 1
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$PR" > "$RUNNER_TEMP/pr.json"
+          jq -e --arg repo "$GITHUB_REPOSITORY" '.state == "open" and .base.repo.full_name == $repo' "$RUNNER_TEMP/pr.json" > /dev/null
+          BASE_SHA=$(jq -r .base.sha "$RUNNER_TEMP/pr.json")
+          HEAD_SHA=$(jq -r .head.sha "$RUNNER_TEMP/pr.json")
+          [[ "$BASE_SHA" =~ ^[a-f0-9]{40}$ && "$HEAD_SHA" =~ ^[a-f0-9]{40}$ ]] || exit 1
+          echo "head=$HEAD_SHA" >> "$GITHUB_OUTPUT"
+          gh api "repos/$GITHUB_REPOSITORY/statuses/$HEAD_SHA" -f state=pending -f context=diff-guard -f description='Gates en review worden gecontroleerd'
+          git fetch origin "refs/pull/$PR/head"
+          gh api --paginate --slurp "repos/$GITHUB_REPOSITORY/pulls/$PR/reviews?per_page=100" | jq 'add' > "$RUNNER_TEMP/reviews.json"
+      - name: Controleer met de vertrouwde bewaker
+        id: guard
+        run: |
+          BASE_SHA=$(jq -r .base.sha "$RUNNER_TEMP/pr.json")
+          HEAD_SHA=$(jq -r .head.sha "$RUNNER_TEMP/pr.json")
+          export PR_AUTHOR=$(jq -r .user.login "$RUNNER_TEMP/pr.json")
+          export PR_LABELS=$(jq -c '[.labels[].name]' "$RUNNER_TEMP/pr.json")
+          node scripts/kit/diff-guard.mjs "$BASE_SHA" "$HEAD_SHA" .claude/hooks/rolhek.lokaal.json "$RUNNER_TEMP/reviews.json"
+      - name: Publiceer status op de gecontroleerde PR-commit
+        if: always() && steps.pr.outputs.head != ''
         env:
-          PR_LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: node "$RUNNER_TEMP/guard/diff-guard.mjs" "$BASE_SHA" "$HEAD_SHA" "$RUNNER_TEMP/guard/gates.json"
+          GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ steps.pr.outputs.head }}
+          RESULT: ${{ steps.guard.outcome }}
+        run: |
+          STATE=failure
+          DESCRIPTION='Gatewijzigingen missen onafhankelijke review of controle is mislukt'
+          if [ "$RESULT" = success ]; then
+            STATE=success
+            DESCRIPTION='Gatewijzigingen en review op deze commit gecontroleerd'
+          fi
+          gh api "repos/$GITHUB_REPOSITORY/statuses/$HEAD_SHA" -f state="$STATE" -f context=diff-guard -f description="$DESCRIPTION" -f target_url="https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"

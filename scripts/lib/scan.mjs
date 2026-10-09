@@ -81,6 +81,10 @@ export function analyzeModule(source, fileName = "module.tsx") {
 
   const sf = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, false, scriptKindOf(fileName));
   const refs = [];
+  const exports = [];
+  const importBindings = new Map();
+  const localExports = new Set();
+  const calls = [];
   let nonLiteral = false;
 
   const literal = (node) => (node && ts.isStringLiteral(node) ? node.text : null);
@@ -89,14 +93,34 @@ export function analyzeModule(source, fileName = "module.tsx") {
     if (ts.isImportDeclaration(node)) {
       const spec = literal(node.moduleSpecifier);
       if (spec !== null) refs.push({ spec, typeOnly: Boolean(node.importClause?.isTypeOnly) });
+      const clause = node.importClause;
+      if (spec !== null && clause && !clause.isTypeOnly) {
+        if (clause.name) importBindings.set(clause.name.text, spec);
+        if (clause.namedBindings && ts.isNamespaceImport(clause.namedBindings)) importBindings.set(clause.namedBindings.name.text, spec);
+        else for (const binding of clause.namedBindings?.elements ?? []) {
+          if (!binding.isTypeOnly) importBindings.set(binding.name.text, spec);
+        }
+      }
     } else if (ts.isExportDeclaration(node)) {
       const spec = literal(node.moduleSpecifier);
       if (spec !== null) refs.push({ spec, typeOnly: node.isTypeOnly });
+      if (!node.isTypeOnly) {
+        if (spec !== null && (!node.exportClause || !ts.isNamedExports(node.exportClause) || node.exportClause.elements.some((e) => !e.isTypeOnly))) exports.push(spec);
+        else if (node.exportClause && ts.isNamedExports(node.exportClause)) {
+          for (const e of node.exportClause.elements) if (!e.isTypeOnly) localExports.add((e.propertyName ?? e.name).text);
+        }
+      }
+    } else if (ts.isExportAssignment(node) && ts.isIdentifier(node.expression)) {
+      localExports.add(node.expression.text);
+    } else if (ts.isVariableStatement(node) && node.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword)) {
+      for (const decl of node.declarationList.declarations) if (decl.initializer && ts.isIdentifier(decl.initializer)) localExports.add(decl.initializer.text);
     } else if (ts.isImportEqualsDeclaration(node)) {
       if (ts.isExternalModuleReference(node.moduleReference)) {
         const spec = literal(node.moduleReference.expression);
-        if (spec !== null) refs.push({ spec, typeOnly: node.isTypeOnly });
-        else nonLiteral = true;
+        if (spec !== null) {
+          refs.push({ spec, typeOnly: node.isTypeOnly });
+          if (!node.isTypeOnly) importBindings.set(node.name.text, spec);
+        } else nonLiteral = true;
       }
     } else if (ts.isImportTypeNode(node)) {
       const arg = node.argument;
@@ -110,6 +134,14 @@ export function analyzeModule(source, fileName = "module.tsx") {
       const spec = literal(node.arguments[0]);
       if (spec !== null) refs.push({ spec, typeOnly: false });
       else nonLiteral = true;
+    }
+    if (ts.isCallExpression(node)) {
+      const expression = node.expression;
+      const receiver = ts.isPropertyAccessExpression(expression) || ts.isElementAccessExpression(expression) ? expression.expression : null;
+      const name = ts.isPropertyAccessExpression(expression) ? expression.name.text :
+        ts.isElementAccessExpression(expression) && expression.argumentExpression &&
+        (ts.isStringLiteral(expression.argumentExpression) || ts.isNoSubstitutionTemplateLiteral(expression.argumentExpression)) ? expression.argumentExpression.text : null;
+      if (name !== null) calls.push({ name, receiver: receiver?.getText(sf) });
     }
     ts.forEachChild(node, visit);
   };
@@ -131,7 +163,8 @@ export function analyzeModule(source, fileName = "module.tsx") {
     head && ts.isImportDeclaration(head) && !head.importClause && literal(head.moduleSpecifier) === "server-only"
   );
 
-  const result = { refs, nonLiteral, markedFirst };
+  for (const name of localExports) if (importBindings.has(name)) exports.push(importBindings.get(name));
+  const result = { refs, exports, calls, nonLiteral, markedFirst };
   analyses.set(key, result);
   return result;
 }

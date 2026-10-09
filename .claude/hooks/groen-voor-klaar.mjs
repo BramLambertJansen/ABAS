@@ -4,16 +4,13 @@
 // Een subagent die bestanden wijzigde, is pas klaar als `npm run check:fast`
 // groen is. Rood → {"decision":"block"} met de staart van de uitvoer als
 // reden; Claude Code begrenst dit tot 5 opeenvolgende blokkades per beurt.
-// Schone werkboom → niets te controleren (een commit ging al door de
-// pre-commit hook, die hetzelfde draait).
-import { execFileSync, spawnSync } from "node:child_process";
+// Ook een schone werkboom wordt gecontroleerd: een commit is geen bewijs
+// dat de pre-commit hook daadwerkelijk draaide.
+import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
 const inp = JSON.parse(readFileSync(0, "utf8") || "{}");
 const cwd = process.env.CLAUDE_PROJECT_DIR || inp.cwd || process.cwd();
-
-const status = execFileSync("git", ["status", "--porcelain"], { cwd, encoding: "utf8" });
-if (status.trim() === "") process.exit(0);
 
 const run = spawnSync("npm", ["run", "check:fast"], { cwd, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
 if (run.status === 0) process.exit(0);
