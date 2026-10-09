@@ -2,8 +2,16 @@
 # (ADR 0025). Werkt pas als branch protection "Require review from Code
 # Owners" aanstaat. Houd gelijk met .claude/hooks/rolhek.lokaal.json → gates.
 /scripts/check-*            @BramLambertJansen
+/scripts/lib/               @BramLambertJansen
 /scripts/kit/               @BramLambertJansen
 /supabase/tests/            @BramLambertJansen
+/test/                      @BramLambertJansen
+/e2e/                       @BramLambertJansen
+/integration/               @BramLambertJansen
+/package.json               @BramLambertJansen
+/AGENTS.md                  @BramLambertJansen
+/.gitleaks*                 @BramLambertJansen
+/.betterleaks*              @BramLambertJansen
 /.github/                   @BramLambertJansen
 /.claude/                   @BramLambertJansen
 /.husky/                    @BramLambertJansen

@@ -1,68 +1,87 @@
-# Checklist — instellingen buiten de repo (ADR 0025)
+# Checklist — instellingen buiten de repo (ADR 0025/0027)
 
 Status: **goedgekeurd**
 
-Deze instellingen zijn vanuit de clone niet te zien of te zetten. De
-vastgestelde toestand is op 2026-10-07 read-only gecontroleerd via de
-Supabase- en Vercel-koppeling. Vink af in de PR die dit bestand bijwerkt.
+Read-only gecontroleerd op 2026-10-09. Een checkbox betekent uitgevoerd en
+geverifieerd, niet alleen in git beschreven. Geen settings of productie
+gewijzigd tijdens de frameworkreparatie.
 
-## GitHub (repo → Settings)
+## GitHub
 
-- [ ] **Actions draait niet.** Sinds 2026-10-06 falen alle workflowruns na 2–3 s
-  zonder logs, ook op `main` (#182 en #183 zijn met rode CI gemerged). Controleer
-  Settings → Billing → Actions (minuten, spending limit, betaalmethode).
-- [ ] **Label** `gate-wijziging` aanmaken (Issues → Labels) en op PR #184 zetten.
-- [ ] **Branch protection / ruleset op `main`:**
-  - [ ] PR verplicht, geen directe push, geen force-push
-  - [ ] Verplichte checks: `check-all` (CI) en `diff-guard`. Later ook `osv-scanner` en `betterleaks`, zodra die groen zijn.
-  - [ ] "Require review from Code Owners". Let op: als Bram zowel eigenaar als PR-auteur is, kan GitHub hem niet als reviewer laten goedkeuren. Kies daarom voor een bypass voor de eigenaar, of laat agents PR's openen onder een eigen account.
-- [ ] **Secrets voor `release.yml`:** `VERCEL_TOKEN` (secret), `VERCEL_ORG_ID` en `VERCEL_PROJECT_ID` (variables), en een environment `production`. Productie-deploys lopen nu alleen nog via deze workflow.
-- [ ] **Dependabot alerts** aan (gratis, ook op private repo's).
+- [x] Actions werkt weer. Volledige CI op main `8346ef5` is groen:
+  [run 37834088378](https://github.com/BramLambertJansen/ABAS/actions/runs/37834088378).
+- [x] Repositorymetadata gecontroleerd: ABAS is **public**, main heeft
+  `protected: false`, rulesets zijn leeg. De oude private-repo/planbeperking
+  is geen geldige verklaring voor deze huidige inrichting.
+- [ ] Aparte agentidentiteit inrichten. Huidige koppeling is Brams adminaccount.
+  Agent: Contents en Pull requests alleen waar nodig; geen Administration,
+  Workflows, Checks of Commit statuses write. Geen ownercredentials in de
+  agentomgeving. Accountnaam en credentialpermissies daadwerkelijk verifiëren.
+- [ ] `main` beschermen volgens [main-protection.json](main-protection.json):
+  PR en actuele Code Owner-review, stale approvals intrekken, `check-all`,
+  `diff-guard`, `osv-scanner`, `betterleaks` verplicht, gesprekken oplossen,
+  geen adminbypass/force-push/deletion. Controleer GitHub Actions als bron van
+  de checks. Beperkte agentcredentials blijven nodig: dezelfde Actions-app
+  kan ook een andere workflow met een gelijknamige check produceren.
+- [ ] Settings toepassen met een bevoegde menselijke sessie. De huidige
+  GitHub-integratie krijgt HTTP 403 op de protection-/Actions-beheer-API;
+  met deze koppeling kunnen we dit niet activeren. Na verificatie van account
+  en repo kan de eigenaar uitvoeren:
+  `gh api --method PUT repos/BramLambertJansen/ABAS/branches/main/protection --input docs/operations/main-protection.json`.
+- [ ] Na merge van de vertrouwde diff-guard: label én aangewezen onafhankelijke
+  reviewer op actuele head controleren. Bram herstart de workflow op main of
+  zet het label opnieuw na review. Eerste invoering handmatig reviewen; de
+  nieuwe workflow wordt pas na merge op main actief.
+- [ ] Preview/Production-environments beschermen. Beide hadden geen
+  protection rules. Controleer de lowercase environment `production` uit
+  release.yml, beperk tot main en vereis Brams vrijgave. Geen gedeelde
+  agentcredentials met deployment-/environmentbeheerrechten.
+- [ ] Release-config controleren: VERCEL_TOKEN, VERCEL_ORG_ID,
+  VERCEL_PROJECT_ID. Secretwaarden niet exporteren. Met deze koppeling is
+  aanwezigheid/permissie van Actions-secrets niet verifieerbaar (HTTP 403).
+- [ ] `SCREENSHOTS_TOKEN` beperkt tot deze repo en Contents write; zonder
+  geschikte token veroorzaakt een workflowpush geen nieuwe CI-run.
 
-## Supabase (project `ABAS`, `zlyysbywrvaolpslcbid`)
+Diagnose: `node scripts/kit/controleer-inrichting.mjs BramLambertJansen/ABAS`.
+Deze faalt op onleesbare/ontbrekende bescherming en gedeelde adminidentiteit.
+Hij bewijst geen actieve runtimehooks, environmentbeleid of tokenpermissies;
+die controles blijven expliciet handmatig. Een ruleset naast branch protection
+kan aanvullende regels geven en vraagt afzonderlijke inspectie.
 
-Vastgesteld 2026-10-07:
+## Secretscan
 
-- Productie staat op migratie **`0040`**. `0041`, `0042` en `0043` ontbreken.
-- `place_order(uuid,uuid,jsonb,uuid)` en `top_up(uuid,uuid,integer,text,uuid)`: `authenticated` heeft EXECUTE, `anon` niet; `search_path=public`.
-- Voorwaarde-queries ADR 0023 / `docs/features/tabelrechten-api-rollen.md`:
-  1. ACL's van `storage.objects`/`storage.buckets`: `postgres=a*r*w*d*D*x*t*m*/supabase_storage_admin` (met grant option). Klopt; `m` is MAINTAIN (PG17).
-  2. `has_table_privilege('postgres','storage.objects','TRIGGER')` = `true`. Klopt.
-  3. Default ACL in `public` voor `postgres`: `anon`/`authenticated` `arwdDxtm`. Klopt; er is daarnaast een rij voor `supabase_admin`.
-  4. Drie rijen (`buckets`, `buckets_analytics`, `objects`), alle `postgres_trigger = true`. Klopt.
+- [x] Elf historische meldingen afzonderlijk geclassificeerd; alleen exacte
+  fingerprints uitgezonderd. Zie [scanmetadata](../audits/2026-10-09-secretscan.json).
+  Twee geverifieerde auditchecksums, twee synthetische URL-fixtures, zes
+  gemockte Auth-testfixtures en één documentatieverwijzing naar een testvariabele.
+- [x] Volledige opgehaalde git-history opnieuw gescand met dezelfde gepinde
+  Betterleaks 1.9.0 als CI: nul niet-uitgezonderde meldingen.
+- [ ] Beveiligingsjobs verplicht maken zodra de actuele reparatie-PR groen is.
+  CI publiceert alleen detector, pad, regel, commit en fingerprint. Geen
+  brede detector-/paduitzondering; nieuwe vindplaatsen blijven blokkeren.
 
-Te doen:
+## Supabase en Vercel
 
-- [ ] `supabase db push` voor `0041`–`0044`. Daarna de Release-workflow draaien.
-- [ ] Settings → API Keys: bevestig dat Vercel `sb_publishable_…` en `sb_secret_…` gebruikt. Daarna de legacy JWT-sleutels uitzetten. De namen in Vercel zijn al de nieuwe; de waarden zijn niet gecontroleerd (de secret is "sensitive").
-- [x] Roadmap 0.1a: `auto_expose_new_tables = false` met expliciete grants (#187, migratie 0044).
-- [ ] Na 2026-10-30: de sleutel `auto_expose_new_tables` weghalen als de CLI hem niet meer kent.
+- [x] Preflight 2026-10-09: hoogste migratie 0040; `caller_session_alive` en
+  geldwrappers ontbreken; nul open barsessies. Metadata is een momentopname.
+- [ ] Migraties 0041–0044 volgens [platformrunbook](platform-runbook.md)
+  toepassen, schema-/rechtencontrole uitvoeren en daarna release van een
+  geverifieerde main-SHA. Zie de concrete [uitrolvoorbereiding](review-herstel-uitrol.md).
+- [ ] Herstelbare backup aantonen vóór productiewrites. Bram koos eerder
+  uitsluitend voorbereiding van backupbestanden/procedure; geen automatische
+  externe backup activeren zonder nieuw besluit.
+- [ ] Preview krijgt eigen Supabase-project/branch of wordt uitgeschakeld.
+  Nieuwe previews met productie-URL falen terecht op check:deployment.
+- [ ] Na merge verifiëren dat native main-auto-deploy uit staat en een
+  handmatige release volledige succesvolle CI van exact dezelfde SHA vereist.
+- [ ] API-keytypen controleren en legacykeys pas daarna uitzetten.
+- [ ] Na 2026-10-30 CLI-support voor `auto_expose_new_tables` herbeoordelen.
 
-## Vercel (project `abas`)
+## Agent-runtimes
 
-Vastgesteld 2026-10-07:
-
-- Productie serveert `0cfbb56` (PR #173). De vijf productie-deploys sinds #162 faalden op `check:deployment` ("missing or incompatible RPC inspect_money_request; … place_order_once; … top_up_once; … create_member_once"), omdat de database op `0040` staat.
-- Elke PR-preview faalt op `check:deployment` ("preview must use a separate Supabase project"). Dat is een bestaande guard: er is geen Supabase-project voor de Vercel-omgeving Preview.
-- De Git-koppeling deployde `main` automatisch naar productie. `vercel.json` zet dat nu uit (`git.deploymentEnabled.main = false`); previews blijven.
-- SSO-bescherming staat aan op alle deployments behalve custom domains.
-
-Te doen:
-
-- [ ] Na merge van PR #184: controleer dat een push naar `main` geen productiedeploy meer start.
-- [ ] Optioneel: Deployment Checks koppelen aan de GitHub-check `check-all`.
-- [ ] Previews: een apart Supabase-project (of een Supabase-branch) aan de Vercel-omgeving Preview hangen, of previews uitzetten. Nu is elke preview rood.
-
-## Screenshots (ontwerpsysteem)
-
-Nodig zodra `docs/features/ontwerpsysteem.md` gebouwd wordt:
-
-- [ ] **`SCREENSHOTS_TOKEN`** als repository-secret: een fijnmazige toegangstoken
-  met alleen `contents: write` op deze repo. Zonder die token start de push van
-  de workflow `screenshots-bijwerken` geen nieuwe CI-run (GitHub start geen
-  workflows vanuit een push met de standaardtoken), en blijven de verplichte
-  checks op de nieuwe commit leeg.
-
-## Claude Code
-
-- [ ] Draai in een lokale sessie `/hooks` en controleer dat `rolhek` en `groen-voor-klaar` geladen zijn. Of projecthooks voor subagents in cloudsessies draaien (afhankelijk van trust), is niet geverifieerd.
+- [ ] Claude Code: lokaal `/hooks` en een geblokkeerde Developer-testwrite
+  controleren; hooks in cloudsessies/subagents zijn niet automatisch bewezen.
+- [x] Codex: AGENTS.md toegevoegd met rolverdeling, verificatie en
+  goedkeuringsgrenzen. Dit activeert geen Claude-toolhooks in Codex.
+- [ ] Starterapp: installatie op verse clone inclusief identiteit, externe
+  bescherming, lokale stack en daadwerkelijk geladen hooks bewijzen.

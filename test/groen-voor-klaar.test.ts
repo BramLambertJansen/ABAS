@@ -1,5 +1,5 @@
-// Groen vóór klaar (.claude/hooks/groen-voor-klaar.mjs, ADR 0025): schone
-// werkboom → door; vuile werkboom met rode check:fast → decision "block".
+// Groen vóór klaar (.claude/hooks/groen-voor-klaar.mjs, ADR 0025): ook een schone
+// werkboom met rode check:fast → decision "block".
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
@@ -20,10 +20,10 @@ function nepRepo(checkFast: string) {
 const draai = (dir: string) =>
   spawnSync("node", [hook], { input: JSON.stringify({ agent_type: "developer", cwd: dir }), encoding: "utf8", env: { ...process.env, CLAUDE_PROJECT_DIR: dir } });
 
-test("groen-voor-klaar: schone werkboom laat stoppen toe", () => {
+test("groen-voor-klaar: schone werkboom met rode check blokkeert", () => {
   const r = draai(nepRepo("exit 1"));
   assert.equal(r.status, 0);
-  assert.equal(r.stdout, "");
+  assert.equal(JSON.parse(r.stdout).decision, "block");
 });
 
 test("groen-voor-klaar: rode check:fast blokkeert met reden", () => {

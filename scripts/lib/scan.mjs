@@ -81,22 +81,69 @@ export function analyzeModule(source, fileName = "module.tsx") {
 
   const sf = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, false, scriptKindOf(fileName));
   const refs = [];
+  const exports = [];
+  const importBindings = new Map();
+  const aliases = new Map();
+  const localExports = new Set();
+  const topLevel = new Set(sf.statements);
+  const calls = [];
   let nonLiteral = false;
 
   const literal = (node) => (node && ts.isStringLiteral(node) ? node.text : null);
+  // Statische waarde-aliases: namespace.property, namespace["property"] en
+  // lokale aliasketens. Calls/functies volgen we niet: een hook die intern
+  // data ophaalt is geen export van de client-factory.
+  const bindingRoot = (expression) => {
+    if (!expression) return null;
+    if (ts.isIdentifier(expression)) return expression.text;
+    if (ts.isPropertyAccessExpression(expression) || ts.isElementAccessExpression(expression) ||
+        ts.isParenthesizedExpression(expression) || ts.isAsExpression(expression) ||
+        ts.isTypeAssertionExpression(expression) || ts.isNonNullExpression(expression) || ts.isSatisfiesExpression(expression)) {
+      return bindingRoot(expression.expression);
+    }
+    return null;
+  };
+  const bindingNames = (name) => ts.isIdentifier(name) ? [name.text] :
+    name.elements.filter(ts.isBindingElement).flatMap((element) => bindingNames(element.name));
 
   const visit = (node) => {
     if (ts.isImportDeclaration(node)) {
       const spec = literal(node.moduleSpecifier);
       if (spec !== null) refs.push({ spec, typeOnly: Boolean(node.importClause?.isTypeOnly) });
+      const clause = node.importClause;
+      if (spec !== null && clause && !clause.isTypeOnly) {
+        if (clause.name) importBindings.set(clause.name.text, spec);
+        if (clause.namedBindings && ts.isNamespaceImport(clause.namedBindings)) importBindings.set(clause.namedBindings.name.text, spec);
+        else for (const binding of clause.namedBindings?.elements ?? []) {
+          if (!binding.isTypeOnly) importBindings.set(binding.name.text, spec);
+        }
+      }
     } else if (ts.isExportDeclaration(node)) {
       const spec = literal(node.moduleSpecifier);
       if (spec !== null) refs.push({ spec, typeOnly: node.isTypeOnly });
+      if (!node.isTypeOnly) {
+        if (spec !== null && (!node.exportClause || !ts.isNamedExports(node.exportClause) || node.exportClause.elements.some((e) => !e.isTypeOnly))) exports.push(spec);
+        else if (node.exportClause && ts.isNamedExports(node.exportClause)) {
+          for (const e of node.exportClause.elements) if (!e.isTypeOnly) localExports.add((e.propertyName ?? e.name).text);
+        }
+      }
+    } else if (ts.isExportAssignment(node)) {
+      const root = bindingRoot(node.expression);
+      if (root) localExports.add(root);
+    } else if (ts.isVariableStatement(node) && topLevel.has(node)) {
+      for (const decl of node.declarationList.declarations) {
+        const root = bindingRoot(decl.initializer);
+        if (!root) continue;
+        for (const name of bindingNames(decl.name)) aliases.set(name, root);
+        if (node.modifiers?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword)) localExports.add(root);
+      }
     } else if (ts.isImportEqualsDeclaration(node)) {
       if (ts.isExternalModuleReference(node.moduleReference)) {
         const spec = literal(node.moduleReference.expression);
-        if (spec !== null) refs.push({ spec, typeOnly: node.isTypeOnly });
-        else nonLiteral = true;
+        if (spec !== null) {
+          refs.push({ spec, typeOnly: node.isTypeOnly });
+          if (!node.isTypeOnly) importBindings.set(node.name.text, spec);
+        } else nonLiteral = true;
       }
     } else if (ts.isImportTypeNode(node)) {
       const arg = node.argument;
@@ -110,6 +157,14 @@ export function analyzeModule(source, fileName = "module.tsx") {
       const spec = literal(node.arguments[0]);
       if (spec !== null) refs.push({ spec, typeOnly: false });
       else nonLiteral = true;
+    }
+    if (ts.isCallExpression(node)) {
+      const expression = node.expression;
+      const receiver = ts.isPropertyAccessExpression(expression) || ts.isElementAccessExpression(expression) ? expression.expression : null;
+      const name = ts.isPropertyAccessExpression(expression) ? expression.name.text :
+        ts.isElementAccessExpression(expression) && expression.argumentExpression &&
+        (ts.isStringLiteral(expression.argumentExpression) || ts.isNoSubstitutionTemplateLiteral(expression.argumentExpression)) ? expression.argumentExpression.text : null;
+      if (name !== null) calls.push({ name, receiver: receiver?.getText(sf) });
     }
     ts.forEachChild(node, visit);
   };
@@ -131,7 +186,16 @@ export function analyzeModule(source, fileName = "module.tsx") {
     head && ts.isImportDeclaration(head) && !head.importClause && literal(head.moduleSpecifier) === "server-only"
   );
 
-  const result = { refs, nonLiteral, markedFirst };
+  const specOf = (name, seen = new Set()) => {
+    if (seen.has(name)) return null;
+    seen.add(name);
+    return importBindings.get(name) ?? (aliases.has(name) ? specOf(aliases.get(name), seen) : null);
+  };
+  for (const name of localExports) {
+    const spec = specOf(name);
+    if (spec) exports.push(spec);
+  }
+  const result = { refs, exports, calls, nonLiteral, markedFirst };
   analyses.set(key, result);
   return result;
 }

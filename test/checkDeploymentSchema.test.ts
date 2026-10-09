@@ -60,3 +60,9 @@ test("preview cannot reach production and production cannot build with a staging
   await assert.rejects(checkDeploymentSchema({ ...env, VERCEL_ENV: "production" }, never), /production Supabase/);
   await checkDeploymentSchema({ ...env, VERCEL_ENV: "preview" }, async () => new Response(JSON.stringify(schema())));
 });
+
+test("deployment contract rejects missing no-argument session guard", () => {
+  const bad = schema();
+  delete (bad.paths as Record<string, unknown>)["/rpc/caller_session_alive"];
+  assert.match(validateSchema(bad).join(";"), /caller_session_alive/);
+});
