@@ -91,13 +91,24 @@ if (tool === "Bash") {
   // Alleen als echt argument van git commit/push of als env-prefix, niet als tekst in een string.
   const zonderStrings = cmd.replace(/'[^']*'|"(?:[^"\\]|\\.)*"/g, "''");
   const opties = cmd.replace(/["']/g, "");
+  // Een leesuitzondering geldt alleen binnen hetzelfde shellsegment. Een
+  // -c override blijft altijd verboden, ook naast een toegestane config-read.
+  const segmenten = opties.split(/[;&|\n]/);
+  const hookOverride = /\bgit\b[^;&|\n]*\s-c\s*core\.hooksPath\s*=/i.test(opties);
+  const hookConfigWrite = segmenten.some((segment) =>
+    /\bgit\b[^;&|\n]*\bconfig\b[^;&|\n]*\bcore\.hooksPath\b/i.test(segment) &&
+    !/^\s*git(?:\s+-C\s+\S+)?\s+config\s+(?:(?:--global|--local|--system|--worktree)\s+)*--(?:get|get-all|get-regexp)(?:\s+(?:--global|--local|--system|--worktree))*\s+(?:--\s+)?core\.hooksPath\s*$/i.test(segment),
+  );
   if (/(^|[\s;&|])(?:export\s+)?HUSKY=0(?:\s|$)|\bgit\b[^;&|\n]*\b(commit|push|merge)\b[^;&|\n]*\s(--no-verify|-n)(\s|$)/.test(zonderStrings) ||
-      /\bgit\b[^;&|\n]*\s-c\s*core\.hooksPath\s*=|\bgit\s+config\b[^;&|\n]*\bcore\.hooksPath\b/.test(opties) && !/\bgit\s+config\s+--(?:get|get-all|get-regexp)\b/.test(opties)) {
+      hookOverride || hookConfigWrite) {
     weiger("de pre-commit hook (check:fast) omzeilen mag niet. Maak check:fast groen.");
   }
   // Een label is een menselijke handeling; ook de hoofdsessie keurt zichzelf
   // niet goed. De servercontrole vereist daarnaast een review op de exacte SHA.
-  if (/\bgh\s+(pr|issue)\s+edit\b[^;&|\n]*--(?:add|remove)-label\b[^;&|\n]*\bgate-wijziging\b/.test(opties) ||
+  const reviewBeslissing = segmenten.some((segment) =>
+    /\bgh\s+pr\s+review\b/.test(segment) && !/^\s*gh\s+pr\s+review\s+(?:--help|-h)\s*$/.test(segment),
+  );
+  if (reviewBeslissing || /\bgh\s+(pr|issue)\s+edit\b[^;&|\n]*--(?:add|remove)-label\b[^;&|\n]*\bgate-wijziging\b/.test(opties) ||
       /\bgh\s+api\b[^;&|\n]*(?:\/labels|\/reviews|\/statuses|\/check-runs)\b/.test(opties) &&
       /\b(?:POST|PUT|PATCH|DELETE)\b|\s(?:-f|-F|--field|--raw-field|--input)(?:[=\s]|$)/.test(opties)) {
     weiger("agents geven geen gate-goedkeuring, reviews of checkstatussen af; vraag Bram om review van de actuele commit.");

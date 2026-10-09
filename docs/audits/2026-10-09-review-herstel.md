@@ -15,7 +15,7 @@ Opdracht: het reviewrapport verwerken. Geen merge of productiemutatie.
 | F8 oude leesresultaten | Bestaande rondeguard in zeven kwetsbare hooks, inclusief succes/fout/unmount | Geen |
 | F9 scan rood | Elf geclassificeerde historische fingerprints; geredigeerde metadata in CI | Actuele beveiligingsjobs verplicht maken na groene scan |
 
-## Verificatie
+## Verificatie eerste herstelversie
 
 - `check:fast`: 1.033 tests, nul fouten/skips; lint, typechecks en alle snelle
   gates groen. Next-productiebuild lokaal geslaagd.
@@ -27,8 +27,29 @@ Opdracht: het reviewrapport verwerken. Geen merge of productiemutatie.
 - Betterleaks 1.9.0, identieke CI-image/digest: volledige opgehaalde history
   heeft nul niet-uitgezonderde meldingen. Geen secretwaarden gepubliceerd.
   Details: [scanmetadata](2026-10-09-secretscan.json).
-- Volledige database-/Auth-/browserverificatie volgt in CI op de PR-commit;
-  de bestaande groene main-run geldt niet als bewijs voor deze wijzigingen.
+- Volledige database-/Auth-/browserverificatie geslaagd op herstelcommit
+  `5ee1553a4b7e7078f993c7a1084e2ca1b4d04913` in
+  [CI](https://github.com/BramLambertJansen/ABAS/actions/runs/37898063285).
+  Deze run geldt niet als bewijs voor volgende commits.
+
+## Aanvullende reparaties uit de zelfreview
+
+- De vertrouwde workflow accepteert uitsluitend open PR's naar de
+  defaultbranch van deze repository, ook bij handmatige runs. Een andere
+  basisbranch kan geen status op dezelfde head publiceren.
+- `core.hooksPath`-overrides worden onafhankelijk geweigerd; toegestane
+  config-reads stellen geen ander shellsegment vrij.
+- `gh pr review` is geblokkeerd, inclusief interactieve reviews en korte
+  flags. De uitzondering voor help geldt uitsluitend voor het helpcommando.
+- Exportanalyse volgt namespace-properties, bracketnotatie, destructuring
+  en lokale aliasketens, zodat browserclient- en cookiegrenzen blijven gelden.
+
+Regressies voeren de echte workflow-shellblokken uit tegen tijdelijke
+commitbomen, testen hookpayloads zonder mutaties en testen exports in
+geïsoleerde bronbomen. Normale datahooks blijven toegestaan. De volledige
+PR-CI wordt opnieuw op de reparatiecommit uitgevoerd; controleer de actuele
+PR-head en checks bij review. Lokaal zijn `check:fast` (1.079 tests, nul
+fouten/skips), de eerdere omzeilingsproeven en actionlint geslaagd.
 
 ## Nog noodzakelijk
 

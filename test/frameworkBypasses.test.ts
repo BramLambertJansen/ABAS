@@ -22,7 +22,7 @@ test("relatieve imports respecteren shell- en featuregrenzen", () => {
   });
   assert.equal(result.status, 1); assert.match(result.stderr, /shells\/bar must not import/); assert.match(result.stderr, /features\/ must stay shell-agnostic/);
 });
-for (const bridge of ['export { createClient } from "./supabase/client";', 'import { createClient as client } from "./supabase/client"; export { client };', 'import client = require("./supabase/client"); export { client };']) {
+for (const bridge of ['export { createClient } from "./supabase/client";', 'import { createClient as client } from "./supabase/client"; export { client };', 'import client = require("./supabase/client"); export { client };', "import * as clients from \"./supabase/client\"; export const createClient = clients.createClient;", "import * as clients from \"./supabase/client\"; export const createClient = clients[\"createClient\"];", "import * as clients from \"./supabase/client\"; export default clients[`createClient`];", "import * as clients from \"./supabase/client\"; const factory = (clients.createClient as typeof clients.createClient); const alias = factory; export { alias };", "import * as clients from \"./supabase/client\"; const { createClient } = clients; export { createClient };", "import clients = require(\"./supabase/client\"); export const createClient = clients.createClient;"]) {
   test(`client-re-export blijft privé: ${bridge}`, () => {
     const result = check("check-arch", {
       "src/lib/supabase/client.ts": "export const createClient = () => 1;", "src/lib/bridge.ts": bridge,

@@ -34,10 +34,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.pull_request.number || inputs.pr }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
           [[ "$PR" =~ ^[1-9][0-9]*$ ]] || exit 1
           gh api "repos/$GITHUB_REPOSITORY/pulls/$PR" > "$RUNNER_TEMP/pr.json"
-          jq -e --arg repo "$GITHUB_REPOSITORY" '.state == "open" and .base.repo.full_name == $repo' "$RUNNER_TEMP/pr.json" > /dev/null
+          jq -e --arg repo "$GITHUB_REPOSITORY" --arg branch "$DEFAULT_BRANCH" '.state == "open" and .base.repo.full_name == $repo and .base.ref == $branch' "$RUNNER_TEMP/pr.json" > /dev/null
           BASE_SHA=$(jq -r .base.sha "$RUNNER_TEMP/pr.json")
           HEAD_SHA=$(jq -r .head.sha "$RUNNER_TEMP/pr.json")
           [[ "$BASE_SHA" =~ ^[a-f0-9]{40}$ && "$HEAD_SHA" =~ ^[a-f0-9]{40}$ ]] || exit 1

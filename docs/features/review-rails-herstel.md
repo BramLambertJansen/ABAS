@@ -2,7 +2,8 @@
 
 Status: **goedgekeurd**
 
-Bram: "Oke verwerk het review rapport" (2026-10-09).
+Bram: "Oke verwerk het review rapport" (2026-10-09). Na de zelfreview gaf
+Bram opdracht de vier resterende bevindingen te repareren: "repareer het".
 
 ## Doel
 
@@ -39,6 +40,10 @@ loggen. Review op oude SHA, self-review, dismissal en changes-requested
 geven geen gate-akkoord. Label alleen is onvoldoende. Een API-403 is een
 onverifieerbare inrichting, geen goedkeuring. Secretscanuitzonderingen gelden
 uitsluitend voor afzonderlijk geclassificeerde historische fingerprints.
+Een handmatige workflow mag uitsluitend PR's naar de defaultbranch
+beoordelen, vóór enige statuspublicatie. Lees-/helpuitzonderingen gelden
+alleen voor het betreffende commando. Namespace-property-exports blijven
+onder dezelfde client- en cookiegrenzen vallen.
 
 ## Testplan
 

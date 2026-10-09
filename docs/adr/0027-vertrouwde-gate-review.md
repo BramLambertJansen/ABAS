@@ -15,7 +15,9 @@ Bram gaf opdracht het reviewrapport te verwerken.
 1. De diff-guard draait met `pull_request_target` uitsluitend code en config
    van de defaultbranch. PR-code wordt alleen als git-data gelezen, nooit
    uitgecheckt of uitgevoerd. Het resultaat wordt op de gecontroleerde
-   PR-head gepubliceerd als commitstatus `diff-guard`.
+   PR-head gepubliceerd als commitstatus `diff-guard`. Ook bij een handmatige
+   run moet de opgehaalde PR de defaultbranch als basis hebben; een PR naar
+   een andere branch krijgt geen status op zijn head.
 2. Gatewijzigingen en wijzigingen/verwijderingen/renames van bestaande tests
    vragen zowel `gate-wijziging` als een `APPROVED` review van een aangewezen
    reviewer op de exacte head-SHA. De auteur kan zichzelf niet goedkeuren.
