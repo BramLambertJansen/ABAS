@@ -227,3 +227,75 @@ test("regressie (5): JSX in een .tsx-bestand verhindert het tellen niet", () => 
   const tekst = `const el = <div className="x">hoi</div>;\n` + UITGEZET;
   assert.deepEqual(analyseerBestand("e2e/x.spec.tsx", tekst), { sleutels: ["e2e/x.spec.tsx uitgezet:image-alt"], problemen: [] });
 });
+
+// --- regressie: geciteerde sleutels en aliassen (review) --------------------
+
+const ALIAS = "roep scanAxe alleen direct aan (geen alias of string-index)";
+
+test("regressie (a): geciteerde sleutels `\"uitgezet\"` en `'overslaan'` worden geteld", () => {
+  const tekst =
+    scan(`{ "uitgezet": [{ regel: "image-alt", reden: "x" }] }`) +
+    scan(`{ 'overslaan': [{ selector: "img", reden: "x" }] }`) +
+    scan(`{ uitgezet: [{ "regel": "region", "reden": "x" }] }`);
+  assert.deepEqual(analyseerBestand(PAD, tekst), {
+    sleutels: [`${PAD} uitgezet:image-alt`, `${PAD} overslaan:img`, `${PAD} uitgezet:region`],
+    problemen: [],
+  });
+});
+
+test("regressie (a): een geciteerde sleutel met een niet-letterlijke waarde faalt", () => {
+  const r = analyseerBestand(PAD, scan(`{ "uitgezet": lijst }`));
+  assert.deepEqual(r.sleutels, []);
+  assert.equal(r.problemen.length, 1);
+  assert.ok(r.problemen[0]?.startsWith(`${PAD}:1: ${LETTERLIJK}`));
+});
+
+test("regressie (a): geciteerde `\"binnen\"` en `\"bestPractice\"` tellen niet", () => {
+  assert.deepEqual(analyseerBestand(PAD, scan(`{ "binnen": "main", "bestPractice": true }`)), { sleutels: [], problemen: [] });
+});
+
+const ALIASSEN: { naam: string; tekst: string }[] = [
+  { naam: "alias `const s = scanAxe; s(…)`", tekst: `const s = scanAxe;\nawait s(page, { uitgezet: [{ regel: "image-alt", reden: "x" }] });\n` },
+  { naam: "string-index `h[\"scanAxe\"](…)`", tekst: `await h["scanAxe"](page, { uitgezet: [{ regel: "image-alt", reden: "x" }] });\n` },
+  { naam: "string-index met template `h[`scanAxe`](…)`", tekst: "await h[`scanAxe`](page, opties);\n" },
+  { naam: "alias van `h.scanAxe`", tekst: `const s = h.scanAxe;\n` },
+  { naam: "scanAxe als argument", tekst: `await herhaal(scanAxe, page);\n` },
+  { naam: "scanAxe in een object (shorthand)", tekst: `const helpers = { scanAxe };\n` },
+  { naam: "scanAxe in een object (waarde)", tekst: `const helpers = { scan: scanAxe };\n` },
+  {
+    naam: "alias van een hernoemde import",
+    tekst: `import { scanAxe as scan } from "./helpers/scanAxe";\nconst s = scan;\n`,
+  },
+];
+
+for (const g of ALIASSEN) {
+  test(`regressie (b): ${g.naam} geeft de alias-melding`, () => {
+    const r = analyseerBestand(PAD, g.tekst);
+    assert.ok(
+      r.problemen.some((p) => /^e2e\/voorbeeld\.spec\.ts:\d+: /.test(p) && p.includes(ALIAS)),
+      `geen alias-melding: ${JSON.stringify(r.problemen)}`,
+    );
+  });
+}
+
+test("regressie (b): de alias-melding draagt pad en regelnummer", () => {
+  const r = analyseerBestand(PAD, `// regel 1\nconst s = scanAxe;\n`);
+  assert.deepEqual(r.problemen, [`${PAD}:2: ${ALIAS}, zodat check:axe uitzonderingen kan tellen`]);
+});
+
+test("regressie (b): directe aanroep, import, hernoemde import en `x.scanAxe(…)` geven geen alias-melding", () => {
+  const tekst =
+    `import { scanAxe } from "./helpers/scanAxe";\n` +
+    `import { scanAxe as scan } from "./helpers/scanAxe";\n` +
+    `await scanAxe(page);\n` +
+    `await scan(page);\n` +
+    `await helpers.scanAxe(page);\n`;
+  assert.deepEqual(analyseerBestand(PAD, tekst), { sleutels: [], problemen: [] });
+});
+
+test("regressie (b): een alias in een run faalt ook via draai()", () => {
+  const dir = boom({ [PAD]: `const s = scanAxe;\n` }, []);
+  const problemen = draai(dir);
+  assert.equal(problemen.length, 1);
+  assert.ok(problemen[0]?.includes(ALIAS));
+});

@@ -18,9 +18,12 @@ const SOORTEN = { uitgezet: "regel", overslaan: "selector" };
 
 const isTekst = (n) => ts.isStringLiteral(n) || ts.isNoSubstitutionTemplateLiteral(n);
 
+/** De naam van een sleutel (`a`, `"a"`, `'a'`); `undefined` voor een berekende sleutel. */
+const sleutelNaam = (naam) => (ts.isIdentifier(naam) || ts.isStringLiteral(naam) || ts.isNumericLiteral(naam) ? naam.text : undefined);
+
 function eigenschap(obj, naam) {
   for (const p of obj.properties) {
-    if (ts.isPropertyAssignment(p) && !ts.isComputedPropertyName(p.name) && p.name.getText() === naam) return p.initializer;
+    if (ts.isPropertyAssignment(p) && sleutelNaam(p.name) === naam) return p.initializer;
   }
   return undefined;
 }
@@ -50,14 +53,29 @@ export function analyseerBestand(pad, tekst) {
   const isScanAxe = (callee) =>
     (ts.isIdentifier(callee) && namen.has(callee.text)) || (ts.isPropertyAccessExpression(callee) && callee.name.text === "scanAxe");
 
+  const regelVan = (node) => bron.getLineAndCharacterOfPosition(node.getStart(bron)).line + 1;
+  const alleenAanroepen = (node) =>
+    problemen.push(`${pad}:${regelVan(node)}: roep scanAxe alleen direct aan (geen alias of string-index), zodat check:axe uitzonderingen kan tellen`);
+
   const bezoek = (node) => {
+    // Een alias (`const s = scanAxe`) of `h["scanAxe"]` zou de telling ontlopen.
+    if (ts.isIdentifier(node) && namen.has(node.text)) {
+      const ouder = node.parent;
+      const toegestaan =
+        (ts.isCallExpression(ouder) && ouder.expression === node) ||
+        ts.isImportSpecifier(ouder) ||
+        ts.isTypeQueryNode(ouder) ||
+        (ts.isPropertyAccessExpression(ouder) && ouder.name === node && ts.isCallExpression(ouder.parent) && ouder.parent.expression === ouder);
+      if (!toegestaan) alleenAanroepen(node);
+    }
+    if (ts.isElementAccessExpression(node) && isTekst(node.argumentExpression) && node.argumentExpression.text === "scanAxe") alleenAanroepen(node);
     if (ts.isCallExpression(node) && isScanAxe(node.expression)) {
       const opties = node.arguments[1];
       if (opties !== undefined) {
         if (!ts.isObjectLiteralExpression(opties)) letterlijk(opties);
         else {
           // Alleen `naam: waarde`: geen spread, shorthand, getter, methode of berekende sleutel.
-          if (opties.properties.some((p) => !ts.isPropertyAssignment(p) || ts.isComputedPropertyName(p.name))) letterlijk(opties);
+          if (opties.properties.some((p) => !ts.isPropertyAssignment(p) || sleutelNaam(p.name) === undefined)) letterlijk(opties);
           for (const [soort, veld] of Object.entries(SOORTEN)) {
             const lijst = eigenschap(opties, soort);
             if (lijst === undefined) continue;
