@@ -1,6 +1,18 @@
 # scanAxe: één ingang voor de axe-scan (WCAG 2.2 AA)
 
-Status: **goedgekeurd**
+Status: **gebouwd**
+
+Gebouwd in #206 (2026-10-09). 68 scans gaan via `scanAxe`, 0 overtredingen
+met de strenge set, één uitzondering in de beginstand. Afwijkend van of
+aanvullend op het ontwerp hieronder:
+
+- `check:axe` telt ook geciteerde sleutels (`"uitgezet": [...]`) en weigert
+  een alias (`const s = scanAxe`) en een string-index (`h["scanAxe"]`):
+  `scanAxe` mag alleen direct aangeroepen worden. `typeof scanAxe` mag wel.
+- `check:axe` scant onder `e2e/` alle `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`,
+  `.cjs`, `.mts` en `.cts`-bestanden.
+- `axe-core` staat als expliciete devDependency in `package.json`
+  (`^4.13.0`), naast `@axe-core/playwright`.
 
 Roadmap fase 3, stap 5 (`docs/ROADMAP-rails.md`): "`scanAxe(page)` met
 `wcag22aa` als enige ingang (lintverbod op losse `AxeBuilder`)". ADR 0025

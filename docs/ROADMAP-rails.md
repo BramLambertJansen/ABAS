@@ -58,7 +58,7 @@ beveiligingsscans, productie alleen via release.
    - Niet gebouwd: `Tegel` (5 plekken) en de optierijen (10), bewust eigen markup met een reden-commentaar. Een eigen spec volgt als dat nodig blijkt.
    - Screenshotvergelijking per scherm niet uitgevoerd (`docs/features/knop.md` → Tests).
 4. `<AsyncInhoud>` op de leesvorm uit fase 2, plus een copycatalogus `src/copy/nl.ts` met een woordenlijsttest.
-5. `scanAxe(page)` met `wcag22aa` als enige ingang (lintverbod op losse `AxeBuilder`).
+5. `scanAxe(page)` met `wcag22aa` als enige ingang (lintverbod op losse `AxeBuilder`). **Gebouwd (#206).** 68 scans via `scanAxe` met WCAG 2.2 AA, 0 overtredingen met de strenge set; `check:axe` telt de uitzonderingen (1, [spec](features/scan-axe.md)).
 6. `/design/systeem` (dev-only) met `toHaveScreenshot`-baselines en `check:catalogus`. **Gebouwd (#200, #201).** Pagina onder de `/design`-poort, baselines via de workflow `screenshots-bijwerken`; uitzonderingen hebben een code ([spec](features/ontwerpsysteem-uitzonderingen.md)), de lijst daalde van 13 naar 4 (#202, #203): alleen `data` (geldflow) blijft; de rest staat als voorbeeld per staat of in een los venster.
 7. Een focusgate: `outline-none` alleen samen met `focus-visible:ring-*`.
 
