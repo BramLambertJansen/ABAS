@@ -15,10 +15,11 @@ export const GATES = [
   { script: "check:migrations", snel: true, bewaakt: "migratienamen NNNN_naam.sql, uniek nummer; append-only: een bestaande migratie wijzigen of verwijderen faalt" },
   { script: "check:adr", snel: true, bewaakt: "ADR-namen NNNN-naam.md, uniek nummer" },
   { script: "check:catalogus", snel: true, bewaakt: "elke component staat als voorbeeld in /design/systeem, in een los venster, of is een uitzondering met een code (context, data, schermvullend, staten); de uitzonderingslijst staat in de ratchet en mag alleen krimpen" },
+  { script: "check:axe", snel: true, bewaakt: "axe-uitzonderingen (`uitgezet`/`overslaan` in `scanAxe`) letterlijk, met reden, en niet meer dan `.kit/baseline.json` → axe-uitzondering" },
   { script: "check:docs", snel: true, bewaakt: "statuswoord van ADR's en specs (voorstel|goedgekeurd|gebouwd|vervallen); goedgekeurde specs hebben 'Hergebruik & UX-patronen'; backtick-identifiers in CLAUDE.md, .claude/agents, .claude/rules en skills bestaan in de repo; gateregister = check:all; elk component een README-rij; specs zonder status in de ratchet (.kit/baseline.json)" },
   { script: "check:deployment", snel: false, bewaakt: "RPC-signaturen en kolommen die de app gebruikt bestaan in de database (read-only contractcheck)" },
   { script: "build", snel: false, bewaakt: "next build slaagt" },
-  { script: "check:a11y", snel: false, bewaakt: "WCAG-AA via axe-core op elk shell-entrypoint (Playwright)" },
+  { script: "check:a11y", snel: false, bewaakt: "WCAG 2.2 AA via `scanAxe` (axe-core, Playwright) op elk gescand scherm; lint verbiedt losse `AxeBuilder`" },
   { script: "db:test", snel: false, bewaakt: "pgTAP tegen een echte database: de negatieve tests; rpc_catalogus (elke public-functie client/server/intern met passende rechten, client-RPC via require_*-guard of reden, search_path op elke security definer); rls_leespolicies (allowlist, caller_session_alive())" },
   { script: "test:integration", snel: false, bewaakt: "koppel- en sessiegedrag tegen de echte GoTrue (amr uit maillinks, wissen bij koppelen, token van beëindigde sessie leest niets, cron sluit verweesde bar-sessies), geldverzoeken" },
 ];

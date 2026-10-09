@@ -1,5 +1,5 @@
 import { test, expect, type Page, type Locator } from "@playwright/test";
-import AxeBuilder from "@axe-core/playwright";
+import { scanAxe } from "./helpers/scanAxe";
 import { json } from "./helpers/supabaseMock";
 import { reviewFixture, REVIEW_PRODUCT, REVIEW_MEMBER } from "./helpers/frontendReview";
 
@@ -292,6 +292,5 @@ test("gedeelde patronen: AA-scan portal Account", async ({ page }) => {
   await reviewFixture(page, "portal");
   await page.getByRole("tab", { name: "Account", exact: true }).click();
   await expect(page.getByRole("button", { name: /^Naam wijzigen/ })).toBeVisible();
-  const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
-  expect(results.violations).toEqual([]);
+  await scanAxe(page);
 });

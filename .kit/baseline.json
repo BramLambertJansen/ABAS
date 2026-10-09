@@ -67,5 +67,8 @@
     "GeldActieHerstel",
     "GeldActieHerstelInhoud",
     "OnbekendeUitkomstMelding"
+  ],
+  "axe-uitzondering": [
+    "e2e/dialogen-tabs-landmarks.spec.ts uitgezet:color-contrast"
   ]
 }

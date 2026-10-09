@@ -1,6 +1,6 @@
 # scanAxe: één ingang voor de axe-scan (WCAG 2.2 AA)
 
-Status: **voorstel**
+Status: **goedgekeurd**
 
 Roadmap fase 3, stap 5 (`docs/ROADMAP-rails.md`): "`scanAxe(page)` met
 `wcag22aa` als enige ingang (lintverbod op losse `AxeBuilder`)". ADR 0025

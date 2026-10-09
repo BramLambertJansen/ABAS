@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import AxeBuilder from "@axe-core/playwright";
+import { scanAxe } from "./helpers/scanAxe";
 import {
   USER,
   alertOf,
@@ -58,8 +58,7 @@ test("Nieuw lid: verloren antwoord blijft na herladen met dezelfde sleutel herst
   expect(notice).not.toBeNull();
   expect(navigation).not.toBeNull();
   expect(notice!.y + notice!.height).toBeLessThanOrEqual(navigation!.y);
-  const scan = await new AxeBuilder({ page }).include('[aria-label="Eerdere geldacties"]').analyze();
-  expect(scan.violations).toEqual([]);
+  await scanAxe(page, { binnen: '[aria-label="Eerdere geldacties"]', bestPractice: true });
   await recovery.focus();
   await expect(recovery).toBeFocused();
   await page.screenshot({ path: process.env.ABAS_REVIEW_SCREENSHOT ?? test.info().outputPath("financial-recovery.png") });
@@ -196,8 +195,7 @@ test("Product beheren: a11y-scan in pending-toestand", async ({ page }) => {
   await dialog.getByLabel("Nieuwe prijs").fill("2,75");
   await dialog.getByRole("button", { name: "Opslaan", exact: true }).click();
   await expect(dialog).toHaveAttribute("aria-busy", "true");
-  const resultaat = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
-  expect(resultaat.violations).toEqual([]);
+  await scanAxe(page);
   vast.laatDoor();
 });
 

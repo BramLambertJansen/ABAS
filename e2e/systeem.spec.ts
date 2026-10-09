@@ -1,7 +1,7 @@
 // kit: generiek
 import { readFileSync } from "node:fs";
 import { test, expect, type Locator, type Page } from "@playwright/test";
-import AxeBuilder from "@axe-core/playwright";
+import { scanAxe } from "./helpers/scanAxe";
 
 /**
  * Het ontwerpsysteem als pagina (docs/features/ontwerpsysteem.md → Playwright):
@@ -31,8 +31,6 @@ const SECTIE = "[data-systeem]";
 const BRUIKBARE_KNOP = 'button:not([disabled]):not([aria-disabled="true"])';
 const FOCUSBAAR =
   'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
-
-const AXE_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 
 async function openPagina(page: Page) {
   await page.goto(cfg.route);
@@ -114,10 +112,7 @@ test("focus: per sectie met een focusbaar element een screenshot na Tab (focus-v
 
 test("axe: de hele pagina heeft 0 violations (WCAG 2.2 AA)", async ({ page }) => {
   await openPagina(page);
-  const results = await new AxeBuilder({ page })
-    .withTags(AXE_TAGS)
-    .analyze();
-  expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
+  await scanAxe(page);
 });
 
 test("zonder inloggegevens geeft de pagina 401", async ({ playwright, baseURL }) => {
@@ -164,8 +159,7 @@ for (const [id] of VENSTERS) {
     await openVenster(page, id);
     await expect(page.locator("main"), `venster ${id}: niet precies één main`).toHaveCount(1);
     await expect(page.locator("h1"), `venster ${id}: niet precies één h1`).toHaveCount(1);
-    const results = await new AxeBuilder({ page }).withTags(AXE_TAGS).analyze();
-    expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
+    await scanAxe(page);
     await page.evaluate(() => document.fonts.ready);
     await expect(page).toHaveScreenshot(`venster-${id}.png`);
   });

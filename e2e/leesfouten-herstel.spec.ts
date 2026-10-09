@@ -1,5 +1,5 @@
 import { test, expect, type Locator, type Page, type Route } from "@playwright/test";
-import AxeBuilder from "@axe-core/playwright";
+import { scanAxe } from "./helpers/scanAxe";
 import {
   SUPABASE_HEADERS,
   USER,
@@ -37,8 +37,7 @@ async function antwoord(route: Route, modus: Modus, body: unknown) {
 }
 
 async function axeSchoon(page: Page) {
-  const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
-  expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
+  await scanAxe(page);
 }
 
 /** De focus staat nooit op `body` na een herstelstap. */

@@ -1,5 +1,5 @@
 import { test, expect, type Page, type Route } from "@playwright/test";
-import AxeBuilder from "@axe-core/playwright";
+import { scanAxe } from "./helpers/scanAxe";
 import {
   USER,
   fakeSession,
@@ -97,11 +97,10 @@ async function scrollLock(page: Page) {
 
 /** Open een dialoog-onafhankelijke axe-scan met de tags uit de spec. */
 async function axeScan(page: Page) {
-  const results = await new AxeBuilder({ page })
-    .withTags(["wcag2a", "wcag2aa", "best-practice"])
-    .disableRules(["color-contrast"]) // gemeten door e2e/a11y.spec.ts
-    .analyze();
-  expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
+  await scanAxe(page, {
+    bestPractice: true,
+    uitgezet: [{ regel: "color-contrast", reden: "contrast meet e2e/a11y.spec.ts al op dezelfde schermen" }],
+  });
 }
 
 /** Tabs: precies één tabstop, aria-controls alleen naar bestaande id's. */

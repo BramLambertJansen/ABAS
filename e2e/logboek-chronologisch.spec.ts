@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import AxeBuilder from "@axe-core/playwright";
+import { scanAxe } from "./helpers/scanAxe";
 import {
   USER,
   alertOf,
@@ -145,8 +145,7 @@ async function openLogboek(page: Page) {
 }
 
 async function axeSchoon(page: Page) {
-  const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
-  expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
+  await scanAxe(page);
 }
 
 const REGELS = "section li";
@@ -317,7 +316,7 @@ test.describe("Logboek: chronologisch en eerlijk over de reikwijdte", () => {
     await expect(page.locator(REGELS)).toHaveCount(1);
   });
 
-  test("a11y: dagkoppen en terugdraairij hebben geen WCAG2A/AA-schendingen", async ({ page }) => {
+  test("a11y: dagkoppen en terugdraairij hebben geen WCAG 2.2 AA-schendingen", async ({ page }) => {
     await mockBeheer(page, {
       orders: [
         order("o1", "2026-09-29T12:00:00Z", { order_reversals: { order_id: "o1" } }),

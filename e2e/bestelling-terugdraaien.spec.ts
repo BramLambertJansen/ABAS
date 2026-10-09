@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import AxeBuilder from "@axe-core/playwright";
+import { scanAxe } from "./helpers/scanAxe";
 import {
   USER,
   alertOf,
@@ -112,8 +112,7 @@ test("terugdraaien in beheer: alleen order-id en reden gaan mee, met bevestiging
     dialog.getByText("Terugdraaien zet € 7,50 terug op het saldo van Anna de Vries.")
   ).toBeVisible();
 
-  const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
-  expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
+  await scanAxe(page);
 
   await dialog.getByRole("button", { name: "terugdraaien", exact: true }).click();
 

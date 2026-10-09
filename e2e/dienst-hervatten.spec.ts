@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-import AxeBuilder from "@axe-core/playwright";
+import { scanAxe } from "./helpers/scanAxe";
 import { USER, fakeSession, json, loginMetWachtwoord, mockBarSessie } from "./helpers/supabaseMock";
 
 /**
@@ -68,8 +68,7 @@ test("een bezettinglid ziet bij een wees-dienst uitleg en knop, en hervat", asyn
   const knop = page.getByRole("button", { name: "Dienst hervatten", exact: true });
   await expect(knop).toBeVisible();
 
-  const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();
-  expect(results.violations, JSON.stringify(results.violations, null, 2)).toEqual([]);
+  await scanAxe(page);
 
   await knop.click();
 

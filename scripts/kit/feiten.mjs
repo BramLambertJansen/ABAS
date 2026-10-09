@@ -53,6 +53,7 @@ if (!deel || deel === "conventies") {
   uit.push(`- ADR: \`docs/adr/NNNN-naam.md\`. Volgende vrije nummer: ${String(Number(adrs.at(-1).slice(0, 4)) + 1).padStart(4, "0")}.`);
   uit.push("- Statuswoorden voor ADR's en specs: voorstel | goedgekeurd | gebouwd | vervallen (eerste regel `Status: **woord**`).");
   uit.push("- Spec: `docs/features/<naam>.md`, sjabloon via de skill /spec.");
+  uit.push("- A11y-scan: alleen `scanAxe(page)` uit `e2e/helpers/scanAxe.ts` (lint); uitzonderingen met reden, geteld door `check:axe`.");
   uit.push("- Gate- of testwijziging: PR-label `gate-wijziging` (Bram).");
   if (existsSync(path.join(root, ".kit/baseline.json"))) uit.push("- Ratchet-baseline: `.kit/baseline.json` (alleen dalen; `npm run ratchet:update` na een daling).");
 }
