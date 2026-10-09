@@ -34,8 +34,9 @@ Bram gaf opdracht het reviewrapport te verwerken.
 
 ## Gevolgen en grenzen
 
-De eerste invoering moet Bram zelf reviewen: de oude workflow beoordeelt
-nog deze PR. Een PR aangemaakt onder Brams account kan Bram niet zelf
+De eerste invoering moet Bram zelf reviewen: de nieuwe vertrouwde workflow
+is pas na merge op main actief. Gewone PR-CI test de code, maar bewijst geen
+actieve vertrouwde diff-guard op deze eerste PR. Een PR aangemaakt onder Brams account kan Bram niet zelf
 approven. Een afzonderlijke author-identiteit moet eerst ingericht worden;
 geen eigenaarbypass toevoegen om dat te omzeilen.
 

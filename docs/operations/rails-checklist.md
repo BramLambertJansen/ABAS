@@ -31,7 +31,7 @@ gewijzigd tijdens de frameworkreparatie.
 - [ ] Na merge van de vertrouwde diff-guard: label én aangewezen onafhankelijke
   reviewer op actuele head controleren. Bram herstart de workflow op main of
   zet het label opnieuw na review. Eerste invoering handmatig reviewen; de
-  oude defaultbranch-workflow controleert de reparatie-PR nog.
+  nieuwe workflow wordt pas na merge op main actief.
 - [ ] Preview/Production-environments beschermen. Beide hadden geen
   protection rules. Controleer de lowercase environment `production` uit
   release.yml, beperk tot main en vereis Brams vrijgave. Geen gedeelde

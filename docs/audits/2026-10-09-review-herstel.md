@@ -17,7 +17,8 @@ Opdracht: het reviewrapport verwerken. Geen merge of productiemutatie.
 
 ## Verificatie
 
-- `check:fast` en Next-productiebuild lokaal gecontroleerd.
+- `check:fast`: 1.033 tests, nul fouten/skips; lint, typechecks en alle snelle
+  gates groen. Next-productiebuild lokaal geslaagd.
 - Gerichte regressies: alle vier testmappen, Unicode/rename/delete-diffs,
   review-SHA/self-review/dismissal, shelloverrides, imports/re-exports en
   bracket-/variabelequeries. Echte zeven query-hooks met gecontroleerde
