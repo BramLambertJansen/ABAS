@@ -146,23 +146,18 @@ See issue [#4](https://github.com/BramLambertJansen/ABAS/issues/4).
   implementations of the three static gates, wired into `npm run check:all`
   and `.github/workflows/ci.yml`.
 
-**WCAG-AA-gate (settled, 2026-08-26)**: `check:a11y` (`playwright test`) runs
-`e2e/a11y.spec.ts` — an `@axe-core/playwright` scan (`wcag2a` + `wcag2aa`
-tags) against every shell's entry route (`/`, `/portal`), asserting zero
-violations. Wired into `npm run check:all` (after `check:rls`, before
-`db:test`) and `.github/workflows/ci.yml` (which runs
-`npx playwright install --with-deps chromium` first — CI has no browser
-pre-installed). `eslint.config.mjs` also extends `plugin:jsx-a11y/recommended`
-(on top of the smaller warn-only subset `eslint-config-next` already ships),
-and `npm run lint` now fails on any warning (`next lint --max-warnings=0`),
-not just errors — that's what turns jsx-a11y findings into a real gate
-instead of an ignorable warning. This is the gate CLAUDE.md flagged as
-missing ("de eerste taak van de Architect-agent bij de eerste echte
-sessie" — see issue
-[#1](https://github.com/BramLambertJansen/ABAS/issues/1)); CLAUDE.md's
-Verificatie table has been updated accordingly and the "doesn't exist yet"
-paragraph removed, per its own "wat een gate kan afdwingen staat hier niet"
-rule.
+**WCAG 2.2 AA-gate (settled 2026-08-26, scanAxe since #206)**: `check:a11y`
+(`playwright test`, CI) runs every axe scan in `e2e/` through one entry,
+`scanAxe(page)` in `e2e/helpers/scanAxe.ts`, with a fixed tag set (`wcag2a`,
+`wcag2aa`, `wcag21a`, `wcag21aa`, `wcag22aa` — together WCAG 2.2 AA;
+best-practice can be added, the set can never shrink) and zero violations
+allowed. Lint forbids any other import of `@axe-core/playwright` or
+`axe-core`. Disabling a rule or skipping a region needs a literal reason, and
+`check:axe` (`scripts/kit/axe.mjs`, in `check:fast`) counts those exceptions
+against `.kit/baseline.json` → `axe-uitzondering` (ratchet). Design and
+gaps: `docs/features/scan-axe.md`. `eslint.config.mjs` also extends
+`jsx-a11y`, and `npm run lint` fails on any warning. Focus order and keyboard
+stay review work (`.claude/agents/reviewer.md`).
 - Running this gate against the as-built scaffold caught a real finding, not
   a hypothetical one: `--color-muted` (`@theme` in `src/app/globals.css`), taken verbatim
   from the prototype's inline styles, was 3.37:1 on `canvas` at 14px/normal —
